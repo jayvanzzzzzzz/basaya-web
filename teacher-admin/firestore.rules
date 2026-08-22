@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function teacher() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    function ownsClass(classId) {
+      return teacher() && get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && userId == request.auth.uid;
+      // Students can read only their own record. Account administration belongs to the super-admin app.
+      allow read: if teacher() || (signedIn() && userId == request.auth.uid);
+      allow write: if false;
+    }
+    match /classes/{classId} {
+      allow create: if teacher() && request.resource.data.teacherId == request.auth.uid;
+      allow read, update, delete: if ownsClass(classId);
+      match /students/{studentId} { allow read: if ownsClass(classId); allow write: if false; }
+    }
+    match /lessons/{lessonId} {
+      allow read: if teacher();
+      allow create: if teacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if teacher() && resource.data.teacherId == request.auth.uid;
+    }
+    match /classLessons/{linkId} {
+      allow read: if teacher() && resource.data.teacherId == request.auth.uid;
+      allow create: if teacher() && request.resource.data.teacherId == request.auth.uid && ownsClass(request.resource.data.classId);
+      allow delete: if teacher() && resource.data.teacherId == request.auth.uid;
+      allow update: if false;
+    }
+    match /progress/{progressId} { allow read: if teacher() && resource.data.teacherId == request.auth.uid; allow write: if false; }
+  }
+}
