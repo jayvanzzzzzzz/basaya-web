@@ -721,7 +721,7 @@ code {
   font-size: 0.81rem;
 }
 .section-title {
-  margin: 2rem 0 1rem;
+  margin: 0rem 0 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1178,4 +1178,11 @@ code {
     flex: 1;
   }
 }
-```
+
+#link-form .check-list {
+  max-height: 26rem;
+}
+
+#link-form .section-title {
+  margin-top: 0;
+}

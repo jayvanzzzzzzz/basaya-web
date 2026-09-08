@@ -1,4 +1,4 @@
-# LessonDesk teacher portal
+# BaSaya teacher portal
 
 A no-build teacher web app using Firebase Authentication and Cloud Firestore. It deliberately excludes teacher-account management; create those accounts in your future main-admin app, then give each user document `role: "teacher"`.
 
