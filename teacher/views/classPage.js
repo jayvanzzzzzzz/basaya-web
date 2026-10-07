@@ -7,9 +7,9 @@ import {
   query,
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "./firebase.js";
-import { state } from "./state.js";
-import { $, escapeHtml, toast, navigate, page, openModal } from "./helpers.js";
+import { db } from "../../js/firebase.js";
+import { state } from "../../js/state.js";
+import { $, escapeHtml, toast, navigate, page, openModal } from "../../js/helpers.js";
 import { openClassModal } from "./dashboard.js";
 
 export async function renderClass(classId) {

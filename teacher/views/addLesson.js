@@ -6,9 +6,9 @@ import {
   getDocs,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "./firebase.js";
-import { state, getAllLessons } from "./state.js";
-import { $, escapeHtml, toast, navigate, page, empty } from "./helpers.js";
+import { db } from "../../js/firebase.js";
+import { state, getAllLessons } from "../../js/state.js";
+import { $, escapeHtml, toast, navigate, page, empty } from "../../js/helpers.js";
 import { openLessonModal } from "./lessons.js";
 
 export async function renderAddLessonPage(classId) {
@@ -38,7 +38,13 @@ export async function renderAddLessonPage(classId) {
         <div class="check-list">${state.allLessons
           .map((l) => {
             const already = linkedIds.has(l.id);
-            return `<label${already ? ' style="opacity:.55;pointer-events:none;cursor:not-allowed"' : ""}><input type="checkbox" name="lesson" value="${l.id}" ${already ? "checked disabled" : ""} /><span><strong>${escapeHtml(l.title)}</strong><br><small class="muted">${escapeHtml(l.activityType || "Aralin")} · Antas: ${escapeHtml(l.difficulty || "Any level")}${already ? " · Already in this class" : ""}</small></span></label>`;
+            return `<div class="check-list-row">
+              <label${already ? ' style="opacity:.55;pointer-events:none;cursor:not-allowed"' : ""}>
+                <input type="checkbox" name="lesson" value="${l.id}" ${already ? "checked disabled" : ""} />
+                <span><strong>${escapeHtml(l.title)}</strong><br><small class="muted">${escapeHtml(l.activityType || "Aralin")} · Antas: ${escapeHtml(l.difficulty || "Any level")}${already ? " · Already in this class" : ""}</small></span>
+              </label>
+              <button type="button" class="text-button" data-view="${l.id}">View</button>
+            </div>`;
           })
           .join("")}</div>
         <div class="modal-actions"><button class="button primary" type="submit">Add selected</button></div>
@@ -56,6 +62,16 @@ export async function renderAddLessonPage(classId) {
   $("#page-content .empty .button")?.addEventListener("click", () =>
     openLessonModal(),
   );
+
+  // "View" button per lesson row — opens the same lesson modal,
+  // pre-filled with that lesson's details.
+  document.querySelectorAll("[data-view]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const lesson = state.allLessons.find((l) => l.id === btn.dataset.view);
+      if (lesson) openLessonModal(lesson);
+    }),
+  );
+
   $("#link-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const ids = new FormData(e.currentTarget)

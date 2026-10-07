@@ -5,10 +5,10 @@ import {
   updateDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "./firebase.js";
-import { state, getTeacherLessons } from "./state.js";
-import { $, $$, escapeHtml, toast, page, empty, openModal } from "./helpers.js";
-import { renderRoute } from "./router.js";
+import { db } from "../../js/firebase.js";
+import { state, getTeacherLessons } from "../../js/state.js";
+import { $, $$, escapeHtml, toast, page, empty, openModal } from "../../js/helpers.js";
+import { renderRoute } from "../router.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const MAX_PAGES = 10;

@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Teacher administration portal" />
-    <title>LessonDesk — Teacher Portal</title>
+    <title>BaSaya — Teacher Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="../styles.css" />
   </head>
   <body>
     <div id="loading-screen" class="loading-screen">
@@ -19,64 +19,34 @@
       <p>Loading teacher portal…</p>
     </div>
 
-    <main id="login-view" class="auth-layout" hidden>
-      <section class="auth-copy">
-        <a class="brand" href="#/dashboard"
-          ><span class="brand-mark">B</span> BaSaya</a
-        >
-        <div>
-          <p class="eyebrow">Teacher portal</p>
-          <h1>Make every lesson count.</h1>
-          <p class="lede">
-            Build classes, prepare learning activities, and stay close to
-            student progress.
-          </p>
-        </div>
-        <p class="auth-note">
-          Access is reserved for approved teacher accounts.
-        </p>
-      </section>
-      <section class="auth-panel">
-        <form id="login-form" class="form-card">
-          <div>
-            <p class="eyebrow">Welcome back</p>
-            <h2>Sign in to teach</h2>
-          </div>
-          <label
-            >Email<input
-              id="email"
-              type="email"
-              autocomplete="email"
-              required
-              placeholder="teacher@school.edu"
-          /></label>
-          <label
-            >Password<input
-              id="password"
-              type="password"
-              autocomplete="current-password"
-              required
-              placeholder="Your password"
-          /></label>
-          <p id="login-error" class="form-error" role="alert"></p>
-          <button class="button primary" type="submit">
-            Sign in <span>→</span>
-          </button>
-        </form>
-      </section>
-    </main>
-
     <div id="app-view" class="app-shell" hidden>
       <aside class="sidebar">
-        <a class="brand" href="#/dashboard"
-          ><span class="brand-mark">B</span> LessonDesk</a
-        >
-        <nav class="main-nav" aria-label="Main navigation">
-          <a href="#/dashboard" data-nav="dashboard"><span>◫</span> Classes</a>
-          <a href="#/lessons" data-nav="lessons"
-            ><span>▤</span> Lesson library</a
-          >
+        <a class="brand" href="#/dashboard">
+          <img src="../img/logo.png" alt="BaSaya" class="brand-logo" />
+          BaSaya
+        </a>
+        <nav class="main-nav main-nav--admin" aria-label="Main navigation">
+          <a href="#/dashboard" data-nav="dashboard">
+            <span>◫</span>
+            <span class="nav-item-text">
+              <strong>Classes</strong>
+              <small>View and Organize</small>
+            </span>
+          </a>
+          <a href="#/lessons" data-nav="lessons">
+            <span>▤</span>
+            <span class="nav-item-text">
+              <strong>Lesson library</strong>
+              <small>Create and Assign</small>
+            </span>
+          </a>
         </nav>
+
+        <div id="teacher-stats" class="code-stub code-stub--sidebar">
+          <span class="code-stub__label">At a glance</span>
+          <span id="teacher-stats-text">—</span>
+        </div>
+
         <div class="sidebar-bottom">
           <div id="teacher-summary" class="teacher-summary"></div>
           <button id="logout-button" class="text-button">Sign out</button>

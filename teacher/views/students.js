@@ -4,9 +4,9 @@ import {
   getDoc,
   getDocs,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "./firebase.js";
-import { state } from "./state.js";
-import { $, escapeHtml, navigate, page } from "./helpers.js";
+import { db } from "../../js/firebase.js";
+import { state } from "../../js/state.js";
+import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
 
 export async function renderStudentsPage(classId) {
   const classDoc = await getDoc(doc(db, "classes", classId));

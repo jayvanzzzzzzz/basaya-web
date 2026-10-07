@@ -12,6 +12,8 @@ export const state = {
   classes: [],
   lessons: [],
   allLessons: [],
+  teachers: [],
+  allClasses: [],
 };
 
 export async function getTeacherClasses() {
@@ -46,4 +48,20 @@ export async function getAllLessons() {
         (b.updatedAt?.seconds || b.createdAt?.seconds || 0) -
         (a.updatedAt?.seconds || a.createdAt?.seconds || 0),
     );
+}
+
+// Admin: every teacher account.
+export async function getAllTeachers() {
+  const snapshot = await getDocs(
+    query(collection(db, "users"), where("role", "==", "teacher")),
+  );
+  state.teachers = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Admin: every class across every teacher.
+export async function getAllClasses() {
+  const snapshot = await getDocs(collection(db, "classes"));
+  state.allClasses = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 }

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BaSaya sign in" />
+    <title>BaSaya — Sign in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="loading-screen" class="loading-screen loading-screen--dark">
+      <div class="loader-punch"><span></span><span></span><span></span></div>
+      <p>Checking your account…</p>
+    </div>
+
+    <main id="login-view" class="auth-layout" hidden>
+      <div class="auth-shell">
+        <section class="auth-copy">
+          <a class="brand" href="#">
+            <img src="img/logo.png" alt="BaSaya" class="brand-logo" />
+            BaSaya
+          </a>
+          <div class="auth-hero">
+            <div class="hero-card" aria-hidden="true">
+              <span class="hero-card__tape"></span>
+              <h3>Grade 7 – Rizal</h3>
+              <p>Araling Tagalog, ika-2 markahan</p>
+              <div class="hero-card__stub">
+                <span>Class code</span>
+                <code>7F3K9Q</code>
+              </div>
+            </div>
+            <h1>Make every lesson fun.</h1>
+            <span class="heading-rule"></span>
+            <p class="lede">
+              Sign in to manage classes, lessons, and student progress.
+            </p>
+          </div>
+        </section>
+        <section class="auth-panel">
+          <form id="login-form" class="form-card">
+            <h2>Sign in</h2>
+            <label
+              >Email<input
+                id="email"
+                type="email"
+                autocomplete="email"
+                required
+                placeholder="you@email.com"
+            /></label>
+            <label
+              >Password<input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                required
+                placeholder="Your password"
+            /></label>
+            <p id="login-error" class="form-error" role="alert"></p>
+            <button class="button primary" type="submit">Sign in</button>
+          </form>
+          <p class="auth-note-inline">
+            Access is reserved for approved teacher and admin accounts. If you
+            don't have an account yet, contact the school admin.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <script type="module">
+      const loading = document.getElementById("loading-screen");
+      const showStartupError = (message) => {
+        if (loading.hidden) return;
+        loading.innerHTML = `<p style="max-width:30rem"><strong>We couldn’t verify your account.</strong><br><br>${message}<br><br>Open your browser’s <strong>F12 → Console</strong> tab and send the red error message to your developer.</p>`;
+      };
+      setTimeout(
+        () =>
+          showStartupError(
+            "Firebase is taking too long to respond. Check your internet connection, then reload the page.",
+          ),
+        12000,
+      );
+      import("./js/login.js").catch((error) => {
+        console.error("Login startup failed:", error);
+        showStartupError(error.message || "The Firebase SDK could not load.");
+      });
+    </script>
+  </body>
+</html>

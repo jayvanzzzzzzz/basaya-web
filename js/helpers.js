@@ -30,9 +30,9 @@ export function navigate(path) {
   location.hash = path;
 }
 
-export function displayName() {
+export function displayName(fallback = "Teacher") {
   return (
-    state.profile?.displayName || state.user?.email?.split("@")[0] || "Teacher"
+    state.profile?.displayName || state.user?.email?.split("@")[0] || fallback
   );
 }
 
@@ -56,11 +56,10 @@ export function currentRoute() {
   return location.hash.slice(1) || "/dashboard";
 }
 
-export function shell() {
-  $("#login-view").hidden = true;
+export function shell(summaryId = "teacher-summary", fallbackName = "Teacher") {
   $("#app-view").hidden = false;
-  $("#teacher-summary").innerHTML =
-    `<strong>${escapeHtml(displayName())}</strong><span>${escapeHtml(state.user.email)}</span>`;
+  $(`#${summaryId}`).innerHTML =
+    `<strong>${escapeHtml(displayName(fallbackName))}</strong><span>${escapeHtml(state.user.email)}</span>`;
 }
 
 export function page(title, subtitle, actions = "") {

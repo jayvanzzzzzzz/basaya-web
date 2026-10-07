@@ -1,14 +1,27 @@
-import { $, currentRoute, navigate, shell, empty } from "./helpers.js";
-import { state, getTeacherLessons, getAllLessons } from "./state.js";
-import { renderDashboard } from "./dashboard.js";
-import { renderLibrary } from "./lessons.js";
-import { renderClass } from "./classPage.js";
-import { renderAddLessonPage } from "./addLesson.js";
-import { renderStudentsPage } from "./students.js";
+import { $, currentRoute, navigate, shell, empty } from "../js/helpers.js";
+import { state, getTeacherLessons, getAllLessons, getTeacherClasses } from "../js/state.js";
+import { renderDashboard } from "./views/dashboard.js";
+import { renderLibrary } from "./views/lessons.js";
+import { renderClass } from "./views/classPage.js";
+import { renderAddLessonPage } from "./views/addLesson.js";
+import { renderStudentsPage } from "./views/students.js";
+
+let statsLoaded = false;
+
+async function loadSidebarStats() {
+  if (statsLoaded) return;
+  statsLoaded = true;
+  await Promise.all([getTeacherClasses(), getTeacherLessons()]);
+  const el = $("#teacher-stats-text");
+  if (el) {
+    el.textContent = `${state.classes.length} classes · ${state.lessons.length} lessons`;
+  }
+}
 
 export async function renderRoute() {
   if (!state.user) return;
   shell();
+  loadSidebarStats(); // fire-and-forget, doesn't block page render
   const route = currentRoute();
   document
     .querySelectorAll("[data-nav]")
