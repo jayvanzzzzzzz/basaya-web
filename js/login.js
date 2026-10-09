@@ -51,7 +51,7 @@ function startCarousel() {
   }
   carouselTimer = window.setInterval(() => {
     showCarouselSlide(carouselIndex + 1);
-  }, 2000);
+  }, 2500);
 }
 
 if (carousel && carouselSlides.length) {

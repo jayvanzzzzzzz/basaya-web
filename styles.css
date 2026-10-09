@@ -522,6 +522,109 @@ code {
     radial-gradient(circle at 85% 15%, rgba(37, 99, 235, 0.25), transparent 55%),
     var(--cover);
 }
+.auth-book-drift {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.48;
+}
+.auth-book-drift__book {
+  position: absolute;
+  width: clamp(2.8rem, 5vw, 4.4rem);
+  height: auto;
+  fill: rgba(105, 167, 223, 0.05);
+  stroke: rgba(175, 211, 243, 0.2);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  filter: drop-shadow(0 8px 18px rgba(4, 12, 27, 0.12));
+  animation: authBookDrift 19s ease-in-out infinite;
+}
+.auth-book-drift__book--one {
+  top: 45%;
+  left: 2%;
+  transform: rotate(-13deg);
+}
+.auth-book-drift__book--two {
+  top: 47%;
+  right: 2%;
+  width: clamp(2.4rem, 4vw, 3.5rem);
+  opacity: 0.7;
+  animation-delay: -5s;
+}
+.auth-book-drift__book--three {
+  bottom: 9%;
+  left: 5%;
+  width: clamp(2.2rem, 3.7vw, 3.2rem);
+  opacity: 0.62;
+  animation-delay: -10s;
+}
+.auth-book-drift__book--four {
+  right: 6%;
+  bottom: 8%;
+  width: clamp(2.6rem, 4.2vw, 3.8rem);
+  opacity: 0.48;
+  animation-delay: -14s;
+}
+.auth-book-drift__pen {
+  position: absolute;
+  top: 13%;
+  right: 29%;
+  width: clamp(2.1rem, 3.4vw, 3rem);
+  height: auto;
+  fill: rgba(242, 190, 104, 0.035);
+  stroke: rgba(211, 204, 181, 0.2);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  filter: drop-shadow(0 8px 18px rgba(4, 12, 27, 0.12));
+  animation: authPenDrift 17s ease-in-out -4s infinite;
+}
+@keyframes authPenDrift {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 26deg;
+  }
+  50% {
+    translate: 0 -10px;
+    rotate: 34deg;
+  }
+}
+@keyframes authBookDrift {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: -4deg;
+  }
+  50% {
+    translate: 0 -12px;
+    rotate: 3deg;
+  }
+}
+@media (max-width: 760px) {
+  .auth-book-drift {
+    opacity: 0.35;
+  }
+
+  .auth-book-drift__book {
+    opacity: 0.55;
+  }
+
+  .auth-book-drift__book--three,
+  .auth-book-drift__book--four {
+    display: none;
+  }
+
+  .auth-book-drift__pen {
+    top: 7%;
+    right: 9%;
+    width: 2rem;
+  }
+}
 .auth-shell {
   width: 100%;
   max-width: 72rem;
@@ -563,6 +666,26 @@ code {
 .auth-copy .brand-logo {
   width: 6.45rem;
   height: 6.45rem;
+  transform-origin: 50% 85%;
+}
+.auth-copy .brand:hover .brand-logo,
+.auth-copy .brand:focus-visible .brand-logo {
+  animation: loginMascotWave 700ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+@keyframes loginMascotWave {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1);
+  }
+  28% {
+    transform: translateY(-0.45rem) rotate(-7deg) scale(1.04);
+  }
+  55% {
+    transform: translateY(-0.2rem) rotate(5deg) scale(1.025);
+  }
+  78% {
+    transform: translateY(-0.3rem) rotate(-3deg) scale(1.02);
+  }
 }
 
 /* Sidebar brand lockup, 2x bigger — scoped only to the sidebar */
@@ -4569,11 +4692,11 @@ code {
   gap: 1.4rem;
   opacity: 0;
   visibility: hidden;
-  transform: translateX(1rem) scale(0.99);
+  transform: translateY(0.4rem) scale(0.99);
   transition:
-    opacity 420ms ease,
-    transform 520ms cubic-bezier(0.2, 0.75, 0.25, 1),
-    visibility 420ms;
+    opacity 760ms ease-in-out,
+    transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    visibility 760ms;
 }
 
 .auth-carousel__slide.is-active {
@@ -4994,6 +5117,19 @@ code {
   display: grid;
   justify-items: center;
   gap: 1.1rem;
+  animation: authLoginFade 850ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: 180ms;
+}
+
+@keyframes authLoginFade {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .auth-panel .form-card {
   width: min(100%, 24rem);
