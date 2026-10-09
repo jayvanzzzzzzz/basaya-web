@@ -24,10 +24,70 @@ import {
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
+const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
+const MAX_AUDIO_GENERATIONS_PER_SENTENCE = 5;
 const previews = new WeakMap();
+
+function lessonDifficultyMeta(level = "") {
+  const value = String(level).trim().toLowerCase();
+
+  if (value.includes("malalim")) {
+    return {
+      label: "Advanced",
+      className: "difficulty--advanced",
+      accent: "#7c3aed",
+    };
+  }
+
+  if (value.includes("masusing")) {
+    return {
+      label: "Intermediate",
+      className: "difficulty--intermediate",
+      accent: "#f59e0b",
+    };
+  }
+
+  return {
+    label: "Beginner",
+    className: "difficulty--beginner",
+    accent: "#16a34a",
+  };
+}
+
+let activeLessonFilter = "all";
+let activeLessonSearch = "";
+
+function closeLessonMenus() {
+  document.querySelectorAll(".admin-lesson-menu-popup").forEach((menu) => {
+    menu.hidden = true;
+    menu
+      .closest(".admin-lesson-menu")
+      ?.querySelector(".admin-lesson-menu-toggle")
+      ?.setAttribute("aria-expanded", "false");
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (
+    event.target instanceof Element &&
+    !event.target.closest(".admin-lesson-menu")
+  ) {
+    closeLessonMenus();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeLessonMenus();
+});
 
 export async function renderLessons() {
   await getAllLessons();
+
+  const lessons = [...state.allLessons].sort((a, b) => {
+    const left = Number(a.order ?? Number.MAX_SAFE_INTEGER);
+    const right = Number(b.order ?? Number.MAX_SAFE_INTEGER);
+    return left - right;
+  });
 
   page(
     "Lessons",
@@ -35,52 +95,251 @@ export async function renderLessons() {
     '<button class="button primary" id="add-lesson">+ Add lesson</button>',
   );
 
-  $("#page-content").innerHTML = state.allLessons.length
-    ? `<div class="card"><table class="table">
-        <thead>
-          <tr>
-            <th>Order</th>
-            <th>Title</th>
-            <th>Difficulty</th>
-            <th>Description</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${state.allLessons
+  const pageContent = $("#page-content");
+  const renderDirectory = () => {
+    const counts = {
+      all: lessons.length,
+      beginner: lessons.filter(
+        (lesson) => lessonDifficultyMeta(lesson.difficulty).label === "Beginner",
+      ).length,
+      intermediate: lessons.filter(
+        (lesson) => lessonDifficultyMeta(lesson.difficulty).label === "Intermediate",
+      ).length,
+      advanced: lessons.filter(
+        (lesson) => lessonDifficultyMeta(lesson.difficulty).label === "Advanced",
+      ).length,
+    };
+    const visibleLessons =
+      activeLessonFilter === "all"
+        ? lessons
+        : lessons.filter(
+            (lesson) =>
+              lessonDifficultyMeta(lesson.difficulty).label.toLowerCase() ===
+              activeLessonFilter,
+          );
+    const matchingLessons = visibleLessons.filter((lesson) =>
+      (lesson.title || "Untitled lesson")
+        .toLowerCase()
+        .includes(activeLessonSearch.trim().toLowerCase()),
+    );
+
+    pageContent.innerHTML = `
+      <section class="admin-lesson-directory" aria-label="Lesson library">
+        <div class="admin-lesson-directory__intro">
+          <div>
+            <span class="admin-lesson-directory__eyebrow">Learning library</span>
+            <h2>Lessons, at a glance</h2>
+            <p>Browse and organize learning content by level.</p>
+          </div>
+          <span class="admin-lesson-directory__total"><strong>${lessons.length}</strong> ${lessons.length === 1 ? "lesson" : "lessons"}</span>
+        </div>
+        <label class="admin-lesson-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
+          <span class="sr-only">Search lessons</span>
+          <input
+            type="search"
+            data-lesson-search
+            placeholder="Search by lesson title..."
+            value="${escapeHtml(activeLessonSearch)}"
+            autocomplete="off"
+          />
+          <kbd>/</kbd>
+        </label>
+        <nav class="admin-lesson-filters" aria-label="Filter lessons by difficulty">
+          ${[
+            ["all", "All"],
+            ["beginner", "Beginner"],
+            ["intermediate", "Intermediate"],
+            ["advanced", "Advanced"],
+          ]
             .map(
-              (lesson) => `<tr>
-                <td>${escapeHtml(lesson.order ?? "—")}</td>
-                <td>${escapeHtml(lesson.title || "Untitled lesson")}</td>
-                <td>${escapeHtml(lesson.difficulty || "—")}</td>
-                <td>${escapeHtml(lesson.description || "—")}</td>
-                <td class="table-actions">
-                  <button class="text-button" data-edit-lesson="${lesson.id}">Edit</button>
-                  <button class="text-button danger" data-delete-lesson="${lesson.id}">Delete</button>
-                </td>
-              </tr>`,
+              ([filter, label]) => `
+                <button
+                  type="button"
+                  class="admin-lesson-filter ${activeLessonFilter === filter ? "is-active" : ""}"
+                  data-lesson-filter="${filter}"
+                  aria-pressed="${activeLessonFilter === filter}"
+                >
+                  <span>${label}</span>
+                  <span class="admin-lesson-filter__count">${counts[filter]}</span>
+                </button>
+              `,
             )
             .join("")}
-        </tbody>
-      </table></div>`
-    : empty(
+        </nav>
+        <div class="admin-lesson-table-wrap">
+          <table class="table admin-lesson-table">
+            <thead>
+              <tr>
+                <th scope="col">Lesson title</th>
+                <th scope="col">Difficulty</th>
+                <th scope="col" aria-label="Lesson actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                matchingLessons.length
+                  ? matchingLessons
+                      .map((lesson) => {
+                        const meta = lessonDifficultyMeta(lesson.difficulty);
+                        const title = lesson.title || "Untitled lesson";
+                        return `
+                          <tr>
+                            <td>
+                              <div class="admin-lesson-table__title">
+                                <span class="admin-lesson-table__order" aria-hidden="true">${String(lesson.order || "—").padStart(2, "0")}</span>
+                                <span>
+                                  <strong>${escapeHtml(title)}</strong>
+                                  <small>${escapeHtml(lesson.description || "No description yet.")}</small>
+                                </span>
+                              </div>
+                            </td>
+                            <td><span class="admin-lesson-difficulty ${meta.className}"><span aria-hidden="true"></span>${escapeHtml(meta.label)}</span></td>
+                            <td>
+                              <div class="admin-lesson-menu">
+                                <button
+                                  type="button"
+                                  class="admin-lesson-menu-toggle"
+                                  aria-label="Actions for ${escapeHtml(title)}"
+                                  aria-haspopup="true"
+                                  aria-expanded="false"
+                                >
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                </button>
+                                <div class="admin-lesson-menu-popup" hidden>
+                                  <button type="button" class="admin-lesson-menu-item" data-view-lesson="${lesson.id}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                                    <span>View lesson</span>
+                                  </button>
+                                  <button type="button" class="admin-lesson-menu-item" data-edit-lesson="${lesson.id}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
+                                    <span>Edit lesson</span>
+                                  </button>
+                                  <button type="button" class="admin-lesson-menu-item admin-lesson-menu-item--danger" data-delete-lesson="${lesson.id}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
+                                    <span>Delete lesson</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        `;
+                      })
+                      .join("")
+                  : `<tr><td class="admin-lesson-table__empty" colspan="3">${activeLessonSearch.trim() ? `No lessons match “${escapeHtml(activeLessonSearch.trim())}”.` : `No ${escapeHtml(activeLessonFilter)} lessons yet.`}</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+
+    pageContent
+      .querySelectorAll("[data-lesson-filter]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          activeLessonFilter = button.dataset.lessonFilter;
+          closeLessonMenus();
+          renderDirectory();
+        });
+      });
+
+    pageContent
+      .querySelector("[data-lesson-search]")
+      .addEventListener("input", (event) => {
+        const input = event.currentTarget;
+        const cursor = input.selectionStart;
+        activeLessonSearch = input.value;
+        renderDirectory();
+        const replacement = pageContent.querySelector("[data-lesson-search]");
+        replacement.focus();
+        replacement.setSelectionRange(cursor, cursor);
+      });
+
+    matchingLessons.forEach((lesson) => {
+      const row = pageContent
+        .querySelector(`[data-view-lesson="${lesson.id}"]`)
+        ?.closest("tr");
+      const toggle = row?.querySelector(".admin-lesson-menu-toggle");
+      const popup = row?.querySelector(".admin-lesson-menu-popup");
+
+      toggle?.addEventListener("click", () => {
+        const willOpen = popup.hidden;
+        closeLessonMenus();
+        popup.hidden = !willOpen;
+        toggle.setAttribute("aria-expanded", String(willOpen));
+      });
+      row
+        ?.querySelector(`[data-view-lesson="${lesson.id}"]`)
+        ?.addEventListener("click", () => {
+          closeLessonMenus();
+          openLessonPreview(lesson);
+        });
+      row
+        ?.querySelector(`[data-edit-lesson="${lesson.id}"]`)
+        ?.addEventListener("click", () => {
+          closeLessonMenus();
+          openLessonModal(lesson);
+        });
+      row
+        ?.querySelector(`[data-delete-lesson="${lesson.id}"]`)
+        ?.addEventListener("click", () => {
+          closeLessonMenus();
+          deleteLesson(lesson);
+        });
+    });
+  };
+
+  if (lessons.length) {
+    renderDirectory();
+  } else {
+    pageContent.innerHTML = empty(
         "No lessons yet",
         "Create your first lesson and its learning activities.",
         "Add lesson",
         "add-lesson-empty",
       );
+  }
 
   $("#add-lesson")?.addEventListener("click", () => openLessonModal());
   $("#add-lesson-empty")?.addEventListener("click", () => openLessonModal());
+}
 
-  state.allLessons.forEach((lesson) => {
-    $(`[data-edit-lesson="${lesson.id}"]`)?.addEventListener("click", () =>
-      openLessonModal(lesson),
-    );
-    $(`[data-delete-lesson="${lesson.id}"]`)?.addEventListener("click", () =>
-      deleteLesson(lesson),
-    );
-  });
+function openLessonPreview(lesson) {
+  const meta = lessonDifficultyMeta(lesson.difficulty);
+  openModal(
+    `<div class="admin-lesson-preview">
+      <div class="admin-lesson-preview__banner">
+        <span class="admin-lesson-preview__eyebrow">Lesson overview</span>
+        <span class="admin-lesson-preview__order">
+          <span>LESSON</span>
+          <strong>${escapeHtml(lesson.order ?? "—")}</strong>
+        </span>
+      </div>
+      <div class="admin-lesson-preview__content">
+        <span class="admin-lesson-difficulty ${meta.className}">
+          <span aria-hidden="true"></span>${escapeHtml(meta.label)}
+        </span>
+        <h2>${escapeHtml(lesson.title || "Untitled lesson")}</h2>
+        <section class="admin-lesson-preview__description" aria-labelledby="lesson-preview-description">
+          <h3 id="lesson-preview-description">About this lesson</h3>
+          <p>${escapeHtml(lesson.description || "No description has been added to this lesson yet.")}</p>
+        </section>
+      </div>
+      <div class="admin-lesson-preview__footer">
+        <span>BaSaya learning library</span>
+        <button type="button" class="button primary" data-close-preview>Done</button>
+      </div>
+    </div>`,
+    (backdrop, close) => {
+      backdrop
+        .querySelector(".modal")
+        .classList.add("admin-lesson-preview-modal");
+      backdrop
+        .querySelector("[data-close-preview]")
+        .addEventListener("click", close);
+    },
+  );
 }
 
 async function getLessonSections(lessonId) {
@@ -134,6 +393,16 @@ function studioHtml(lesson = {}, sections = {}) {
         <button type="button" class="lesson-tab" data-step="quiz">5. Quiz & game</button>
       </div>
 
+      <div class="lecture-page-navigation" data-lecture-page-navigation hidden>
+        <div class="lesson-subheading">
+          <h4>Lecture pages</h4>
+        </div>
+        <div class="lecture-page-navigation__controls">
+          <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
+          <button type="button" class="button secondary small" data-add-lecture-page>+ Add page</button>
+        </div>
+      </div>
+
       <form id="lesson-form">
         <section class="lesson-step active" data-panel="basics">
           <div class="lesson-section-intro">
@@ -174,7 +443,7 @@ function studioHtml(lesson = {}, sections = {}) {
             <span class="lesson-section-number">02</span>
             <div>
               <h3>Tap-the-word activity</h3>
-              <p>Add a page, type words, then mark the word positions that are correct.</p>
+              <p>Add a page, enter a sentence, then select the correct words.</p>
             </div>
           </div>
 
@@ -200,11 +469,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
           <label>Lecture title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || lesson.title || "")}" placeholder="PANGGALAN" /></label>
 
-          <div class="lesson-subheading">
-            <h4>Lecture pages</h4>
-            <button type="button" class="button secondary small" data-add-lecture-page>+ Add page</button>
-          </div>
-          <div data-lecture-pages></div>
+          <div class="lecture-pages" data-lecture-pages></div>
         </section>
 
         <section class="lesson-step" data-panel="pronunciation">
@@ -260,26 +525,74 @@ function studioHtml(lesson = {}, sections = {}) {
 }
 
 function activityPageHtml(page = {}) {
+  const sentence = (page.words || []).join(" ");
+  const correctIndices = (page.correctIndices || [])
+    .map(Number)
+    .filter((index) => Number.isInteger(index) && index >= 0)
+    .join(",");
+
   return `
-    <article class="builder-card" data-activity-page>
+    <article class="builder-card" data-activity-page data-correct-indices="${correctIndices}">
       <div class="builder-card__header">
         <strong>Activity page</strong>
         <button type="button" class="text-button danger" data-remove-activity-page>Remove</button>
       </div>
       <label>
-        Words — separate each word with a comma
-        <input data-activity-words value="${escapeHtml((page.words || []).join(", "))}" placeholder="Si, Ben, ay, bumili, ng, tinapay" />
+        Enter the sentence here
+        <input data-activity-words value="${escapeHtml(sentence)}" placeholder="The boy is happy" />
       </label>
-      <label>
-        Correct word positions — start counting from 1, separated by commas
-        <input data-activity-correct value="${escapeHtml((page.correctIndices || []).map((index) => Number(index) + 1).join(", "))}" placeholder="2, 6" />
-      </label>
+      <div class="activity-answer-picker" data-activity-answer-picker hidden>
+        <span class="activity-answer-picker__label">Click the correct answer</span>
+        <div class="activity-answer-picker__words" data-activity-answer-words></div>
+      </div>
       <label>
         Explanation for this page
         <textarea data-activity-page-explanation placeholder="Explain the correct answer.">${escapeHtml(page.explanation || "")}</textarea>
       </label>
     </article>
   `;
+}
+
+function activityWords(page) {
+  return $("[data-activity-words]", page)
+    .value.trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function activityCorrectIndices(page) {
+  return [...new Set(
+    (page.dataset.correctIndices || "")
+      .split(",")
+      .map(Number)
+      .filter((index) => Number.isInteger(index) && index >= 0),
+  )].sort((a, b) => a - b);
+}
+
+function renderActivityAnswerPicker(page) {
+  const words = activityWords(page);
+  const picker = $("[data-activity-answer-picker]", page);
+  const wordButtons = $("[data-activity-answer-words]", page);
+
+  if (!words.length) {
+    picker.hidden = true;
+    return;
+  }
+
+  const selected = new Set(activityCorrectIndices(page));
+  wordButtons.innerHTML = words
+    .map(
+      (word, index) => `
+        <button
+          type="button"
+          class="activity-answer-word ${selected.has(index) ? "selected" : ""}"
+          data-activity-answer-word="${index}"
+          aria-pressed="${selected.has(index)}"
+        >${escapeHtml(word)}</button>
+      `,
+    )
+    .join("");
+  picker.hidden = false;
 }
 
 function lecturePageHtml(page = {}) {
@@ -289,7 +602,7 @@ function lecturePageHtml(page = {}) {
   return `
     <article class="builder-card" data-lecture-page>
       <div class="builder-card__header">
-        <strong>Lecture page</strong>
+        <strong data-lecture-page-title>Lecture page</strong>
         <button type="button" class="text-button danger" data-remove-lecture-page>Remove</button>
       </div>
       <div class="sentence-builder" data-sentences>
@@ -313,7 +626,7 @@ function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null
     <div class="sentence-editor" data-lecture-sentence>
       <label>
         Sentence
-        <textarea data-sentence-text placeholder="Write the sentence for this page.">${escapeHtml(sentence)}</textarea>
+        <textarea data-sentence-text maxlength="120" placeholder="Write the sentence for this page (120 characters max).">${escapeHtml(sentence)}</textarea>
       </label>
       <label>
         Packaged audio name (optional)
@@ -403,6 +716,8 @@ async function openLessonModal(existing = null) {
   openModal(studioHtml(existing || {}, sections), (modal, close) => {
     const activityPages = $("[data-activity-pages]", modal);
     const lecturePages = $("[data-lecture-pages]", modal);
+    const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
+    const lecturePageNavigation = $("[data-lecture-page-navigation]", modal);
     const pronunciationWords = $("[data-pronunciation-words]", modal);
     const quizQuestions = $("[data-quiz-questions]", modal);
     const gameLevels = $("[data-game-levels]", modal);
@@ -426,12 +741,39 @@ async function openLessonModal(existing = null) {
     const initialLevels = sections.game?.length ? sections.game : [{}];
 
     activityPages.innerHTML = initialActivity.map(activityPageHtml).join("");
+    $$("[data-activity-page]", activityPages).forEach(renderActivityAnswerPicker);
     lecturePages.innerHTML = initialLectures.map(lecturePageHtml).join("");
     pronunciationWords.innerHTML = initialWords
       .map((item) => pronunciationWordHtml(item.word, item.audioRef, item.cloudAudio))
       .join("");
     quizQuestions.innerHTML = initialQuestions.map(questionHtml).join("");
     gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
+
+    let activeLecturePage = 0;
+    const renderLecturePageRibbons = () => {
+      const pages = $$("[data-lecture-page]", lecturePages);
+      activeLecturePage = Math.min(activeLecturePage, Math.max(pages.length - 1, 0));
+
+      lecturePageRibbons.innerHTML = pages
+        .map(
+          (_, index) => `
+            <button
+              type="button"
+              class="lecture-page-ribbon ${index === activeLecturePage ? "active" : ""}"
+              data-lecture-page-ribbon="${index}"
+              aria-current="${index === activeLecturePage ? "page" : "false"}"
+            >Page ${index + 1}</button>
+          `,
+        )
+        .join("");
+
+      pages.forEach((page, index) => {
+        page.hidden = index !== activeLecturePage;
+        $("[data-lecture-page-title]", page).textContent = `Page ${index + 1}`;
+      });
+    };
+
+    renderLecturePageRibbons();
 
     const renumberLevels = () => {
       $$("[data-game-level]", gameLevels).forEach((element, index) => {
@@ -448,6 +790,7 @@ async function openLessonModal(existing = null) {
       $$("[data-panel]", modal).forEach((panel) =>
         panel.classList.toggle("active", panel.dataset.panel === step),
       );
+      lecturePageNavigation.hidden = step !== "lectures";
     };
 
     $$(".lesson-tab", modal).forEach((button) => {
@@ -487,23 +830,54 @@ async function openLessonModal(existing = null) {
         button.closest("[data-activity-page]").remove();
       }
 
+      if (button.matches("[data-activity-answer-word]")) {
+        const activityPage = button.closest("[data-activity-page]");
+        const index = Number(button.dataset.activityAnswerWord);
+        const selected = new Set(activityCorrectIndices(activityPage));
+
+        if (selected.has(index)) {
+          selected.delete(index);
+        } else {
+          selected.add(index);
+        }
+
+        activityPage.dataset.correctIndices = [...selected]
+          .sort((first, second) => first - second)
+          .join(",");
+        renderActivityAnswerPicker(activityPage);
+      }
+
       if (button.matches("[data-add-lecture-page]")) {
         lecturePages.insertAdjacentHTML("beforeend", lecturePageHtml({}));
+        activeLecturePage = $$("[data-lecture-page]", lecturePages).length - 1;
+        renderLecturePageRibbons();
       }
 
       if (button.matches("[data-remove-lecture-page]")) {
         button.closest("[data-lecture-page]").remove();
+        renderLecturePageRibbons();
       }
 
       if (button.matches("[data-add-lecture-sentence]")) {
-        button
-          .closest("[data-lecture-page]")
+        const lecturePage = button.closest("[data-lecture-page]");
+        const sentenceRows = $$("[data-lecture-sentence]", lecturePage);
+        if (sentenceRows.length >= MAX_SENTENCES_PER_LECTURE_PAGE) {
+          toast(`A lecture page can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+          return;
+        }
+
+        lecturePage
           .querySelector("[data-sentences]")
           .insertAdjacentHTML("beforeend", lectureSentenceHtml());
       }
 
       if (button.matches("[data-remove-lecture-sentence]")) {
         button.closest("[data-lecture-sentence]").remove();
+      }
+
+      if (button.matches("[data-lecture-page-ribbon]")) {
+        activeLecturePage = Number(button.dataset.lecturePageRibbon);
+        renderLecturePageRibbons();
       }
 
       if (button.matches("[data-add-pronunciation-word]")) {
@@ -557,6 +931,14 @@ async function openLessonModal(existing = null) {
       }
     });
 
+    modal.addEventListener("input", (event) => {
+      if (!event.target.matches("[data-activity-words]")) return;
+
+      const activityPage = event.target.closest("[data-activity-page]");
+      activityPage.dataset.correctIndices = "";
+      renderActivityAnswerPicker(activityPage);
+    });
+
     $("#lesson-form", modal).addEventListener("submit", async (event) => {
       event.preventDefault();
 
@@ -591,6 +973,14 @@ async function openLessonModal(existing = null) {
 }
 
 async function createPreview(button, row, text) {
+  const previousPreview = previews.get(row);
+  const generationCount = previousPreview?.generationCount || 0;
+
+  if (generationCount >= MAX_AUDIO_GENERATIONS_PER_SENTENCE) {
+    toast(`Audio can be generated at most ${MAX_AUDIO_GENERATIONS_PER_SENTENCE} times for each sentence.`);
+    return;
+  }
+
   button.disabled = true;
   const originalLabel = button.textContent;
   button.textContent = "Generating…";
@@ -604,7 +994,13 @@ async function createPreview(button, row, text) {
     }
 
     const objectUrl = URL.createObjectURL(blob);
-    previews.set(row, { blob, objectUrl, text });
+    const nextGenerationCount = generationCount + 1;
+    previews.set(row, {
+      blob,
+      objectUrl,
+      text,
+      generationCount: nextGenerationCount,
+    });
 
     $("[data-audio-preview]", row).innerHTML = `
       <button
@@ -617,13 +1013,16 @@ async function createPreview(button, row, text) {
       <small class="muted">Preview ready</small>
     `;
 
-    button.textContent = "Generate again";
+    const remainingGenerations = MAX_AUDIO_GENERATIONS_PER_SENTENCE - nextGenerationCount;
+    button.textContent = remainingGenerations
+      ? `Generate again (${remainingGenerations} left)`
+      : "Generation limit reached";
   } catch (error) {
     console.error(error);
     toast(error.message || "Audio could not be generated.");
     button.textContent = originalLabel;
   } finally {
-    button.disabled = false;
+    button.disabled = (previews.get(row)?.generationCount || 0) >= MAX_AUDIO_GENERATIONS_PER_SENTENCE;
   }
 }
 
@@ -689,15 +1088,9 @@ function readActivity(container) {
     explanation: $("[data-activity-explanation]", document.body).value.trim(),
     pages: $$("[data-activity-page]", container)
       .map((page) => {
-        const words = $("[data-activity-words]", page)
-          .value.split(",")
-          .map((word) => word.trim())
-          .filter(Boolean);
-
-        const correctIndices = $("[data-activity-correct]", page)
-          .value.split(",")
-          .map((value) => Number(value.trim()) - 1)
-          .filter((index) => Number.isInteger(index) && index >= 0);
+        const words = activityWords(page);
+        const correctIndices = activityCorrectIndices(page)
+          .filter((index) => index < words.length);
 
         return {
           words,
@@ -714,6 +1107,9 @@ async function readLectures(container, lessonId) {
 
   for (const [pageIndex, page] of $$("[data-lecture-page]", container).entries()) {
     const sentenceRows = $$("[data-lecture-sentence]", page);
+    if (sentenceRows.length > MAX_SENTENCES_PER_LECTURE_PAGE) {
+      throw new Error(`Lecture page ${pageIndex + 1} can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+    }
     const sentences = [];
     const audioResNames = [];
     const cloudAudio = [];
@@ -721,6 +1117,9 @@ async function readLectures(container, lessonId) {
     for (const [sentenceIndex, row] of sentenceRows.entries()) {
       const text = $("[data-sentence-text]", row).value.trim();
       if (!text) continue;
+      if (text.length > 120) {
+        throw new Error(`Sentence ${sentenceIndex + 1} on page ${pageIndex + 1} must be 120 characters or fewer.`);
+      }
 
       sentences.push(text);
       audioResNames.push($("[data-audio-res-name]", row).value.trim());

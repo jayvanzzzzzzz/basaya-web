@@ -14,6 +14,29 @@ import { auth, secondaryAuth, db } from "../../js/firebase.js";
 import { state, getAllTeachers } from "../../js/state.js";
 import { $, escapeHtml, toast, page, empty, openModal } from "../../js/helpers.js";
 
+function closeTeacherMenus() {
+  document.querySelectorAll(".teacher-table__menu-popup").forEach((menu) => {
+    menu.hidden = true;
+    menu
+      .closest(".teacher-table__menu")
+      ?.querySelector(".teacher-table__menu-toggle")
+      ?.setAttribute("aria-expanded", "false");
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (
+    event.target instanceof Element &&
+    !event.target.closest(".teacher-table__menu")
+  ) {
+    closeTeacherMenus();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeTeacherMenus();
+});
+
 export async function renderTeachers() {
   await getAllTeachers();
 
@@ -24,28 +47,76 @@ export async function renderTeachers() {
   );
 
   $("#page-content").innerHTML = state.teachers.length
-    ? `<div class="card">
-        <table class="table">
+    ? `<section class="teacher-directory" aria-label="Teacher accounts">
+        <div class="teacher-directory__intro">
+          <div>
+            <span class="teacher-directory__eyebrow">People</span>
+            <h2>Meet your teachers</h2>
+            <p>Manage account details and access in one place.</p>
+          </div>
+          <span class="teacher-directory__count">
+            <strong>${state.teachers.length}</strong>
+            ${state.teachers.length === 1 ? "teacher" : "teachers"}
+          </span>
+        </div>
+        <label class="admin-directory-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
+          <span class="sr-only">Search teachers by name</span>
+          <input type="search" id="teacher-name-search" placeholder="Search by teacher name..." autocomplete="off" />
+        </label>
+        <div class="teacher-table-wrap">
+        <table class="table teacher-table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th></th></tr>
+            <tr><th scope="col">Teacher</th><th scope="col">Email address</th><th scope="col" aria-label="Teacher actions"></th></tr>
           </thead>
           <tbody>
             ${state.teachers
               .map(
-                (t) => `<tr>
-                  <td>${escapeHtml(t.displayName || "—")}</td>
-                  <td>${escapeHtml(t.email || "—")}</td>
-                  <td class="table-actions">
-                    <button class="text-button" data-edit="${t.id}">Edit</button>
-                    <button class="text-button" data-reset="${t.id}">Reset password</button>
-                    <button class="text-button danger" data-delete="${t.id}">Delete</button>
+                (t) => `<tr data-teacher-name="${escapeHtml(t.displayName || "Unnamed teacher")}">
+                  <td>
+                    <div class="teacher-table__person">
+                      <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml((t.displayName || t.email || "T").split(/\s+/).map((part) => part.charAt(0)).join("").slice(0, 2).toUpperCase())}</span>
+                      <span class="teacher-table__name">${escapeHtml(t.displayName || "Unnamed teacher")}</span>
+                    </div>
+                  </td>
+                  <td class="teacher-table__email">${escapeHtml(t.email || "No email on file")}</td>
+                  <td>
+                    <div class="teacher-table__menu">
+                      <button
+                        type="button"
+                        class="teacher-table__menu-toggle"
+                        aria-label="Actions for ${escapeHtml(t.displayName || t.email || "teacher")}"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                      </button>
+                      <div class="teacher-table__menu-popup" hidden>
+                        <button type="button" class="teacher-table__menu-item" data-edit="${t.id}">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
+                          <span>Edit details</span>
+                        </button>
+                        <button type="button" class="teacher-table__menu-item" data-reset="${t.id}">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3" /></svg>
+                          <span>Reset password</span>
+                        </button>
+                        <button type="button" class="teacher-table__menu-item teacher-table__menu-item--danger" data-delete="${t.id}">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
+                          <span>Remove teacher</span>
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>`,
               )
               .join("")}
+            <tr class="admin-directory-search-empty" hidden>
+              <td colspan="3">No teachers match that name.</td>
+            </tr>
           </tbody>
         </table>
-      </div>`
+        </div>
+      </section>`
     : empty(
         "No teacher accounts yet",
         "Add your first teacher account to get started.",
@@ -56,10 +127,42 @@ export async function renderTeachers() {
   $("#add-teacher")?.addEventListener("click", openAddTeacherModal);
   $("#add-teacher-empty")?.addEventListener("click", openAddTeacherModal);
 
+  $("#teacher-name-search")?.addEventListener("input", (event) => {
+    const query = event.currentTarget.value.trim().toLowerCase();
+    const rows = [...document.querySelectorAll(".teacher-table tbody tr[data-teacher-name]")];
+    let visibleCount = 0;
+    rows.forEach((row) => {
+      const matches = row.dataset.teacherName.toLowerCase().includes(query);
+      row.hidden = !matches;
+      if (matches) visibleCount += 1;
+    });
+    const emptyRow = $(".admin-directory-search-empty");
+    if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+  });
+
   state.teachers.forEach((t) => {
-    $(`[data-edit="${t.id}"]`)?.addEventListener("click", () => openEditTeacherModal(t));
-    $(`[data-reset="${t.id}"]`)?.addEventListener("click", () => resetPassword(t));
-    $(`[data-delete="${t.id}"]`)?.addEventListener("click", () => deleteTeacher(t));
+    const row = $(`[data-edit="${t.id}"]`)?.closest("tr");
+    const toggle = row?.querySelector(".teacher-table__menu-toggle");
+    const popup = row?.querySelector(".teacher-table__menu-popup");
+
+    toggle?.addEventListener("click", () => {
+      const willOpen = popup.hidden;
+      closeTeacherMenus();
+      popup.hidden = !willOpen;
+      toggle.setAttribute("aria-expanded", String(willOpen));
+    });
+    row?.querySelector(`[data-edit="${t.id}"]`)?.addEventListener("click", () => {
+      closeTeacherMenus();
+      openEditTeacherModal(t);
+    });
+    row?.querySelector(`[data-reset="${t.id}"]`)?.addEventListener("click", () => {
+      closeTeacherMenus();
+      resetPassword(t);
+    });
+    row?.querySelector(`[data-delete="${t.id}"]`)?.addEventListener("click", () => {
+      closeTeacherMenus();
+      deleteTeacher(t);
+    });
   });
 }
 

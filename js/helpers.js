@@ -56,10 +56,37 @@ export function currentRoute() {
   return location.hash.slice(1) || "/dashboard";
 }
 
+function closeAccountMenu() {
+  const toggle = $("#account-menu-toggle");
+  const menu = $(".account-menu__popup");
+  if (!toggle || !menu) return;
+  menu.hidden = true;
+  toggle.setAttribute("aria-expanded", "false");
+}
+
+document.addEventListener("click", (event) => {
+  const toggle = event.target.closest?.("#account-menu-toggle");
+  if (toggle) {
+    const menu = toggle.nextElementSibling;
+    const willOpen = menu.hidden;
+    closeAccountMenu();
+    menu.hidden = !willOpen;
+    toggle.setAttribute("aria-expanded", String(willOpen));
+    return;
+  }
+
+  if (!event.target.closest?.(".account-menu")) closeAccountMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeAccountMenu();
+});
+
 export function shell(summaryId = "teacher-summary", fallbackName = "Teacher") {
   $("#app-view").hidden = false;
-  $(`#${summaryId}`).innerHTML =
-    `<strong>${escapeHtml(displayName(fallbackName))}</strong><span>${escapeHtml(state.user.email)}</span>`;
+  const summary = $(`#${summaryId}`);
+  summary.textContent = state.user?.email || displayName(fallbackName);
+  summary.title = summary.textContent;
 }
 
 export function page(title, subtitle, actions = "") {

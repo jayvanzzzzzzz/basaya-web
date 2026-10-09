@@ -48,8 +48,25 @@
         </div>
 
         <div class="sidebar-bottom">
-          <div id="teacher-summary" class="teacher-summary"></div>
-          <button id="logout-button" class="text-button">Sign out</button>
+          <div class="account-menu">
+            <button
+              id="account-menu-toggle"
+              class="account-menu__toggle"
+              type="button"
+              aria-label="Account options"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >
+              <span id="teacher-summary" class="teacher-summary"></span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+            </button>
+            <div class="account-menu__popup" hidden>
+              <button id="logout-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" /></svg>
+                <span>Sign out</span>
+              </button>
+            </div>
+          </div>
         </div>
       </aside>
       <section class="content">
