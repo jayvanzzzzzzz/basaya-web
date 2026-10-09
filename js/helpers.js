@@ -52,6 +52,20 @@ export function joinCode() {
     .join("");
 }
 
+export function safeHttpUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
+
+  try {
+    const url = new URL(value, location.href);
+    const isLocalHttp =
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    return url.protocol === "https:" || isLocalHttp ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 export function currentRoute() {
   return location.hash.slice(1) || "/dashboard";
 }
@@ -90,12 +104,22 @@ export function shell(summaryId = "teacher-summary", fallbackName = "Teacher") {
 }
 
 export function page(title, subtitle, actions = "") {
+  $("#page-header").classList.remove(
+    "teacher-dashboard-header",
+    "teacher-class-header",
+    "teacher-add-lesson-header",
+  );
+  $("#page-content").classList.remove(
+    "teacher-dashboard",
+    "teacher-class-page",
+    "teacher-add-lesson-page",
+  );
   $("#page-header").innerHTML =
-    `<div><h1>${title}</h1><p>${subtitle}</p></div><div class="header-actions">${actions}</div>`;
+    `<div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div><div class="header-actions">${actions}</div>`;
 }
 
 export function empty(title, description, button, id) {
-  return `<div class="card empty"><h3>${title}</h3><p>${description}</p><button class="button primary" id="${id}">${button}</button></div>`;
+  return `<div class="card empty"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p><button class="button primary" id="${escapeHtml(id)}">${escapeHtml(button)}</button></div>`;
 }
 
 export function openModal(html, onMount) {

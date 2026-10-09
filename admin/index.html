@@ -89,15 +89,35 @@
       const loading = document.getElementById("loading-screen");
       const showStartupError = (message) => {
         if (loading.hidden) return;
-        loading.innerHTML = `<p style="max-width:30rem"><strong>We couldn’t start the admin portal.</strong><br><br>${message}<br><br>Open your browser’s <strong>F12 → Console</strong> tab and send the red error message to your developer.</p>`;
+        const paragraph = document.createElement("p");
+        paragraph.style.maxWidth = "30rem";
+        const heading = document.createElement("strong");
+        heading.textContent = "We couldn’t start the admin portal.";
+        const consoleHint = document.createElement("strong");
+        consoleHint.textContent = "F12 → Console";
+        paragraph.append(
+          heading,
+          document.createElement("br"),
+          document.createElement("br"),
+          String(message),
+          document.createElement("br"),
+          document.createElement("br"),
+          "Open your browser’s ",
+          consoleHint,
+          " tab and send the red error message to your developer.",
+        );
+        loading.replaceChildren(paragraph);
       };
-      setTimeout(
+      const startupTimeout = setTimeout(
         () =>
           showStartupError(
             "Firebase is taking too long to respond. Check your internet connection, then reload the page.",
           ),
         12000,
       );
+      window.addEventListener("pagehide", () => clearTimeout(startupTimeout), {
+        once: true,
+      });
       import("./app.js").catch((error) => {
         console.error("Admin portal startup failed:", error);
         showStartupError(error.message || "The Firebase SDK could not load.");

@@ -29,7 +29,7 @@ export async function renderStudentsPage(classId) {
 
   page(
     "Students",
-    `${students.length} enrolled in ${escapeHtml(classroom.className)}.`,
+    `${students.length} enrolled in ${classroom.className}.`,
     `<button class="button secondary" id="back-to-class">← Back to class</button>`,
   );
 
@@ -87,7 +87,7 @@ export async function renderStudentsPage(classId) {
       </section>`;
 
   $("#back-to-class").addEventListener("click", () =>
-    navigate(`/classes/${classId}`),
+    navigate(`/classes/${encodeURIComponent(classId)}`),
   );
 
   $("#student-search")?.addEventListener("input", (event) => {

@@ -10,6 +10,10 @@ A no-build teacher web app using Firebase Authentication and Cloud Firestore. It
 4. Deploy `firestore.rules` using the Firebase console or `firebase deploy --only firestore:rules`.
 5. Host these static files (Firebase Hosting, Netlify, GitHub Pages, or any web server). Do not open `index.html` directly from disk because browser modules/Firebase authentication need an HTTP(S) origin.
 
+## Teacher account settings
+
+The teacher portal's Account settings page lets teachers update their display name and change their password. Teachers sign in with their email address. Deploy the Firestore rules after setup so a teacher can update only their own display name; password changes are handled by Firebase Authentication.
+
 ## Data written by this portal
 
 | Collection | Key fields |

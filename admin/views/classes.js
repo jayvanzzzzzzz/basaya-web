@@ -117,11 +117,11 @@ export async function renderClasses() {
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                         </button>
                         <div class="admin-class-menu-popup" hidden>
-                          <button type="button" class="admin-class-menu-item" data-edit-class="${classroom.id}">
+                          <button type="button" class="admin-class-menu-item" data-edit-class="${escapeHtml(classroom.id)}">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
                             <span>Edit class</span>
                           </button>
-                          <button type="button" class="admin-class-menu-item admin-class-menu-item--danger" data-delete-class="${classroom.id}">
+                          <button type="button" class="admin-class-menu-item admin-class-menu-item--danger" data-delete-class="${escapeHtml(classroom.id)}">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
                             <span>Delete class</span>
                           </button>
@@ -161,7 +161,13 @@ export async function renderClasses() {
   $("#refresh-classes")?.addEventListener("click", renderClasses);
 
   state.allClasses.forEach((classroom) => {
-    const row = $(`[data-edit-class="${classroom.id}"]`)?.closest("tr");
+    const editButton = [
+      ...document.querySelectorAll("[data-edit-class]"),
+    ].find((button) => button.dataset.editClass === classroom.id);
+    const deleteButton = [
+      ...document.querySelectorAll("[data-delete-class]"),
+    ].find((button) => button.dataset.deleteClass === classroom.id);
+    const row = editButton?.closest("tr");
     const toggle = row?.querySelector(".admin-class-menu-toggle");
     const popup = row?.querySelector(".admin-class-menu-popup");
 
@@ -171,18 +177,14 @@ export async function renderClasses() {
       popup.hidden = !willOpen;
       toggle.setAttribute("aria-expanded", String(willOpen));
     });
-    row
-      ?.querySelector(`[data-edit-class="${classroom.id}"]`)
-      ?.addEventListener("click", () => {
-        closeClassMenus();
-        openEditClassModal(classroom);
-      });
-    row
-      ?.querySelector(`[data-delete-class="${classroom.id}"]`)
-      ?.addEventListener("click", () => {
-        closeClassMenus();
-        openDeleteClassModal(classroom);
-      });
+    editButton?.addEventListener("click", () => {
+      closeClassMenus();
+      openEditClassModal(classroom);
+    });
+    deleteButton?.addEventListener("click", () => {
+      closeClassMenus();
+      openDeleteClassModal(classroom);
+    });
   });
 }
 

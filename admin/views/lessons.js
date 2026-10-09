@@ -19,6 +19,7 @@ import {
   escapeHtml,
   openModal,
   page,
+  safeHttpUrl,
   toast,
 } from "../../js/helpers.js";
 
@@ -187,7 +188,7 @@ export async function renderLessons() {
                           <tr>
                             <td>
                               <div class="admin-lesson-table__title">
-                                <span class="admin-lesson-table__order" aria-hidden="true">${String(lesson.order || "—").padStart(2, "0")}</span>
+                                <span class="admin-lesson-table__order" aria-hidden="true">${escapeHtml(String(lesson.order || "—").padStart(2, "0"))}</span>
                                 <span>
                                   <strong>${escapeHtml(title)}</strong>
                                   <small>${escapeHtml(lesson.description || "No description yet.")}</small>
@@ -207,15 +208,15 @@ export async function renderLessons() {
                                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                                 </button>
                                 <div class="admin-lesson-menu-popup" hidden>
-                                  <button type="button" class="admin-lesson-menu-item" data-view-lesson="${lesson.id}">
+                                  <button type="button" class="admin-lesson-menu-item" data-view-lesson="${escapeHtml(lesson.id)}">
                                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
                                     <span>View lesson</span>
                                   </button>
-                                  <button type="button" class="admin-lesson-menu-item" data-edit-lesson="${lesson.id}">
+                                  <button type="button" class="admin-lesson-menu-item" data-edit-lesson="${escapeHtml(lesson.id)}">
                                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
                                     <span>Edit lesson</span>
                                   </button>
-                                  <button type="button" class="admin-lesson-menu-item admin-lesson-menu-item--danger" data-delete-lesson="${lesson.id}">
+                                  <button type="button" class="admin-lesson-menu-item admin-lesson-menu-item--danger" data-delete-lesson="${escapeHtml(lesson.id)}">
                                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
                                     <span>Delete lesson</span>
                                   </button>
@@ -257,9 +258,16 @@ export async function renderLessons() {
       });
 
     matchingLessons.forEach((lesson) => {
-      const row = pageContent
-        .querySelector(`[data-view-lesson="${lesson.id}"]`)
-        ?.closest("tr");
+      const viewButton = [
+        ...pageContent.querySelectorAll("[data-view-lesson]"),
+      ].find((button) => button.dataset.viewLesson === lesson.id);
+      const row = viewButton?.closest("tr");
+      const editButton = [
+        ...(row?.querySelectorAll("[data-edit-lesson]") || []),
+      ].find((button) => button.dataset.editLesson === lesson.id);
+      const deleteButton = [
+        ...(row?.querySelectorAll("[data-delete-lesson]") || []),
+      ].find((button) => button.dataset.deleteLesson === lesson.id);
       const toggle = row?.querySelector(".admin-lesson-menu-toggle");
       const popup = row?.querySelector(".admin-lesson-menu-popup");
 
@@ -269,24 +277,18 @@ export async function renderLessons() {
         popup.hidden = !willOpen;
         toggle.setAttribute("aria-expanded", String(willOpen));
       });
-      row
-        ?.querySelector(`[data-view-lesson="${lesson.id}"]`)
-        ?.addEventListener("click", () => {
-          closeLessonMenus();
-          openLessonPreview(lesson);
-        });
-      row
-        ?.querySelector(`[data-edit-lesson="${lesson.id}"]`)
-        ?.addEventListener("click", () => {
-          closeLessonMenus();
-          openLessonModal(lesson);
-        });
-      row
-        ?.querySelector(`[data-delete-lesson="${lesson.id}"]`)
-        ?.addEventListener("click", () => {
-          closeLessonMenus();
-          deleteLesson(lesson);
-        });
+      viewButton?.addEventListener("click", () => {
+        closeLessonMenus();
+        openLessonPreview(lesson);
+      });
+      editButton?.addEventListener("click", () => {
+        closeLessonMenus();
+        openLessonModal(lesson);
+      });
+      deleteButton?.addEventListener("click", () => {
+        closeLessonMenus();
+        deleteLesson(lesson);
+      });
     });
   };
 
@@ -622,6 +624,7 @@ function lecturePageHtml(page = {}) {
 }
 
 function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null) {
+  const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
     <div class="sentence-editor" data-lecture-sentence>
       <label>
@@ -637,13 +640,14 @@ function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null
         <button type="button" class="text-button danger" data-remove-lecture-sentence>Remove</button>
       </div>
       <div class="audio-preview" data-audio-preview>
-        ${cloudAudio?.audioUrl ? `<audio controls src="${escapeHtml(cloudAudio.audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
+        ${audioUrl ? `<audio controls src="${escapeHtml(audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
       </div>
     </div>
   `;
 }
 
 function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
+  const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
     <div class="pronunciation-editor" data-pronunciation-word>
       <label>
@@ -659,7 +663,7 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
         <button type="button" class="text-button danger" data-remove-pronunciation-word>Remove</button>
       </div>
       <div class="audio-preview" data-audio-preview>
-        ${cloudAudio?.audioUrl ? `<audio controls src="${escapeHtml(cloudAudio.audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
+        ${audioUrl ? `<audio controls src="${escapeHtml(audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
       </div>
     </div>
   `;

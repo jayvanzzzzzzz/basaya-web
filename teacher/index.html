@@ -14,9 +14,33 @@
     <link rel="stylesheet" href="../styles.css" />
   </head>
   <body>
-    <div id="loading-screen" class="loading-screen">
-      <div class="loader-punch"><span></span><span></span><span></span></div>
-      <p>Loading teacher portal…</p>
+    <div id="loading-screen" class="loading-screen teacher-loading" role="status" aria-live="polite">
+      <div class="teacher-loading__card">
+        <a class="teacher-loading__brand" href="../index.html" tabindex="-1">
+          <img src="../img/logo.png" alt="" />
+          <span>BaSaya</span>
+        </a>
+        <div class="teacher-loading__art" aria-hidden="true">
+          <span class="teacher-loading__orbit teacher-loading__orbit--outer"></span>
+          <span class="teacher-loading__orbit teacher-loading__orbit--inner"></span>
+          <div class="teacher-loading__book">
+            <svg viewBox="0 0 48 48">
+              <path d="M7 11.5A4.5 4.5 0 0 1 11.5 7H41v30H11.5A4.5 4.5 0 0 0 7 41.5v-30Z" />
+              <path d="M7 11.5v30M15 15h17M15 21h14M15 27h10" />
+            </svg>
+          </div>
+          <span class="teacher-loading__spark teacher-loading__spark--one">✦</span>
+          <span class="teacher-loading__spark teacher-loading__spark--two">✳</span>
+          <span class="teacher-loading__orbit-dot"></span>
+        </div>
+        <div class="teacher-loading__message">
+          <span class="teacher-loading__eyebrow">Your teaching space</span>
+          <h1>Good things are<br />coming together.</h1>
+          <p>Loading teacher portal…</p>
+        </div>
+        <div class="teacher-loading__track" aria-hidden="true"><span></span></div>
+        <span class="teacher-loading__note">Getting your classroom ready</span>
+      </div>
     </div>
 
     <div id="app-view" class="app-shell" hidden>
@@ -26,18 +50,18 @@
           BaSaya
         </a>
         <nav class="main-nav main-nav--admin" aria-label="Main navigation">
-          <a href="#/dashboard" data-nav="dashboard">
+          <a href="#/dashboard" data-nav="classes">
             <span>◫</span>
             <span class="nav-item-text">
               <strong>Classes</strong>
               <small>View and Organize</small>
             </span>
           </a>
-          <a href="#/lessons" data-nav="lessons">
+          <a href="#/settings" data-nav="settings">
             <span>▤</span>
             <span class="nav-item-text">
-              <strong>Lesson library</strong>
-              <small>Create and Assign</small>
+              <strong>Account settings</strong>
+              <small>Manage your profile</small>
             </span>
           </a>
         </nav>
@@ -88,15 +112,35 @@
       const loading = document.getElementById("loading-screen");
       const showStartupError = (message) => {
         if (loading.hidden) return;
-        loading.innerHTML = `<p style="max-width:30rem"><strong>We couldn’t start the teacher portal.</strong><br><br>${message}<br><br>Open your browser’s <strong>F12 → Console</strong> tab and send the red error message to your developer.</p>`;
+        const paragraph = document.createElement("p");
+        paragraph.style.maxWidth = "30rem";
+        const heading = document.createElement("strong");
+        heading.textContent = "We couldn’t start the teacher portal.";
+        const consoleHint = document.createElement("strong");
+        consoleHint.textContent = "F12 → Console";
+        paragraph.append(
+          heading,
+          document.createElement("br"),
+          document.createElement("br"),
+          String(message),
+          document.createElement("br"),
+          document.createElement("br"),
+          "Open your browser’s ",
+          consoleHint,
+          " tab and send the red error message to your developer.",
+        );
+        loading.replaceChildren(paragraph);
       };
-      setTimeout(
+      const startupTimeout = setTimeout(
         () =>
           showStartupError(
             "Firebase is taking too long to respond. Check your internet connection, then reload the page.",
           ),
         12000,
       );
+      window.addEventListener("pagehide", () => clearTimeout(startupTimeout), {
+        once: true,
+      });
       import("./app.js").catch((error) => {
         console.error("Teacher portal startup failed:", error);
         showStartupError(error.message || "The Firebase SDK could not load.");

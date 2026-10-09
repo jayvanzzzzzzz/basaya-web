@@ -26,22 +26,63 @@
             <img src="img/logo.png" alt="BaSaya" class="brand-logo" />
             BaSaya
           </a>
-          <div class="auth-hero">
-            <div class="hero-card" aria-hidden="true">
-              <span class="hero-card__tape"></span>
-              <h3>Grade 7 – Rizal</h3>
-              <p>Araling Tagalog, ika-2 markahan</p>
-              <div class="hero-card__stub">
-                <span>Class code</span>
-                <code>7F3K9Q</code>
-              </div>
+          <section class="auth-carousel" aria-label="BaSaya features">
+            <div class="auth-carousel__slides">
+              <article class="auth-carousel__slide is-active" data-carousel-slide aria-roledescription="slide" aria-label="1 of 3">
+                <div class="auth-carousel__visual auth-carousel__visual--class" aria-hidden="true">
+                  <div class="auth-carousel__class-card">
+                    <span class="auth-carousel__visual-label">YOUR CLASSROOM</span>
+                    <strong>Grade 7 <span>·</span> Rizal</strong>
+                    <span class="auth-carousel__class-subtitle">Araling Tagalog · 2nd quarter</span>
+                    <span class="auth-carousel__class-code"><span>CLASS CODE</span><b>7F3K9Q</b></span>
+                  </div>
+                  <span class="auth-carousel__orbit auth-carousel__orbit--one"></span>
+                  <span class="auth-carousel__orbit auth-carousel__orbit--two"></span>
+                  <span class="auth-carousel__spark auth-carousel__spark--one">✳</span>
+                  <span class="auth-carousel__spark auth-carousel__spark--two">✦</span>
+                </div>
+                <div class="auth-carousel__copy">
+                  <span class="auth-carousel__eyebrow">A place for every class</span>
+                  <h1>Bring your classroom together.</h1>
+                  <p>Keep class details, lesson plans, and student activity in one thoughtful space.</p>
+                </div>
+              </article>
+              <article class="auth-carousel__slide" data-carousel-slide aria-roledescription="slide" aria-label="2 of 3" aria-hidden="true">
+                <div class="auth-carousel__visual auth-carousel__visual--lesson" aria-hidden="true">
+                  <div class="auth-carousel__lesson-stack">
+                    <span class="auth-carousel__visual-label">TODAY'S LEARNING</span>
+                    <div class="auth-carousel__lesson-item"><b>01</b><span><strong>Pagkilala sa pangngalan</strong><small>Aralin <i></i> Beginner</small></span><span class="auth-carousel__lesson-check">✓</span></div>
+                    <div class="auth-carousel__lesson-item"><b>02</b><span><strong>Salita at kahulugan</strong><small>Pagsasanay <i></i> Practice</small></span><span class="auth-carousel__lesson-arrow">↗</span></div>
+                    <div class="auth-carousel__lesson-item auth-carousel__lesson-item--faded"><b>03</b><span><strong>Oras para magbasa</strong><small>Gawain <i></i> Next up</small></span></div>
+                  </div>
+                  <span class="auth-carousel__spark auth-carousel__spark--one">✦</span>
+                  <span class="auth-carousel__spark auth-carousel__spark--two">✳</span>
+                </div>
+                <div class="auth-carousel__copy">
+                  <span class="auth-carousel__eyebrow">Learning that keeps moving</span>
+                  <h1>Make room for the joy of learning.</h1>
+                  <p>Build a lesson flow that brings reading, practice, and play together.</p>
+                </div>
+              </article>
+              <article class="auth-carousel__slide" data-carousel-slide aria-roledescription="slide" aria-label="3 of 3" aria-hidden="true">
+                <div class="auth-carousel__visual auth-carousel__visual--progress" aria-hidden="true">
+                  <div class="auth-carousel__progress-card">
+                    <div class="auth-carousel__progress-heading"><span class="auth-carousel__visual-label">CLASS PROGRESS</span><span class="auth-carousel__live"><i></i> THIS WEEK</span></div>
+                    <strong>Little steps, <span>big growth.</span></strong>
+                    <div class="auth-carousel__progress-chart"><i style="--bar:32%"></i><i style="--bar:48%"></i><i style="--bar:42%"></i><i style="--bar:66%"></i><i style="--bar:59%"></i><i style="--bar:82%"></i><i style="--bar:96%"></i></div>
+                    <div class="auth-carousel__progress-footer"><span>Class activity</span><b>+24% <small>↗</small></b></div>
+                  </div>
+                  <span class="auth-carousel__spark auth-carousel__spark--one">✳</span>
+                  <span class="auth-carousel__spark auth-carousel__spark--two">✦</span>
+                </div>
+                <div class="auth-carousel__copy">
+                  <span class="auth-carousel__eyebrow">Every learner has a story</span>
+                  <h1>See progress in every small win.</h1>
+                  <p>Stay close to your students' learning and celebrate each step forward.</p>
+                </div>
+              </article>
             </div>
-            <h1>Make every lesson fun.</h1>
-            <span class="heading-rule"></span>
-            <p class="lede">
-              Sign in to manage classes, lessons, and student progress.
-            </p>
-          </div>
+          </section>
         </section>
         <section class="auth-panel">
           <form id="login-form" class="form-card">
@@ -63,7 +104,10 @@
                 placeholder="Your password"
             /></label>
             <p id="login-error" class="form-error" role="alert"></p>
-            <button class="button primary" type="submit">Sign in</button>
+            <button class="button primary login-submit" type="submit">
+              <span class="login-submit__label">Sign in to BaSaya</span>
+              <span class="login-submit__spinner" aria-hidden="true"></span>
+            </button>
           </form>
           <p class="auth-note-inline">
             Access is reserved for approved teacher and admin accounts. If you
@@ -77,7 +121,24 @@
       const loading = document.getElementById("loading-screen");
       const showStartupError = (message) => {
         if (loading.hidden) return;
-        loading.innerHTML = `<p style="max-width:30rem"><strong>We couldn’t verify your account.</strong><br><br>${message}<br><br>Open your browser’s <strong>F12 → Console</strong> tab and send the red error message to your developer.</p>`;
+        const paragraph = document.createElement("p");
+        paragraph.style.maxWidth = "30rem";
+        const heading = document.createElement("strong");
+        heading.textContent = "We couldn’t verify your account.";
+        const consoleHint = document.createElement("strong");
+        consoleHint.textContent = "F12 → Console";
+        paragraph.append(
+          heading,
+          document.createElement("br"),
+          document.createElement("br"),
+          String(message),
+          document.createElement("br"),
+          document.createElement("br"),
+          "Open your browser’s ",
+          consoleHint,
+          " tab and send the red error message to your developer.",
+        );
+        loading.replaceChildren(paragraph);
       };
       setTimeout(
         () =>
@@ -86,7 +147,7 @@
           ),
         12000,
       );
-      import("./js/login.js").catch((error) => {
+      import("./js/login.js?v=login-signin-animation").catch((error) => {
         console.error("Login startup failed:", error);
         showStartupError(error.message || "The Firebase SDK could not load.");
       });

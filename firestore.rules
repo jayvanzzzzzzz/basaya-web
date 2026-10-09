@@ -13,6 +13,14 @@ service cloud.firestore {
       allow get: if signedIn() && userId == request.auth.uid;
       // Students can read only their own record. Account administration belongs to the super-admin app.
       allow read: if teacher() || (signedIn() && userId == request.auth.uid);
+      allow update: if signedIn()
+        && userId == request.auth.uid
+        && resource.data.role == 'teacher'
+        && request.resource.data.role == 'teacher'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80;
       allow write: if false;
     }
     match /classes/{classId} {

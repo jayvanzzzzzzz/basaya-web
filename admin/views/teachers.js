@@ -92,15 +92,15 @@ export async function renderTeachers() {
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                       </button>
                       <div class="teacher-table__menu-popup" hidden>
-                        <button type="button" class="teacher-table__menu-item" data-edit="${t.id}">
+                        <button type="button" class="teacher-table__menu-item" data-edit="${escapeHtml(t.id)}">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
                           <span>Edit details</span>
                         </button>
-                        <button type="button" class="teacher-table__menu-item" data-reset="${t.id}">
+                        <button type="button" class="teacher-table__menu-item" data-reset="${escapeHtml(t.id)}">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3" /></svg>
                           <span>Reset password</span>
                         </button>
-                        <button type="button" class="teacher-table__menu-item teacher-table__menu-item--danger" data-delete="${t.id}">
+                        <button type="button" class="teacher-table__menu-item teacher-table__menu-item--danger" data-delete="${escapeHtml(t.id)}">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
                           <span>Remove teacher</span>
                         </button>
@@ -141,7 +141,16 @@ export async function renderTeachers() {
   });
 
   state.teachers.forEach((t) => {
-    const row = $(`[data-edit="${t.id}"]`)?.closest("tr");
+    const editButton = [...document.querySelectorAll("[data-edit]")].find(
+      (button) => button.dataset.edit === t.id,
+    );
+    const resetButton = [...document.querySelectorAll("[data-reset]")].find(
+      (button) => button.dataset.reset === t.id,
+    );
+    const deleteButton = [...document.querySelectorAll("[data-delete]")].find(
+      (button) => button.dataset.delete === t.id,
+    );
+    const row = editButton?.closest("tr");
     const toggle = row?.querySelector(".teacher-table__menu-toggle");
     const popup = row?.querySelector(".teacher-table__menu-popup");
 
@@ -151,15 +160,15 @@ export async function renderTeachers() {
       popup.hidden = !willOpen;
       toggle.setAttribute("aria-expanded", String(willOpen));
     });
-    row?.querySelector(`[data-edit="${t.id}"]`)?.addEventListener("click", () => {
+    editButton?.addEventListener("click", () => {
       closeTeacherMenus();
       openEditTeacherModal(t);
     });
-    row?.querySelector(`[data-reset="${t.id}"]`)?.addEventListener("click", () => {
+    resetButton?.addEventListener("click", () => {
       closeTeacherMenus();
       resetPassword(t);
     });
-    row?.querySelector(`[data-delete="${t.id}"]`)?.addEventListener("click", () => {
+    deleteButton?.addEventListener("click", () => {
       closeTeacherMenus();
       deleteTeacher(t);
     });

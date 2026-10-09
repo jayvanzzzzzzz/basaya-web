@@ -33,8 +33,23 @@ document.addEventListener("click", async (event) => {
   }
 });
 
-$("#logout-button").addEventListener("click", () => signOut(auth));
+$("#logout-button").addEventListener("click", async () => {
+  sessionStorage.setItem("basayaSignedOut", "true");
+  try {
+    await signOut(auth);
+    window.location.replace("../index.html");
+  } catch (error) {
+    sessionStorage.removeItem("basayaSignedOut");
+    console.error("Teacher sign-out failed:", error);
+    toast("Could not sign out. Please try again.");
+  }
+});
 window.addEventListener("hashchange", renderRoute);
+window.addEventListener("pageshow", () => {
+  if (sessionStorage.getItem("basayaSignedOut") === "true") {
+    window.location.replace("../index.html");
+  }
+});
 
 onAuthStateChanged(auth, async (user) => {
   console.log("teacher/app.js — user:", user);
@@ -44,7 +59,7 @@ onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
     console.log("No user — bouncing to login");
-    window.location.href = "../index.html";
+    window.location.replace("../index.html");
     return;
   }
 
@@ -54,7 +69,7 @@ onAuthStateChanged(auth, async (user) => {
     if (!profile.exists() || profile.data().role !== "teacher") {
       console.log("Role check failed — bouncing to login");
       await signOut(auth);
-      window.location.href = "../index.html";
+      window.location.replace("../index.html");
       return;
     }
     state.profile = profile.data();
@@ -63,7 +78,7 @@ onAuthStateChanged(auth, async (user) => {
   } catch (error) {
     console.error("Error during role check:", error);
     await signOut(auth);
-    window.location.href = "../index.html";
+    window.location.replace("../index.html");
   } finally {
     setLoading(false);
   }

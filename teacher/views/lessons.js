@@ -23,7 +23,7 @@ export async function renderLibrary() {
     `<button class="button primary" id="new-lesson">+ New lesson</button>`,
   );
   $("#page-content").innerHTML = state.lessons.length
-    ? `<div class="card list">${state.lessons.map((l) => `<div class="lesson-row"><div><h3>${escapeHtml(l.title)}</h3><p>${escapeHtml(l.description || "No description")}</p><div class="lesson-meta"><span class="tag">${escapeHtml(l.difficulty || "Any level")}</span></div></div><button class="button secondary small" data-edit-lesson="${l.id}">Edit</button></div>`).join("")}</div>`
+    ? `<div class="card list">${state.lessons.map((l) => `<div class="lesson-row"><div><h3>${escapeHtml(l.title)}</h3><p>${escapeHtml(l.description || "No description")}</p><div class="lesson-meta"><span class="tag">${escapeHtml(l.difficulty || "Any level")}</span></div></div><button class="button secondary small" data-edit-lesson="${escapeHtml(l.id)}">Edit</button></div>`).join("")}</div>`
     : empty(
         "Build a reusable lesson",
         "Lessons you create here can be linked to one or more of your classes.",
