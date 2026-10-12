@@ -626,14 +626,10 @@ function lecturePageHtml(page = {}) {
 function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null) {
   const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
-    <div class="sentence-editor" data-lecture-sentence>
+    <div class="sentence-editor" data-lecture-sentence data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}" data-audio-res-name="${escapeHtml(audioResName)}">
       <label>
         Sentence
-        <textarea data-sentence-text maxlength="120" placeholder="Write the sentence for this page (120 characters max).">${escapeHtml(sentence)}</textarea>
-      </label>
-      <label>
-        Packaged audio name (optional)
-        <input data-audio-res-name value="${escapeHtml(audioResName)}" placeholder="lesson1_page1_sentence1" />
+        <textarea data-sentence-text placeholder="Write the sentence for this page.">${escapeHtml(sentence)}</textarea>
       </label>
       <div class="audio-actions">
         <button type="button" class="button secondary small" data-generate-sentence-audio>Generate audio</button>
@@ -649,14 +645,10 @@ function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null
 function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
   const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
-    <div class="pronunciation-editor" data-pronunciation-word>
+    <div class="pronunciation-editor" data-pronunciation-word data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}" data-audio-ref="${escapeHtml(audioRef)}">
       <label>
         Word
         <input data-pronunciation-text value="${escapeHtml(word)}" placeholder="Arkipelago" />
-      </label>
-      <label>
-        Packaged audio name (optional)
-        <input data-pronunciation-ref value="${escapeHtml(audioRef)}" placeholder="arkipelago" />
       </label>
       <div class="audio-actions">
         <button type="button" class="button secondary small" data-generate-pronunciation-audio>Generate audio</button>
@@ -1106,6 +1098,17 @@ function readActivity(container) {
   };
 }
 
+// Keeps audio that was saved earlier when the row has no newly generated preview,
+// but only if the text it was generated from is unchanged.
+function existingCloudAudio(row, text) {
+  try {
+    const saved = JSON.parse(row.dataset.cloudAudio || "null");
+    return saved?.audioUrl && saved.text === text ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
 async function readLectures(container, lessonId) {
   const pages = [];
 
@@ -1121,12 +1124,9 @@ async function readLectures(container, lessonId) {
     for (const [sentenceIndex, row] of sentenceRows.entries()) {
       const text = $("[data-sentence-text]", row).value.trim();
       if (!text) continue;
-      if (text.length > 120) {
-        throw new Error(`Sentence ${sentenceIndex + 1} on page ${pageIndex + 1} must be 120 characters or fewer.`);
-      }
-
       sentences.push(text);
-      audioResNames.push($("[data-audio-res-name]", row).value.trim());
+      // Legacy bundled-audio name; no longer editable, kept so older lessons still play.
+      audioResNames.push(row.dataset.audioResName || "");
 
       const preview = previews.get(row);
       if (preview?.blob) {
@@ -1146,7 +1146,7 @@ async function readLectures(container, lessonId) {
 
         URL.revokeObjectURL(preview.objectUrl);
       } else {
-        cloudAudio.push(null);
+        cloudAudio.push(existingCloudAudio(row, text));
       }
     }
 
@@ -1173,7 +1173,8 @@ async function readPronunciation(container, lessonId) {
     if (!word) continue;
 
     words.push(word);
-    audioRefs.push($("[data-pronunciation-ref]", row).value.trim());
+    // Legacy bundled-audio name; no longer editable, kept so older lessons still play.
+    audioRefs.push(row.dataset.audioRef || "");
 
     const preview = previews.get(row);
     if (preview?.blob) {
@@ -1193,7 +1194,7 @@ async function readPronunciation(container, lessonId) {
 
       URL.revokeObjectURL(preview.objectUrl);
     } else {
-      cloudAudio.push(null);
+      cloudAudio.push(existingCloudAudio(row, word));
     }
   }
 
