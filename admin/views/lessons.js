@@ -362,7 +362,8 @@ async function getLessonSections(lessonId) {
     lectures: data.lectures[0] || null,
     pronunciation: data.pronunciation[0] || null,
     quiz: data.quiz[0] || null,
-    game: data.game || [],
+    game: (data.game || []).filter((item) => item.id !== "status"),
+    gameStatus: (data.game || []).find((item) => item.id === "status") || null,
   };
 }
 
@@ -510,11 +511,22 @@ function studioHtml(lesson = {}, sections = {}) {
           </div>
           <div data-quiz-questions></div>
 
-          <div class="lesson-subheading lesson-subheading--spaced">
-            <h4>Game levels</h4>
-            <button type="button" class="button secondary small" data-add-game-level>+ Add level</button>
+          <label class="game-skip-option">
+            <input
+              type="checkbox"
+              data-skip-game
+              ${sections.gameStatus?.completion === "skipped" ? "checked" : ""}
+            />
+            <span>Skip game for this lesson</span>
+          </label>
+          <p class="muted">When selected, game controls are disabled and no game levels are saved.</p>
+          <div data-game-editor>
+            <div class="lesson-subheading lesson-subheading--spaced">
+              <h4>Game levels</h4>
+              <button type="button" class="button secondary small" data-add-game-level>+ Add level</button>
+            </div>
+            <div data-game-levels></div>
           </div>
-          <div data-game-levels></div>
         </section>
 
         <div class="lesson-studio__footer">
@@ -547,10 +559,6 @@ function activityPageHtml(page = {}) {
         <span class="activity-answer-picker__label">Click the correct answer</span>
         <div class="activity-answer-picker__words" data-activity-answer-words></div>
       </div>
-      <label>
-        Explanation for this page
-        <textarea data-activity-page-explanation placeholder="Explain the correct answer.">${escapeHtml(page.explanation || "")}</textarea>
-      </label>
     </article>
   `;
 }
@@ -661,9 +669,28 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
   `;
 }
 
+// Each question needs its own radio-group names so checking one answer unchecks the others.
+let questionSeq = 0;
+
+const ANSWER_HINTS = {
+  single: "Pumili ng isang tamang sagot.",
+  multiple: "Lagyan ng check ang lahat ng tamang sagot.",
+};
+
+/** Correct answer indices: `answers` (multiple-answer quizzes) or the older single `answer`. */
+function questionAnswers(question) {
+  if (Array.isArray(question.answers) && question.answers.length) {
+    return question.answers.map(Number).filter((index) => Number.isInteger(index));
+  }
+  return Number.isInteger(question.answer) ? [question.answer] : [];
+}
+
 function questionHtml(question = {}) {
+  const id = `quiz-q${++questionSeq}`;
   const choices = question.choices?.length === 3 ? question.choices : ["", "", ""];
-  const answer = Number.isInteger(question.answer) ? question.answer : 0;
+  const multiple = question.multiple === true;
+  const answers = new Set(questionAnswers(question));
+  const answerType = multiple ? "checkbox" : "radio";
 
   return `
     <article class="builder-card" data-question>
@@ -672,23 +699,91 @@ function questionHtml(question = {}) {
         <button type="button" class="text-button danger" data-remove-question>Remove</button>
       </div>
       <label>Question<textarea data-question-text placeholder="Write a question.">${escapeHtml(question.question || "")}</textarea></label>
+
+      <div class="quiz-answer-mode" role="radiogroup" aria-label="Answer type">
+        <label>
+          <input type="radio" name="${id}-mode" value="single" data-answer-mode ${multiple ? "" : "checked"} />
+          Isang tamang sagot
+        </label>
+        <label>
+          <input type="radio" name="${id}-mode" value="multiple" data-answer-mode ${multiple ? "checked" : ""} />
+          Maraming tamang sagot
+        </label>
+      </div>
+      <p class="quiz-answer-hint" data-answer-hint>${ANSWER_HINTS[multiple ? "multiple" : "single"]}</p>
+
       <div class="choice-grid">
         ${choices
           .map(
             (choice, index) => `
-              <label class="choice-editor">
-                <span>
-                  <input type="radio" data-answer-choice value="${index}" ${answer === index ? "checked" : ""} />
+              <div class="choice-editor">
+                <label class="choice-answer">
+                  <input
+                    type="${answerType}"
+                    name="${id}-answer"
+                    data-answer-choice
+                    value="${index}"
+                    ${answers.has(index) ? "checked" : ""}
+                  />
                   Correct answer
-                </span>
-                <input data-choice-text value="${escapeHtml(choice)}" placeholder="Choice ${index + 1}" />
-              </label>
+                </label>
+                <input
+                  data-choice-text
+                  value="${escapeHtml(choice)}"
+                  placeholder="Choice ${index + 1}"
+                  aria-label="Choice ${index + 1}"
+                />
+              </div>
             `,
           )
           .join("")}
       </div>
+      <p class="quiz-question-error" data-question-error hidden>Pumili ng tamang sagot para sa tanong na ito.</p>
     </article>
   `;
+}
+
+/** Switch a question between one correct answer (radio group) and several (checkboxes). */
+function setQuestionAnswerMode(question, multiple) {
+  const inputs = $$("[data-answer-choice]", question);
+  const checked = inputs.map((input) => input.checked);
+  let keptOne = false;
+
+  inputs.forEach((input, index) => {
+    input.type = multiple ? "checkbox" : "radio";
+    // Going back to one answer keeps only the first checked choice.
+    const keep = multiple ? checked[index] : checked[index] && !keptOne;
+    if (keep) keptOne = true;
+    input.checked = keep;
+  });
+
+  $("[data-answer-hint]", question).textContent = ANSWER_HINTS[multiple ? "multiple" : "single"];
+}
+
+function clearQuestionError(question) {
+  question.classList.remove("is-invalid");
+  $("[data-question-error]", question).hidden = true;
+}
+
+/**
+ * Every question that will be saved (text and all three choices filled) needs at least one
+ * correct answer. Returns the first invalid question, or null.
+ */
+function validateQuiz(container) {
+  let firstInvalid = null;
+
+  $$("[data-question]", container).forEach((question) => {
+    const text = $("[data-question-text]", question).value.trim();
+    const choicesFilled = $$("[data-choice-text]", question).every((input) => input.value.trim());
+    const hasAnswer = $$("[data-answer-choice]", question).some((input) => input.checked);
+    const invalid = Boolean(text && choicesFilled && !hasAnswer);
+
+    question.classList.toggle("is-invalid", invalid);
+    $("[data-question-error]", question).hidden = !invalid;
+    if (invalid && !firstInvalid) firstInvalid = question;
+  });
+
+  return firstInvalid;
 }
 
 function gameLevelHtml(level = {}) {
@@ -717,6 +812,8 @@ async function openLessonModal(existing = null) {
     const pronunciationWords = $("[data-pronunciation-words]", modal);
     const quizQuestions = $("[data-quiz-questions]", modal);
     const gameLevels = $("[data-game-levels]", modal);
+    const skipGame = $("[data-skip-game]", modal);
+    const gameEditor = $("[data-game-editor]", modal);
 
     const initialActivity = sections.activity?.pages?.length
       ? sections.activity.pages
@@ -734,7 +831,11 @@ async function openLessonModal(existing = null) {
     const initialQuestions = sections.quiz?.questions?.length
       ? sections.quiz.questions
       : [{}];
-    const initialLevels = sections.game?.length ? sections.game : [{}];
+    const initialLevels = sections.game?.length
+      ? sections.game
+      : sections.gameStatus?.completion === "skipped"
+        ? []
+        : [{}];
 
     activityPages.innerHTML = initialActivity.map(activityPageHtml).join("");
     $$("[data-activity-page]", activityPages).forEach(renderActivityAnswerPicker);
@@ -777,7 +878,17 @@ async function openLessonModal(existing = null) {
       });
     };
 
+    const updateGameEditor = () => {
+      gameEditor
+        .querySelectorAll("button, input, textarea, select")
+        .forEach((control) => {
+          control.disabled = skipGame.checked;
+        });
+    };
+
     renumberLevels();
+    updateGameEditor();
+    skipGame.addEventListener("change", updateGameEditor);
 
     const showStep = (step) => {
       $$(".lesson-tab", modal).forEach((button) =>
@@ -935,8 +1046,30 @@ async function openLessonModal(existing = null) {
       renderActivityAnswerPicker(activityPage);
     });
 
+    modal.addEventListener("change", (event) => {
+      const question = event.target.closest("[data-question]");
+      if (!question) return;
+
+      if (event.target.matches("[data-answer-mode]")) {
+        setQuestionAnswerMode(question, event.target.value === "multiple");
+      }
+      if (event.target.matches("[data-answer-mode], [data-answer-choice]")) {
+        clearQuestionError(question);
+      }
+    });
+
     $("#lesson-form", modal).addEventListener("submit", async (event) => {
       event.preventDefault();
+
+      // Block saving a quiz question that has no correct answer selected.
+      const invalidQuestion = validateQuiz(quizQuestions);
+      if (invalidQuestion) {
+        const number = $$("[data-question]", quizQuestions).indexOf(invalidQuestion) + 1;
+        showStep("quiz");
+        invalidQuestion.scrollIntoView({ behavior: "smooth", block: "center" });
+        toast(`Pumili ng tamang sagot para sa Tanong ${number}.`);
+        return;
+      }
 
       const submit = event.submitter;
       submit.disabled = true;
@@ -950,6 +1083,7 @@ async function openLessonModal(existing = null) {
           pronunciationWords,
           quizQuestions,
           gameLevels,
+          skipGame,
         });
 
         toast(existing ? "Lesson updated." : "Lesson published.");
@@ -1050,7 +1184,7 @@ async function saveLesson(existing, values, elements) {
     lessonRef.id,
   );
   const quiz = readQuiz(elements.quizQuestions);
-  const game = readGame(elements.gameLevels);
+  const game = elements.skipGame.checked ? [] : readGame(elements.gameLevels);
 
   await setDoc(doc(db, "lessons", lessonRef.id, "activity", "content"), activity);
   await setDoc(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
@@ -1072,7 +1206,7 @@ async function saveLesson(existing, values, elements) {
     questions: quiz,
   });
 
-  await replaceGameLevels(lessonRef.id, game);
+  await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked);
 
   return lessonRef.id;
 }
@@ -1091,7 +1225,6 @@ function readActivity(container) {
         return {
           words,
           correctIndices,
-          explanation: $("[data-activity-page-explanation]", page).value.trim(),
         };
       })
       .filter((item) => item.words.length),
@@ -1208,12 +1341,18 @@ function readQuiz(container) {
         input.value.trim(),
       );
 
-      const selected = $("[data-answer-choice]:checked", question);
+      const multiple = $("[data-answer-mode]:checked", question)?.value === "multiple";
+      const answers = $$("[data-answer-choice]", question)
+        .filter((input) => input.checked)
+        .map((input) => Number(input.value));
 
       return {
         question: $("[data-question-text]", question).value.trim(),
         choices,
-        answer: Number(selected?.value || 0),
+        multiple,
+        answers,
+        // Kept for older app versions, which only read a single answer.
+        answer: answers[0] ?? 0,
       };
     })
     .filter((item) => item.question && item.choices.every(Boolean));
@@ -1232,13 +1371,24 @@ function readGame(container) {
     .filter((item) => item.words.length);
 }
 
-async function replaceGameLevels(lessonId, levels) {
+async function replaceGameLevels(lessonId, levels, skipGame) {
   const gameCollection = collection(db, "lessons", lessonId, "game");
   const existing = await getDocs(gameCollection);
 
   const batch = writeBatch(db);
-  existing.docs.forEach((gameDoc) => batch.delete(gameDoc.ref));
-  await batch.commit();
+  existing.docs.forEach((gameDoc) => {
+    if (!skipGame || gameDoc.id !== "status") {
+      batch.delete(gameDoc.ref);
+    }
+  });
+  if (skipGame) {
+    batch.set(doc(db, "lessons", lessonId, "game", "status"), {
+      completion: "skipped",
+    });
+  }
+  if (existing.size || skipGame) {
+    await batch.commit();
+  }
 
   await Promise.all(
     levels.map((level) => addDoc(gameCollection, level)),
