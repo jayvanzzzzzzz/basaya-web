@@ -1,12 +1,14 @@
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminAuth, db, messaging } from "../lib/firebase.js";
 
 // POST /api/notify-lesson
 // Headers: Authorization: Bearer <teacher's Firebase ID token>
 // Body:    { classId, lessonIds: [...] }
 //
-// Checks that the caller teaches the class, then sends one push to the FCM
-// topic "class_<classId>", which every student's Android app subscribes to.
+// Checks that the caller teaches the class, saves the notification to
+// classes/{classId}/notifications (the students' notification list) and sends a
+// data message to the FCM topic "class_<classId>". The Android app builds the
+// notification itself and holds it until visibleAt (the lesson's open date).
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const TIME_ZONE = process.env.NOTIFY_TIME_ZONE || "Asia/Manila";
@@ -36,26 +38,18 @@ function allowCors(req, res) {
 const when = (timestamp) => formatter.format(timestamp.toDate());
 
 /** All lessons added together share one schedule, so the first link speaks for all. */
-function scheduleLine(link) {
-  const parts = [];
-  if (link.openAt && link.openAt.toMillis() > Date.now())
-    parts.push(`Bubukas: ${when(link.openAt)}`);
-  if (link.dueAt) parts.push(`Deadline: ${when(link.dueAt)}`);
-  return parts.join(" · ");
-}
-
 function buildMessage(lessons, link) {
-  const schedule = scheduleLine(link);
+  const deadline = link.dueAt ? `Deadline: ${when(link.dueAt)}` : "Walang deadline";
   if (lessons.length === 1) {
     return {
       title: `📘 Bagong aralin: ${lessons[0].title}`,
-      body: schedule || "Buksan ang BaSaya para magsimula!",
+      body: deadline,
     };
   }
   const titles = lessons.map((lesson) => lesson.title).join(", ");
   return {
     title: `📘 ${lessons.length} bagong aralin`,
-    body: [titles, schedule].filter(Boolean).join("\n"),
+    body: `${titles}\n${deadline}`,
   };
 }
 
@@ -107,19 +101,38 @@ export default async function handler(req, res) {
       title: (snap.exists && snap.get("title")) || "Aralin",
     }));
 
-    // 4. Send, then clear the "not notified yet" flag.
-    const { title, body } = buildMessage(lessons, linkSnaps[0].data());
+    // 4. Students see it once the lesson opens (or right away when it has no open date).
+    const link = linkSnaps[0].data();
+    const { title, body } = buildMessage(lessons, link);
+    const visibleAt = Timestamp.fromMillis(
+      Math.max(Date.now(), link.openAt ? link.openAt.toMillis() : 0),
+    );
+    const feedRef = firestore.collection(`classes/${classId}/notifications`).doc();
+
+    // 5. Send, then save it to the class's notification list and clear the "not notified yet" flag.
     await messaging().send({
       topic: `class_${classId}`,
-      notification: { title, body },
-      data: { type: "new_lesson", classId, lessonIds: ids.join(",") },
-      android: {
-        priority: "high",
-        notification: { channelId: "new_lessons" },
+      data: {
+        type: "new_lesson",
+        notificationId: feedRef.id,
+        classId,
+        lessonIds: ids.join(","),
+        title,
+        body,
+        visibleAt: String(visibleAt.toMillis()),
       },
+      android: { priority: "high" },
     });
 
     const batch = firestore.batch();
+    batch.set(feedRef, {
+      type: "new_lesson",
+      lessonIds: ids,
+      title,
+      body,
+      visibleAt,
+      createdAt: FieldValue.serverTimestamp(),
+    });
     linkRefs.forEach((ref) =>
       batch.update(ref, { notifyPending: false, notifiedAt: FieldValue.serverTimestamp() }),
     );

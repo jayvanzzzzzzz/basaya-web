@@ -122,6 +122,15 @@ service cloud.firestore {
         allow write: if signedIn() && request.auth.uid == studentId;
       }
 
+      // Notification list ("new lesson"), written only by notify-api (Admin SDK).
+      match /notifications/{notificationId} {
+        allow read: if signedIn() &&
+          (get(/databases/$(database)/documents/classes/$(classId))
+             .data.teacherId == request.auth.uid ||
+           exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
+        allow write: if false;
+      }
+
       // Teachers can add an existing lesson only to a class they own.
       match /classLessons/{lessonId} {
         allow read: if signedIn() &&
