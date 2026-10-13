@@ -10,6 +10,7 @@ import { db } from "../../js/firebase.js";
 import { state, getAllLessons } from "../../js/state.js";
 import { $, escapeHtml, toast, navigate, page } from "../../js/helpers.js";
 import { readSchedule, notifyStudents } from "../../js/schedule.js";
+import { paginate } from "../../js/pagination.js";
 import { openLessonModal } from "./lessons.js";
 
 export async function renderAddLessonPage(classId) {
@@ -118,6 +119,15 @@ export async function renderAddLessonPage(classId) {
     });
     $("#lesson-no-results").hidden = visible !== 0;
   });
+
+  if (state.allLessons.length) {
+    paginate({
+      rows: () => [...document.querySelectorAll("[data-lesson-row]")],
+      after: $(".lesson-picker__list"),
+      search: $("#lesson-search"),
+      label: ["lesson", "lessons"],
+    });
+  }
 
   const updateSelection = () => {
     const selected = [...document.querySelectorAll('#link-form input[name="lesson"]:checked:not(:disabled)')].length;

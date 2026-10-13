@@ -1,0 +1,609 @@
+/* ============================================================
+   LESSON STUDIO (admin) + LESSON EDITOR (teacher)
+   ============================================================ */
+.modal:has(.lesson-studio) {
+  display: flex;
+  width: min(100%, 76rem);
+  height: min(94vh, 58rem);
+  max-height: 94vh;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* The wrapper between the modal and the studio must fill the modal too */
+.modal:has(.lesson-studio) > .modal-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.lesson-studio {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  background: var(--surface);
+}
+
+.lesson-studio__heading {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  overflow: hidden;
+  padding: 1.7rem 4rem 1.4rem 2rem;
+  background: var(--hero-gradient);
+  color: #fff;
+}
+
+.lesson-studio__heading::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(100deg, transparent 40%, #000);
+  -webkit-mask-image: linear-gradient(100deg, transparent 40%, #000);
+  content: "";
+}
+
+.lesson-studio__heading .eyebrow {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lesson-studio__heading .eyebrow::before {
+  background: #fff;
+}
+
+.lesson-studio__heading h2 {
+  margin: 0.1rem 0 0.35rem;
+  color: #fff;
+}
+
+.lesson-studio__heading p:last-child {
+  max-width: 42rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.modal:has(.lesson-studio) .modal-close {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.modal:has(.lesson-studio) .modal-close:hover {
+  background: #fff;
+  color: var(--danger);
+}
+
+.modal:has(.lesson-studio)::before {
+  display: none;
+}
+
+.lesson-studio__badge {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Step tabs: segmented control */
+.lesson-studio__tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.85rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.lesson-tab {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  font-weight: 650;
+  transition:
+    background-color var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.lesson-tab:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.lesson-tab.active {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.lesson-tab:active {
+  transform: translateY(2px);
+}
+
+/* Column so the save bar can sit at the bottom even when a step is short */
+.lesson-studio form {
+  /* Always the stretchy last row, even while the lecture-page bar is hidden */
+  grid-row: 4;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.7rem 2rem 0;
+}
+
+.lesson-step {
+  display: none;
+  max-width: 58rem;
+  padding-bottom: 2rem;
+}
+
+.lesson-step.active {
+  display: grid;
+  gap: 1rem;
+  animation: fadeUp 360ms var(--ease-out);
+}
+
+.lesson-section-intro {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding-bottom: 0.4rem;
+}
+
+.lesson-section-intro h3 {
+  margin: 0 0 0.15rem;
+  font-size: 1.2rem;
+}
+
+.lesson-section-intro p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.88rem;
+}
+
+.lesson-section-number {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.9rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.lesson-subheading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+
+.lesson-subheading h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.lesson-subheading--spaced {
+  margin-top: 1.8rem;
+}
+
+/* Builder cards (activity pages, quiz questions, game levels) */
+.builder-card {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.8rem;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  box-shadow: 0 3px 0 var(--card-lip);
+  animation: fadeUp 360ms var(--ease-out);
+  transition:
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.builder-card:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+.builder-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--ink-2);
+  font-weight: 650;
+}
+
+.builder-card.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-soft);
+}
+
+.sentence-builder {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.sentence-editor,
+.pronunciation-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.6fr);
+  gap: 0.75rem;
+  padding: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.audio-actions {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.audio-preview {
+  grid-column: 1 / -1;
+}
+
+.audio-preview audio {
+  display: block;
+  width: min(100%, 31rem);
+}
+
+.audio-preview small {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.audio-preview:has(.audio-listen-button) {
+  display: flex;
+  grid-column: auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.audio-listen-button {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: 0 3px 0 var(--primary-lip);
+  transition:
+    transform var(--dur) var(--ease-spring),
+    filter var(--dur) ease;
+}
+
+.audio-listen-button:hover {
+  filter: brightness(1.08);
+  transform: scale(1.08);
+}
+
+.audio-listen-button:active {
+  transform: scale(0.94) translateY(2px);
+}
+
+/* Choices */
+.choice-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.choice-editor {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.choice-answer {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.quiz-answer-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+}
+
+.quiz-answer-mode label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    border-color var(--dur) ease,
+    color var(--dur) ease,
+    background-color var(--dur) ease;
+}
+
+.quiz-answer-mode label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.quiz-answer-hint {
+  margin: 0.4rem 0 0.6rem;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+}
+
+.quiz-question-error {
+  margin: 0.6rem 0 0;
+  color: var(--danger);
+  font-size: 0.8rem;
+  font-weight: 650;
+  animation: fadeDown var(--dur) var(--ease-out);
+}
+
+/* Activity answer word picker */
+.activity-answer-picker {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px dashed color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: var(--radius);
+  background: var(--primary-softer);
+}
+
+.activity-answer-picker__label {
+  color: var(--ink-2);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.activity-answer-picker__words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.activity-answer-word {
+  padding: 0.4rem 0.8rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-weight: 600;
+  transition:
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    background var(--dur-fast) ease,
+    transform var(--dur) var(--ease-spring);
+}
+
+.activity-answer-word:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.activity-answer-word.selected {
+  border-color: transparent;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 2px 0 var(--primary-lip);
+}
+
+/* "Skip game" option */
+.game-skip-option {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.95rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.game-skip-option:has(input:checked) {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+/* Lecture page ribbons */
+.lecture-page-navigation {
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.lecture-page-navigation .lesson-subheading {
+  margin: 0 0 0.5rem;
+}
+
+.lecture-page-navigation__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lecture-page-ribbons {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.2rem 0 0.35rem;
+}
+
+.lecture-page-ribbon {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-weight: 650;
+  transition:
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.lecture-page-ribbon:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.lecture-page-ribbon.active {
+  border-color: transparent;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 2px 0 var(--primary-lip);
+}
+
+/* Sticky footer with the save buttons */
+.lesson-studio__footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin: auto -2rem 0;
+  padding: 1rem 2rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.lesson-order-cell {
+  padding-right: 1.5rem;
+}
+
+/* ---------- Teacher's simple lesson editor (teacher/views/lessons.js) ---------- */
+.lecture-page,
+.quiz-question,
+.game-level {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+  padding: 1rem;
+  box-shadow: 0 3px 0 var(--card-lip);
+}
+
+.sentence-list,
+.choice-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sentence-row,
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.choice-row {
+  font-weight: 500;
+}
+
+.lesson-editor {
+  max-width: 52rem;
+}
+
+.lesson-editor .lesson-json {
+  min-height: 14rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+@media (max-width: 760px) {
+  .modal:has(.lesson-studio) {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .lesson-studio__heading {
+    padding: 1.4rem 3.4rem 1.1rem 1.25rem;
+  }
+
+  .lesson-studio__badge {
+    display: none;
+  }
+
+  .lesson-studio__tabs,
+  .lesson-studio form,
+  .lecture-page-navigation {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .lesson-studio__footer {
+    margin-right: -1.25rem;
+    margin-left: -1.25rem;
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .sentence-editor,
+  .pronunciation-editor,
+  .choice-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .audio-preview:has(.audio-listen-button) {
+    grid-column: 1;
+    justify-content: flex-start;
+  }
+}

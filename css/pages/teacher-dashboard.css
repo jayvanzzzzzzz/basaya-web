@@ -1,0 +1,190 @@
+/* ============================================================
+   TEACHER DASHBOARD — class cards
+   ============================================================ */
+.teacher-dashboard {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.classes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+  gap: 1.15rem;
+}
+
+.class-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 17.5rem;
+  flex-direction: column;
+  gap: 0.9rem;
+  overflow: hidden;
+  padding: 1.3rem 1.3rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: inherit;
+  box-shadow: var(--lip), var(--shadow-sm);
+  transition:
+    transform 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out);
+}
+
+/* Gradient cap that grows on hover */
+.class-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: 4.6rem;
+  background: var(--hero-gradient);
+  opacity: 0.95;
+  content: "";
+  transition: height 420ms var(--ease-out);
+}
+
+.class-card__glow {
+  position: absolute;
+  top: -3.4rem;
+  right: -2.2rem;
+  z-index: -1;
+  width: 7.5rem;
+  height: 7.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.2rem rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  transition: transform 600ms var(--ease-out);
+}
+
+.class-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  box-shadow: var(--lip-hover), var(--shadow);
+  transform: translateY(-5px);
+}
+
+.class-card:hover::before {
+  height: 5rem;
+}
+
+.class-card:hover .class-card__glow {
+  transform: scale(1.25) rotate(20deg);
+}
+
+.class-card:active {
+  transform: translateY(-1px);
+}
+
+.class-card:focus-visible {
+  outline: 3px solid var(--primary-ring);
+  outline-offset: 3px;
+}
+
+.class-card__heading {
+  display: flex;
+  min-height: 2.2rem;
+  align-items: center;
+  padding-right: 2.8rem;
+}
+
+.class-card__eyebrow {
+  padding: 0.28rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
+
+.class-card .icon-button--menu {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.class-card .icon-button--menu:hover,
+.class-card .icon-button--menu[aria-expanded="true"] {
+  border-color: #fff;
+  background: #fff;
+  color: var(--primary);
+}
+
+.class-card__body {
+  flex: 1;
+  padding-top: 1.1rem;
+}
+
+.class-card__body h3 {
+  max-width: 17rem;
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.class-card__body p {
+  display: -webkit-box;
+  max-width: 24rem;
+  margin: 0.45rem 0 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.class-card__code {
+  align-self: stretch;
+  justify-content: space-between;
+}
+
+.class-card__code .code-stub__hint {
+  margin-left: auto;
+}
+
+.class-card__open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.class-card__open svg {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0.42rem;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  transition:
+    transform 320ms var(--ease-spring),
+    background-color 320ms var(--ease-out),
+    color 320ms var(--ease-out);
+}
+
+.class-card:hover .class-card__open svg {
+  background: var(--brand-gradient);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+#class-grid-container > .muted {
+  padding: 2rem 0;
+  text-align: center;
+}

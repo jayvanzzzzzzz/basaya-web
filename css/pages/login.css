@@ -1,0 +1,690 @@
+/* ============================================================
+   LOGIN — split screen: brand world (left) + sign-in card (right)
+   ============================================================ */
+.auth-layout {
+  position: relative;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+}
+
+/* ---------- Left: brand world ---------- */
+.auth-copy {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  border-radius: 0 2.5rem 2.5rem 0;
+  background: var(--hero-gradient);
+  color: #fff;
+  box-shadow: 6px 0 0 var(--primary-lip);
+}
+
+.auth-copy::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(160deg, #000 10%, transparent 70%);
+  -webkit-mask-image: linear-gradient(160deg, #000 10%, transparent 70%);
+  content: "";
+}
+
+.auth-copy::after {
+  position: absolute;
+  right: -10rem;
+  bottom: -12rem;
+  z-index: -1;
+  width: 30rem;
+  height: 30rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3rem rgba(255, 255, 255, 0.05),
+    0 0 0 6rem rgba(255, 255, 255, 0.03);
+  content: "";
+  animation: float 10s ease-in-out infinite;
+}
+
+.auth-copy .brand {
+  gap: 1rem;
+  color: #fff;
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+  animation: fadeUp 700ms var(--ease-out) backwards;
+}
+
+.auth-copy .brand-logo {
+  width: clamp(4rem, 6vw, 5.4rem);
+  height: clamp(4rem, 6vw, 5.4rem);
+  filter: drop-shadow(0 12px 18px rgba(20, 10, 80, 0.35));
+  animation: float 5s ease-in-out infinite;
+}
+
+.auth-copy .brand:hover .brand-logo {
+  animation: wave 700ms var(--ease-out);
+}
+
+/* Drifting books + pen, only over the brand side */
+.auth-book-drift {
+  position: absolute;
+  inset: 0 44% 0 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.auth-book-drift__book,
+.auth-book-drift__pen {
+  position: absolute;
+  height: auto;
+  fill: rgba(255, 255, 255, 0.08);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  animation: authDrift 16s ease-in-out infinite;
+}
+
+.auth-book-drift__book {
+  width: clamp(2.4rem, 4vw, 3.6rem);
+}
+
+.auth-book-drift__book--one {
+  top: 8%;
+  right: 8%;
+}
+
+.auth-book-drift__book--two {
+  top: 46%;
+  right: 3%;
+  width: clamp(2rem, 3vw, 2.8rem);
+  animation-delay: -5s;
+}
+
+.auth-book-drift__book--three {
+  bottom: 7%;
+  left: 6%;
+  animation-delay: -10s;
+}
+
+.auth-book-drift__book--four {
+  right: 22%;
+  bottom: 4%;
+  width: clamp(2rem, 3vw, 2.8rem);
+  animation-delay: -13s;
+}
+
+.auth-book-drift__pen {
+  top: 6%;
+  left: 46%;
+  width: clamp(1.9rem, 3vw, 2.6rem);
+  fill: rgba(255, 201, 60, 0.15);
+  stroke: rgba(255, 223, 140, 0.6);
+  animation-delay: -4s;
+}
+
+@keyframes authDrift {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: -6deg;
+  }
+  50% {
+    translate: 0 -14px;
+    rotate: 5deg;
+  }
+}
+
+/* ---------- Carousel ---------- */
+.auth-carousel {
+  width: min(100%, 34rem);
+  outline: none;
+}
+
+.auth-carousel__slides {
+  position: relative;
+  min-height: 27rem;
+}
+
+.auth-carousel__slide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 15rem auto;
+  align-content: start;
+  gap: 1.6rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(1.5rem, 0, 0);
+  transition:
+    opacity 700ms var(--ease-out),
+    transform 900ms var(--ease-out),
+    visibility 700ms;
+}
+
+.auth-carousel__slide.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.auth-carousel__visual {
+  position: relative;
+  display: grid;
+  min-height: 15rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 30px 60px -30px rgba(20, 10, 80, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* The three demo cards */
+.auth-carousel__class-card,
+.auth-carousel__lesson-stack,
+.auth-carousel__progress-card {
+  position: relative;
+  z-index: 1;
+  width: min(78%, 23rem);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  color: #1f2547;
+  box-shadow:
+    0 5px 0 rgba(30, 20, 110, 0.25),
+    0 24px 44px -18px rgba(20, 10, 80, 0.55);
+}
+
+.auth-carousel__slide.is-active .auth-carousel__class-card,
+.auth-carousel__slide.is-active .auth-carousel__lesson-stack,
+.auth-carousel__slide.is-active .auth-carousel__progress-card {
+  animation: popIn 800ms var(--ease-spring) 120ms backwards;
+}
+
+.auth-carousel__visual-label {
+  color: #5b4cf4;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.auth-carousel__class-card {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1.15rem 1.3rem;
+  rotate: -2.5deg;
+}
+
+.auth-carousel__class-card > strong {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: -0.035em;
+}
+
+.auth-carousel__class-card > strong span {
+  color: #8a6cf0;
+}
+
+.auth-carousel__class-subtitle {
+  color: #7a82a3;
+  font-size: 0.78rem;
+}
+
+.auth-carousel__class-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.4rem;
+  padding-top: 0.75rem;
+  border-top: 1.5px dashed #e3e6f4;
+}
+
+.auth-carousel__class-code span {
+  color: #7a82a3;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.auth-carousel__class-code b {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  background: #eeebff;
+  color: #5b4cf4;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+}
+
+.auth-carousel__orbit {
+  position: absolute;
+  width: 3.2rem;
+  height: 3.2rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+.auth-carousel__orbit--one {
+  top: 1.1rem;
+  right: 14%;
+}
+
+.auth-carousel__orbit--two {
+  bottom: 1.2rem;
+  left: 12%;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-color: var(--gold);
+  animation-delay: -2s;
+}
+
+.auth-carousel__spark {
+  position: absolute;
+  z-index: 2;
+  color: var(--gold);
+  font-size: 1.15rem;
+  text-shadow: 0 0 18px rgba(255, 201, 60, 0.7);
+  animation: sparkleSoft 2.6s ease-in-out infinite;
+}
+
+.auth-carousel__spark--one {
+  top: 1.3rem;
+  left: 20%;
+}
+
+.auth-carousel__spark--two {
+  right: 11%;
+  bottom: 1.3rem;
+  color: #fff;
+  animation-delay: 900ms;
+}
+
+@keyframes sparkleSoft {
+  50% {
+    opacity: 0.5;
+    transform: scale(0.75) rotate(20deg);
+  }
+}
+
+.auth-carousel__lesson-stack {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+}
+
+.auth-carousel__lesson-item {
+  display: grid;
+  grid-template-columns: 1.9rem minmax(0, 1fr) 1.3rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #eceef8;
+  border-radius: 0.8rem;
+  background: #f8f9fe;
+}
+
+.auth-carousel__lesson-item > b {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: linear-gradient(135deg, #4f8bff, #8a6cf0);
+  color: #fff;
+  font-size: 0.66rem;
+}
+
+.auth-carousel__lesson-item > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.auth-carousel__lesson-item strong {
+  overflow: hidden;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-carousel__lesson-item small {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #7a82a3;
+  font-size: 0.6rem;
+}
+
+.auth-carousel__lesson-item small i {
+  width: 0.2rem;
+  height: 0.2rem;
+  border-radius: 50%;
+  background: #b3b8d3;
+}
+
+.auth-carousel__lesson-check,
+.auth-carousel__lesson-arrow {
+  display: grid;
+  width: 1.3rem;
+  height: 1.3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #24994a;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.auth-carousel__lesson-arrow {
+  background: #eeebff;
+  color: #5b4cf4;
+}
+
+.auth-carousel__lesson-item--faded {
+  opacity: 0.55;
+}
+
+.auth-carousel__progress-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem 1.3rem;
+}
+
+.auth-carousel__progress-heading,
+.auth-carousel__progress-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.auth-carousel__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #7a82a3;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.auth-carousel__live i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #24994a;
+  animation: pulseRing 1.8s infinite;
+  --primary-ring: rgba(36, 153, 74, 0.35);
+}
+
+.auth-carousel__progress-card > strong {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: -0.03em;
+}
+
+.auth-carousel__progress-card > strong span {
+  color: #8a6cf0;
+}
+
+.auth-carousel__progress-chart {
+  display: flex;
+  height: 4.4rem;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.15rem;
+  border-bottom: 1.5px solid #eceef8;
+}
+
+.auth-carousel__progress-chart i {
+  width: 10%;
+  height: var(--bar);
+  border-radius: 0.4rem 0.4rem 0.15rem 0.15rem;
+  background: linear-gradient(180deg, #8a6cf0, #4f8bff);
+  transform-origin: bottom;
+}
+
+.auth-carousel__slide.is-active .auth-carousel__progress-chart i {
+  animation: barGrow 900ms var(--ease-spring) backwards;
+}
+
+.auth-carousel__progress-chart i:nth-child(2) { animation-delay: 60ms; }
+.auth-carousel__progress-chart i:nth-child(3) { animation-delay: 120ms; }
+.auth-carousel__progress-chart i:nth-child(4) { animation-delay: 180ms; }
+.auth-carousel__progress-chart i:nth-child(5) { animation-delay: 240ms; }
+.auth-carousel__progress-chart i:nth-child(6) { animation-delay: 300ms; }
+.auth-carousel__progress-chart i:nth-child(7) { animation-delay: 360ms; }
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.auth-carousel__progress-footer {
+  color: #7a82a3;
+  font-size: 0.68rem;
+}
+
+.auth-carousel__progress-footer b {
+  color: #24994a;
+  font-size: 0.78rem;
+}
+
+.auth-carousel__copy {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+}
+
+.auth-carousel__eyebrow {
+  display: inline-flex;
+  width: max-content;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.auth-carousel__copy h1 {
+  max-width: 14ch;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem, 3.6vw, 2.9rem);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+  text-shadow: 0 2px 16px rgba(30, 20, 110, 0.2);
+}
+
+.auth-carousel__copy p {
+  max-width: 28rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+/* ---------- Right: sign-in ---------- */
+.auth-panel {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.2rem;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 4vw, 3.5rem);
+}
+
+.auth-panel .form-card {
+  width: min(100%, 25rem);
+  padding: 2.2rem 2rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow:
+    0 6px 0 var(--card-lip),
+    var(--shadow-lg);
+  animation: popIn 700ms var(--ease-out) 150ms backwards;
+}
+
+.auth-panel .form-card h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.auth-panel .form-card h2::after {
+  display: block;
+  width: 2.6rem;
+  height: 0.3rem;
+  margin-top: 0.6rem;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  content: "";
+}
+
+.auth-panel .form-card label {
+  font-size: 0.82rem;
+}
+
+.auth-panel .form-card input {
+  min-height: 3.1rem;
+  background: var(--surface-2);
+}
+
+.auth-panel .form-card input:focus {
+  background: var(--surface);
+}
+
+.auth-panel .form-card .button.primary {
+  width: 100%;
+  min-height: 3.2rem;
+  margin-top: 0.3rem;
+  font-size: 0.95rem;
+}
+
+.login-submit__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.login-submit__spinner {
+  display: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+}
+
+.login-submit[aria-busy="true"] {
+  cursor: progress;
+}
+
+.login-submit[aria-busy="true"] .login-submit__spinner {
+  display: inline-block;
+  animation: spin 700ms linear infinite;
+}
+
+.auth-note-inline {
+  max-width: 24rem;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  text-align: center;
+  animation: fadeIn 900ms var(--ease-out) 400ms backwards;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-copy {
+    gap: 1.4rem;
+    padding: 2rem 1.4rem 2.4rem;
+    border-radius: 0 0 2rem 2rem;
+    box-shadow: 0 6px 0 var(--primary-lip);
+  }
+
+  .auth-book-drift {
+    inset: 0 0 auto;
+    height: 36rem;
+  }
+
+  .auth-book-drift__book--three,
+  .auth-book-drift__book--four {
+    display: none;
+  }
+
+  .auth-carousel {
+    width: 100%;
+  }
+
+  .auth-carousel__slides {
+    min-height: 24rem;
+  }
+
+  .auth-carousel__slide {
+    grid-template-rows: 12.5rem auto;
+    gap: 1.2rem;
+  }
+
+  .auth-carousel__visual {
+    min-height: 12.5rem;
+  }
+
+  .auth-panel {
+    padding-top: 2rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .auth-carousel__class-card,
+  .auth-carousel__lesson-stack,
+  .auth-carousel__progress-card {
+    width: 86%;
+  }
+
+  .auth-carousel__copy h1 {
+    font-size: 1.8rem;
+  }
+
+  .auth-panel .form-card {
+    padding: 1.7rem 1.35rem;
+  }
+}
+
+/* Dark: soften the white demo cards on the brand side */
+:root[data-theme="dark"] .auth-carousel__class-card,
+:root[data-theme="dark"] .auth-carousel__lesson-stack,
+:root[data-theme="dark"] .auth-carousel__progress-card {
+  background: #e9e9ee;
+}

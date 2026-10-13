@@ -13,6 +13,7 @@ import {
 import { auth, secondaryAuth, db } from "../../js/firebase.js";
 import { state, getAllTeachers } from "../../js/state.js";
 import { $, escapeHtml, toast, page, empty, openModal } from "../../js/helpers.js";
+import { paginate } from "../../js/pagination.js";
 
 function closeTeacherMenus() {
   document.querySelectorAll(".teacher-table__menu-popup").forEach((menu) => {
@@ -138,6 +139,13 @@ export async function renderTeachers() {
     });
     const emptyRow = $(".admin-directory-search-empty");
     if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+  });
+
+  paginate({
+    rows: () => [...document.querySelectorAll(".teacher-table tbody tr[data-teacher-name]")],
+    after: $(".teacher-table-wrap"),
+    search: $("#teacher-name-search"),
+    label: ["teacher", "teachers"],
   });
 
   state.teachers.forEach((t) => {

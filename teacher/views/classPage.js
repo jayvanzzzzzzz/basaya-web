@@ -20,6 +20,7 @@ import {
   toInputValue,
 } from "../../js/schedule.js";
 import { openClassModal } from "./dashboard.js";
+import { paginate } from "../../js/pagination.js";
 
 const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Closed" };
 
@@ -245,6 +246,13 @@ export async function renderClass(classId) {
   $("#add-lesson").addEventListener("click", add);
   $("#add-lesson-inline")?.addEventListener("click", add);
   $("#add-lesson-empty")?.addEventListener("click", add);
+  if (linkedLessons.length) {
+    paginate({
+      rows: () => [...document.querySelectorAll(".class-lessons__list > .class-lesson")],
+      after: $(".class-lessons__list"),
+      label: ["lesson", "lessons"],
+    });
+  }
   document.querySelectorAll("[data-unlink]").forEach((b) =>
     b.addEventListener("click", async () => {
       if (!confirm("Remove this lesson from the class?")) return;

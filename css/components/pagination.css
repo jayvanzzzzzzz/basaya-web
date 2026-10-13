@@ -1,0 +1,153 @@
+/* ============================================================
+   PAGINATION (js/pagination.js)
+   [ Showing 11–20 of 74 teachers ]   [‹] [1] … [4][5][6] … [8] [›]   [Rows: 10 ▾]
+   ============================================================ */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  margin: 0.4rem 1.1rem 1.1rem;
+  padding: 0.75rem 0.85rem 0.75rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  animation: fadeUp var(--dur-slow) var(--ease-out) backwards;
+}
+
+/* Outside a panel (e.g. under the class card grid) it needs no side margin */
+.class-directory .pagination {
+  margin: 1.2rem 1.6rem 0;
+}
+
+.pagination__summary {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination__summary strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.pagination__pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagination__button {
+  display: inline-grid;
+  min-width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.84rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 0 var(--card-lip);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.pagination__button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.pagination__button:hover:not(:disabled):not([aria-current="page"]) {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--card-lip);
+}
+
+.pagination__button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--card-lip);
+}
+
+.pagination__button[aria-current="page"] {
+  border-color: transparent;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+  animation: checkPop 300ms var(--ease-spring);
+  cursor: default;
+}
+
+.pagination__button:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+.pagination__button--nav {
+  gap: 0.3rem;
+  grid-auto-flow: column;
+  padding: 0 0.75rem;
+}
+
+.pagination__gap {
+  display: inline-grid;
+  min-width: 1.6rem;
+  place-items: center;
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+}
+
+.pagination__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pagination__size select {
+  width: auto;
+  min-height: 2.35rem;
+  padding: 0.3rem 2.1rem 0.3rem 0.75rem;
+  border-width: 1px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+@media (max-width: 640px) {
+  .pagination {
+    justify-content: center;
+    margin-right: 0.9rem;
+    margin-left: 0.9rem;
+    padding: 0.75rem;
+    text-align: center;
+  }
+
+  .pagination__summary {
+    width: 100%;
+  }
+
+  .pagination__button--nav span {
+    display: none;
+  }
+}

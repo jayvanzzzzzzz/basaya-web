@@ -1,0 +1,141 @@
+/* ============================================================
+   DESIGN TOKENS
+   BaSaya brand (shared with the Android app): sky → violet gradient,
+   deep ink, warm gold, "candy" cards with a solid lip.
+   Dark theme follows the computer's setting.
+   ============================================================ */
+:root {
+  color-scheme: light;
+
+  /* Brand */
+  --brand-sky: #4f8bff;
+  --brand-violet: #8a6cf0;
+  --brand-gradient: linear-gradient(135deg, var(--brand-sky) 0%, var(--brand-violet) 100%);
+  --brand-gradient-deep: linear-gradient(135deg, #3f6fe0 0%, #6d4fe0 100%);
+  --hero-gradient:
+    radial-gradient(circle at 88% -10%, rgba(255, 255, 255, 0.28), transparent 42%),
+    radial-gradient(circle at 0% 120%, rgba(255, 201, 60, 0.22), transparent 38%),
+    linear-gradient(125deg, #4f8bff 0%, #6d74f6 52%, #8a6cf0 100%);
+  --gold: #ffc93c;
+  --coral: #f25c54;
+
+  /* Surfaces */
+  --bg: #f6f7fc;
+  --bg-tint: #eef0fb;
+  --surface: #ffffff;
+  --surface-2: #f8f9fe;
+  --surface-3: #f0f2fa;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --border: #e4e7f3;
+  --border-strong: #d2d7ea;
+  --card-lip: #e3e6f4;
+
+  /* Text */
+  --ink: #1f2547;
+  --ink-2: #4a5275;
+  --ink-3: #7a82a3;
+  --ink-inverse: #ffffff;
+
+  /* Accent */
+  --primary: #5b4cf4;
+  --primary-strong: #4838d6;
+  --primary-lip: #3f31b8;
+  --primary-soft: #eeebff;
+  --primary-softer: #f6f4ff;
+  --primary-ring: rgba(91, 76, 244, 0.22);
+
+  /* Status */
+  --success: #1f8a45;
+  --success-soft: #e3f6e9;
+  --warning: #b9650a;
+  --warning-soft: #fff1dc;
+  --danger: #d93f3a;
+  --danger-strong: #b72f2b;
+  --danger-soft: #ffe9e7;
+  --info: #2f6fe0;
+  --info-soft: #e6efff;
+
+  /* Type */
+  --font-display: "Lexend", "Be Vietnam Pro", system-ui, sans-serif;
+  --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  /* Shape */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius: 1rem;
+  --radius-lg: 1.375rem;
+  --radius-xl: 1.75rem;
+  --radius-pill: 999px;
+
+  /* Depth */
+  --shadow-xs: 0 1px 2px rgba(31, 37, 71, 0.06);
+  --shadow-sm: 0 2px 6px -1px rgba(31, 37, 71, 0.08);
+  --shadow: 0 14px 34px -14px rgba(31, 37, 71, 0.22);
+  --shadow-lg: 0 34px 80px -24px rgba(31, 37, 71, 0.38);
+  --shadow-brand: 0 14px 30px -12px rgba(91, 76, 244, 0.55);
+  --lip: 0 4px 0 var(--card-lip);
+  --lip-hover: 0 7px 0 var(--card-lip);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 480ms;
+
+  /* Layout */
+  --sidebar-width: 17rem;
+  --content-max: 82rem;
+}
+
+/* Dark: neutral charcoal. Gray surfaces, off-white text, and the brand
+   violet kept to small accents so it's easy on the eyes. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --brand-gradient: linear-gradient(135deg, #5f7fd8 0%, #7c68d6 100%);
+  --brand-gradient-deep: linear-gradient(135deg, #4a66b8 0%, #6452b4 100%);
+  --hero-gradient:
+    radial-gradient(circle at 88% -10%, rgba(255, 255, 255, 0.06), transparent 42%),
+    linear-gradient(125deg, #34407a 0%, #3d3f78 55%, #4a3f7c 100%);
+  --gold: #e8bb4a;
+
+  --bg: #17181c;
+  --bg-tint: #1b1c21;
+  --surface: #1f2026;
+  --surface-2: #24252b;
+  --surface-3: #2c2d34;
+  --surface-glass: rgba(31, 32, 38, 0.85);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --card-lip: #101114;
+
+  --ink: #e4e4e8;
+  --ink-2: #b3b4bc;
+  --ink-3: #8b8d97;
+
+  --primary: #a49cf2;
+  --primary-strong: #bab4f7;
+  --primary-lip: #3f3790;
+  --primary-soft: rgba(164, 156, 242, 0.12);
+  --primary-softer: rgba(164, 156, 242, 0.06);
+  --primary-ring: rgba(164, 156, 242, 0.25);
+
+  --success: #6cc791;
+  --success-soft: rgba(108, 199, 145, 0.12);
+  --warning: #e3ac62;
+  --warning-soft: rgba(227, 172, 98, 0.12);
+  --danger: #ef8079;
+  --danger-strong: #f59c96;
+  --danger-soft: rgba(239, 128, 121, 0.12);
+  --info: #8eaef0;
+  --info-soft: rgba(142, 174, 240, 0.12);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.4);
+  --shadow: 0 16px 38px -14px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 34px 90px -24px rgba(0, 0, 0, 0.7);
+  --shadow-brand: 0 12px 26px -14px rgba(0, 0, 0, 0.6);
+}

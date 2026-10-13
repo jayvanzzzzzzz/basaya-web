@@ -1,0 +1,256 @@
+/* ============================================================
+   LOADING SCREENS
+   ============================================================ */
+.loading-screen {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 1.1rem;
+  padding: 1.5rem;
+  background: var(--bg);
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.loading-screen p {
+  font-size: 0.92rem;
+}
+
+.loading-screen--dark,
+.teacher-loading {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--hero-gradient);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* Bouncing dots */
+.loader-punch {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.loader-punch span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  animation: loaderBounce 900ms var(--ease-in-out) infinite;
+}
+
+.loading-screen--dark .loader-punch span {
+  background: #fff;
+}
+
+.loader-punch span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.loader-punch span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes loaderBounce {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0) scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-9px) scale(1);
+  }
+}
+
+/* ---------- Teacher portal loader ---------- */
+.teacher-loading::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(circle at 50% 50%, #000, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000, transparent 70%);
+  content: "";
+}
+
+.teacher-loading__card {
+  display: grid;
+  width: min(100%, 27rem);
+  justify-items: center;
+  padding: clamp(1.6rem, 5vw, 2.6rem);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 6px 0 rgba(30, 20, 110, 0.25),
+    0 40px 80px -30px rgba(20, 10, 80, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: popIn 600ms var(--ease-out) backwards;
+}
+
+.teacher-loading__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.teacher-loading__brand img {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+.teacher-loading__art {
+  position: relative;
+  display: grid;
+  width: 10rem;
+  height: 10rem;
+  margin: 1.2rem 0 0.8rem;
+  place-items: center;
+}
+
+.teacher-loading__orbit {
+  position: absolute;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+}
+
+.teacher-loading__orbit--outer {
+  inset: 0;
+  animation: spin 18s linear infinite;
+}
+
+.teacher-loading__orbit--inner {
+  inset: 1.1rem;
+  border-style: dashed;
+  animation: spin 12s linear infinite reverse;
+}
+
+.teacher-loading__book {
+  display: grid;
+  width: 5.2rem;
+  height: 5.2rem;
+  place-items: center;
+  border-radius: 1.5rem;
+  background: #fff;
+  color: var(--primary);
+  box-shadow:
+    0 5px 0 rgba(30, 20, 110, 0.3),
+    0 20px 40px -10px rgba(20, 10, 80, 0.5);
+  animation: float 3.2s ease-in-out infinite;
+}
+
+.teacher-loading__book svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.teacher-loading__spark {
+  position: absolute;
+  color: var(--gold);
+  text-shadow: 0 0 16px rgba(255, 201, 60, 0.6);
+  animation: sparkle 2.2s ease-in-out infinite;
+}
+
+.teacher-loading__spark--one {
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.2rem;
+}
+
+.teacher-loading__spark--two {
+  bottom: 1.3rem;
+  left: 0.8rem;
+  color: #fff;
+  animation-delay: 700ms;
+}
+
+@keyframes sparkle {
+  50% {
+    opacity: 0.45;
+    transform: scale(0.75) rotate(15deg);
+  }
+}
+
+.teacher-loading__orbit-dot {
+  position: absolute;
+  top: 1.1rem;
+  left: 1.8rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 14px rgba(255, 201, 60, 0.8);
+}
+
+.teacher-loading__message {
+  display: grid;
+  justify-items: center;
+}
+
+.teacher-loading__eyebrow {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.teacher-loading__message h1 {
+  margin: 0.5rem 0 0.6rem;
+  color: #fff;
+  font-size: clamp(1.6rem, 6vw, 2.05rem);
+  line-height: 1.1;
+}
+
+.teacher-loading__message p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.teacher-loading__track {
+  width: min(100%, 13rem);
+  height: 0.3rem;
+  margin-top: 1.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.teacher-loading__track span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #fff, var(--gold));
+  animation: loaderSweep 1.4s var(--ease-in-out) infinite;
+}
+
+@keyframes loaderSweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+.teacher-loading__note {
+  margin-top: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.72rem;
+}

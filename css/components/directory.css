@@ -1,0 +1,290 @@
+/* ============================================================
+   DIRECTORY PANELS
+   One look for every "list in a card": teachers, classes, lessons,
+   students, the lesson picker and the class's lesson plan.
+   ============================================================ */
+.teacher-directory,
+.admin-class-directory,
+.admin-lesson-directory,
+.class-directory,
+.lesson-picker,
+.student-directory,
+.class-lessons {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+}
+
+/* Panel heading row */
+.teacher-directory__intro,
+.admin-class-directory__intro,
+.admin-lesson-directory__intro,
+.class-directory__toolbar,
+.lesson-picker__toolbar,
+.student-directory__toolbar,
+.class-lessons__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.4rem 1.6rem 1.15rem;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background:
+    radial-gradient(28rem 10rem at 100% 0, var(--primary-softer), transparent 70%);
+}
+
+.teacher-directory__intro h2,
+.admin-class-directory__intro h2,
+.admin-lesson-directory__intro h2,
+.class-directory__heading h2,
+.lesson-picker__toolbar h2,
+.student-directory__toolbar h2,
+.class-lessons__header h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+}
+
+.teacher-directory__intro p,
+.admin-class-directory__intro p,
+.admin-lesson-directory__intro p,
+.class-directory__heading p,
+.lesson-picker__toolbar p,
+.class-lessons__header p {
+  margin: 0.3rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+
+/* Count badge: gradient number tile + label */
+.teacher-directory__count,
+.admin-class-directory__count,
+.admin-lesson-directory__total,
+.class-directory__count,
+.lesson-picker__count {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 650;
+  box-shadow: 0 3px 0 var(--card-lip);
+  transition:
+    transform var(--dur) var(--ease-spring),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.teacher-directory__count:hover,
+.admin-class-directory__count:hover,
+.admin-lesson-directory__total:hover,
+.class-directory__count:hover,
+.lesson-picker__count:hover {
+  transform: translateY(-2px) rotate(-1.5deg);
+  box-shadow: 0 5px 0 var(--card-lip);
+}
+
+.teacher-directory__count strong,
+.admin-class-directory__count strong,
+.admin-lesson-directory__total strong,
+.class-directory__count strong,
+.lesson-picker__count strong {
+  display: grid;
+  min-width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+/* Search placement inside panels */
+.admin-directory-search,
+.admin-lesson-search {
+  max-width: 34rem;
+  margin: 0.2rem 1.6rem 0;
+}
+
+.class-directory__search {
+  max-width: 30rem;
+  margin: 0 1.6rem 1.3rem;
+}
+
+.lesson-picker__search {
+  margin: 0.2rem 1.6rem 0.8rem;
+}
+
+.student-search {
+  width: min(100%, 21rem);
+}
+
+.student-search > span[aria-hidden] {
+  font-size: 1.15rem;
+}
+
+/* Search "no results" lines */
+.admin-directory-search-empty td,
+.admin-lesson-table__empty,
+.student-directory__empty,
+.lesson-picker__no-results {
+  padding: 2.2rem 1rem !important;
+  color: var(--ink-3) !important;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.admin-directory-search-empty td,
+.admin-lesson-table__empty {
+  border: 2px dashed var(--border) !important;
+  border-radius: var(--radius) !important;
+  background: transparent !important;
+}
+
+/* ---------- Teacher class directory (grid of class cards) ---------- */
+.class-directory {
+  padding-bottom: 1.6rem;
+}
+
+#class-grid-container,
+.class-directory > .class-directory__empty {
+  margin: 0 1.6rem;
+}
+
+/* ---------- Students ---------- */
+.student-directory {
+  padding: 0;
+}
+
+.student-directory__toolbar {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border);
+}
+
+.student-directory__list {
+  display: grid;
+  padding: 0.4rem 0.9rem;
+}
+
+.student-directory__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.7rem;
+  border-radius: var(--radius);
+  transition:
+    background var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out);
+}
+
+.student-directory__row + .student-directory__row {
+  border-top: 1px solid var(--border);
+}
+
+.student-directory__row:hover {
+  background: var(--surface-2);
+}
+
+.student-directory__row:hover + .student-directory__row {
+  border-top-color: transparent;
+}
+
+.student-directory__identity,
+.student-directory__actions {
+  display: flex;
+  align-items: center;
+}
+
+.student-directory__identity {
+  min-width: 0;
+  gap: 0.85rem;
+}
+
+.student-directory__identity h3,
+.student-directory__identity p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-directory__identity h3 {
+  font-size: 0.95rem;
+}
+
+.student-directory__identity p {
+  margin-top: 0.1rem;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+}
+
+.student-directory__actions {
+  flex: 0 0 auto;
+  gap: 0.5rem;
+}
+
+.student-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+}
+
+.student-empty code {
+  margin-top: 0.6rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+}
+
+@media (max-width: 760px) {
+  .teacher-directory__intro,
+  .admin-class-directory__intro,
+  .admin-lesson-directory__intro,
+  .class-directory__toolbar,
+  .lesson-picker__toolbar,
+  .student-directory__toolbar,
+  .class-lessons__header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1.15rem 1.1rem 1rem;
+  }
+
+  .admin-directory-search,
+  .admin-lesson-search,
+  .class-directory__search,
+  .lesson-picker__search {
+    margin-right: 1.1rem;
+    margin-left: 1.1rem;
+  }
+
+  #class-grid-container,
+  .class-directory > .class-directory__empty {
+    margin: 0 1.1rem;
+  }
+
+  .student-search {
+    width: 100%;
+  }
+
+  .student-directory__row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-directory__actions {
+    width: 100%;
+  }
+
+  .student-directory__actions .button {
+    flex: 1;
+  }
+}

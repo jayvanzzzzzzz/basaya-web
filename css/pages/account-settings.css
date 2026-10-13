@@ -1,0 +1,254 @@
+/* ============================================================
+   ACCOUNT SETTINGS
+   ============================================================ */
+.account-settings {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* Profile summary strip */
+.account-settings__hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  overflow: hidden;
+  padding: 1.3rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(30rem 12rem at 100% 0, var(--primary-softer), transparent 70%),
+    var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+}
+
+.account-settings__hero-icon {
+  display: grid;
+  width: 3.4rem;
+  height: 3.4rem;
+  flex: 0 0 3.4rem;
+  place-items: center;
+  border-radius: 1.1rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--primary-lip);
+  animation: float 5s ease-in-out infinite;
+}
+
+.account-settings__hero-icon svg {
+  width: 1.7rem;
+  height: 1.7rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.account-settings__hero > div:nth-child(2) {
+  min-width: 0;
+}
+
+.account-settings__eyebrow {
+  margin: 0;
+}
+
+.account-settings__hero h2 {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+}
+
+.account-settings__hero p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+
+.account-settings__status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.account-settings__status > span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulseRing 2s infinite;
+  --primary-ring: color-mix(in srgb, var(--success) 45%, transparent);
+}
+
+/* Two cards side by side */
+.account-settings__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+  align-items: start;
+  gap: 1.15rem;
+}
+
+.account-settings__card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+  transition:
+    transform 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out);
+}
+
+.account-settings__card:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: var(--lip-hover), var(--shadow);
+  transform: translateY(-2px);
+}
+
+.account-settings__card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.account-settings__step {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 2.4rem;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: var(--primary-soft);
+  color: var(--primary);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.account-settings__card--password .account-settings__step {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.account-settings__card:focus-within .account-settings__step {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.account-settings__step svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.account-settings__card-heading h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.account-settings__card-heading p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.account-settings__form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.3rem 1.4rem 1.2rem;
+}
+
+.account-settings__form label > small {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.account-settings__optional {
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.account-settings__form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.account-settings__form-footer > span {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.account-settings__form-footer .button {
+  flex: 0 0 auto;
+}
+
+.account-settings__footnote {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0 0.3rem;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+}
+
+.account-settings__footnote svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@media (max-width: 960px) {
+  .account-settings__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .account-settings__hero {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 1.15rem;
+  }
+
+  .account-settings__status {
+    margin-left: 4.5rem;
+  }
+
+  .account-settings__form,
+  .account-settings__card-heading {
+    padding-right: 1.1rem;
+    padding-left: 1.1rem;
+  }
+
+  .account-settings__form-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

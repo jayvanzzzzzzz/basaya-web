@@ -1,0 +1,177 @@
+/* ============================================================
+   ADMIN LESSONS — difficulty badges, preview modal (tabs: components/filter-tabs.css)
+   ============================================================ */
+
+/* Difficulty badges */
+.admin-lesson-difficulty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-lesson-difficulty > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.admin-lesson-difficulty.difficulty--beginner {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.admin-lesson-difficulty.difficulty--intermediate {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.admin-lesson-difficulty.difficulty--advanced {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* ---------- Lesson preview modal ---------- */
+.admin-lesson-preview-modal {
+  width: min(100%, 38rem);
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-lesson-preview-modal::before {
+  display: none;
+}
+
+.admin-lesson-preview-modal .modal-close {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+.admin-lesson-preview-modal .modal-close:hover {
+  background: #fff;
+  color: var(--danger);
+}
+
+.admin-lesson-preview__banner {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 8.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 1.6rem 4rem 1.6rem 1.8rem;
+  background: var(--hero-gradient);
+  color: #fff;
+}
+
+.admin-lesson-preview__banner::after {
+  position: absolute;
+  right: -2rem;
+  bottom: -5rem;
+  z-index: -1;
+  width: 11rem;
+  height: 11rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.4rem rgba(255, 255, 255, 0.05);
+  content: "";
+}
+
+.admin-lesson-preview__eyebrow {
+  align-self: center;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-lesson-preview__order {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radius);
+  background: #fff;
+  color: #4b3fd6;
+  box-shadow: 0 4px 0 rgba(30, 20, 110, 0.3);
+  animation: popIn 500ms var(--ease-spring) 150ms backwards;
+}
+
+.admin-lesson-preview__order > span {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.admin-lesson-preview__order strong {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.admin-lesson-preview__content {
+  padding: 1.6rem 1.8rem 1.4rem;
+}
+
+.admin-lesson-preview__content h2 {
+  margin: 0.8rem 0 1.2rem;
+  font-size: clamp(1.55rem, 4.5vw, 2.05rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.admin-lesson-preview__description {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.admin-lesson-preview__description h3 {
+  margin: 0 0 0.45rem;
+  color: var(--ink-3);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-lesson-preview__description p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.93rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.admin-lesson-preview__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.8rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.admin-lesson-preview__footer > span {
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

@@ -1,0 +1,121 @@
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, #0e0b2e 52%, transparent);
+  backdrop-filter: blur(6px) saturate(1.2);
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  animation: fadeIn var(--dur) var(--ease-out);
+}
+
+.modal {
+  position: relative;
+  width: min(100%, 36rem);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow:
+    0 5px 0 var(--card-lip),
+    var(--shadow-lg);
+  animation: popIn 360ms var(--ease-spring);
+}
+
+/* Thin brand bar along the top edge */
+.modal::before {
+  position: absolute;
+  top: 0;
+  right: 1.75rem;
+  left: 1.75rem;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+  background: var(--brand-gradient);
+  content: "";
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition:
+    transform var(--dur) var(--ease-spring),
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.modal-close:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+  transform: rotate(90deg);
+}
+
+.modal h2 {
+  margin: 0.2rem 2.5rem 0.35rem 0;
+}
+
+.modal-content > p,
+.modal > p {
+  color: var(--ink-3);
+}
+
+.modal form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.modal .form-card {
+  width: 100%;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    animation: fadeUp 380ms var(--ease-out);
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .button {
+    width: 100%;
+  }
+}
+
+:root[data-theme="dark"] .modal-backdrop {
+  background: rgba(8, 9, 12, 0.62);
+}

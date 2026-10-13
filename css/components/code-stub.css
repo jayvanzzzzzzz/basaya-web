@@ -1,0 +1,101 @@
+/* ============================================================
+   CLASS CODE "TICKET STUB"
+   ============================================================ */
+.code-stub {
+  --notch: var(--surface);
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem 0.45rem 0.85rem;
+  border: 1.5px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--primary-softer);
+  cursor: pointer;
+  transition:
+    transform var(--dur) var(--ease-spring),
+    background-color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
+}
+
+.code-stub:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  transform: translateY(-1px) rotate(-0.6deg);
+}
+
+.code-stub:active {
+  transform: scale(0.97);
+}
+
+/* Punched notches on both sides */
+.code-stub::before,
+.code-stub::after {
+  position: absolute;
+  top: 50%;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--notch);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.code-stub::before {
+  left: -0.4rem;
+  box-shadow: inset -1.5px 0 0 color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.code-stub::after {
+  right: -0.4rem;
+  box-shadow: inset 1.5px 0 0 color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.code-stub--on-paper {
+  --notch: var(--surface);
+}
+
+.code-stub--on-canvas {
+  --notch: var(--bg);
+}
+
+.code-stub__label {
+  padding-right: 0.6rem;
+  border-right: 1.5px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--primary);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.code-stub code {
+  padding: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.code-stub__hint {
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 650;
+  transition: color var(--dur-fast) ease;
+}
+
+.code-stub:hover .code-stub__hint {
+  color: var(--primary);
+}
+
+.code-stub.is-copied {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.code-stub.is-copied .code-stub__hint {
+  color: var(--success);
+  animation: checkPop 320ms var(--ease-spring);
+}

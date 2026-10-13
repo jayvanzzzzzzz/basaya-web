@@ -18,6 +18,7 @@ import {
   joinCode,
 } from "../../js/helpers.js";
 import { renderRoute } from "../router.js";
+import { paginate } from "../../js/pagination.js";
 
 export async function renderDashboard() {
   await getTeacherClasses();
@@ -187,6 +188,16 @@ export async function renderDashboard() {
     $("#class-grid-container").innerHTML = renderClassGrid(filtered);
     wireCardMenus();
   });
+
+  if (state.classes.length) {
+    paginate({
+      rows: () => [...document.querySelectorAll("#class-grid-container .class-card")],
+      after: $("#class-grid-container"),
+      search: $("#class-search"),
+      label: ["class", "classes"],
+      pageSizes: [9, 18, 36],
+    });
+  }
 }
 
 export function openClassModal(existing) {

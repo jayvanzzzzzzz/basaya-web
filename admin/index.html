@@ -9,10 +9,44 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../styles.css" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Theme before first paint: the saved choice, else the computer's setting (js/theme.js).
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light")
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <!-- Base -->
+    <link rel="stylesheet" href="../css/base/tokens.css" />
+    <link rel="stylesheet" href="../css/base/reset.css" />
+    <link rel="stylesheet" href="../css/base/typography.css" />
+    <link rel="stylesheet" href="../css/base/animations.css" />
+    <!-- Layout -->
+    <link rel="stylesheet" href="../css/layout/shell.css" />
+    <link rel="stylesheet" href="../css/layout/page-header.css" />
+    <!-- Components -->
+    <link rel="stylesheet" href="../css/components/buttons.css" />
+    <link rel="stylesheet" href="../css/components/forms.css" />
+    <link rel="stylesheet" href="../css/components/cards.css" />
+    <link rel="stylesheet" href="../css/components/directory.css" />
+    <link rel="stylesheet" href="../css/components/tables.css" />
+    <link rel="stylesheet" href="../css/components/filter-tabs.css" />
+    <link rel="stylesheet" href="../css/components/menus.css" />
+    <link rel="stylesheet" href="../css/components/pagination.css" />
+    <link rel="stylesheet" href="../css/components/modal.css" />
+    <link rel="stylesheet" href="../css/components/toast.css" />
+    <link rel="stylesheet" href="../css/components/loading.css" />
+    <link rel="stylesheet" href="../css/components/theme-toggle.css" />
+    <!-- Pages -->
+    <link rel="stylesheet" href="../css/pages/admin-lessons.css" />
+    <link rel="stylesheet" href="../css/pages/lesson-studio.css" />
   </head>
   <body>
     <div id="loading-screen" class="loading-screen">
@@ -69,6 +103,10 @@
               </button>
             </div>
           </div>
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+            <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+            <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
+          </button>
         </div>
       </aside>
       <section class="content">
@@ -124,5 +162,6 @@
         showStartupError(error.message || "The Firebase SDK could not load.");
       });
     </script>
+    <script type="module" src="../js/theme.js"></script>
   </body>
 </html>

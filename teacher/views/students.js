@@ -7,6 +7,7 @@ import {
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
+import { paginate } from "../../js/pagination.js";
 
 export async function renderStudentsPage(classId) {
   const classDoc = await getDoc(doc(db, "classes", classId));
@@ -24,8 +25,6 @@ export async function renderStudentsPage(classId) {
       ...studentDoc.data(),
     }))
     .sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
-
-  students.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   page(
     "Students",
@@ -102,4 +101,13 @@ export async function renderStudentsPage(classId) {
     });
     $("#student-no-results").hidden = visible !== 0;
   });
+
+  if (students.length) {
+    paginate({
+      rows: () => [...document.querySelectorAll("[data-student]")],
+      after: $(".student-directory__list"),
+      search: $("#student-search"),
+      label: ["student", "students"],
+    });
+  }
 }

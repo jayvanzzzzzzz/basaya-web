@@ -15,6 +15,7 @@ import {
   openModal,
   toast,
 } from "../../js/helpers.js";
+import { paginate } from "../../js/pagination.js";
 
 function closeClassMenus() {
   document.querySelectorAll(".admin-class-menu-popup").forEach((menu) => {
@@ -38,6 +39,51 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeClassMenus();
 });
+
+const GRADE_LEVELS = ["7", "8", "9", "10"];
+const NO_GRADE = "none";
+// Kept across re-renders (e.g. after editing a class).
+let activeGrade = "all";
+
+/** The class's grade level, or from older names like "Grade 8 - Rizal". */
+function gradeOf(classroom) {
+  const stored = String(classroom.gradeLevel ?? "").trim();
+  if (stored) return stored;
+  return (classroom.className || "").match(/grade\s*(\d{1,2})/i)?.[1] || NO_GRADE;
+}
+
+const gradeLabel = (grade) => (grade === NO_GRADE ? "No grade" : `Grade ${grade}`);
+
+function gradeTabs(classes) {
+  const counts = new Map();
+  classes.forEach((classroom) => {
+    const grade = gradeOf(classroom);
+    counts.set(grade, (counts.get(grade) || 0) + 1);
+  });
+  // Grades 7–10 always; any other grade found; "No grade" only when needed.
+  const grades = [...new Set([...GRADE_LEVELS, ...counts.keys()])]
+    .filter((grade) => grade !== NO_GRADE)
+    .sort((a, b) => Number(a) - Number(b));
+  if (counts.has(NO_GRADE)) grades.push(NO_GRADE);
+  if (activeGrade !== "all" && !grades.includes(activeGrade)) activeGrade = "all";
+
+  const tab = (value, label, count) => `
+    <button
+      type="button"
+      class="admin-class-filter ${activeGrade === value ? "is-active" : ""}"
+      data-grade-filter="${escapeHtml(value)}"
+      aria-pressed="${activeGrade === value}"
+      ${count === 0 ? "data-empty" : ""}
+    >
+      <span>${escapeHtml(label)}</span>
+      <span class="admin-class-filter__count">${count}</span>
+    </button>`;
+
+  return `<nav class="admin-class-filters" aria-label="Filter classes by grade level">
+    ${tab("all", "All", classes.length)}
+    ${grades.map((grade) => tab(grade, gradeLabel(grade), counts.get(grade) || 0)).join("")}
+  </nav>`;
+}
 
 export async function renderClasses() {
   await Promise.all([getAllTeachers(), getAllClasses()]);
@@ -66,6 +112,7 @@ export async function renderClasses() {
           <span class="sr-only">Search classes by class name</span>
           <input type="search" id="class-name-search" placeholder="Search by class name..." autocomplete="off" />
         </label>
+        ${gradeTabs(state.allClasses)}
         <div class="admin-class-table-wrap">
           <table class="table admin-class-table">
             <thead>
@@ -88,7 +135,7 @@ export async function renderClasses() {
                     .join("")
                     .slice(0, 2)
                     .toUpperCase();
-                  return `<tr data-class-name="${escapeHtml(className)}">
+                  return `<tr data-class-name="${escapeHtml(className)}" data-grade="${escapeHtml(gradeOf(classroom))}">
                     <td>
                       <div class="admin-class-table__identity">
                         <span class="admin-class-table__mark" aria-hidden="true">${escapeHtml(initials || "C")}</span>
@@ -145,18 +192,51 @@ export async function renderClasses() {
         "refresh-classes",
       );
 
-  $("#class-name-search")?.addEventListener("input", (event) => {
-    const query = event.currentTarget.value.trim().toLowerCase();
+  // Search by name and the grade tab work together.
+  const applyFilters = () => {
+    const query = ($("#class-name-search")?.value || "").trim().toLowerCase();
     const rows = [...document.querySelectorAll(".admin-class-table tbody tr[data-class-name]")];
     let visibleCount = 0;
     rows.forEach((row) => {
-      const matches = row.dataset.className.toLowerCase().includes(query);
+      const matches =
+        row.dataset.className.toLowerCase().includes(query) &&
+        (activeGrade === "all" || row.dataset.grade === activeGrade);
       row.hidden = !matches;
       if (matches) visibleCount += 1;
     });
     const emptyRow = $(".admin-directory-search-empty");
-    if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+    if (emptyRow) {
+      emptyRow.hidden = visibleCount !== 0;
+      const inGrade = activeGrade === "all" ? "" : ` in ${gradeLabel(activeGrade)}`;
+      emptyRow.querySelector("td").textContent = query
+        ? `No classes match that name${inGrade}.`
+        : `No classes${inGrade} yet.`;
+    }
+  };
+
+  $("#class-name-search")?.addEventListener("input", applyFilters);
+  if (state.allClasses.length) applyFilters();
+
+  const pager = paginate({
+    rows: () => [...document.querySelectorAll(".admin-class-table tbody tr[data-class-name]")],
+    after: $(".admin-class-table-wrap"),
+    search: $("#class-name-search"),
+    label: ["class", "classes"],
   });
+
+  document.querySelectorAll("[data-grade-filter]").forEach((button) =>
+    button.addEventListener("click", () => {
+      activeGrade = button.dataset.gradeFilter;
+      document.querySelectorAll("[data-grade-filter]").forEach((tab) => {
+        const active = tab === button;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-pressed", String(active));
+      });
+      closeClassMenus();
+      applyFilters();
+      pager.reset();
+    }),
+  );
 
   $("#refresh-classes")?.addEventListener("click", renderClasses);
 

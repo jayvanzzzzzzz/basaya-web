@@ -1,0 +1,343 @@
+/* ============================================================
+   ADD LESSON — pick lessons, set a schedule, add to class
+   ============================================================ */
+.teacher-add-lesson-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.lesson-picker__list {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.2rem 1.1rem 1rem;
+}
+
+/* Each lesson is a selectable tile */
+.lesson-picker__row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition:
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out);
+}
+
+.lesson-picker__row:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  box-shadow: 0 3px 0 var(--card-lip);
+  transform: translateY(-1px);
+}
+
+.lesson-picker__row:has(input:checked:not(:disabled)) {
+  border-color: var(--primary);
+  background: var(--primary-softer);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 40%, var(--card-lip));
+}
+
+.lesson-picker__row.is-assigned {
+  border-style: dashed;
+  background: var(--surface-2);
+}
+
+.lesson-picker__choice {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: flex-start;
+  gap: 0.9rem;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lesson-picker__choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* Custom checkbox */
+.lesson-picker__check {
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  place-items: center;
+  border: 2px solid var(--border-strong);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: transparent;
+  transition:
+    background var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-spring),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.lesson-picker__check svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.6;
+}
+
+.lesson-picker__choice:hover .lesson-picker__check {
+  border-color: var(--primary);
+}
+
+.lesson-picker__choice input:checked + .lesson-picker__check {
+  border-color: transparent;
+  background: var(--brand-gradient);
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 2px 0 var(--primary-lip);
+}
+
+.lesson-picker__choice input:checked + .lesson-picker__check svg {
+  animation: checkPop 300ms var(--ease-spring);
+}
+
+.lesson-picker__choice input:focus-visible + .lesson-picker__check {
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+.lesson-picker__choice input:disabled + .lesson-picker__check {
+  border-color: transparent;
+  background: var(--success);
+  color: #fff;
+  transform: none;
+  box-shadow: none;
+}
+
+.lesson-picker__details {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.lesson-picker__details > strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+.lesson-picker__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-3);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.lesson-picker__meta i {
+  width: 0.22rem;
+  height: 0.22rem;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.lesson-picker__description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.lesson-picker__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lesson-picker__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 650;
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.lesson-picker__preview:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.lesson-picker__preview span {
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.lesson-picker__preview:hover span {
+  transform: translate(2px, -2px);
+}
+
+.lesson-picker__assigned {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lesson-picker__assigned svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+/* ---------- Sticky footer: schedule + submit ---------- */
+.lesson-picker__footer {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin: 0 0.75rem 0.75rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+
+.lesson-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 14rem));
+  gap: 0.45rem 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.lesson-schedule legend {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.4rem;
+  padding: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.lesson-schedule legend span {
+  padding: 0.12rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lesson-schedule label {
+  gap: 0.3rem;
+  font-size: 0.75rem;
+}
+
+.lesson-schedule input {
+  min-height: 2.6rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.84rem;
+}
+
+.lesson-schedule__hint {
+  grid-column: 1 / -1;
+  margin: 0.15rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+}
+
+.lesson-picker__submit {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.lesson-picker__submit > span {
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+
+.lesson-picker__submit > span strong {
+  display: inline-grid;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  margin-right: 0.15rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-display);
+}
+
+@media (max-width: 640px) {
+  .lesson-picker__row {
+    align-items: flex-start;
+  }
+
+  .lesson-picker__actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+  }
+
+  .lesson-schedule {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lesson-picker__submit {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

@@ -1,0 +1,244 @@
+/* ============================================================
+   FORMS
+   ============================================================ */
+label {
+  display: grid;
+  gap: 0.42rem;
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 2.85rem;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 500;
+  outline: none;
+  transition:
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-3);
+  opacity: 0.8;
+}
+
+input:hover:not(:focus):not(:disabled),
+select:hover:not(:focus):not(:disabled),
+textarea:hover:not(:focus):not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border-strong));
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+input[readonly] {
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  min-height: 0;
+  accent-color: var(--primary);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  filter: grayscale(1) opacity(0.6);
+  cursor: pointer;
+}
+
+select {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
+    linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.15rem) 52%,
+    calc(100% - 0.8rem) 52%;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+}
+
+textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+input[type="datetime-local"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.form-card {
+  display: grid;
+  width: min(100%, 24rem);
+  gap: 1.05rem;
+  animation: popIn var(--dur-slow) var(--ease-out) backwards;
+}
+
+.form-card h2 {
+  margin-bottom: 0.15rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-error {
+  min-height: 1.2rem;
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.form-error:not(:empty) {
+  animation: fadeDown var(--dur) var(--ease-out);
+}
+
+/* Search fields share one look: icon + borderless input inside a soft pill */
+.admin-directory-search,
+.admin-lesson-search,
+.class-directory__search,
+.lesson-picker__search,
+.student-search {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.9rem;
+  padding: 0 0.95rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-weight: 500;
+  transition:
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.admin-directory-search:hover,
+.admin-lesson-search:hover,
+.class-directory__search:hover,
+.lesson-picker__search:hover,
+.student-search:hover {
+  border-color: var(--border-strong);
+}
+
+.admin-directory-search:focus-within,
+.admin-lesson-search:focus-within,
+.class-directory__search:focus-within,
+.lesson-picker__search:focus-within,
+.student-search:focus-within {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+  color: var(--primary);
+}
+
+.admin-directory-search > svg,
+.admin-lesson-search > svg,
+.class-directory__search > svg,
+.lesson-picker__search > svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.admin-directory-search:focus-within > svg,
+.admin-lesson-search:focus-within > svg,
+.class-directory__search:focus-within > svg,
+.lesson-picker__search:focus-within > svg {
+  transform: scale(1.1) rotate(-8deg);
+}
+
+.admin-directory-search input,
+.admin-lesson-search input,
+.class-directory__search input,
+.lesson-picker__search input,
+.student-search input {
+  min-width: 0;
+  min-height: 0;
+  height: 2.6rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none !important;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.admin-lesson-search kbd {
+  display: grid;
+  flex: 0 0 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 0.4rem;
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 0.7rem;
+}
+
+/* Check lists (older modals) */
+.check-list {
+  max-height: 13rem;
+  overflow: auto;
+  padding: 0.25rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.check-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.check-list label:last-child {
+  border-bottom: 0;
+}
+
+.check-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 760px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,273 @@
+/* ============================================================
+   CARDS, STATS, LISTS, EMPTY STATES
+   ============================================================ */
+.card {
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+/* ---------- Stats ---------- */
+.stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.stat {
+  padding: 1.15rem 1.25rem;
+}
+
+.stat b {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.stat span {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+/* ---------- Section titles ---------- */
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.section-title h2,
+.section-title h3,
+.section-title h4 {
+  margin: 0;
+}
+
+/* ---------- Simple lists ---------- */
+.list {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.lesson-row,
+.student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: background var(--dur) var(--ease-out);
+}
+
+.lesson-row:hover,
+.student-row:hover {
+  background: var(--surface-2);
+}
+
+.lesson-row:last-child,
+.student-row:last-child {
+  border-bottom: 0;
+}
+
+.lesson-row p {
+  margin: 0 0 0.4rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+
+.lesson-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: start;
+  gap: 1rem;
+}
+
+/* ---------- People ---------- */
+.student-avatar {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.9rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.student-info p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.83rem;
+}
+
+/* ---------- Progress ---------- */
+.progress {
+  min-width: 7rem;
+}
+
+.progress-bar {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-gradient);
+  transition: width 700ms var(--ease-out);
+}
+
+/* ---------- Empty states ---------- */
+.empty {
+  display: grid;
+  justify-items: center;
+  padding: 3.4rem 1.5rem;
+  border: 2px dashed var(--border-strong);
+  background:
+    radial-gradient(circle at 50% 0, var(--primary-softer), transparent 60%),
+    var(--surface);
+  text-align: center;
+  box-shadow: none;
+}
+
+.empty::before {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 1rem;
+  place-items: center;
+  border-radius: 1.25rem;
+  background: var(--primary-soft);
+  font-size: 1.7rem;
+  content: "✦";
+  color: var(--primary);
+  animation: float 4s ease-in-out infinite;
+}
+
+.empty h3 {
+  font-size: 1.3rem;
+}
+
+.empty p {
+  max-width: 27rem;
+  margin: 0 auto 1.25rem;
+  color: var(--ink-3);
+}
+
+/* Shared empty-state blocks inside panels */
+.class-directory__empty,
+.lesson-picker__empty,
+.class-lessons__empty {
+  display: flex;
+  min-height: 18rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.4rem 1.25rem;
+  text-align: center;
+}
+
+.class-directory__empty {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at 50% 0, var(--primary-softer), transparent 65%);
+}
+
+.lesson-picker__empty {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 50% 0, var(--primary-softer), transparent 65%),
+    var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+}
+
+.class-directory__empty-icon,
+.lesson-picker__empty-icon,
+.class-lessons__empty-icon {
+  display: grid;
+  width: 3.8rem;
+  height: 3.8rem;
+  margin-bottom: 1.15rem;
+  place-items: center;
+  border-radius: 1.25rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--primary-lip), var(--shadow-brand);
+  animation: float 4.5s ease-in-out infinite;
+}
+
+.class-directory__empty-icon svg,
+.lesson-picker__empty-icon svg,
+.class-lessons__empty-icon svg {
+  width: 1.8rem;
+  height: 1.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.class-directory__empty h3,
+.lesson-picker__empty h2,
+.class-lessons__empty h3 {
+  margin: 0.4rem 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.class-directory__empty p,
+.lesson-picker__empty p,
+.class-lessons__empty p {
+  max-width: 27rem;
+  margin: 0 0 1.2rem;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .stats,
+  .split {
+    grid-template-columns: 1fr;
+  }
+}

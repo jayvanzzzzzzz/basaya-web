@@ -1,0 +1,199 @@
+/* ============================================================
+   PAGE HEADER — gradient hero, shared by every page
+   ============================================================ */
+.page-header {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-height: 9rem;
+  margin-bottom: 1.6rem;
+  overflow: hidden;
+  padding: clamp(1.4rem, 3vw, 2.1rem) clamp(1.35rem, 3vw, 2.2rem);
+  border-radius: var(--radius-xl);
+  background: var(--hero-gradient);
+  color: #fff;
+  box-shadow:
+    0 5px 0 var(--primary-lip),
+    var(--shadow-brand);
+}
+
+/* Soft dot grid + rings for texture */
+.page-header::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(110deg, transparent 35%, #000 85%);
+  -webkit-mask-image: linear-gradient(110deg, transparent 35%, #000 85%);
+  content: "";
+}
+
+.page-header::after {
+  position: absolute;
+  right: -4rem;
+  bottom: -9rem;
+  z-index: -1;
+  width: 20rem;
+  height: 20rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2.4rem rgba(255, 255, 255, 0.05),
+    0 0 0 4.8rem rgba(255, 255, 255, 0.035);
+  content: "";
+  animation: float 9s ease-in-out infinite;
+}
+
+/* Header children are re-rendered on every route, so they animate each time */
+.page-header > * {
+  position: relative;
+  z-index: 1;
+  animation: fadeUp var(--dur-slow) var(--ease-out) backwards;
+}
+
+.page-header > .header-actions {
+  animation-delay: 90ms;
+}
+
+.page-header h1 {
+  margin: 0 0 0.35rem;
+  color: #fff;
+  font-size: clamp(1.7rem, 3.2vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-shadow: 0 2px 12px rgba(30, 20, 110, 0.18);
+}
+
+.page-header p {
+  max-width: 40rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+/* On the hero, buttons turn into frosted glass / white candy */
+.page-header .button.secondary {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(30, 20, 110, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.page-header .button.secondary:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.26);
+  color: #fff;
+  box-shadow: 0 4px 0 rgba(30, 20, 110, 0.25);
+}
+
+.page-header .button.primary {
+  background: #fff;
+  color: #4b3fd6;
+  text-shadow: none;
+  box-shadow:
+    0 3px 0 rgba(30, 20, 110, 0.35),
+    0 12px 26px -12px rgba(20, 10, 80, 0.5);
+}
+
+.page-header .button.primary:hover:not(:disabled) {
+  filter: none;
+  background: #fbfaff;
+  box-shadow:
+    0 4px 0 rgba(30, 20, 110, 0.35),
+    0 16px 30px -12px rgba(20, 10, 80, 0.55);
+}
+
+.page-header .button.primary:active:not(:disabled) {
+  box-shadow: 0 0 0 rgba(30, 20, 110, 0.35);
+}
+
+/* Dashboard: taller hero with the waving mascot */
+.teacher-dashboard-header {
+  min-height: 12rem;
+  padding-right: clamp(1.35rem, 14vw, 13rem);
+}
+
+.teacher-dashboard-header::after {
+  right: clamp(-1rem, 2vw, 2rem);
+  bottom: -1.2rem;
+  width: clamp(7rem, 13vw, 10.5rem);
+  height: clamp(7rem, 13vw, 10.5rem);
+  border: 0;
+  border-radius: 0;
+  background: url("../../img/logo.png") center / contain no-repeat;
+  box-shadow: none;
+  filter: drop-shadow(0 14px 18px rgba(20, 10, 80, 0.3));
+  animation: float 5s ease-in-out infinite;
+}
+
+.teacher-dashboard-header__eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.55rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
+
+.teacher-dashboard-header .header-actions {
+  position: absolute;
+  top: clamp(1.4rem, 3vw, 2.1rem);
+  right: clamp(1.35rem, 3vw, 2.2rem);
+}
+
+@media (max-width: 860px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 0;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+  }
+
+  .teacher-dashboard-header {
+    padding-right: 7rem;
+  }
+
+  .teacher-dashboard-header .header-actions {
+    position: static;
+  }
+
+  .teacher-dashboard-header::after {
+    right: -0.8rem;
+    width: 6.5rem;
+    height: 6.5rem;
+  }
+}
+
+/* Dark: off-white instead of pure white so the hero buttons don't glare */
+:root[data-theme="dark"] .page-header .button.primary {
+  background: #e6e6ec;
+  color: #3f3790;
+}
+
+:root[data-theme="dark"] .page-header .button.primary:hover:not(:disabled) {
+  background: #f0f0f4;
+}

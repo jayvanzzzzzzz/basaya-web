@@ -1,0 +1,365 @@
+/* ============================================================
+   CLASS PAGE — overview stats + lesson plan
+   ============================================================ */
+.teacher-class-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.class-overview {
+  display: grid;
+  gap: 1rem;
+}
+
+.class-overview__identity {
+  display: flex;
+  min-height: 3.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.2rem;
+}
+
+.class-overview__code {
+  padding: 0.6rem 1.1rem 0.6rem 0.95rem;
+}
+
+.class-overview__code code {
+  font-size: 1.05rem;
+}
+
+.class-overview__stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.class-overview__stat {
+  position: relative;
+  display: grid;
+  min-height: 7.6rem;
+  grid-template-columns: 3rem 1fr;
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  column-gap: 0.9rem;
+  overflow: hidden;
+  padding: 1.2rem;
+  transition:
+    transform 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out);
+}
+
+.class-overview__stat:hover {
+  box-shadow: var(--lip-hover), var(--shadow);
+  transform: translateY(-3px);
+}
+
+.class-overview__stat::after {
+  position: absolute;
+  right: -2.5rem;
+  bottom: -2.5rem;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  background: var(--primary-softer);
+  content: "";
+  transition: transform 500ms var(--ease-out);
+}
+
+.class-overview__stat:hover::after {
+  transform: scale(1.3);
+}
+
+.class-overview__stat .class-overview__stat-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  grid-row: span 2;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.class-overview__stat:nth-child(2) .class-overview__stat-icon {
+  background: linear-gradient(135deg, #ffb547, #f2785c);
+  box-shadow: 0 3px 0 #b8543a;
+}
+
+.class-overview__stat:nth-child(3) .class-overview__stat-icon {
+  background: linear-gradient(135deg, #3ec6a0, #24994a);
+  box-shadow: 0 3px 0 #18703a;
+}
+
+.class-overview__stat:hover .class-overview__stat-icon {
+  transform: rotate(-8deg) scale(1.06);
+}
+
+.class-overview__stat-icon svg {
+  width: 1.4rem;
+  height: 1.4rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.class-overview__stat b {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.class-overview__stat > span:nth-of-type(2) {
+  position: relative;
+  z-index: 1;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.class-overview__stat--progress {
+  grid-template-rows: auto 1fr auto;
+}
+
+.class-overview__progress-track {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1;
+  height: 0.5rem;
+  margin-top: 0.9rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.class-overview__progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3ec6a0, #24994a);
+  transform-origin: left;
+  animation: trackGrow 1.1s var(--ease-out) 300ms backwards;
+}
+
+@keyframes trackGrow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ---------- Lesson plan ---------- */
+.class-lessons__list {
+  display: grid;
+  padding: 0.3rem 1rem 0.8rem;
+}
+
+.class-lesson {
+  display: grid;
+  grid-template-columns: 2.9rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0.8rem;
+  border-radius: var(--radius);
+  transition: background-color var(--dur) var(--ease-out);
+}
+
+.class-lesson + .class-lesson {
+  border-top: 1px solid var(--border);
+}
+
+.class-lesson:hover {
+  background: var(--surface-2);
+}
+
+.class-lesson__number {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 0.95rem;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition:
+    background var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-spring);
+}
+
+.class-lesson:hover .class-lesson__number {
+  background: var(--brand-gradient);
+  color: #fff;
+  transform: rotate(-6deg);
+}
+
+.class-lesson__label {
+  color: var(--primary);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.class-lesson__content h3 {
+  margin: 0.15rem 0;
+  font-size: 1rem;
+}
+
+.class-lesson__content p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.class-lesson__schedule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.8rem;
+  margin-top: 0.55rem;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.schedule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.schedule-chip::before {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.schedule-chip--open {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.schedule-chip--open::before {
+  animation: pulseRing 2s infinite;
+  --primary-ring: color-mix(in srgb, var(--success) 45%, transparent);
+}
+
+.schedule-chip--scheduled {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.schedule-chip--closed {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.class-lesson__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+
+.class-lesson__action,
+.class-lesson__remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 650;
+  transition:
+    color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.class-lesson__action:hover {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.class-lesson__action--notify {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.class-lesson__action:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.class-lesson__remove {
+  color: var(--ink-3);
+}
+
+.class-lesson__remove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.class-lesson__action svg,
+.class-lesson__remove svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@media (max-width: 760px) {
+  .class-overview__identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .class-overview__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .class-overview__stat {
+    min-height: 7.5rem;
+  }
+
+  .class-lesson {
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.8rem;
+  }
+
+  .class-lesson__actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

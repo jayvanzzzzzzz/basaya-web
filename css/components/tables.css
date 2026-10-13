@@ -1,0 +1,246 @@
+/* ============================================================
+   DATA TABLES — teachers, classes, lessons
+   Rows are separate soft cards; the header is a quiet tinted strip.
+   ============================================================ */
+/* Visible on wide screens so row menus can float past the table edge;
+   scrolls sideways only when the table can't fit. */
+.teacher-table-wrap,
+.admin-class-table-wrap,
+.admin-lesson-table-wrap {
+  overflow: visible;
+  padding: 0.4rem 1.1rem 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .teacher-table-wrap,
+  .admin-class-table-wrap,
+  .admin-lesson-table-wrap {
+    overflow-x: auto;
+  }
+}
+
+.teacher-table,
+.admin-class-table,
+.admin-lesson-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+  text-align: left;
+}
+
+.teacher-table {
+  min-width: 620px;
+}
+
+.admin-class-table {
+  min-width: 650px;
+}
+
+.admin-lesson-table {
+  min-width: 560px;
+}
+
+/* Header strip */
+.teacher-table th,
+.admin-class-table th,
+.admin-lesson-table th {
+  padding: 0.7rem 1.1rem;
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.teacher-table th:first-child,
+.admin-class-table th:first-child,
+.admin-lesson-table th:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.teacher-table th:last-child,
+.admin-class-table th:last-child,
+.admin-lesson-table th:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Row cards */
+.teacher-table td,
+.admin-class-table td,
+.admin-lesson-table td {
+  position: relative;
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  vertical-align: middle;
+  transition:
+    background-color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.teacher-table td:first-child,
+.admin-class-table td:first-child,
+.admin-lesson-table td:first-child {
+  border-left: 1px solid var(--border);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.teacher-table td:last-child,
+.admin-class-table td:last-child,
+.admin-lesson-table td:last-child {
+  width: 4.8rem;
+  border-right: 1px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* Hover: tint + a gradient accent bar on the left edge */
+.teacher-table tbody tr:hover td,
+.admin-class-table tbody tr:hover td,
+.admin-lesson-table tbody tr:hover td {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: var(--primary-softer);
+}
+
+.teacher-table tbody tr td:first-child::before,
+.admin-class-table tbody tr td:first-child::before,
+.admin-lesson-table tbody tr td:first-child::before {
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: -1px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-gradient);
+  content: "";
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition:
+    opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-spring);
+}
+
+.teacher-table tbody tr:hover td:first-child::before,
+.admin-class-table tbody tr:hover td:first-child::before,
+.admin-lesson-table tbody tr:hover td:first-child::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* Empty / no-match rows have no accent */
+.admin-directory-search-empty td::before,
+.admin-lesson-table__empty::before {
+  display: none;
+}
+
+/* ---------- Identity cells ---------- */
+.teacher-table__person,
+.admin-class-table__identity,
+.admin-lesson-table__title {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 12rem;
+}
+
+.admin-lesson-table__title {
+  min-width: 16rem;
+}
+
+/* Avatar / mark / order tiles */
+.teacher-table__avatar,
+.admin-class-table__mark,
+.admin-lesson-table__order {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 2.6rem;
+  place-items: center;
+  border-radius: 0.85rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.teacher-table__avatar {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.admin-class-table__mark {
+  background: linear-gradient(135deg, #3ec6c0, #4f8bff);
+  color: #fff;
+  box-shadow: 0 3px 0 #2a6fa8;
+}
+
+.admin-lesson-table__order {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-mono);
+}
+
+tr:hover .teacher-table__avatar,
+tr:hover .admin-class-table__mark,
+tr:hover .admin-lesson-table__order {
+  transform: rotate(-6deg) scale(1.06);
+}
+
+.teacher-table__name,
+.admin-class-table__identity strong,
+.admin-lesson-table__title strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.admin-class-table__identity small,
+.admin-lesson-table__title small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-3);
+  font-size: 0.76rem;
+}
+
+.admin-lesson-table__title small {
+  max-width: 34rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-table__email {
+  color: var(--ink-3) !important;
+  overflow-wrap: anywhere;
+}
+
+.admin-class-table__teacher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-class-table__teacher-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 0.22rem var(--success-soft);
+}
+
+.admin-class-table__date {
+  color: var(--ink-3) !important;
+  font-family: var(--font-mono);
+  font-size: 0.76rem !important;
+  white-space: nowrap;
+}

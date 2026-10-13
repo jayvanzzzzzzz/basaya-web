@@ -1,0 +1,187 @@
+/* ============================================================
+   ROW / CARD ACTION MENUS
+   ============================================================ */
+.teacher-table__menu,
+.admin-class-menu,
+.admin-lesson-menu {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.class-card-menu {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+}
+
+/* Toggle buttons */
+.teacher-table__menu-toggle,
+.admin-class-menu-toggle,
+.admin-lesson-menu-toggle,
+.icon-button--menu {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-3);
+  line-height: 1;
+  transition:
+    transform var(--dur) var(--ease-spring),
+    color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.icon-button--menu {
+  width: 2.2rem;
+  height: 2.2rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(8px);
+}
+
+.teacher-table__menu-toggle:hover,
+.teacher-table__menu-toggle[aria-expanded="true"],
+.admin-class-menu-toggle:hover,
+.admin-class-menu-toggle[aria-expanded="true"],
+.admin-lesson-menu-toggle:hover,
+.admin-lesson-menu-toggle[aria-expanded="true"],
+.icon-button--menu:hover,
+.icon-button--menu[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 3px 0 var(--card-lip);
+  transform: translateY(-1px);
+}
+
+.teacher-table__menu-toggle svg,
+.admin-class-menu-toggle svg,
+.admin-lesson-menu-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.icon-button--menu svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+/* Popups */
+.teacher-table__menu-popup,
+.admin-class-menu-popup,
+.admin-lesson-menu-popup,
+.class-card-menu-popup {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transform-origin: top right;
+  animation: menuIn var(--dur) var(--ease-out);
+}
+
+.class-card-menu-popup {
+  min-width: 10rem;
+}
+
+/* Items */
+.teacher-table__menu-item,
+.admin-class-menu-item,
+.admin-lesson-menu-item,
+.class-card-menu-popup button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.62rem 0.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    padding var(--dur) var(--ease-out);
+}
+
+.teacher-table__menu-item:hover,
+.admin-class-menu-item:hover,
+.admin-lesson-menu-item:hover,
+.class-card-menu-popup button:hover {
+  padding-left: 0.95rem;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.teacher-table__menu-item svg,
+.admin-class-menu-item svg,
+.admin-lesson-menu-item svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.admin-lesson-menu-item[data-view-lesson] {
+  color: var(--primary);
+}
+
+/* Danger item sits under a divider */
+.teacher-table__menu-item--danger,
+.admin-class-menu-item--danger,
+.admin-lesson-menu-item--danger {
+  position: relative;
+  margin-top: 0.35rem;
+  color: var(--danger);
+}
+
+.teacher-table__menu-item--danger::before,
+.admin-class-menu-item--danger::before,
+.admin-lesson-menu-item--danger::before {
+  position: absolute;
+  top: -0.2rem;
+  right: 0.4rem;
+  left: 0.4rem;
+  height: 1px;
+  background: var(--border);
+  content: "";
+}
+
+.class-card-menu-popup button.danger {
+  color: var(--danger);
+}
+
+.teacher-table__menu-item--danger:hover,
+.admin-class-menu-item--danger:hover,
+.admin-lesson-menu-item--danger:hover,
+.class-card-menu-popup button.danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

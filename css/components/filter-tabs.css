@@ -1,0 +1,86 @@
+/* ============================================================
+   FILTER TABS — segmented tabs with counts
+   Lessons by difficulty, classes by grade level.
+   ============================================================ */
+.admin-lesson-filters,
+.admin-class-filters {
+  display: flex;
+  gap: 0.35rem;
+  width: max-content;
+  max-width: calc(100% - 3.2rem);
+  margin: 1rem 1.6rem 0.4rem;
+  overflow-x: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.admin-lesson-filter,
+.admin-class-filter {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.85rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  font-weight: 650;
+  transition:
+    color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.admin-lesson-filter:hover,
+.admin-class-filter:hover {
+  color: var(--ink);
+}
+
+.admin-lesson-filter.is-active,
+.admin-class-filter.is-active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 2px 0 var(--card-lip), var(--shadow-xs);
+  animation: popIn var(--dur) var(--ease-out);
+}
+
+.admin-lesson-filter__count,
+.admin-class-filter__count {
+  display: grid;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  font-weight: 700;
+  transition:
+    background var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out);
+}
+
+.admin-lesson-filter.is-active .admin-lesson-filter__count,
+.admin-class-filter.is-active .admin-class-filter__count {
+  background: var(--brand-gradient);
+  color: #fff;
+}
+
+/* An empty grade: still selectable, just quieter */
+.admin-class-filter[data-empty] {
+  opacity: 0.6;
+}
+
+@media (max-width: 760px) {
+  .admin-lesson-filters,
+  .admin-class-filters {
+    max-width: calc(100% - 2.2rem);
+    margin-right: 1.1rem;
+    margin-left: 1.1rem;
+  }
+}

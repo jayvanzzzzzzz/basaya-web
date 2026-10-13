@@ -22,6 +22,7 @@ import {
   safeHttpUrl,
   toast,
 } from "../../js/helpers.js";
+import { paginate } from "../../js/pagination.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
@@ -57,6 +58,9 @@ function lessonDifficultyMeta(level = "") {
 
 let activeLessonFilter = "all";
 let activeLessonSearch = "";
+// Pagination survives the directory re-rendering on each search/filter change.
+let lessonPage = 1;
+let lessonPageSize = 10;
 
 function closeLessonMenus() {
   document.querySelectorAll(".admin-lesson-menu-popup").forEach((menu) => {
@@ -240,6 +244,7 @@ export async function renderLessons() {
       .forEach((button) => {
         button.addEventListener("click", () => {
           activeLessonFilter = button.dataset.lessonFilter;
+          lessonPage = 1;
           closeLessonMenus();
           renderDirectory();
         });
@@ -251,6 +256,7 @@ export async function renderLessons() {
         const input = event.currentTarget;
         const cursor = input.selectionStart;
         activeLessonSearch = input.value;
+        lessonPage = 1;
         renderDirectory();
         const replacement = pageContent.querySelector("[data-lesson-search]");
         replacement.focus();
@@ -289,6 +295,21 @@ export async function renderLessons() {
         closeLessonMenus();
         deleteLesson(lesson);
       });
+    });
+
+    paginate({
+      rows: () =>
+        [...pageContent.querySelectorAll(".admin-lesson-table tbody tr")].filter(
+          (row) => !row.querySelector(".admin-lesson-table__empty"),
+        ),
+      after: pageContent.querySelector(".admin-lesson-table-wrap"),
+      label: ["lesson", "lessons"],
+      page: lessonPage,
+      pageSize: lessonPageSize,
+      onChange: ({ page: nextPage, pageSize }) => {
+        lessonPage = nextPage;
+        lessonPageSize = pageSize;
+      },
     });
   };
 
