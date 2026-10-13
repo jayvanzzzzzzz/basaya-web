@@ -1,0 +1,844 @@
+/* ============================================================
+   GET THE APP — login page button + QR pop-up (js/get-app.js)
+   The QR always stays black on a white tile so phones can read it.
+   ============================================================ */
+
+/* ---------- Trigger under the sign-in card ---------- */
+.get-app-trigger {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: min(100%, 25rem);
+  align-items: center;
+  gap: 0.85rem;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem 0.75rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--lip), var(--shadow-sm);
+  animation: popIn 700ms var(--ease-out) 350ms backwards;
+  transition:
+    transform 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out);
+}
+
+/* A light sheen glides across every few seconds to draw the eye */
+.get-app-trigger::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, var(--primary-soft) 50%, transparent 65%);
+  background-size: 250% 100%;
+  content: "";
+  animation: getAppSheen 4.5s var(--ease-in-out) 1.5s infinite;
+}
+
+@keyframes getAppSheen {
+  0%,
+  55% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
+}
+
+.get-app-trigger:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: var(--lip-hover), var(--shadow);
+  transform: translateY(-2px);
+}
+
+.get-app-trigger:active {
+  box-shadow: 0 1px 0 var(--card-lip);
+  transform: translateY(2px);
+}
+
+.get-app-trigger__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.95rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.get-app-trigger__icon svg,
+.get-app-trigger__qr svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.get-app-trigger:hover .get-app-trigger__icon svg {
+  animation: phoneBuzz 500ms var(--ease-out);
+}
+
+@keyframes phoneBuzz {
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-6deg); }
+  80% { transform: rotate(3deg); }
+}
+
+.get-app-trigger__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.05rem;
+}
+
+.get-app-trigger__text strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.get-app-trigger__text small {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.get-app-trigger__qr {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: 0.75rem;
+  color: var(--primary);
+  transition: transform 420ms var(--ease-spring), background-color var(--dur) ease;
+}
+
+.get-app-trigger__qr svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.get-app-trigger:hover .get-app-trigger__qr {
+  background: var(--primary-soft);
+  transform: rotate(-8deg) scale(1.08);
+}
+
+/* ---------- Dialog shell ---------- */
+.get-app {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.get-app[open] {
+  display: grid;
+  place-items: center;
+}
+
+.get-app::backdrop {
+  background: rgba(14, 11, 46, 0.55);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  animation: fadeIn 260ms var(--ease-out);
+}
+
+:root[data-theme="dark"] .get-app::backdrop {
+  background: rgba(8, 9, 12, 0.66);
+}
+
+.get-app__card {
+  position: relative;
+  display: grid;
+  width: min(100%, 58rem);
+  max-height: calc(100vh - 2rem);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow:
+    0 6px 0 var(--card-lip),
+    var(--shadow-lg);
+  animation: getAppIn 560ms var(--ease-spring);
+}
+
+@keyframes getAppIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.94) rotateX(8deg);
+  }
+}
+
+.get-app.is-closing .get-app__card {
+  animation: getAppOut 220ms var(--ease-in-out) forwards;
+}
+
+.get-app.is-closing::backdrop {
+  animation: fadeIn 220ms var(--ease-in-out) reverse forwards;
+}
+
+@keyframes getAppOut {
+  to {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.96);
+  }
+}
+
+.get-app__close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  transition:
+    transform 360ms var(--ease-spring),
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.get-app__close:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+  transform: rotate(90deg);
+}
+
+.get-app__close svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+}
+
+/* ---------- Left: the scanner stage ---------- */
+.get-app__stage {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  overflow: hidden;
+  padding: 2.4rem 2rem 2rem;
+  background: var(--hero-gradient);
+  color: #fff;
+}
+
+.get-app__stage::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 75%);
+  content: "";
+}
+
+/* Soft halo pulsing behind the QR */
+.get-app__stage::after {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  z-index: -1;
+  width: 19rem;
+  height: 19rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 65%);
+  content: "";
+  transform: translate(-50%, -50%);
+  animation: getAppHalo 3.6s ease-in-out infinite;
+}
+
+@keyframes getAppHalo {
+  50% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+}
+
+.get-app__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem 0.35rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  animation: fadeDown 500ms var(--ease-out) 200ms backwards;
+}
+
+.get-app__badge svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: #a4e86b;
+}
+
+.get-app__scanner {
+  position: relative;
+  animation: getAppScannerIn 700ms var(--ease-spring) 120ms backwards;
+}
+
+@keyframes getAppScannerIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82) rotate(-6deg);
+  }
+}
+
+/* Mascot peeking over the top-left edge */
+.get-app__mascot {
+  position: absolute;
+  top: -2.4rem;
+  left: -2.1rem;
+  z-index: 2;
+  width: 4.6rem;
+  height: 4.6rem;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(20, 10, 80, 0.35));
+  transform-origin: 70% 90%;
+  animation:
+    getAppPeek 700ms var(--ease-spring) 600ms backwards,
+    float 4.5s ease-in-out 1.3s infinite;
+}
+
+@keyframes getAppPeek {
+  from {
+    opacity: 0;
+    transform: translate(1.2rem, 1.4rem) rotate(18deg) scale(0.6);
+  }
+}
+
+/* The QR tile — always white for reliable scanning */
+.get-app__qr {
+  position: relative;
+  width: clamp(12rem, 24vw, 15.5rem);
+  aspect-ratio: 1;
+  padding: 0.85rem;
+  border-radius: 1.4rem;
+  background: #fff;
+  box-shadow:
+    0 6px 0 rgba(30, 20, 110, 0.3),
+    0 26px 50px -18px rgba(20, 10, 80, 0.6);
+  transform: rotate(-2deg);
+  transition: transform 500ms var(--ease-spring);
+}
+
+.get-app__scanner:hover .get-app__qr {
+  transform: rotate(0deg) scale(1.03);
+}
+
+.get-app__qr img,
+.get-app__present-qr img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.6rem;
+  image-rendering: pixelated;
+}
+
+/* Scan line sweeping down the code */
+.get-app__scanline {
+  position: absolute;
+  right: 0.6rem;
+  left: 0.6rem;
+  top: 0.6rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #7c68f0 20%, #4f8bff 80%, transparent);
+  box-shadow:
+    0 0 12px 2px rgba(91, 76, 244, 0.55),
+    0 0 30px 6px rgba(79, 139, 255, 0.25);
+  pointer-events: none;
+  animation: getAppScan 2.8s var(--ease-in-out) infinite;
+}
+
+@keyframes getAppScan {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(calc(var(--scan-distance, 13.4rem)));
+  }
+  60%,
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--scan-distance, 13.4rem)));
+  }
+}
+
+.get-app__qr {
+  --scan-distance: calc(clamp(12rem, 24vw, 15.5rem) - 1.4rem);
+}
+
+/* Scanner brackets in the corners, gently breathing */
+.get-app__corner {
+  position: absolute;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0 solid var(--gold);
+  animation: getAppBracket 2.8s var(--ease-in-out) infinite;
+}
+
+.get-app__corner--tl {
+  top: -0.65rem;
+  left: -0.65rem;
+  border-top-width: 4px;
+  border-left-width: 4px;
+  border-top-left-radius: 1rem;
+  --dx: -3px;
+  --dy: -3px;
+}
+
+.get-app__corner--tr {
+  top: -0.65rem;
+  right: -0.65rem;
+  border-top-width: 4px;
+  border-right-width: 4px;
+  border-top-right-radius: 1rem;
+  --dx: 3px;
+  --dy: -3px;
+}
+
+.get-app__corner--bl {
+  bottom: -0.65rem;
+  left: -0.65rem;
+  border-bottom-width: 4px;
+  border-left-width: 4px;
+  border-bottom-left-radius: 1rem;
+  --dx: -3px;
+  --dy: 3px;
+}
+
+.get-app__corner--br {
+  right: -0.65rem;
+  bottom: -0.65rem;
+  border-right-width: 4px;
+  border-bottom-width: 4px;
+  border-bottom-right-radius: 1rem;
+  --dx: 3px;
+  --dy: 3px;
+}
+
+@keyframes getAppBracket {
+  50% {
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+
+.get-app__stage-caption {
+  margin: 0.4rem 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  font-weight: 600;
+  animation: fadeIn 600ms var(--ease-out) 500ms backwards;
+}
+
+/* ---------- Right: instructions ---------- */
+.get-app__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2.4rem 2.2rem 2rem;
+}
+
+.get-app__body > * {
+  animation: fadeUp 520ms var(--ease-out) backwards;
+}
+
+.get-app__body > :nth-child(2) { animation-delay: 60ms; }
+.get-app__body > :nth-child(3),
+.get-app__body > :nth-child(4) { animation-delay: 110ms; }
+.get-app__body > :nth-child(5) { animation-delay: 160ms; }
+.get-app__body > :nth-child(6) { animation-delay: 210ms; }
+.get-app__body > :nth-child(7) { animation-delay: 260ms; }
+
+.get-app__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.get-app__eyebrow::before {
+  width: 0.9rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  content: "";
+}
+
+.get-app__body h2 {
+  margin: -0.4rem 2.5rem 0 0;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.get-app__lede {
+  margin: -0.3rem 0 0;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.get-app__lede--phone {
+  display: none;
+}
+
+/* Numbered steps (CSS counter, so they renumber on phones) */
+.get-app__steps {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+  list-style: none;
+}
+
+/* Block (not flex) so bold words stay inside the sentence */
+.get-app__steps li {
+  position: relative;
+  min-height: 1.6rem;
+  padding: 0.1rem 0 0 2.3rem;
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  counter-increment: step;
+}
+
+.get-app__steps li::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  content: counter(step);
+}
+
+.get-app__steps b {
+  color: var(--ink);
+}
+
+/* Fallback link */
+.get-app__fallback {
+  padding: 0.95rem 1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.get-app__fallback-title {
+  margin: 0 0 0.55rem;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.get-app__link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.get-app__link code {
+  min-width: 0;
+  flex: 1;
+  padding: 0.55rem 0.7rem;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.5;
+  user-select: all;
+}
+
+.get-app__copy {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 650;
+  box-shadow: 0 2px 0 var(--card-lip);
+  transition:
+    color var(--dur) ease,
+    border-color var(--dur) ease,
+    background-color var(--dur) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.get-app__copy:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.get-app__copy:active {
+  transform: translateY(2px);
+}
+
+.get-app__copy svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.get-app__copy.is-copied {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.get-app__copy.is-copied span {
+  animation: checkPop 320ms var(--ease-spring);
+}
+
+.get-app__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: auto;
+}
+
+.get-app__actions .button {
+  flex: 1;
+}
+
+.get-app__actions svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+/* ---------- Full-screen QR ---------- */
+.get-app__present {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 2rem 1rem;
+  background: var(--hero-gradient);
+  color: #fff;
+  animation: getAppPresentIn 520ms var(--ease-out);
+}
+
+@keyframes getAppPresentIn {
+  from {
+    clip-path: circle(0% at 50% 50%);
+  }
+  to {
+    clip-path: circle(150% at 50% 50%);
+  }
+}
+
+.get-app__present-inner {
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  text-align: center;
+}
+
+.get-app__present-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.get-app__present-kicker img {
+  width: 2.4rem;
+  height: 2.4rem;
+  object-fit: contain;
+}
+
+.get-app__present h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.get-app__present-qr {
+  --scan-distance: calc(min(62vh, 80vw) - 2.2rem);
+  position: relative;
+  width: min(62vh, 80vw);
+  aspect-ratio: 1;
+  padding: 1.2rem;
+  border-radius: 2rem;
+  background: #fff;
+  box-shadow:
+    0 8px 0 rgba(30, 20, 110, 0.3),
+    0 40px 80px -24px rgba(20, 10, 80, 0.6);
+  animation: popIn 600ms var(--ease-spring) 150ms backwards;
+}
+
+.get-app__present-qr .get-app__scanline {
+  top: 1rem;
+  right: 1rem;
+  left: 1rem;
+}
+
+.get-app__present-link {
+  max-width: 90vw;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-mono);
+  font-size: clamp(0.72rem, 1.6vw, 0.95rem);
+  overflow-wrap: anywhere;
+}
+
+.get-app__present .button.secondary {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(30, 20, 110, 0.3);
+}
+
+/* ---------- Tablets ---------- */
+@media (max-width: 860px) {
+  .get-app__card {
+    grid-template-columns: 1fr;
+  }
+
+  .get-app__stage {
+    padding: 2.6rem 1.5rem 1.6rem;
+  }
+}
+
+/* ---------- Phones: a phone can't scan itself, so just download ---------- */
+@media (max-width: 640px) {
+  .get-app[open] {
+    align-items: end;
+    padding: 0;
+  }
+
+  .get-app__card {
+    max-height: 92vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    animation: getAppSheetIn 480ms var(--ease-out);
+  }
+
+  @keyframes getAppSheetIn {
+    from {
+      transform: translate3d(0, 100%, 0);
+    }
+  }
+
+  .get-app.is-closing .get-app__card {
+    animation: getAppSheetOut 220ms var(--ease-in-out) forwards;
+  }
+
+  @keyframes getAppSheetOut {
+    to {
+      transform: translate3d(0, 100%, 0);
+    }
+  }
+
+  .get-app__stage {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.8rem;
+    padding: 1.3rem 4rem 1.3rem 1.3rem;
+  }
+
+  .get-app__scanner .get-app__qr,
+  .get-app__scanner .get-app__corner,
+  .get-app__stage-caption,
+  .get-app__lede--scan,
+  .get-app__steps .get-app__step--scan,
+  .get-app__fallback-title,
+  .get-app__present-open {
+    display: none;
+  }
+
+  .get-app__scanner {
+    order: -1;
+  }
+
+  .get-app__mascot {
+    position: static;
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+
+  .get-app__lede--phone {
+    display: block;
+  }
+
+  .get-app__body {
+    padding: 1.5rem 1.3rem 1.6rem;
+  }
+
+  .get-app__download {
+    min-height: 3.3rem;
+    font-size: 1rem;
+  }
+}

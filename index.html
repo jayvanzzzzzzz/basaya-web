@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="css/components/theme-toggle.css" />
     <!-- Page -->
     <link rel="stylesheet" href="css/pages/login.css" />
+    <link rel="stylesheet" href="css/pages/get-app.css" />
   </head>
   <body>
     <div id="loading-screen" class="loading-screen loading-screen--dark">
@@ -159,6 +160,18 @@
               <span class="login-submit__spinner" aria-hidden="true"></span>
             </button>
           </form>
+          <button class="get-app-trigger" type="button" data-get-app-open aria-haspopup="dialog">
+            <span class="get-app-trigger__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></svg>
+            </span>
+            <span class="get-app-trigger__text">
+              <strong>Get the app</strong>
+              <small>BaSaya for Android · scan or download</small>
+            </span>
+            <span class="get-app-trigger__qr" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z" /></svg>
+            </span>
+          </button>
           <p class="auth-note-inline">
             Access is reserved for approved teacher and admin accounts. If you
             don't have an account yet, contact the school admin.
@@ -166,6 +179,87 @@
         </section>
       </div>
     </main>
+
+    <!-- "Get the app": QR to download the Android app (js/get-app.js) -->
+    <dialog id="get-app" class="get-app" aria-labelledby="get-app-title">
+      <div class="get-app__card">
+        <button class="get-app__close" type="button" data-get-app-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+
+        <div class="get-app__stage">
+          <span class="get-app__badge">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10v8a1 1 0 0 1-1 1h-1v3h-2v-3h-2v3H9v-3H8a1 1 0 0 1-1-1V9Zm-2.5 0a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0v-5a1 1 0 0 1 1-1Zm15 0a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0v-5a1 1 0 0 1 1-1ZM7.2 8a4.9 4.9 0 0 1 2.4-3.6l-.9-1.6.5-.3.9 1.6a5 5 0 0 1 3.8 0l.9-1.6.5.3-.9 1.6A4.9 4.9 0 0 1 16.8 8H7.2Zm2.8-2a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2Zm4 0a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2Z" /></svg>
+            Android app
+          </span>
+          <div class="get-app__scanner">
+            <img class="get-app__mascot" src="img/logo.png" alt="" />
+            <div class="get-app__qr">
+              <img src="img/app-qr-download-logo.png" alt="QR code to download the BaSaya Android app" width="684" height="684" />
+              <span class="get-app__scanline" aria-hidden="true"></span>
+              <span class="get-app__corner get-app__corner--tl" aria-hidden="true"></span>
+              <span class="get-app__corner get-app__corner--tr" aria-hidden="true"></span>
+              <span class="get-app__corner get-app__corner--bl" aria-hidden="true"></span>
+              <span class="get-app__corner get-app__corner--br" aria-hidden="true"></span>
+            </div>
+          </div>
+          <p class="get-app__stage-caption">Point your phone's camera here</p>
+        </div>
+
+        <div class="get-app__body">
+          <span class="get-app__eyebrow">For Students</span>
+          <h2 id="get-app-title">Get the BaSaya app</h2>
+          <p class="get-app__lede get-app__lede--scan">
+            Scan the code with your phone's camera to download BaSaya for Android.
+          </p>
+          <p class="get-app__lede get-app__lede--phone">
+            Download BaSaya for Android and start learning right on your phone.
+          </p>
+
+          <ol class="get-app__steps">
+            <li class="get-app__step--scan">Open your camera and point it at the code.</li>
+            <li>Tap the link to download <b>BaSaya.apk</b>.</li>
+            <li>Open the file and tap <b>Install</b>. If Android asks, allow installs from your browser.</li>
+          </ol>
+
+          <div class="get-app__fallback">
+            <p class="get-app__fallback-title">Having trouble scanning? Visit this link directly:</p>
+            <div class="get-app__link">
+              <code>https://github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk</code>
+              <button class="get-app__copy" type="button" data-get-app-copy>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" /></svg>
+                <span>Copy link</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="get-app__actions">
+            <a class="button primary get-app__download" href="https://github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk" rel="noopener">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" /></svg>
+              Download the app
+            </a>
+            <button class="button secondary get-app__present-open" type="button" data-get-app-present>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" /></svg>
+              Show big QR
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full-screen QR for showing a whole class -->
+      <div class="get-app__present" data-get-app-presenter hidden>
+        <div class="get-app__present-inner">
+          <p class="get-app__present-kicker"><img src="img/logo.png" alt="" /> BaSaya</p>
+          <h2>Scan to get the BaSaya app</h2>
+          <div class="get-app__present-qr">
+            <img src="img/app-qr-download-logo.png" alt="QR code to download the BaSaya Android app" width="684" height="684" />
+            <span class="get-app__scanline" aria-hidden="true"></span>
+          </div>
+          <p class="get-app__present-link">github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk</p>
+          <button class="button secondary" type="button" data-get-app-present-close>Exit full screen</button>
+        </div>
+      </div>
+    </dialog>
 
     <script type="module">
       const loading = document.getElementById("loading-screen");
@@ -203,5 +297,6 @@
       });
     </script>
     <script type="module" src="js/theme.js"></script>
+    <script type="module" src="js/get-app.js"></script>
   </body>
 </html>
