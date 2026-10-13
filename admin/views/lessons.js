@@ -23,6 +23,13 @@ import {
   toast,
 } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
+import {
+  gameLevelHtml,
+  readGameLevels,
+  refreshLevel,
+  validateGameLevels,
+  wireGameLevels,
+} from "./gameLevels.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
@@ -807,21 +814,6 @@ function validateQuiz(container) {
   return firstInvalid;
 }
 
-function gameLevelHtml(level = {}) {
-  return `
-    <article class="builder-card" data-game-level>
-      <div class="builder-card__header">
-        <strong>Game level <span data-level-number></span></strong>
-        <button type="button" class="text-button danger" data-remove-game-level>Remove</button>
-      </div>
-      <label>
-        Words — one word per line
-        <textarea data-game-words placeholder="LAMESA&#10;SALA&#10;LASA">${escapeHtml((level.words || []).join("\n"))}</textarea>
-      </label>
-    </article>
-  `;
-}
-
 async function openLessonModal(existing = null) {
   const sections = existing ? await getLessonSections(existing.id) : {};
 
@@ -853,7 +845,7 @@ async function openLessonModal(existing = null) {
       ? sections.quiz.questions
       : [{}];
     const initialLevels = sections.game?.length
-      ? sections.game
+      ? [...sections.game].sort((a, b) => (a.level ?? a.order ?? 0) - (b.level ?? b.order ?? 0))
       : sections.gameStatus?.completion === "skipped"
         ? []
         : [{}];
@@ -900,6 +892,7 @@ async function openLessonModal(existing = null) {
     };
 
     const updateGameEditor = () => {
+      gameEditor.classList.toggle("is-skipped", skipGame.checked);
       gameEditor
         .querySelectorAll("button, input, textarea, select")
         .forEach((control) => {
@@ -907,6 +900,15 @@ async function openLessonModal(existing = null) {
         });
     };
 
+    $$("[data-game-level]", gameLevels).forEach(refreshLevel);
+    wireGameLevels(gameLevels, {
+      onSkipGame: () => {
+        skipGame.checked = true;
+        updateGameEditor();
+        skipGame.closest(".game-skip-option").scrollIntoView({ behavior: "smooth", block: "center" });
+        toast("The game is skipped for this lesson.");
+      },
+    });
     renumberLevels();
     updateGameEditor();
     skipGame.addEventListener("change", updateGameEditor);
@@ -1026,7 +1028,10 @@ async function openLessonModal(existing = null) {
 
       if (button.matches("[data-add-game-level]")) {
         gameLevels.insertAdjacentHTML("beforeend", gameLevelHtml({}));
+        const added = gameLevels.lastElementChild;
+        refreshLevel(added);
         renumberLevels();
+        $("[data-key-word]", added).focus();
       }
 
       if (button.matches("[data-remove-game-level]")) {
@@ -1090,6 +1095,23 @@ async function openLessonModal(existing = null) {
         invalidQuestion.scrollIntoView({ behavior: "smooth", block: "center" });
         toast(`Pumili ng tamang sagot para sa Tanong ${number}.`);
         return;
+      }
+
+      // Every game level must be a key word plus 1–4 words made from its letters.
+      if (!skipGame.checked) {
+        if (!$$("[data-game-level]", gameLevels).length) {
+          showStep("quiz");
+          toast("Add a game level, or tick “Skip game for this lesson”.");
+          return;
+        }
+        const invalidLevel = validateGameLevels(gameLevels);
+        if (invalidLevel) {
+          const number = $$("[data-game-level]", gameLevels).indexOf(invalidLevel) + 1;
+          showStep("quiz");
+          invalidLevel.scrollIntoView({ behavior: "smooth", block: "center" });
+          toast(`Game level ${number} needs fixing before saving.`);
+          return;
+        }
       }
 
       const submit = event.submitter;
@@ -1205,7 +1227,7 @@ async function saveLesson(existing, values, elements) {
     lessonRef.id,
   );
   const quiz = readQuiz(elements.quizQuestions);
-  const game = elements.skipGame.checked ? [] : readGame(elements.gameLevels);
+  const game = elements.skipGame.checked ? [] : readGameLevels(elements.gameLevels);
 
   await setDoc(doc(db, "lessons", lessonRef.id, "activity", "content"), activity);
   await setDoc(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
@@ -1377,19 +1399,6 @@ function readQuiz(container) {
       };
     })
     .filter((item) => item.question && item.choices.every(Boolean));
-}
-
-function readGame(container) {
-  return $$("[data-game-level]", container)
-    .map((level, index) => ({
-      level: index + 1,
-      order: index + 1,
-      words: $("[data-game-words]", level)
-        .value.split("\n")
-        .map((word) => word.trim())
-        .filter(Boolean),
-    }))
-    .filter((item) => item.words.length);
 }
 
 async function replaceGameLevels(lessonId, levels, skipGame) {
