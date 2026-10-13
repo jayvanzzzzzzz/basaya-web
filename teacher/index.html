@@ -44,6 +44,7 @@
     <link rel="stylesheet" href="../css/components/toast.css" />
     <link rel="stylesheet" href="../css/components/loading.css" />
     <link rel="stylesheet" href="../css/components/theme-toggle.css" />
+    <link rel="stylesheet" href="../css/components/site-footer.css" />
     <!-- Pages -->
     <link rel="stylesheet" href="../css/pages/teacher-dashboard.css" />
     <link rel="stylesheet" href="../css/pages/class-page.css" />
@@ -139,6 +140,14 @@
       <section class="content">
         <header id="page-header" class="page-header"></header>
         <div id="page-content"></div>
+        <footer class="site-footer site-footer--app">
+          <p>© 2026 <strong>BaSaya</strong> · A BSIT Capstone Project, Eastwoods Professional College of Science and Technology</p>
+          <nav class="site-footer__links" aria-label="Site information">
+            <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
+            <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
+            <button type="button" data-site-info="contact" aria-haspopup="dialog">Contact</button>
+          </nav>
+        </footer>
       </section>
     </div>
 
@@ -190,5 +199,6 @@
       });
     </script>
     <script type="module" src="../js/theme.js"></script>
+    <script type="module" src="../js/site-info.js"></script>
   </body>
 </html>
