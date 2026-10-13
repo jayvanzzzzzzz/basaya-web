@@ -1,5 +1,4 @@
 import {
-  deleteDoc,
   doc,
   serverTimestamp,
   updateDoc,
@@ -16,6 +15,13 @@ import {
   toast,
 } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
+import {
+  openDeleteConfirm,
+  refreshDeletionBadge,
+  requestChip,
+  requestsPanel,
+  wireRequestsPanel,
+} from "./classDeletion.js";
 
 function closeClassMenus() {
   document.querySelectorAll(".admin-class-menu-popup").forEach((menu) => {
@@ -95,7 +101,8 @@ export async function renderClasses() {
   page("All classes", "Every class across the platform, with its teacher.");
 
   $("#page-content").innerHTML = state.allClasses.length
-    ? `<section class="admin-class-directory" aria-label="All classes">
+    ? `${requestsPanel(state.allClasses, teacherNameById)}
+      <section class="admin-class-directory" aria-label="All classes">
         <div class="admin-class-directory__intro">
           <div>
             <span class="admin-class-directory__eyebrow">Learning spaces</span>
@@ -140,7 +147,7 @@ export async function renderClasses() {
                       <div class="admin-class-table__identity">
                         <span class="admin-class-table__mark" aria-hidden="true">${escapeHtml(initials || "C")}</span>
                         <span>
-                          <strong>${escapeHtml(className)}</strong>
+                          <strong>${escapeHtml(className)}${requestChip(classroom)}</strong>
                           <small>${escapeHtml(classroom.section || "Classroom")}</small>
                         </span>
                       </div>
@@ -240,6 +247,9 @@ export async function renderClasses() {
 
   $("#refresh-classes")?.addEventListener("click", renderClasses);
 
+  wireRequestsPanel(state.allClasses, renderClasses);
+  refreshDeletionBadge();
+
   state.allClasses.forEach((classroom) => {
     const editButton = [
       ...document.querySelectorAll("[data-edit-class]"),
@@ -306,29 +316,7 @@ function openEditClassModal(classroom) {
   );
 }
 
+// Same full cleanup as approving a request; the admin types "delete" to confirm.
 function openDeleteClassModal(classroom) {
-  openModal(
-    `<h2>Delete this class?</h2>
-     <p>You're about to remove <strong>${escapeHtml(classroom.className || "Untitled class")}</strong>.</p>
-     <p class="muted">The class will no longer appear in the teacher portal. Existing student and lesson records are not deleted automatically.</p>
-     <div class="modal-actions">
-       <button type="button" class="button secondary" data-cancel>Keep class</button>
-       <button type="button" class="button danger" data-confirm-delete>Delete class</button>
-     </div>`,
-    (modal, close) => {
-      modal.querySelector("[data-cancel]").addEventListener("click", close);
-      modal
-        .querySelector("[data-confirm-delete]")
-        .addEventListener("click", async () => {
-          try {
-            await deleteDoc(doc(db, "classes", classroom.id));
-            close();
-            toast("Class deleted.");
-            await renderClasses();
-          } catch (error) {
-            toast(error.message);
-          }
-        });
-    },
-  );
+  openDeleteConfirm(classroom, renderClasses);
 }

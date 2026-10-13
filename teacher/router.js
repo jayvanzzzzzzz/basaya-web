@@ -5,6 +5,8 @@ import { renderAccountSettings } from "./views/accountSettings.js";
 import { renderClass } from "./views/classPage.js";
 import { renderAddLessonPage } from "./views/addLesson.js";
 import { renderStudentsPage } from "./views/students.js";
+import { renderStudentProgress } from "./views/studentProgress.js";
+import { renderClassReport } from "./views/classReport.js";
 
 let statsLoaded = false;
 
@@ -48,6 +50,10 @@ export async function renderRoute() {
     else if (route === "/settings") await renderAccountSettings();
     else if (/^\/classes\/[^/]+\/students$/.test(route)) {
       await renderStudentsPage(classId);
+    } else if (/^\/classes\/[^/]+\/students\/[^/]+$/.test(route)) {
+      await renderStudentProgress(classId, decodeURIComponent(route.split("/")[4]));
+    } else if (/^\/classes\/[^/]+\/report$/.test(route)) {
+      await renderClassReport(classId);
     } else if (/^\/classes\/[^/]+\/add-lesson$/.test(route)) {
       await renderAddLessonPage(classId);
     } else if (route.startsWith("/classes/")) {

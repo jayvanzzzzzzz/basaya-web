@@ -1,0 +1,401 @@
+/* ============================================================
+   CLASS DELETION — teacher requests, admin approves
+   (teacher/views/classDeletion.js, admin/views/classDeletion.js)
+   ============================================================ */
+
+/* Status chip (class cards, admin table rows) */
+.deletion-chip {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.deletion-chip svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.deletion-chip--pending {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.deletion-chip--declined {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+
+/* On the class card's gradient cap */
+.class-card__heading .deletion-chip {
+  margin-left: 0;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 0 rgba(30, 20, 110, 0.2);
+}
+
+.class-card__heading .deletion-chip--pending {
+  color: #a1560a;
+}
+
+.class-card__heading .deletion-chip--declined {
+  color: #4a5275;
+}
+
+.class-card__heading {
+  gap: 0.5rem;
+}
+
+/* ---------- Teacher: banner on the class page ---------- */
+.deletion-banner {
+  --tone: var(--warning);
+  --tone-soft: var(--warning-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--tone) 35%, var(--border));
+  border-left: 5px solid var(--tone);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--tone-soft), var(--surface) 80%);
+  box-shadow: var(--lip);
+}
+
+.deletion-banner--declined {
+  --tone: var(--ink-3);
+  --tone-soft: var(--surface-3);
+}
+
+.deletion-banner__icon {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: var(--surface);
+  color: var(--tone);
+}
+
+.deletion-banner--pending .deletion-banner__icon svg {
+  animation: spin 6s linear infinite;
+}
+
+.deletion-banner__icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.deletion-banner__text {
+  min-width: 0;
+  flex: 1;
+}
+
+.deletion-banner__text strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.deletion-banner__text p {
+  margin: 0.15rem 0 0;
+  color: var(--ink-2);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Request / confirm dialogs ---------- */
+.deletion-modal {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.deletion-modal h2 {
+  margin: 0;
+}
+
+.deletion-modal > p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.deletion-modal form {
+  margin-top: 0.2rem;
+}
+
+.deletion-modal__icon {
+  display: grid;
+  width: 3.2rem;
+  height: 3.2rem;
+  place-items: center;
+  border-radius: 1.1rem;
+  background: var(--danger-soft);
+  color: var(--danger);
+  animation: deletionShake 600ms var(--ease-out) 200ms;
+}
+
+.deletion-modal__icon svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+@keyframes deletionShake {
+  20% { transform: rotate(-10deg); }
+  40% { transform: rotate(8deg); }
+  60% { transform: rotate(-5deg); }
+  80% { transform: rotate(2deg); }
+}
+
+.deletion-modal__impact {
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+}
+
+.deletion-modal__impact strong {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.deletion-modal__impact ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.15rem;
+  color: var(--ink-2);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+
+.deletion-modal__reason {
+  padding: 0.8rem 1rem;
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--ink) !important;
+  font-style: italic;
+}
+
+.deletion-modal__reason span {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--warning);
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Typed confirmation: turns red once "delete" is typed */
+#confirm-delete-form input {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+#confirm-delete-form input.is-confirmed {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-soft);
+  color: var(--danger);
+}
+
+/* ---------- Admin: requests panel ---------- */
+.deletion-requests {
+  display: grid;
+  gap: 1rem;
+  padding: 1.3rem 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(30rem 10rem at 0 0, var(--warning-soft), transparent 70%),
+    var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+  margin-bottom: 1.4rem;
+}
+
+.deletion-requests__head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.deletion-requests__head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.deletion-requests__head .eyebrow {
+  color: var(--warning);
+}
+
+.deletion-requests__head .eyebrow::before {
+  background: var(--warning);
+}
+
+.deletion-requests__pulse {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: pulseRing 1.8s infinite;
+  --primary-ring: color-mix(in srgb, var(--warning) 50%, transparent);
+}
+
+.deletion-requests__count {
+  display: grid;
+  min-width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  place-items: center;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--warning);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.deletion-requests__list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.deletion-request {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  animation: fadeUp 420ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms + 120ms);
+}
+
+.deletion-request__main {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.15rem;
+}
+
+.deletion-request__main strong {
+  font-size: 0.98rem;
+}
+
+.deletion-request__main > span {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.deletion-request__main blockquote {
+  margin: 0.4rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--warning);
+  color: var(--ink-2);
+  font-size: 0.86rem;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.deletion-request__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+}
+
+/* Count badge on the "All classes" menu item */
+.nav-badge {
+  display: grid;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  margin-left: auto;
+  place-items: center;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--warning);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  animation: checkPop 400ms var(--ease-spring);
+}
+
+@media (max-width: 860px) {
+  .nav-badge {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.2rem;
+    margin: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .deletion-banner,
+  .deletion-request {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .deletion-request__actions {
+    width: 100%;
+  }
+
+  .deletion-request__actions .button {
+    flex: 1;
+  }
+}
+
+/* ---------- Teacher: students' leave requests (teacher/views/leaveRequests.js) ---------- */
+.leave-requests .deletion-request .student-avatar {
+  flex: 0 0 auto;
+}
+
+.leave-request__no-reason {
+  margin-top: 0.3rem;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.student-directory__identity h3 .deletion-chip {
+  margin-left: 0.5rem;
+}
+
+/* Count on the class page's "View students" button */
+.button-badge {
+  display: inline-grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: 0.45rem;
+  place-items: center;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--warning);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  animation: checkPop 400ms var(--ease-spring) 300ms backwards;
+}

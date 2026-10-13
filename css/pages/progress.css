@@ -1,0 +1,1097 @@
+/* ============================================================
+   STUDENT PROGRESS + CLASS REPORT
+   (teacher/views/studentProgress.js, classReport.js, progressUi.js)
+   ============================================================ */
+.progress-page {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.class-report-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+/* ---------- Score ring ---------- */
+.score-ring {
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  flex: 0 0 auto;
+}
+
+.score-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.score-ring__track {
+  fill: none;
+  stroke: var(--surface-3);
+}
+
+.score-ring__value {
+  fill: none;
+  stroke: var(--ring-color);
+  stroke-linecap: round;
+  stroke-dashoffset: var(--offset);
+  animation: ringFill 1.2s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 200ms);
+}
+
+@keyframes ringFill {
+  from {
+    stroke-dashoffset: var(--circ);
+  }
+}
+
+.score-ring__label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.score-ring__label strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: calc(var(--ring-size) * 0.22);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.score-ring__label small {
+  color: var(--ink-3);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------- Remark chips + trends ---------- */
+.remark {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.remark::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.remark--very-good {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.remark--good {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.remark--fair {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.remark--poor {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.remark--no-data {
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+
+.remark--info {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.remark-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  color: var(--ink-3);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.remark-legend span:not(.remark) {
+  margin-right: 0.45rem;
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.trend b {
+  display: grid;
+  width: 1.3rem;
+  height: 1.3rem;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+
+.trend--up {
+  color: var(--success);
+}
+
+.trend--up b {
+  background: var(--success-soft);
+}
+
+.trend--down {
+  color: var(--danger);
+}
+
+.trend--down b {
+  background: var(--danger-soft);
+}
+
+.trend--steady {
+  color: var(--ink-3);
+}
+
+.trend--steady b {
+  background: var(--surface-3);
+}
+
+/* ---------- Overview row ---------- */
+.progress-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.progress-identity,
+.progress-stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+  animation: fadeUp var(--dur-slow) var(--ease-out) backwards;
+}
+
+.progress-overview > :nth-child(2),
+.report-hero > :nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.progress-overview > :nth-child(3),
+.report-hero > :nth-child(3) {
+  animation-delay: 140ms;
+}
+
+.report-hero > :nth-child(4) {
+  animation-delay: 210ms;
+}
+
+.progress-identity__avatar {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 1.3rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  box-shadow: 0 4px 0 var(--primary-lip);
+}
+
+.progress-identity h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.3rem;
+}
+
+.progress-identity p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+
+.progress-identity strong {
+  color: var(--ink-2);
+}
+
+.progress-stat > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.progress-stat strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.progress-stat span:not(.progress-stat__big) {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.progress-stat__big {
+  display: grid;
+  min-width: 3.6rem;
+  height: 3.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0 0.6rem;
+  border-radius: 1.1rem;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.progress-stat--alert {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: linear-gradient(135deg, var(--danger-soft), var(--surface) 70%);
+}
+
+.progress-stat--alert .progress-stat__big {
+  background: var(--danger);
+  color: #fff;
+  animation: pulseRing 2.2s infinite;
+  --primary-ring: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+/* ---------- Sections ---------- */
+.progress-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.progress-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.progress-section__head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.progress-section__note {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.progress-panel {
+  padding: 1.4rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+}
+
+.progress-panel__empty,
+.progress-panel__hint {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+
+.progress-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+/* ---------- Skill cards ---------- */
+.skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+  gap: 1rem;
+}
+
+.skill-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 1.2rem 1.2rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(14rem 7rem at 100% 0, color-mix(in srgb, var(--skill) 12%, transparent), transparent 70%),
+    var(--surface);
+  box-shadow: var(--lip), var(--shadow-sm);
+  animation: fadeUp var(--dur-slow) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+  transition:
+    transform 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out);
+}
+
+.skill-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--skill);
+  content: "";
+}
+
+.skill-card:hover {
+  box-shadow: var(--lip-hover), var(--shadow);
+  transform: translateY(-3px);
+}
+
+.skill-card--alert {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+.skill-card__flag {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: pulseRing 2.2s infinite;
+  --primary-ring: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.skill-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-right: 4.5rem;
+}
+
+.skill-card--class .skill-card__head,
+.skill-card:not(.skill-card--alert) .skill-card__head {
+  padding-right: 0;
+}
+
+.skill-card__icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--skill) 14%, var(--surface));
+  color: var(--skill);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.skill-card:hover .skill-card__icon {
+  transform: rotate(-8deg) scale(1.06);
+}
+
+.skill-card__icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.skill-card__head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.skill-card__head p {
+  margin: 0.1rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+.skill-card__meter {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.skill-card__verdict {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  justify-items: start;
+  gap: 0.45rem;
+}
+
+/* Long remarks ("Not enough data") wrap inside the card instead of overflowing */
+.skill-card__verdict .remark {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.skill-card__verdict small,
+.skill-card__note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+.skill-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink-3);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.skill-card__foot--alert {
+  color: var(--danger);
+}
+
+/* Mini line chart */
+.sparkline {
+  width: 100%;
+  height: 2.6rem;
+  overflow: visible;
+}
+
+.sparkline__help {
+  stroke: var(--danger);
+  stroke-dasharray: 3 4;
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.sparkline__area {
+  fill: color-mix(in srgb, var(--spark-color) 14%, transparent);
+  animation: fadeIn 900ms var(--ease-out) 500ms backwards;
+}
+
+.sparkline__line {
+  fill: none;
+  stroke: var(--spark-color);
+  stroke-dasharray: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  animation: sparkDraw 1.2s var(--ease-out) 300ms backwards;
+}
+
+@keyframes sparkDraw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+.sparkline__dot {
+  fill: var(--surface);
+  stroke: var(--spark-color);
+  stroke-width: 2.5;
+  animation: popIn 400ms var(--ease-spring) 1.3s backwards;
+}
+
+.sparkline--empty {
+  display: grid;
+  height: 2.6rem;
+  place-items: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+/* Class Report: how many students in each band */
+.dist-bar {
+  display: flex;
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+  gap: 2px;
+}
+
+.dist-bar__part {
+  transform-origin: left;
+  animation: trackGrow 900ms var(--ease-out) 300ms backwards;
+}
+
+.dist-bar__part--very-good,
+.dist-dot--very-good {
+  background: var(--success);
+}
+
+.dist-bar__part--good,
+.dist-dot--good {
+  background: var(--info);
+}
+
+.dist-bar__part--fair,
+.dist-dot--fair {
+  background: var(--warning);
+}
+
+.dist-bar__part--poor,
+.dist-dot--poor {
+  background: var(--danger);
+}
+
+.dist-bar__part--no-data,
+.dist-dot--no-data {
+  background: var(--border-strong);
+}
+
+.dist-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.8rem;
+  margin: -0.4rem 0 0;
+  padding: 0;
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  list-style: none;
+}
+
+.dist-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dist-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.avatar-stack {
+  display: inline-flex;
+}
+
+.avatar-stack__item,
+.avatar-stack__more {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-left: -0.45rem;
+  place-items: center;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.avatar-stack__more {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+
+.avatar-stack__item:hover {
+  z-index: 1;
+  transform: translateY(-3px) scale(1.1);
+}
+
+/* ---------- Remarks list ---------- */
+.remarks-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remarks-list__item {
+  --tone: var(--info);
+  --tone-soft: var(--info-soft);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--tone) 22%, var(--border));
+  border-left: 4px solid var(--tone);
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--tone-soft), transparent 75%);
+  animation: fadeUp 420ms var(--ease-out) backwards;
+}
+
+.remarks-list__item:nth-child(2) { animation-delay: 60ms; }
+.remarks-list__item:nth-child(3) { animation-delay: 120ms; }
+.remarks-list__item:nth-child(n + 4) { animation-delay: 180ms; }
+
+.remarks-list__item--alert {
+  --tone: var(--danger);
+  --tone-soft: var(--danger-soft);
+}
+
+.remarks-list__item--warn {
+  --tone: var(--warning);
+  --tone-soft: var(--warning-soft);
+}
+
+.remarks-list__item--good {
+  --tone: var(--success);
+  --tone-soft: var(--success-soft);
+}
+
+.remarks-list__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: var(--surface);
+  color: var(--tone);
+}
+
+.remarks-list__icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.remarks-list strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.remarks-list p {
+  margin: 0.15rem 0 0;
+  color: var(--ink-2);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+/* ---------- Words to practice ---------- */
+.word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.word-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid color-mix(in srgb, #e5503e 30%, var(--border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, #e5503e 8%, var(--surface));
+  color: var(--ink);
+  font-weight: 650;
+  animation: popIn 380ms var(--ease-spring) backwards;
+  animation-delay: calc(var(--i, 0) * 40ms + 200ms);
+}
+
+.word-chip b {
+  color: var(--danger);
+  font-size: 0.72rem;
+}
+
+/* ---------- Tables ---------- */
+.progress-table-wrap {
+  overflow-x: auto;
+  margin: 0 -0.4rem;
+}
+
+.progress-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: separate;
+  border-spacing: 0 0.35rem;
+  text-align: left;
+}
+
+.progress-table th {
+  padding: 0.55rem 0.8rem;
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.progress-table th:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.progress-table th:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.progress-table td {
+  padding: 0.65rem 0.8rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.86rem;
+  vertical-align: middle;
+}
+
+.progress-table td:first-child {
+  border-left: 1px solid var(--border);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.progress-table td:last-child {
+  border-right: 1px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.progress-table tbody tr {
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.progress-table tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+.lesson-index {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.lesson-name {
+  min-width: 10rem;
+  font-weight: 650;
+}
+
+.score-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.progress-table td.score-cell--very-good {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.progress-table td.score-cell--good {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.progress-table td.score-cell--fair {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.progress-table td.score-cell--poor {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.score-cell--empty,
+.score-cell--skip {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.score-cell--skip {
+  font-size: 0.76rem;
+  font-style: italic;
+}
+
+.score-cell--check {
+  color: var(--success);
+  font-size: 1rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-chip::before {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.status-chip--done {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.status-chip--progress {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.status-chip--idle,
+.status-chip--scheduled {
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+
+.status-chip--overdue {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* ---------- Class Report hero ---------- */
+.report-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.report-hero__score {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 1.3rem;
+  overflow: hidden;
+  padding: 1.4rem 1.6rem;
+  border-radius: var(--radius-xl);
+  background: var(--hero-gradient);
+  color: #fff;
+  box-shadow:
+    0 5px 0 var(--primary-lip),
+    var(--shadow-brand);
+  animation: fadeUp var(--dur-slow) var(--ease-out) backwards;
+}
+
+.report-hero__score::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(110deg, transparent 30%, #000);
+  -webkit-mask-image: linear-gradient(110deg, transparent 30%, #000);
+  content: "";
+}
+
+.report-hero__score .score-ring__track {
+  stroke: rgba(255, 255, 255, 0.22);
+}
+
+.report-hero__score .score-ring__label strong,
+.report-hero__score .score-ring__label small {
+  color: #fff;
+}
+
+.report-hero__eyebrow {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.report-hero__score h2 {
+  margin: 0.25rem 0;
+  color: #fff;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 700;
+}
+
+.report-hero__score p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+}
+
+.report-hero .progress-stat {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* Student rows in the report */
+.report-student {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 13rem;
+  color: var(--ink);
+}
+
+.report-student:hover strong {
+  color: var(--primary);
+}
+
+.report-student__avatar {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.report-student strong,
+.report-student small {
+  display: block;
+}
+
+.report-student small {
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+.report-student__flag {
+  display: grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-left: auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.report-row--muted td {
+  opacity: 0.6;
+}
+
+.report-progress {
+  min-width: 8rem;
+}
+
+.report-progress {
+  white-space: nowrap;
+}
+
+.report-progress__bar {
+  display: inline-block;
+  width: 4.5rem;
+  height: 0.45rem;
+  margin-right: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+  vertical-align: middle;
+}
+
+.report-progress__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3ec6a0, #24994a);
+  transform-origin: left;
+  animation: trackGrow 900ms var(--ease-out) 300ms backwards;
+}
+
+.report-progress b {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Remove-student dialog */
+.remove-student__list {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .report-hero {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .report-hero__score {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .progress-overview,
+  .progress-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .report-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .report-hero__score {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .progress-panel {
+    padding: 1.1rem;
+  }
+}

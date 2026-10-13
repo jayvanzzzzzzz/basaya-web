@@ -6,8 +6,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
-import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
+import { $, escapeHtml, navigate, page, openModal, toast } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
+import { removeStudent } from "../../js/api.js";
+import { leaveChip, leaveRequestsPanel, wireLeaveRequests } from "./leaveRequests.js";
 
 export async function renderStudentsPage(classId) {
   const classDoc = await getDoc(doc(db, "classes", classId));
@@ -35,24 +37,21 @@ export async function renderStudentsPage(classId) {
   const rows = students
     .map((student) => {
       const name = student.fullName || "Student";
-      const email = student.email || "No email available";
-      const searchable = `${name} ${email}`.toLowerCase();
       const initial = name.trim().charAt(0).toUpperCase() || "S";
 
       return `
-        <article class="student-directory__row" data-student="${escapeHtml(searchable)}">
+        <article class="student-directory__row" data-student="${escapeHtml(name.toLowerCase())}">
           <div class="student-directory__identity">
             <div class="student-avatar" aria-hidden="true">${escapeHtml(initial)}</div>
             <div>
-              <h3>${escapeHtml(name)}</h3>
-              <p>${escapeHtml(email)}</p>
+              <h3>${escapeHtml(name)}${leaveChip(student)}</h3>
             </div>
           </div>
           <div class="student-directory__actions" aria-label="Student actions">
-            <button class="button secondary small" type="button" title="Progress details will be available soon">
+            <button class="button secondary small" type="button" data-view-progress="${escapeHtml(student.id)}">
               View progress
             </button>
-            <button class="icon-button icon-button--danger" type="button" title="Removing students will be available soon" aria-label="Delete ${escapeHtml(name)}">
+            <button class="icon-button icon-button--danger" type="button" data-remove-student="${escapeHtml(student.id)}" title="Remove from class" aria-label="Remove ${escapeHtml(name)} from class">
               <span aria-hidden="true">×</span>
             </button>
           </div>
@@ -60,7 +59,7 @@ export async function renderStudentsPage(classId) {
     })
     .join("");
 
-  $("#page-content").innerHTML = students.length
+  $("#page-content").innerHTML = leaveRequestsPanel(students) + (students.length
     ? `
       <section class="student-directory card">
         <div class="student-directory__toolbar">
@@ -71,7 +70,7 @@ export async function renderStudentsPage(classId) {
           <label class="student-search">
             <span class="sr-only">Search students</span>
             <span aria-hidden="true">⌕</span>
-            <input id="student-search" type="search" placeholder="Search by name or email" autocomplete="off" />
+            <input id="student-search" type="search" placeholder="Search by name" autocomplete="off" />
           </label>
         </div>
         <div class="student-directory__list stagger-in">${rows}</div>
@@ -83,7 +82,9 @@ export async function renderStudentsPage(classId) {
         <h3>No students yet</h3>
         <p>Students will appear here after they join this class using the class code.</p>
         <code>${escapeHtml(classroom.classCode || "—")}</code>
-      </section>`;
+      </section>`);
+
+  wireLeaveRequests(classroom, students, () => renderStudentsPage(classId));
 
   $("#back-to-class").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}`),
@@ -110,4 +111,55 @@ export async function renderStudentsPage(classId) {
       label: ["student", "students"],
     });
   }
+
+  document.querySelectorAll("[data-view-progress]").forEach((button) =>
+    button.addEventListener("click", () =>
+      navigate(
+        `/classes/${encodeURIComponent(classId)}/students/${encodeURIComponent(button.dataset.viewProgress)}`,
+      ),
+    ),
+  );
+
+  document.querySelectorAll("[data-remove-student]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const student = students.find((item) => item.id === button.dataset.removeStudent);
+      if (student) openRemoveStudentModal(classroom, student);
+    }),
+  );
+}
+
+function openRemoveStudentModal(classroom, student) {
+  const name = student.fullName || "this student";
+  openModal(
+    `<h2>Remove ${escapeHtml(name)}?</h2>
+     <p>They'll be taken out of <strong>${escapeHtml(classroom.className)}</strong>, and their progress in this class will be deleted:</p>
+     <ul class="remove-student__list">
+       <li>Lesson progress and scores for this class's lessons</li>
+       <li>Their skill summary and class link in the app</li>
+     </ul>
+     <p class="muted">Their account stays. They can join again with the class code, starting fresh. This can't be undone.</p>
+     <p class="form-error" id="remove-student-error" role="alert"></p>
+     <div class="modal-actions">
+       <button type="button" class="button secondary" data-cancel>Keep student</button>
+       <button type="button" class="button danger" data-confirm-remove>Remove student</button>
+     </div>`,
+    (modal, close) => {
+      $("[data-cancel]", modal).addEventListener("click", close);
+      const confirmButton = $("[data-confirm-remove]", modal);
+      confirmButton.addEventListener("click", async () => {
+        confirmButton.disabled = true;
+        confirmButton.textContent = "Removing…";
+        try {
+          await removeStudent(classroom.id, student.id);
+          close();
+          toast(`${name} was removed from the class.`);
+          await renderStudentsPage(classroom.id);
+        } catch (error) {
+          $("#remove-student-error", modal).textContent = `Couldn't remove the student: ${error.message}.`;
+          confirmButton.disabled = false;
+          confirmButton.textContent = "Remove student";
+        }
+      });
+    },
+  );
 }

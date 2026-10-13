@@ -1,5 +1,6 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { adminAuth, db, messaging } from "../lib/firebase.js";
+import { db, messaging } from "../lib/firebase.js";
+import { ID_PATTERN, allowCors, requireUser } from "../lib/http.js";
 
 // POST /api/notify-lesson
 // Headers: Authorization: Bearer <teacher's Firebase ID token>
@@ -10,7 +11,6 @@ import { adminAuth, db, messaging } from "../lib/firebase.js";
 // data message to the FCM topic "class_<classId>". The Android app builds the
 // notification itself and holds it until visibleAt (the lesson's open date).
 
-const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const TIME_ZONE = process.env.NOTIFY_TIME_ZONE || "Asia/Manila";
 const formatter = new Intl.DateTimeFormat("fil-PH", {
   timeZone: TIME_ZONE,
@@ -19,21 +19,6 @@ const formatter = new Intl.DateTimeFormat("fil-PH", {
   hour: "numeric",
   minute: "2-digit",
 });
-
-function allowCors(req, res) {
-  const allowed = (process.env.ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-  const origin = req.headers.origin;
-  if (origin && allowed.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-    res.setHeader("Access-Control-Max-Age", "600");
-  }
-}
 
 const when = (timestamp) => formatter.format(timestamp.toDate());
 
@@ -60,14 +45,8 @@ export default async function handler(req, res) {
 
   try {
     // 1. Who is calling?
-    const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-    if (!token) return res.status(401).json({ error: "Not signed in" });
-    let uid;
-    try {
-      ({ uid } = await adminAuth().verifyIdToken(token));
-    } catch {
-      return res.status(401).json({ error: "Sign-in expired. Reload the page." });
-    }
+    const uid = await requireUser(req, res);
+    if (!uid) return;
 
     // 2. What to send?
     const { classId, lessonIds } = req.body || {};

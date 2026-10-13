@@ -1,7 +1,6 @@
 import {
   collection,
   addDoc,
-  deleteDoc,
   doc,
   updateDoc,
   serverTimestamp,
@@ -19,6 +18,11 @@ import {
 } from "../../js/helpers.js";
 import { renderRoute } from "../router.js";
 import { paginate } from "../../js/pagination.js";
+import {
+  confirmCancelRequest,
+  deletionChip,
+  openRequestDeletionModal,
+} from "./classDeletion.js";
 
 export async function renderDashboard() {
   await getTeacherClasses();
@@ -50,11 +54,12 @@ export async function renderDashboard() {
                   </button>
                   <div class="class-card-menu-popup" data-menu="${escapeHtml(c.id)}" hidden>
                     <button type="button" data-edit="${escapeHtml(c.id)}">Edit Class</button>
-                    <button type="button" class="danger" data-delete="${escapeHtml(c.id)}">Delete Class</button>
+                    <button type="button" class="danger" data-delete="${escapeHtml(c.id)}">${c.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>
                   </div>
                 </div>
                 <div class="class-card__heading">
                   <span class="class-card__eyebrow">Your classroom</span>
+                  ${deletionChip(c)}
                 </div>
                 <div class="class-card__body">
                   <h3>${escapeHtml(className)}</h3>
@@ -259,27 +264,8 @@ export function openClassModal(existing) {
   );
 }
 
+// Deleting needs an admin's approval: the teacher sends a request (classDeletion.js).
 function openDeleteClassModal(classroom) {
-  openModal(
-    `<h2>Delete class?</h2>
-     <p>You're about to permanently delete <strong>${escapeHtml(classroom.className)}</strong>.</p>
-     <p class="muted">Students and any lessons linked to this class will no longer be accessible. This cannot be undone.</p>
-     <div class="modal-actions">
-       <button type="button" class="button secondary" data-cancel>Cancel</button>
-       <button type="button" class="button danger" data-confirm-delete>Delete class</button>
-     </div>`,
-    (modal, close) => {
-      $("[data-cancel]", modal).onclick = close;
-      $("[data-confirm-delete]", modal).onclick = async () => {
-        try {
-          await deleteDoc(doc(db, "classes", classroom.id));
-          close();
-          toast("Class deleted.");
-          await renderDashboard();
-        } catch (err) {
-          toast(err.message);
-        }
-      };
-    },
-  );
+  if (classroom.deletionRequest) confirmCancelRequest(classroom, renderDashboard);
+  else openRequestDeletionModal(classroom, renderDashboard);
 }

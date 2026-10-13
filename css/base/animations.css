@@ -119,6 +119,12 @@
   }
 }
 
+@keyframes trackGrow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 /* Lists that cascade in, card by card */
 .stagger-in > * {
   animation: fadeUp var(--dur-slow) var(--ease-out) backwards;

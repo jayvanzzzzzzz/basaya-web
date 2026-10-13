@@ -148,11 +148,6 @@
   animation: trackGrow 1.1s var(--ease-out) 300ms backwards;
 }
 
-@keyframes trackGrow {
-  from {
-    transform: scaleX(0);
-  }
-}
 
 /* ---------- Lesson plan ---------- */
 .class-lessons__list {

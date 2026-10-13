@@ -46,6 +46,15 @@ service cloud.firestore {
       return classId == null || classId == "" || classLessonAllows(classId, lessonId);
     }
 
+    // A student can't switch or leave a class while still on its roster: leaving needs the
+    // teacher's approval (notify-api/api/remove-student clears classId).
+    function classChangeAllowed(userId) {
+      let before = resource.data.get('classId', null);
+      let after = request.resource.data.get('classId', null);
+      return before == after || before == null || before == "" ||
+        !exists(/databases/$(database)/documents/classes/$(before)/students/$(userId));
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (
         request.auth.uid == userId ||
@@ -59,11 +68,12 @@ service cloud.firestore {
           isAdmin()                                                                                                                                                                 
         );                                                                                                                                                                          
                                                                                                                                                                                     
-        allow update: if signedIn() && (                                                                                                                                            
-          isAdmin() ||                                                                                                                                                              
-          (request.auth.uid == userId &&                                                                                                                                            
-            request.resource.data.role == resource.data.role)                                                                                                                       
-        );                                                                                                                                                                          
+        allow update: if signedIn() && (
+          isAdmin() ||
+          (request.auth.uid == userId &&
+            request.resource.data.role == resource.data.role &&
+            classChangeAllowed(userId))
+        );
                                                                                                                                                                                     
         allow delete: if isAdmin();    
 
@@ -109,17 +119,39 @@ service cloud.firestore {
       allow create: if signedIn() &&
         request.resource.data.teacherId == request.auth.uid;
 
-      allow update, delete: if signedIn() &&
-        resource.data.teacherId == request.auth.uid;
+      // The class's teacher or an admin can edit it (a teacher also uses this to
+      // request deletion: deletionRequest / deletionDeclined fields).
+      allow update: if signedIn() &&
+        (resource.data.teacherId == request.auth.uid || isAdmin());
+
+      // Never deleted directly: an admin approves, then notify-api/api/delete-class
+      // removes the class with its roster, lessons and every student's progress.
+      allow delete: if false;
 
       match /students/{studentId} {
         allow read: if signedIn() &&
           (request.auth.uid == studentId ||
+           isAdmin() ||
            get(/databases/$(database)/documents/classes/$(classId))
              .data.teacherId == request.auth.uid ||
            exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
 
-        allow write: if signedIn() && request.auth.uid == studentId;
+        // Joining: a student adds themselves.
+        allow create: if signedIn() && request.auth.uid == studentId;
+
+        // The student may rename themselves and ask to leave (or cancel); the class's
+        // teacher may decline a leave request.
+        allow update: if signedIn() && (
+          (request.auth.uid == studentId &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['fullName', 'joinedAt', 'leaveRequest', 'leaveDeclined'])) ||
+          (teachesClass(classId) &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['leaveRequest', 'leaveDeclined']))
+        );
+
+        // Leaving only happens when the teacher approves (notify-api/api/remove-student).
+        allow delete: if false;
       }
 
       // Notification list ("new lesson"), written only by notify-api (Admin SDK).

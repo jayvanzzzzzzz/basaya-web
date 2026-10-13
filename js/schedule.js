@@ -1,6 +1,5 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { auth } from "./firebase.js";
-import { notifyApiUrl } from "../firebase-config.js";
+import { postToApi } from "./api.js";
 
 // ----- Lesson schedule (classes/{classId}/classLessons/{lessonId}.openAt / .dueAt) -----
 
@@ -62,22 +61,5 @@ export function scheduleStatus(link, now = new Date()) {
 // ----- Push notifications (notify-api on Vercel) -----
 
 /** Sends the "new lesson" push to every student in the class. Throws on failure. */
-export async function notifyStudents(classId, lessonIds) {
-  if (!notifyApiUrl) throw new Error("notifications are not set up yet");
-  const token = await auth.currentUser.getIdToken();
-  const response = await fetch(
-    `${notifyApiUrl.replace(/\/+$/, "")}/api/notify-lesson`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ classId, lessonIds }),
-    },
-  );
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(body.error || `notification service error (${response.status})`);
-  return body;
-}
+export const notifyStudents = (classId, lessonIds) =>
+  postToApi("notify-lesson", { classId, lessonIds });

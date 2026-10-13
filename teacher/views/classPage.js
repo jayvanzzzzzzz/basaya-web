@@ -21,6 +21,7 @@ import {
 } from "../../js/schedule.js";
 import { openClassModal } from "./dashboard.js";
 import { paginate } from "../../js/pagination.js";
+import { deletionBanner, wireDeletionBanner } from "./classDeletion.js";
 
 const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Closed" };
 
@@ -130,6 +131,7 @@ export async function renderClass(classId) {
     ),
   ]);
   const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const leaveCount = students.filter((student) => student.leaveRequest).length;
   const links = linksSnap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -154,11 +156,12 @@ export async function renderClass(classId) {
   page(
     classroom.className,
     subtitle,
-    `<button class="button secondary class-back-button" id="all-classrooms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>All classrooms</button><button class="button secondary" id="edit-class">Edit class</button><button class="button secondary" id="view-students">View students</button><button class="button primary" id="add-lesson">+ Add lesson</button>`,
+    `<button class="button secondary class-back-button" id="all-classrooms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>All classrooms</button><button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary" id="edit-class">Edit class</button><button class="button secondary" id="view-students">View students${leaveCount ? `<span class="button-badge" title="${leaveCount} leave request${leaveCount === 1 ? "" : "s"}">${leaveCount}</span>` : ""}</button><button class="button primary" id="add-lesson">+ Add lesson</button>`,
   );
   $("#page-header").classList.add("teacher-class-header");
   $("#page-content").classList.add("teacher-class-page");
   $("#page-content").innerHTML = `
+    ${deletionBanner(classroom)}
     <section class="class-overview" aria-label="Class overview">
       <div class="class-overview__identity">
         <span class="class-overview__eyebrow">Classroom overview</span>
@@ -237,6 +240,10 @@ export async function renderClass(classId) {
     </section>
   `;
   $("#all-classrooms").addEventListener("click", () => navigate("/dashboard"));
+  wireDeletionBanner(classroom, () => renderClass(classId));
+  $("#class-report").addEventListener("click", () =>
+    navigate(`/classes/${encodeURIComponent(classId)}/report`),
+  );
   $("#edit-class").addEventListener("click", () => openClassModal(classroom));
   $("#view-students").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}/students`),
