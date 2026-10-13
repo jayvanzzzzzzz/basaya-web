@@ -1,44 +1,158 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function teacher() {
-      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+
+    function signedIn() {
+      return request.auth != null;
     }
-    function ownsClass(classId) {
-      return teacher() && get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == request.auth.uid;
+
+    function isTeacher() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.role == "teacher";
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.role == "admin";
+    }
+
+    function teachesClass(classId) {
+      return classId != null &&
+        exists(/databases/$(database)/documents/classes/$(classId)) &&
+        get(/databases/$(database)/documents/classes/$(classId))
+          .data.teacherId == request.auth.uid;
+    }
+
+    // Lesson schedule: the teacher's optional openAt/dueAt on
+    // classes/{classId}/classLessons/{lessonId}. Judged by server time
+    // (request.time), so changing the phone's date does not help.
+    function scheduleAllows(link) {
+      return (link.get('openAt', null) == null || request.time >= link.openAt) &&
+        (link.get('dueAt', null) == null || request.time <= link.dueAt);
+    }
+
+    function classLessonAllows(classId, lessonId) {
+      let path = /databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId);
+      // Older links have auto-generated ids and no schedule.
+      return !exists(path) || scheduleAllows(get(path).data);
+    }
+
+    function lessonIsOpen(userId, lessonId) {
+      let classId = get(/databases/$(database)/documents/users/$(userId))
+        .data.get('classId', null);
+      return classId == null || classId == "" || classLessonAllows(classId, lessonId);
     }
 
     match /users/{userId} {
-      allow get: if signedIn() && userId == request.auth.uid;
-      // Students can read only their own record. Account administration belongs to the super-admin app.
-      allow read: if teacher() || (signedIn() && userId == request.auth.uid);
-      allow update: if signedIn()
-        && userId == request.auth.uid
-        && resource.data.role == 'teacher'
-        && request.resource.data.role == 'teacher'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
-        && request.resource.data.displayName is string
-        && request.resource.data.displayName.size() > 0
-        && request.resource.data.displayName.size() <= 80;
-      allow write: if false;
+      allow read: if signedIn() && (
+        request.auth.uid == userId ||
+        isAdmin() ||
+        (isTeacher() && teachesClass(resource.data.get('classId', null)))
+      );
+
+      allow create: if signedIn() && (                                                                                                                                            
+          (request.auth.uid == userId &&                                                                                                                                            
+            request.resource.data.role == "student") ||                                                                                                                             
+          isAdmin()                                                                                                                                                                 
+        );                                                                                                                                                                          
+                                                                                                                                                                                    
+        allow update: if signedIn() && (                                                                                                                                            
+          isAdmin() ||                                                                                                                                                              
+          (request.auth.uid == userId &&                                                                                                                                            
+            request.resource.data.role == resource.data.role)                                                                                                                       
+        );                                                                                                                                                                          
+                                                                                                                                                                                    
+        allow delete: if isAdmin();    
+
+      match /assignedLessons/{lessonId} {
+        allow read: if signedIn() && (
+          request.auth.uid == userId ||
+          isAdmin() ||
+          (isTeacher() &&
+            teachesClass(
+              get(/databases/$(database)/documents/users/$(userId))
+                .data.get('classId', null)
+            ))
+        );
+
+        // Progress is rejected before the lesson opens and after its deadline.
+        allow write: if signedIn() && request.auth.uid == userId &&
+          lessonIsOpen(userId, lessonId);
+      }
     }
-    match /classes/{classId} {
-      allow create: if teacher() && request.resource.data.teacherId == request.auth.uid;
-      allow read, update, delete: if ownsClass(classId);
-      match /students/{studentId} { allow read: if ownsClass(classId); allow write: if false; }
-    }
+
+    // All authenticated users can read lessons.
+    // Only administrators can create, edit, or delete lessons
+    // and their activity/lectures/pronunciation/quiz/game content.
     match /lessons/{lessonId} {
-      allow read: if teacher();
-      allow create: if teacher() && request.resource.data.teacherId == request.auth.uid;
-      allow update, delete: if teacher() && resource.data.teacherId == request.auth.uid;
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+
+      match /{subcollection}/{docId} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+      }
     }
+
+    match /usernames/{username} {
+      allow read: if true;
+      allow write: if signedIn() &&
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    match /classes/{classId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn() &&
+        request.resource.data.teacherId == request.auth.uid;
+
+      allow update, delete: if signedIn() &&
+        resource.data.teacherId == request.auth.uid;
+
+      match /students/{studentId} {
+        allow read: if signedIn() &&
+          (request.auth.uid == studentId ||
+           get(/databases/$(database)/documents/classes/$(classId))
+             .data.teacherId == request.auth.uid ||
+           exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
+
+        allow write: if signedIn() && request.auth.uid == studentId;
+      }
+
+      // Teachers can add an existing lesson only to a class they own.
+      match /classLessons/{lessonId} {
+        allow read: if signedIn() &&
+          (get(/databases/$(database)/documents/classes/$(classId))
+             .data.teacherId == request.auth.uid ||
+           exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
+
+        allow write: if signedIn() &&
+          get(/databases/$(database)/documents/classes/$(classId))
+            .data.teacherId == request.auth.uid;
+      }
+    }
+
     match /classLessons/{linkId} {
-      allow read: if teacher() && resource.data.teacherId == request.auth.uid;
-      allow create: if teacher() && request.resource.data.teacherId == request.auth.uid && ownsClass(request.resource.data.classId);
-      allow delete: if teacher() && resource.data.teacherId == request.auth.uid;
+      allow read: if isTeacher() &&
+        resource.data.teacherId == request.auth.uid;
+
+      allow create: if isTeacher() &&
+        request.resource.data.teacherId == request.auth.uid;
+
+      allow delete: if isTeacher() &&
+        resource.data.teacherId == request.auth.uid;
+
       allow update: if false;
     }
-    match /progress/{progressId} { allow read: if teacher() && resource.data.teacherId == request.auth.uid; allow write: if false; }
+
+    match /progress/{progressId} {
+      allow read: if isTeacher() &&
+        resource.data.teacherId == request.auth.uid;
+
+      allow write: if false;
+    }
   }
 }

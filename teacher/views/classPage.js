@@ -5,12 +5,88 @@ import {
   getDoc,
   getDocs,
   query,
+  updateDoc,
   where,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, toast, navigate, page, openModal } from "../../js/helpers.js";
+import {
+  formatWhen,
+  notifyStudents,
+  readSchedule,
+  scheduleStatus,
+  toInputValue,
+} from "../../js/schedule.js";
 import { openClassModal } from "./dashboard.js";
+
+const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Closed" };
+
+function scheduleMarkup(link) {
+  const status = scheduleStatus(link);
+  const parts = [
+    `<span class="schedule-chip schedule-chip--${status}">${SCHEDULE_LABELS[status]}</span>`,
+  ];
+  if (link.openAt) parts.push(`<span>Opens ${escapeHtml(formatWhen(link.openAt))}</span>`);
+  if (link.dueAt) parts.push(`<span>Due ${escapeHtml(formatWhen(link.dueAt))}</span>`);
+  if (!link.openAt && !link.dueAt) parts.push("<span>No schedule</span>");
+  return `<div class="class-lesson__schedule">${parts.join("")}</div>`;
+}
+
+function openScheduleModal(classId, link, lesson, onSaved) {
+  openModal(
+    `<h2>Lesson schedule</h2>
+     <p>${escapeHtml(lesson.title)}</p>
+     <form id="schedule-form">
+       <div class="form-grid">
+         <label>Opens on <input type="datetime-local" name="openAt" value="${toInputValue(link.openAt)}" /></label>
+         <label>Due on <input type="datetime-local" name="dueAt" value="${toInputValue(link.dueAt)}" /></label>
+       </div>
+       <p class="lesson-schedule__hint">Leave a date empty to remove it. Students can't open the lesson before it opens, and it locks after the deadline.</p>
+       <div class="modal-actions">
+         <button class="button secondary" type="button" id="schedule-cancel">Cancel</button>
+         <button class="button primary" type="submit">Save schedule</button>
+       </div>
+     </form>`,
+    (backdrop, close) => {
+      backdrop.querySelector("#schedule-cancel").addEventListener("click", close);
+      backdrop.querySelector("#schedule-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        // An already-closed lesson may keep its past deadline.
+        const schedule = readSchedule(e.currentTarget, { allowPastDeadline: true });
+        if (schedule.error) return toast(schedule.error);
+        try {
+          await saveSchedule(classId, link, schedule);
+          toast("Schedule saved.");
+          close();
+          onSaved();
+        } catch (err) {
+          toast(err.message);
+        }
+      });
+    },
+  );
+}
+
+async function saveSchedule(classId, link, { openAt, dueAt }) {
+  const lessonId = link.lessonId || link.id;
+  if (link.id === lessonId) {
+    return updateDoc(doc(db, "classes", classId, "classLessons", link.id), { openAt, dueAt });
+  }
+  // Older links have auto-generated ids. Move them to the lesson id so the
+  // Firestore rules can find the schedule.
+  const { id, ...data } = link;
+  const batch = writeBatch(db);
+  batch.set(doc(db, "classes", classId, "classLessons", lessonId), {
+    ...data,
+    lessonId,
+    openAt,
+    dueAt,
+  });
+  batch.delete(doc(db, "classes", classId, "classLessons", id));
+  return batch.commit();
+}
 
 const progressPercent = (percent) => {
   const value = Number(percent);
@@ -127,11 +203,26 @@ export async function renderClass(classId) {
                       <span class="class-lesson__label">Lesson ${index + 1}</span>
                       <h3>${escapeHtml(lesson.title)}</h3>
                       <p>${escapeHtml(lesson.description || "No description provided.")}</p>
+                      ${scheduleMarkup(link)}
                     </div>
-                    <button class="class-lesson__remove" type="button" data-unlink="${escapeHtml(link.id)}" aria-label="Remove ${escapeHtml(lesson.title)} from class">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
-                      <span>Remove</span>
-                    </button>
+                    <div class="class-lesson__actions">
+                      ${
+                        link.notifyPending
+                          ? `<button class="class-lesson__action class-lesson__action--notify" type="button" data-notify="${escapeHtml(link.id)}" aria-label="Notify students about ${escapeHtml(lesson.title)}">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0"/></svg>
+                              <span>Notify students</span>
+                            </button>`
+                          : ""
+                      }
+                      <button class="class-lesson__action" type="button" data-schedule="${escapeHtml(link.id)}" aria-label="Edit schedule of ${escapeHtml(lesson.title)}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4m8-4v4"/></svg>
+                        <span>Schedule</span>
+                      </button>
+                      <button class="class-lesson__remove" type="button" data-unlink="${escapeHtml(link.id)}" aria-label="Remove ${escapeHtml(lesson.title)} from class">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+                        <span>Remove</span>
+                      </button>
+                    </div>
                   </article>`,
               )
               .join("")}</div>`
@@ -162,6 +253,29 @@ export async function renderClass(classId) {
       );
       toast("Lesson removed from class.");
       renderClass(classId);
+    }),
+  );
+  const findLinked = (linkId) => linkedLessons.find(({ link }) => link.id === linkId);
+  document.querySelectorAll("[data-schedule]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const found = findLinked(b.dataset.schedule);
+      if (found)
+        openScheduleModal(classId, found.link, found.lesson, () => renderClass(classId));
+    }),
+  );
+  document.querySelectorAll("[data-notify]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const found = findLinked(b.dataset.notify);
+      if (!found) return;
+      b.disabled = true;
+      try {
+        await notifyStudents(classId, [found.link.lessonId || found.link.id]);
+        toast("Students were notified.");
+        renderClass(classId);
+      } catch (err) {
+        b.disabled = false;
+        toast(`Students were not notified (${err.message}).`);
+      }
     }),
   );
 }

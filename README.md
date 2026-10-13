@@ -10,6 +10,10 @@ A no-build teacher web app using Firebase Authentication and Cloud Firestore. It
 4. Deploy `firestore.rules` using the Firebase console or `firebase deploy --only firestore:rules`.
 5. Host these static files (Firebase Hosting, Netlify, GitHub Pages, or any web server). Do not open `index.html` directly from disk because browser modules/Firebase authentication need an HTTP(S) origin.
 
+## Lesson schedule and notifications
+
+When adding lessons to a class, a teacher can set an optional **open date** and **deadline**. Students can't open a lesson before it opens, and an unfinished lesson locks after its deadline. The Firestore rules enforce both with server time, so changing the phone's clock doesn't help. Adding a lesson sends a push notification to the class through `notify-api/`, which runs on Vercel (see `notify-api/README.md`).
+
 ## Teacher account settings
 
 The teacher portal's Account settings page lets teachers update their display name and change their password. Teachers sign in with their email address. Deploy the Firestore rules after setup so a teacher can update only their own display name; password changes are handled by Firebase Authentication.
@@ -21,7 +25,7 @@ The teacher portal's Account settings page lets teachers update their display na
 | `classes` | `name`, `subject`, `grade`, `joinCode`, `teacherId`, `createdAt` |
 | `classes/{classId}/students` | student snapshot written by your student enrollment flow; read-only here |
 | `lessons` | `title`, `description`, `difficulty`, `activityType`, `content`, `teacherId`, `createdAt`, `updatedAt` |
-| `classLessons` | `classId`, `lessonId`, `teacherId`, `order`, `createdAt` |
+| `classes/{classId}/classLessons/{lessonId}` | `lessonId`, `teacherId`, `order`, `createdAt`, `openAt`, `dueAt` (optional schedule), `notifyPending`, `notifiedAt` |
 | `progress` | student-side completion documents with `classId`, `studentId`, `teacherId`, `percent`, `updatedAt` |
 
 The teacher portal treats student enrollment and progress writes as student-app/server responsibilities. Its security rules allow teachers to read only data associated with their own classes.

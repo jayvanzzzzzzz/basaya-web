@@ -1,14 +1,15 @@
 import {
   collection,
-  addDoc,
   doc,
   getDoc,
   getDocs,
   serverTimestamp,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state, getAllLessons } from "../../js/state.js";
 import { $, escapeHtml, toast, navigate, page } from "../../js/helpers.js";
+import { readSchedule, notifyStudents } from "../../js/schedule.js";
 import { openLessonModal } from "./lessons.js";
 
 export async function renderAddLessonPage(classId) {
@@ -75,8 +76,20 @@ export async function renderAddLessonPage(classId) {
           <p class="lesson-picker__no-results" id="lesson-no-results" hidden>No lessons match your search.</p>
         </div>
         <div class="lesson-picker__footer">
-          <span><strong id="lesson-selected-count">0</strong> selected</span>
-          <button class="button primary" type="submit" id="add-selected-lessons" disabled>Add selected lessons</button>
+          <fieldset class="lesson-schedule">
+            <legend>Schedule <span>optional</span></legend>
+            <label>Opens on
+              <input type="datetime-local" name="openAt" />
+            </label>
+            <label>Due on
+              <input type="datetime-local" name="dueAt" />
+            </label>
+            <p class="lesson-schedule__hint">Leave empty to open right away with no deadline. Students are notified when you add the lesson.</p>
+          </fieldset>
+          <div class="lesson-picker__submit">
+            <span><strong id="lesson-selected-count">0</strong> selected</span>
+            <button class="button primary" type="submit" id="add-selected-lessons" disabled>Add selected lessons</button>
+          </div>
         </div>
       </form>`
     : `<section class="lesson-picker__empty">
@@ -129,25 +142,44 @@ export async function renderAddLessonPage(classId) {
 
   $("#link-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const ids = new FormData(e.currentTarget)
+    const form = e.currentTarget;
+    const ids = new FormData(form)
       .getAll("lesson")
       .filter((id) => !linkedIds.has(id));
     if (!ids.length) return toast("Select at least one new lesson.");
+    const schedule = readSchedule(form);
+    if (schedule.error) return toast(schedule.error);
+
+    const submit = $("#add-selected-lessons");
+    submit.disabled = true;
     try {
-      await Promise.all(
-        ids.map((lessonId, index) =>
-          addDoc(collection(db, "classes", classId, "classLessons"), {
-            lessonId,
-            teacherId: state.user.uid,
-            order: links.length + index + 1,
-            createdAt: serverTimestamp(),
-          }),
-        ),
+      // The link's id is the lesson id, so Firestore rules can look up its schedule.
+      const batch = writeBatch(db);
+      ids.forEach((lessonId, index) =>
+        batch.set(doc(db, "classes", classId, "classLessons", lessonId), {
+          lessonId,
+          teacherId: state.user.uid,
+          order: links.length + index + 1,
+          createdAt: serverTimestamp(),
+          openAt: schedule.openAt,
+          dueAt: schedule.dueAt,
+          notifyPending: true,
+        }),
       );
-      toast(`${ids.length} lesson${ids.length > 1 ? "s" : ""} added.`);
-      navigate(`/classes/${encodeURIComponent(classId)}`);
+      await batch.commit();
     } catch (err) {
-      toast(err.message);
+      submit.disabled = false;
+      return toast(err.message);
     }
+
+    const added = `${ids.length} lesson${ids.length > 1 ? "s" : ""} added`;
+    try {
+      await notifyStudents(classId, ids);
+      toast(`${added}. Students were notified.`);
+    } catch (err) {
+      console.error("notifyStudents failed —", err);
+      toast(`${added}, but students were not notified (${err.message}).`);
+    }
+    navigate(`/classes/${encodeURIComponent(classId)}`);
   });
 }
