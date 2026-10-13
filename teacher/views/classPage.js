@@ -156,7 +156,7 @@ export async function renderClass(classId) {
   page(
     classroom.className,
     subtitle,
-    `<button class="button secondary class-back-button" id="all-classrooms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>All classrooms</button><button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary" id="edit-class">Edit class</button><button class="button secondary" id="view-students">View students${leaveCount ? `<span class="button-badge" title="${leaveCount} leave request${leaveCount === 1 ? "" : "s"}">${leaveCount}</span>` : ""}</button><button class="button primary" id="add-lesson">+ Add lesson</button>`,
+    `<button class="button secondary class-back-button" id="all-classrooms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>All classrooms</button><button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg>Class chat</button><button class="button secondary" id="edit-class">Edit class</button><button class="button secondary" id="view-students">View students${leaveCount ? `<span class="button-badge" title="${leaveCount} leave request${leaveCount === 1 ? "" : "s"}">${leaveCount}</span>` : ""}</button><button class="button primary" id="add-lesson">+ Add lesson</button>`,
   );
   $("#page-header").classList.add("teacher-class-header");
   $("#page-content").classList.add("teacher-class-page");
@@ -244,6 +244,7 @@ export async function renderClass(classId) {
   $("#class-report").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}/report`),
   );
+  $("#class-chat").addEventListener("click", () => navigate(`/messages/${encodeURIComponent(classId)}`));
   $("#edit-class").addEventListener("click", () => openClassModal(classroom));
   $("#view-students").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}/students`),

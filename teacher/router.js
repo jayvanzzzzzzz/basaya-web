@@ -7,6 +7,7 @@ import { renderAddLessonPage } from "./views/addLesson.js";
 import { renderStudentsPage } from "./views/students.js";
 import { renderStudentProgress } from "./views/studentProgress.js";
 import { renderClassReport } from "./views/classReport.js";
+import { leaveMessages, renderMessages, watchChatSummaries } from "./views/messages.js";
 
 let statsLoaded = false;
 
@@ -14,6 +15,7 @@ async function loadSidebarStats() {
   if (statsLoaded) return;
   statsLoaded = true;
   await Promise.all([getTeacherClasses(), getTeacherLessons()]);
+  watchChatSummaries(); // live unread badge on "Messages"
   const el = $("#teacher-stats-text");
   if (el) {
     el.textContent = `${state.classes.length} classes · ${state.lessons.length} lessons`;
@@ -23,6 +25,7 @@ async function loadSidebarStats() {
 export async function renderRoute() {
   if (!state.user) return;
   shell();
+  leaveMessages(); // stops the open chat's live listeners
   loadSidebarStats(); // fire-and-forget, doesn't block page render
   const route = currentRoute();
   const classIdSegment = route.split("/")[2];
@@ -48,6 +51,7 @@ export async function renderRoute() {
   try {
     if (route === "/dashboard") await renderDashboard();
     else if (route === "/settings") await renderAccountSettings();
+    else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
     else if (/^\/classes\/[^/]+\/students$/.test(route)) {
       await renderStudentsPage(classId);
     } else if (/^\/classes\/[^/]+\/students\/[^/]+$/.test(route)) {

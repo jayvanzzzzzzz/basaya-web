@@ -114,7 +114,7 @@ The token is sent along with every later request (to the database, to basaya-tts
 ### The game level builder (step 5)
 
 ```
-Key word:   L A M E S A        ← 3 to 6 letters = the student's letter wheel
+Key word:   L A M E S A        ← 3 to 7 letters = the student's letter wheel
 Words:      MESA ✓  MALAS ✓  SALA ✓  LASA ✓     ← 1 to 4 words
 Preview:    the crossword exactly as the app will draw it
 ```

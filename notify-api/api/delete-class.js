@@ -7,7 +7,8 @@ import { ID_PATTERN, allowCors, requireAdmin, requireUser } from "../lib/http.js
 // Body:    { classId }
 //
 // Admin only (approving a teacher's deletion request, or deleting directly). Removes:
-//   - classes/{classId} and its students, classLessons and notifications
+//   - classes/{classId} and its students, classLessons, notifications and class chat
+//     (messages, chat state, chatSenders)
 //   - every student's progress for this class's lessons (users/{uid}/assignedLessons/{lessonId})
 //   - their class link and skill summary (users/{uid}.classId / className / skillSummary),
 //     so the app shows "Join a class"
@@ -32,13 +33,16 @@ export default async function handler(req, res) {
 
     const firestore = db();
     const classRef = firestore.doc(`classes/${classId}`);
-    const [classSnap, rosterSnap, linksSnap, feedSnap, membersSnap] = await Promise.all([
+    const [classSnap, rosterSnap, linksSnap, feedSnap, membersSnap, ...chatSnaps] = await Promise.all([
       classRef.get(),
       classRef.collection("students").get(),
       classRef.collection("classLessons").get(),
       classRef.collection("notifications").get(),
       // Students whose account still points at this class, even if missing from the roster.
       firestore.collection("users").where("classId", "==", classId).get(),
+      classRef.collection("messages").get(),
+      classRef.collection("chat").get(),
+      classRef.collection("chatSenders").get(),
     ]);
     if (!classSnap.exists) {
       return res.status(404).json({ error: "This class no longer exists" });
@@ -68,7 +72,7 @@ export default async function handler(req, res) {
         );
       }
     });
-    [rosterSnap, linksSnap, feedSnap].forEach((snap) =>
+    [rosterSnap, linksSnap, feedSnap, ...chatSnaps].forEach((snap) =>
       snap.docs.forEach((item) => writes.push((batch) => batch.delete(item.ref))),
     );
     // The class itself goes last, so a failure part-way leaves it visible to retry.

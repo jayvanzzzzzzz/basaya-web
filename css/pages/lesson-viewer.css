@@ -1,0 +1,924 @@
+/* ============================================================
+   LESSON VIEWER — read-only "View lesson" (admin/views/lessonViewer.js)
+   ============================================================ */
+.lesson-viewer-modal {
+  display: flex;
+  width: min(100%, 64rem);
+  height: min(92vh, 52rem);
+  max-height: 92vh;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.lesson-viewer-modal::before {
+  display: none;
+}
+
+.lesson-viewer-modal > .modal-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.lesson-viewer-modal .modal-close {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+.lesson-viewer-modal .modal-close:hover {
+  background: #fff;
+  color: var(--danger);
+}
+
+.lesson-viewer {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.lesson-viewer svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+/* ---------- Hero ---------- */
+.lv-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem 1.4rem;
+  overflow: hidden;
+  padding: 1.6rem 4.5rem 1.3rem 1.75rem;
+  background: var(--hero-gradient);
+  color: #fff;
+}
+
+.lv-hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 20px 20px;
+  mask-image: linear-gradient(110deg, transparent 30%, #000 90%);
+  -webkit-mask-image: linear-gradient(110deg, transparent 30%, #000 90%);
+  content: "";
+}
+
+.lv-hero__order {
+  display: grid;
+  width: 4.6rem;
+  height: 4.6rem;
+  place-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 1.3rem;
+  background: rgba(255, 255, 255, 0.14);
+  text-align: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 0 rgba(30, 20, 110, 0.25);
+}
+
+.lv-hero__order span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.lv-hero__order strong {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.lv-hero__text {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 0.35rem;
+}
+
+.lv-hero__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.lv-hero .admin-lesson-difficulty {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.lv-readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.lv-readonly svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.lv-hero h2 {
+  margin: 0.15rem 0 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lv-hero__text p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.88rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.lv-stats {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.lv-stats div {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lv-stats dt {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.lv-stats dd {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.lv-stats dd.lv-skeleton {
+  width: 2rem;
+  height: 1.2rem;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ---------- Tabs ---------- */
+.lv-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  padding: 0.6rem 1.25rem 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  scrollbar-width: none;
+}
+
+.lv-tab {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.85rem 0.8rem;
+  border: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 0.84rem;
+  font-weight: 650;
+  transition:
+    color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+
+.lv-tab svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.lv-tab:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.lv-tab[aria-selected="true"] {
+  color: var(--primary);
+}
+
+.lv-tab::after {
+  position: absolute;
+  right: 0.6rem;
+  bottom: -1px;
+  left: 0.6rem;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--brand-gradient);
+  content: "";
+  transform: scaleX(0);
+  transition: transform 320ms var(--ease-spring);
+}
+
+.lv-tab[aria-selected="true"]::after {
+  transform: scaleX(1);
+}
+
+.lv-tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.lv-tab__count {
+  display: grid;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 0.68rem;
+}
+
+.lv-tab__count:empty {
+  display: none;
+}
+
+.lv-tab[aria-selected="true"] .lv-tab__count {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* ---------- Body ---------- */
+.lv-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.4rem 1.6rem 1.8rem;
+  background: var(--bg);
+}
+
+.lv-section {
+  display: grid;
+  gap: 1rem;
+  animation: fadeUp 360ms var(--ease-out);
+}
+
+.lv-section-head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.lv-section-head p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.lv-callout {
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--primary);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--primary-softer);
+}
+
+.lv-callout strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.lv-callout p {
+  margin: 0.3rem 0 0;
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.lv-cards {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lv-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--card-lip);
+  animation: fadeUp 420ms var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 8) * 45ms);
+}
+
+.lv-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.lv-card__label {
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lv-card__meta {
+  color: var(--ink-3);
+  font-size: 0.76rem;
+}
+
+.lv-tag {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.lv-muted {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+}
+
+/* ---------- Activity ---------- */
+.lv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.lv-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.lv-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.7rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 2px 0 var(--card-lip);
+}
+
+.lv-legend .lv-word {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  box-shadow: none;
+}
+
+.lv-word.is-correct {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.lv-word svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  stroke-width: 3;
+}
+
+/* ---------- Audio buttons ---------- */
+.lv-play {
+  --progress: 0;
+  position: relative;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform 300ms var(--ease-spring);
+}
+
+.lv-play:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.lv-play svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: currentColor;
+  stroke-width: 1.5;
+}
+
+.lv-play .lv-play__pause,
+.lv-play.is-playing .lv-play__play {
+  display: none;
+}
+
+.lv-play.is-playing .lv-play__pause {
+  display: block;
+  fill: none;
+  stroke-width: 2.6;
+}
+
+.lv-play.is-playing {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Progress ring around a playing clip */
+.lv-play__ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(var(--primary) calc(var(--progress) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) ease;
+}
+
+.lv-play.is-playing .lv-play__ring {
+  opacity: 1;
+}
+
+.lv-play.is-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.lv-noaudio {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.55rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lv-playall {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem 0.4rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.lv-playall svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: currentColor;
+}
+
+.lv-playall .lv-play__pause,
+.lv-playall.is-playing .lv-play__play {
+  display: none;
+}
+
+.lv-playall.is-playing .lv-play__pause {
+  display: block;
+  fill: none;
+  stroke-width: 2.6;
+}
+
+.lv-playall:hover,
+.lv-playall.is-playing {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ---------- Lectures ---------- */
+.lv-lines {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lv-line {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.55rem 0.7rem 0.55rem 0.55rem;
+  border-radius: var(--radius);
+  transition: background-color var(--dur) ease;
+}
+
+.lv-line:hover,
+.lv-line.is-playing {
+  background: var(--primary-softer);
+}
+
+.lv-line p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.lv-line.is-playing p {
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
+/* ---------- Pronunciation ---------- */
+.lv-words {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lv-wordcard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 0.9rem 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--card-lip);
+  transition:
+    border-color var(--dur) ease,
+    transform var(--dur) var(--ease-out);
+  animation: popIn 420ms var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 12) * 35ms);
+}
+
+.lv-wordcard:hover,
+.lv-wordcard.is-playing {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  transform: translateY(-2px);
+}
+
+.lv-wordcard__n {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.lv-wordcard strong {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Quiz ---------- */
+.lv-question__text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.lv-choices {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lv-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--ink-2);
+  font-size: 0.9rem;
+}
+
+.lv-choice__key {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.lv-choice__key svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 3;
+}
+
+.lv-choice.is-correct {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.lv-choice.is-correct .lv-choice__key {
+  background: var(--success);
+  color: #fff;
+}
+
+.lv-choice__tag {
+  margin-left: auto;
+  color: var(--success);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- Game ---------- */
+.lv-levels {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lv-level {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.lv-level__info {
+  display: grid;
+  justify-items: start;
+  gap: 0.55rem;
+}
+
+.lv-level__caption {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Letters set around a circle, like the app's wheel */
+.lv-wheel {
+  --size: 8.5rem;
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  margin: 0.2rem 0 0.4rem;
+  border: 2px dashed color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-softer) 55%, transparent 56%);
+}
+
+.lv-wheel span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  margin: -1.05rem 0 0 -1.05rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  box-shadow: 0 3px 0 var(--primary-lip);
+  transform: rotate(calc(360deg / var(--n) * var(--k) - 90deg)) translate(calc(var(--size) / 2 - 0.2rem))
+    rotate(calc(-360deg / var(--n) * var(--k) + 90deg));
+}
+
+.lv-wheel b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.lv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.lv-chips span {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.lv-level__grid {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 1.1rem;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(var(--border) 1px, transparent 1.2px) 0 0 / 14px 14px,
+    var(--surface-2);
+}
+
+.lv-level__grid figcaption {
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* ---------- Empty / loading ---------- */
+.lv-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 3rem 1rem;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.lv-empty svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.lv-empty p {
+  max-width: 24rem;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.lv-loading {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lv-loading .lv-skeleton {
+  height: 5.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.lv-skeleton {
+  display: block;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 50%, var(--surface-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+/* ---------- Footer ---------- */
+.lv-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.4rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.lv-footer__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.lv-footer__note svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.lv-footer__actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.lv-footer .button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 760px) {
+  .lesson-viewer-modal {
+    height: 94vh;
+    max-height: 94vh;
+  }
+
+  .lv-hero {
+    padding: 1.2rem 3.5rem 1.1rem 1.1rem;
+  }
+
+  .lv-hero__order {
+    width: 3.6rem;
+    height: 3.6rem;
+  }
+
+  .lv-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lv-body {
+    padding: 1rem;
+  }
+
+  .lv-level {
+    grid-template-columns: 1fr;
+  }
+
+  .lv-footer__note {
+    display: none;
+  }
+
+  .lv-footer__actions {
+    width: 100%;
+  }
+
+  .lv-footer__actions .button {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lv-card,
+  .lv-wordcard,
+  .lv-section {
+    animation: none;
+  }
+}

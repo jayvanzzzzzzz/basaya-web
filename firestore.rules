@@ -163,6 +163,106 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ---------- Class chat: one group chat for the teacher and the class's students ----------
+      // messages/{id}   text, senderId, senderName, role ("teacher" | "student"), sentAt;
+      //                 a removed message keeps its place: text "", deleted true, deletedBy.
+      // chat/state      open (missing = open) and a summary of the last message (lastAt,
+      //                 lastText, lastSenderName, lastRole), so unread badges cost one read.
+      // chatSenders/{uid}  lastSentAt: a student's last send, for the 5-second limit.
+      // A student sends with one batch: the message, chatSenders/{uid} and chat/state.
+
+      function isChatMember(classId) {
+        return exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid));
+      }
+
+      function chatOpen(classId) {
+        let state = /databases/$(database)/documents/classes/$(classId)/chat/state;
+        return !exists(state) || get(state).data.get('open', true) == true;
+      }
+
+      // The student's chatSenders doc is stamped with this request's time in the same batch.
+      function sentNow(classId) {
+        return getAfter(/databases/$(database)/documents/classes/$(classId)/chatSenders/$(request.auth.uid))
+          .data.lastSentAt == request.time;
+      }
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && (teachesClass(classId) || isChatMember(classId));
+
+        allow create: if signedIn() &&
+          request.resource.data.keys().hasOnly(['text', 'senderId', 'senderName', 'role', 'sentAt']) &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.sentAt == request.time &&
+          request.resource.data.text is string &&
+          request.resource.data.text.trim().size() > 0 &&
+          request.resource.data.senderName is string &&
+          (
+            (request.resource.data.role == "teacher" &&
+              teachesClass(classId) &&
+              request.resource.data.text.size() <= 2000 &&
+              request.resource.data.senderName.size() <= 80) ||
+            (request.resource.data.role == "student" &&
+              isChatMember(classId) &&
+              chatOpen(classId) &&
+              request.resource.data.text.size() <= 300 &&
+              request.resource.data.senderName ==
+                get(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid))
+                  .data.get('fullName', '') &&
+              sentNow(classId))
+          );
+
+        // Removing: the teacher, any message; a student, their own within 5 minutes.
+        allow update: if signedIn() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'deleted', 'deletedBy']) &&
+          request.resource.data.text == "" &&
+          request.resource.data.deleted == true &&
+          (
+            (teachesClass(classId) && request.resource.data.deletedBy == "teacher") ||
+            (resource.data.senderId == request.auth.uid &&
+              request.resource.data.deletedBy == "sender" &&
+              request.time < resource.data.sentAt + duration.value(5, 'm'))
+          );
+
+        allow delete: if false;
+      }
+
+      match /chat/{stateId} {
+        allow read: if signedIn() && (teachesClass(classId) || isChatMember(classId));
+
+        // The teacher opens/closes the chat and updates the summary when posting.
+        allow create, update: if signedIn() && stateId == "state" && (
+          (teachesClass(classId) &&
+            request.resource.data.keys().hasOnly(['open', 'lastAt', 'lastText', 'lastSenderName', 'lastRole']) &&
+            (request.resource.data.get('open', true) is bool)) ||
+          // A student only updates the summary, alongside a message (see sentNow).
+          (isChatMember(classId) &&
+            (resource == null
+              ? request.resource.data.keys().hasOnly(['lastAt', 'lastText', 'lastSenderName', 'lastRole'])
+              : request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['lastAt', 'lastText', 'lastSenderName', 'lastRole'])) &&
+            request.resource.data.lastAt == request.time &&
+            request.resource.data.lastRole == "student" &&
+            request.resource.data.lastText is string &&
+            request.resource.data.lastText.size() <= 300 &&
+            chatOpen(classId) &&
+            sentNow(classId))
+        );
+        allow delete: if false;
+      }
+
+      match /chatSenders/{senderId} {
+        allow read: if signedIn() && request.auth.uid == senderId;
+
+        // Stamped with the server's time; at least 5 seconds after the last one.
+        allow create, update: if signedIn() &&
+          request.auth.uid == senderId &&
+          isChatMember(classId) &&
+          request.resource.data.keys().hasOnly(['lastSentAt']) &&
+          request.resource.data.lastSentAt == request.time &&
+          (resource == null || request.time >= resource.data.lastSentAt + duration.value(5, 's'));
+        allow delete: if false;
+      }
+
       // Teachers can add an existing lesson only to a class they own.
       match /classLessons/{lessonId} {
         allow read: if signedIn() &&

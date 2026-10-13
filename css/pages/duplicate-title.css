@@ -1,0 +1,361 @@
+/* ============================================================
+   DUPLICATE TITLE — asked before saving a lesson whose title is taken
+   (admin/views/duplicateTitle.js)
+   ============================================================ */
+.dup-title-modal {
+  width: min(100%, 38rem);
+  padding: 1.6rem 1.6rem 1.3rem;
+}
+
+/* Amber bar instead of the brand bar along the top edge */
+.dup-title-modal::before {
+  background: linear-gradient(90deg, #f5b04a, var(--warning));
+}
+
+.dup-title {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.dup-title svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+/* ---------- Heading ---------- */
+.dup-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.95rem;
+  padding-right: 2rem;
+}
+
+.dup-head__icon {
+  position: relative;
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.dup-head__icon::after {
+  position: absolute;
+  inset: -5px;
+  border: 1.5px solid color-mix(in srgb, var(--warning) 28%, transparent);
+  border-radius: 1.25rem;
+  content: "";
+}
+
+.dup-head__icon svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  animation: dupNudge 900ms var(--ease-spring) 250ms;
+}
+
+@keyframes dupNudge {
+  35% { transform: translate(-3px, -3px); }
+  70% { transform: translate(1px, 1px); }
+}
+
+.dup-head__eyebrow {
+  color: var(--warning);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dup-head h2 {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.dup-head p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.87rem;
+  line-height: 1.55;
+}
+
+/* ---------- Side by side ---------- */
+.dup-compare {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.dup-card {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  animation: dupSlideL 420ms var(--ease-out) backwards;
+}
+
+.dup-card:last-child {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background:
+    radial-gradient(14rem 6rem at 100% 0, var(--primary-soft), transparent 70%),
+    var(--surface);
+  box-shadow: 0 3px 0 var(--card-lip);
+  animation-name: dupSlideR;
+}
+
+@keyframes dupSlideL {
+  from { opacity: 0; transform: translateX(10px); }
+}
+
+@keyframes dupSlideR {
+  from { opacity: 0; transform: translateX(-10px); }
+}
+
+.dup-card__label {
+  color: var(--ink-3);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dup-card:last-child .dup-card__label {
+  color: var(--primary);
+}
+
+.dup-card__body {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.dup-card__order {
+  display: grid;
+  width: 2.9rem;
+  height: 2.9rem;
+  flex: 0 0 auto;
+  place-content: center;
+  border-radius: 0.85rem;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.dup-card:last-child .dup-card__order {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.dup-card__order small {
+  margin-bottom: 0.15rem;
+  font-family: var(--font-body);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.dup-card__text {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: 0.3rem;
+}
+
+.dup-card__text strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* The title is the part that clashes: underlined in both cards */
+  text-decoration: underline wavy color-mix(in srgb, var(--warning) 70%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+.dup-card__meta {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+}
+
+.dup-compare__equal {
+  z-index: 1;
+  display: grid;
+  width: 2.6rem;
+  align-self: center;
+  justify-items: center;
+  gap: 0.2rem;
+  margin: 0 -0.55rem;
+  color: var(--warning);
+}
+
+.dup-compare__equal svg {
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0.35rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--warning-soft);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warning) 35%, var(--border));
+  stroke-width: 2.6;
+  animation: checkPop 420ms var(--ease-spring) 280ms backwards;
+}
+
+/* Spelled out only when the cards stack (small screens) */
+.dup-compare__equal small {
+  display: none;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- Quick fix ---------- */
+.dup-fix {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border: 1.5px dashed color-mix(in srgb, var(--primary) 40%, var(--border));
+  border-radius: var(--radius);
+  background: var(--primary-softer);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.dup-fix:hover,
+.dup-fix:focus-visible {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  transform: translateY(-1px);
+}
+
+.dup-fix:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+.dup-fix__icon {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.dup-fix__icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+  stroke: none;
+}
+
+.dup-fix__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.dup-fix__text small {
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.dup-fix__text strong {
+  overflow: hidden;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dup-fix__go {
+  flex: 0 0 auto;
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.dup-fix:hover .dup-fix__go {
+  transform: translateX(3px);
+}
+
+/* ---------- Actions ---------- */
+.dup-actions {
+  margin-top: 0;
+}
+
+.dup-actions [data-proceed] {
+  color: var(--warning);
+}
+
+.dup-actions .button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 560px) {
+  .dup-compare {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dup-compare__equal {
+    width: auto;
+    grid-auto-flow: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin: -0.45rem 0;
+  }
+
+  .dup-compare__equal small {
+    display: block;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+  }
+
+  .dup-fix__go {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dup-head__icon svg,
+  .dup-card,
+  .dup-compare__equal svg {
+    animation: none;
+  }
+}

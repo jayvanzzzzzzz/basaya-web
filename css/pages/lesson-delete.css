@@ -1,0 +1,377 @@
+/* ============================================================
+   LESSON DELETE — "Delete lesson" dialog (admin/views/lessonDeletion.js)
+   ============================================================ */
+.lesson-delete-modal {
+  width: min(100%, 31rem);
+  padding: 1.6rem 1.6rem 1.25rem;
+}
+
+/* Red bar instead of the brand bar along the top edge */
+.lesson-delete-modal::before {
+  background: linear-gradient(90deg, #f26a5f, var(--danger));
+}
+
+.lesson-delete-modal.is-busy {
+  cursor: progress;
+}
+
+.lesson-delete {
+  display: grid;
+  gap: 1.05rem;
+}
+
+.lesson-delete svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+/* ---------- Heading ---------- */
+.ld-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.95rem;
+  padding-right: 2rem;
+}
+
+.ld-head__icon {
+  position: relative;
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--danger-soft);
+  color: var(--danger);
+  animation: ldWobble 650ms var(--ease-out) 250ms;
+}
+
+.ld-head__icon::after {
+  position: absolute;
+  inset: -5px;
+  border: 1.5px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  border-radius: 1.25rem;
+  content: "";
+}
+
+.ld-head__icon svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+@keyframes ldWobble {
+  20% { transform: rotate(-9deg); }
+  45% { transform: rotate(7deg); }
+  70% { transform: rotate(-3deg); }
+}
+
+.ld-head h2 {
+  margin: 0.1rem 0 0.3rem;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+}
+
+.ld-head p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+/* ---------- The lesson, as a ticket ---------- */
+.ld-ticket {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1rem 0.8rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+/* A cut line: this lesson is the one being torn out */
+.ld-ticket::before,
+.ld-ticket::after {
+  position: absolute;
+  top: 50%;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: -0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  content: "";
+}
+
+.ld-ticket::before {
+  left: -0.5rem;
+  clip-path: inset(0 0 0 50%);
+}
+
+.ld-ticket::after {
+  right: -0.5rem;
+  clip-path: inset(0 50% 0 0);
+}
+
+.ld-ticket__order {
+  display: grid;
+  min-width: 3.4rem;
+  place-items: center;
+  padding: 0.45rem 0.4rem;
+  border-right: 1.5px dashed var(--border-strong);
+  padding-right: 0.9rem;
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ld-ticket__order small {
+  margin-bottom: 0.2rem;
+  color: var(--ink-3);
+  font-family: var(--font-body);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ld-ticket__text {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: 0.35rem;
+}
+
+.ld-ticket__text strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- What goes with it ---------- */
+.ld-impact {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ld-impact__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ld-impact__head > span:first-child {
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ld-impact__total {
+  color: var(--danger);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.ld-impact.is-unknown .ld-impact__total {
+  color: var(--ink-3);
+}
+
+.ld-impact__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ld-tile {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 0.3rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 22%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger-soft) 55%, var(--surface));
+  color: var(--danger);
+  text-align: center;
+  animation: fadeUp 380ms var(--ease-out) backwards;
+}
+
+.ld-tile:nth-child(2) { animation-delay: 40ms; }
+.ld-tile:nth-child(3) { animation-delay: 80ms; }
+.ld-tile:nth-child(4) { animation-delay: 120ms; }
+.ld-tile:nth-child(5) { animation-delay: 160ms; }
+
+.ld-tile svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  opacity: 0.8;
+}
+
+.ld-tile strong {
+  min-width: 1.4rem;
+  min-height: 1.45rem;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1.2;
+  animation: checkPop 360ms var(--ease-spring);
+}
+
+.ld-tile > span {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--ink-3);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ld-tile.is-empty {
+  border-style: dashed;
+  border-color: var(--border);
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.ld-tile.is-empty strong {
+  color: var(--ink-3);
+}
+
+.ld-skeleton {
+  display: block;
+  width: 1.6rem;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 50%, var(--surface-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+/* ---------- Note ---------- */
+.ld-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.ld-note svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--ink-3);
+}
+
+.lesson-delete .form-error:empty {
+  display: none;
+}
+
+/* ---------- Press and hold ---------- */
+.ld-actions {
+  margin-top: 0.15rem;
+}
+
+.ld-hold {
+  --hold: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-width: 11rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Darker fill that sweeps across while held, and drains when let go */
+.ld-hold__fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, #b72f2b, #8f1f1c);
+  transform: scaleX(var(--hold, 0));
+  transform-origin: left;
+  transition: transform 260ms var(--ease-out);
+}
+
+/* Set every frame from JS while held; the transition only eases the drain. */
+.ld-hold.is-holding .ld-hold__fill {
+  transition: none;
+}
+
+.ld-hold.is-busy .ld-hold__fill {
+  transform: scaleX(1);
+  transition: none;
+}
+
+.ld-hold.is-holding {
+  transform: translateY(2px) scale(0.985);
+  box-shadow: 0 1px 0 #a92a25;
+}
+
+.ld-hold__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.ld-hold__label svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.ld-hold.is-holding .ld-hold__label svg {
+  animation: ldWobble 500ms var(--ease-out) infinite;
+}
+
+.ld-hold.is-busy {
+  pointer-events: none;
+}
+
+.ld-hold.is-busy .ld-hold__label svg {
+  animation: spin 900ms linear infinite;
+}
+
+.ld-hint {
+  margin: -0.45rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 560px) {
+  .ld-impact__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ld-hint {
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-head__icon,
+  .ld-tile,
+  .ld-tile strong,
+  .ld-hold.is-holding .ld-hold__label svg {
+    animation: none;
+  }
+}

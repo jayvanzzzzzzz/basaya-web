@@ -23,6 +23,7 @@ import {
   deletionChip,
   openRequestDeletionModal,
 } from "./classDeletion.js";
+import { chatDot, onChatSummaries } from "./messages.js";
 
 export async function renderDashboard() {
   await getTeacherClasses();
@@ -60,6 +61,7 @@ export async function renderDashboard() {
                 <div class="class-card__heading">
                   <span class="class-card__eyebrow">Your classroom</span>
                   ${deletionChip(c)}
+                  <span data-chat-dot="${escapeHtml(c.id)}">${chatDot(c.id)}</span>
                 </div>
                 <div class="class-card__body">
                   <h3>${escapeHtml(className)}</h3>
@@ -193,6 +195,13 @@ export async function renderDashboard() {
     $("#class-grid-container").innerHTML = renderClassGrid(filtered);
     wireCardMenus();
   });
+
+  // "New messages" dots follow the class chats live.
+  onChatSummaries(() =>
+    document.querySelectorAll("[data-chat-dot]").forEach((dot) => {
+      dot.innerHTML = chatDot(dot.dataset.chatDot);
+    }),
+  );
 
   if (state.classes.length) {
     paginate({

@@ -29,7 +29,11 @@ import {
   refreshLevel,
   validateGameLevels,
   wireGameLevels,
+  wordsFromText,
 } from "./gameLevels.js";
+import { openLessonViewer } from "./lessonViewer.js";
+import { openDeleteLesson } from "./lessonDeletion.js";
+import { confirmDuplicateTitle, findDuplicate, sameTitle } from "./duplicateTitle.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
@@ -95,10 +99,12 @@ document.addEventListener("keydown", (event) => {
 export async function renderLessons() {
   await getAllLessons();
 
+  // A–Z by title (ignoring case and accents; "Aralin 2" before "Aralin 10"); untitled last.
   const lessons = [...state.allLessons].sort((a, b) => {
-    const left = Number(a.order ?? Number.MAX_SAFE_INTEGER);
-    const right = Number(b.order ?? Number.MAX_SAFE_INTEGER);
-    return left - right;
+    const left = (a.title || "").trim();
+    const right = (b.title || "").trim();
+    if (!left || !right) return !left - !right;
+    return left.localeCompare(right, "fil", { sensitivity: "base", numeric: true });
   });
 
   page(
@@ -292,7 +298,7 @@ export async function renderLessons() {
       });
       viewButton?.addEventListener("click", () => {
         closeLessonMenus();
-        openLessonPreview(lesson);
+        openLessonViewer(lesson, { loadSections: getLessonSections, onEdit: openLessonModal });
       });
       editButton?.addEventListener("click", () => {
         closeLessonMenus();
@@ -300,7 +306,7 @@ export async function renderLessons() {
       });
       deleteButton?.addEventListener("click", () => {
         closeLessonMenus();
-        deleteLesson(lesson);
+        openDeleteLesson(lesson, renderLessons);
       });
     });
 
@@ -333,43 +339,6 @@ export async function renderLessons() {
 
   $("#add-lesson")?.addEventListener("click", () => openLessonModal());
   $("#add-lesson-empty")?.addEventListener("click", () => openLessonModal());
-}
-
-function openLessonPreview(lesson) {
-  const meta = lessonDifficultyMeta(lesson.difficulty);
-  openModal(
-    `<div class="admin-lesson-preview">
-      <div class="admin-lesson-preview__banner">
-        <span class="admin-lesson-preview__eyebrow">Lesson overview</span>
-        <span class="admin-lesson-preview__order">
-          <span>LESSON</span>
-          <strong>${escapeHtml(lesson.order ?? "—")}</strong>
-        </span>
-      </div>
-      <div class="admin-lesson-preview__content">
-        <span class="admin-lesson-difficulty ${meta.className}">
-          <span aria-hidden="true"></span>${escapeHtml(meta.label)}
-        </span>
-        <h2>${escapeHtml(lesson.title || "Untitled lesson")}</h2>
-        <section class="admin-lesson-preview__description" aria-labelledby="lesson-preview-description">
-          <h3 id="lesson-preview-description">About this lesson</h3>
-          <p>${escapeHtml(lesson.description || "No description has been added to this lesson yet.")}</p>
-        </section>
-      </div>
-      <div class="admin-lesson-preview__footer">
-        <span>BaSaya learning library</span>
-        <button type="button" class="button primary" data-close-preview>Done</button>
-      </div>
-    </div>`,
-    (backdrop, close) => {
-      backdrop
-        .querySelector(".modal")
-        .classList.add("admin-lesson-preview-modal");
-      backdrop
-        .querySelector("[data-close-preview]")
-        .addEventListener("click", close);
-    },
-  );
 }
 
 async function getLessonSections(lessonId) {
@@ -902,6 +871,14 @@ async function openLessonModal(existing = null) {
 
     $$("[data-game-level]", gameLevels).forEach(refreshLevel);
     wireGameLevels(gameLevels, {
+      // Suggestions for over-long game words come from what this lesson already teaches.
+      lessonWords: () =>
+        wordsFromText(
+          $$(
+            "[data-pronunciation-text], [data-activity-words], [data-sentence-text]",
+            modal,
+          ).map((field) => field.value),
+        ),
       onSkipGame: () => {
         skipGame.checked = true;
         updateGameEditor();
@@ -1114,12 +1091,40 @@ async function openLessonModal(existing = null) {
         }
       }
 
+      // Another lesson already has this title? Ask before saving (edits that keep their
+      // own title aren't asked again).
+      const form = event.currentTarget;
       const submit = event.submitter;
+      const titleInput = form.elements.title;
+      const duplicate = findDuplicate(titleInput.value, state.allLessons, existing?.id);
+      if (duplicate && !(existing && sameTitle(existing.title, titleInput.value))) {
+        submit.disabled = true;
+        const choice = await confirmDuplicateTitle(
+          {
+            title: titleInput.value.trim(),
+            difficulty: form.elements.difficulty.value,
+            order: form.elements.order.value,
+          },
+          duplicate,
+          state.allLessons,
+          Boolean(existing),
+        );
+        submit.disabled = false;
+        if (!choice) return;
+        if (choice.action === "rename") {
+          showStep("basics");
+          titleInput.focus();
+          titleInput.select();
+          return;
+        }
+        if (choice.action === "save-as") titleInput.value = choice.title;
+      }
+
       submit.disabled = true;
       submit.textContent = "Saving…";
 
       try {
-        const values = Object.fromEntries(new FormData(event.currentTarget));
+        const values = Object.fromEntries(new FormData(form));
         const lessonId = await saveLesson(existing, values, {
           activityPages,
           lecturePages,
@@ -1423,35 +1428,4 @@ async function replaceGameLevels(lessonId, levels, skipGame) {
   await Promise.all(
     levels.map((level) => addDoc(gameCollection, level)),
   );
-}
-
-async function deleteLesson(lesson) {
-  const confirmed = window.confirm(
-    `Delete “${lesson.title}” and all of its lesson sections?`,
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const sections = await Promise.all(
-      [...SINGLE_SECTIONS, "game"].map((section) =>
-        getDocs(collection(db, "lessons", lesson.id, section)),
-      ),
-    );
-
-    const batch = writeBatch(db);
-
-    sections.forEach((snapshot) => {
-      snapshot.docs.forEach((item) => batch.delete(item.ref));
-    });
-
-    batch.delete(doc(db, "lessons", lesson.id));
-    await batch.commit();
-
-    toast("Lesson deleted.");
-    await renderLessons();
-  } catch (error) {
-    console.error(error);
-    toast(error.message || "Could not delete the lesson.");
-  }
 }

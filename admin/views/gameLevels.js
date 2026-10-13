@@ -6,10 +6,12 @@ import { $, $$, escapeHtml } from "../../js/helpers.js";
 // first. The preview uses the app's crossword layout (CrosswordGridBuilder.kt).
 // Styles: css/pages/game-levels.css.
 
-export const KEY_MAX = 6;
+export const KEY_MAX = 7;
+export const WORD_MAX = 7;
 export const WORD_MIN = 3;
 export const WORDS_MIN = 1;
 export const WORDS_MAX = 4;
+const SUGGESTIONS_MAX = 6;
 
 const LETTERS = /^[A-ZÑ]+$/;
 const normalize = (value = "") => String(value).trim().toUpperCase().replace(/\s+/g, "");
@@ -22,14 +24,79 @@ export function keyWordIssue(key) {
   if (!key) return "Type the key word first.";
   if (!LETTERS.test(key)) return "Use letters only (no spaces, numbers or dashes).";
   if (key.length < WORD_MIN) return `The key word needs at least ${WORD_MIN} letters.`;
-  if (key.length > KEY_MAX) return `The key word can have at most ${KEY_MAX} letters.`;
+  if (key.length > KEY_MAX) return `Too long for the letter wheel: the key word can have at most ${KEY_MAX} letters.`;
   return "";
+}
+
+// ───────────────────────────── Suggestions ─────────────────────────────
+// When a typed word is longer than 7 letters, the builder suggests words from the
+// lesson itself (pronunciation, activity, lectures, quiz), so the game reviews them.
+
+// Function words make poor game words, so they're never suggested.
+const COMMON = new Set(
+  (
+    "ANG MGA NANG ITO IYAN IYON DITO DIYAN DOON SIYA SILA KAMI TAYO KAYO AKO IKAW NILA NIYA " +
+    "NAMIN NATIN NINYO KANYA KANILA PARA KUNG PERO DAHIL MAY MAYROON HINDI NGA LAMANG LANG RIN " +
+    "DIN DAW RAW KAY KINA SINA NINA ALIN ANO SINO SAAN KAILAN BAKIT PAANO ILAN YUNG ITONG IYONG " +
+    "AKING ATING AMING KANILANG ISANG MAS PAG NIYANG THE AND ARE WAS FOR WITH THIS THAT"
+  ).split(" "),
+);
+
+/** Unique 3–7 letter words from free text, uppercased. */
+export function wordsFromText(texts) {
+  const words = texts
+    .join(" ")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/Ñ/g, "Ñ")
+    .replace(/[̀-ͯ]/g, "")
+    .split(/[^A-ZÑ]+/)
+    .filter((word) => word.length >= WORD_MIN && word.length <= WORD_MAX && !COMMON.has(word));
+  return [...new Set(words)];
+}
+
+/** Letters `a` and `b` have in common, counting repeats. */
+function sharedLetters(a, b) {
+  const have = countLetters(b);
+  return [...a].filter((letter) => {
+    const left = have.get(letter) || 0;
+    if (left) have.set(letter, left - 1);
+    return left > 0;
+  }).length;
+}
+
+/**
+ * Key words to try instead of `typed` (too long): lesson words found inside it first,
+ * then the ones that give students the most words to make.
+ * Returns [{ word, makes }] where `makes` counts lesson words built from its letters.
+ */
+export function suggestKeyWords(typed, lessonWords) {
+  return lessonWords
+    .filter((word) => word.length >= 4 && word !== typed)
+    .map((word) => ({
+      word,
+      inside: typed.includes(word),
+      makes: lessonWords.filter((other) => other !== word && !wordIssue(other, word)).length,
+      shared: sharedLetters(word, typed),
+    }))
+    .filter((item) => item.inside || item.makes > 0)
+    .sort((a, b) => b.inside - a.inside || b.makes - a.makes || b.shared - a.shared || b.word.length - a.word.length)
+    .slice(0, SUGGESTIONS_MAX);
+}
+
+/** Hidden words that fit `key`, from the lesson, not yet added. Longest first. */
+export function suggestWords(key, lessonWords, added = []) {
+  return lessonWords
+    .filter((word) => !wordIssue(word, key, added))
+    .sort((a, b) => b.length - a.length || a.localeCompare(b))
+    .slice(0, SUGGESTIONS_MAX);
 }
 
 /** Why `word` can't be built from the key word's letters, or "". */
 export function wordIssue(word, key, others = []) {
   if (!LETTERS.test(word)) return "Use letters only.";
   if (word.length < WORD_MIN) return `Needs at least ${WORD_MIN} letters.`;
+  if (word.length > WORD_MAX) return `Too long: words can have at most ${WORD_MAX} letters.`;
   if (word === key) return "Same as the key word.";
   if (others.includes(word)) return "Already added.";
   if (!key) return "";
@@ -183,7 +250,7 @@ function validIntersections(word, candidate, occupied) {
 // ───────────────────────────── Markup ─────────────────────────────
 
 /** Old levels were a plain list: the longest word becomes the key word. */
-function splitLevel(level = {}) {
+export function splitLevel(level = {}) {
   const words = (level.words || []).map(normalize).filter(Boolean);
   if (!words.length) return { key: "", words: [] };
   const keyIndex = words.reduce((best, word, index) => (word.length > words[best].length ? index : best), 0);
@@ -213,10 +280,11 @@ export function gameLevelHtml(level = {}) {
         <div class="game-builder__editor">
           <label class="game-builder__field">
             <span class="game-builder__label">Key word <small>${WORD_MIN}–${KEY_MAX} letters · the student's letter wheel</small></span>
-            <input class="game-builder__key" data-key-word value="${escapeHtml(key)}" maxlength="${KEY_MAX}"
+            <input class="game-builder__key" data-key-word value="${escapeHtml(key)}" maxlength="24"
               placeholder="LAMESA" autocomplete="off" spellcheck="false" autocapitalize="characters" />
           </label>
           <div class="letter-tiles" data-letter-tiles aria-hidden="true"></div>
+          <div class="word-suggest" data-key-suggest aria-live="polite" hidden></div>
 
           <div class="game-builder__field">
             <span class="game-builder__label">Words from these letters <small data-word-count></small></span>
@@ -225,7 +293,8 @@ export function gameLevelHtml(level = {}) {
               <input class="word-field__input" data-word-input autocomplete="off" spellcheck="false"
                 autocapitalize="characters" aria-label="Add a word" />
             </div>
-            <p class="game-builder__hint" data-word-hint>Press Enter to add · ${WORDS_MIN}–${WORDS_MAX} words · ${WORD_MIN}+ letters each</p>
+            <p class="game-builder__hint" data-word-hint>Press Enter to add · ${WORDS_MIN}–${WORDS_MAX} words · ${WORD_MIN}–${WORD_MAX} letters each</p>
+            <div class="word-suggest" data-word-suggest aria-live="polite" hidden></div>
           </div>
 
           <ul class="game-builder__issues" data-level-issues hidden></ul>
@@ -288,16 +357,8 @@ function renderTiles(level, key, highlight = new Set(), missing = false) {
   tiles.classList.toggle("is-missing", missing);
 }
 
-function renderPreview(level, key, words, valid) {
-  const stage = $("[data-crossword-stage]", level);
-  const list = [key, ...words.filter((word) => valid.has(word))].filter(Boolean);
-  if (keyWordIssue(key) || list.length < 2) {
-    stage.innerHTML = `<p class="crossword-preview__empty">${
-      keyWordIssue(key) ? "Type a key word to start." : "Add a word to see the crossword."
-    }</p>`;
-    stage.dataset.cells = "";
-    return [];
-  }
+/** Key word first, the rest longest first, laid out like the app; one entry per grid cell. */
+function layoutCells(list) {
   const ordered = [list[0], ...list.slice(1).sort((a, b) => b.length - a.length)];
   const grid = buildCrossword(ordered);
   const cells = new Map();
@@ -312,6 +373,32 @@ function renderPreview(level, key, words, valid) {
       cells.set(id, cell);
     });
   });
+  return { grid, cells };
+}
+
+/** A finished crossword for read-only views: [keyWord, ...words]. */
+export function crosswordHtml(list) {
+  if (list.length < 2) return "";
+  const { grid, cells } = layoutCells(list);
+  return `<div class="crossword-grid" style="--rows:${grid.rows};--columns:${grid.columns}">${[...cells.values()]
+    .map(
+      (cell, index) =>
+        `<span class="crossword-cell is-new${cell.key ? " is-key" : ""}${cell.words > 1 ? " is-cross" : ""}" style="grid-row:${cell.row + 1};grid-column:${cell.column + 1};--i:${index}">${escapeHtml(cell.letter)}</span>`,
+    )
+    .join("")}</div>`;
+}
+
+function renderPreview(level, key, words, valid) {
+  const stage = $("[data-crossword-stage]", level);
+  const list = [key, ...words.filter((word) => valid.has(word))].filter(Boolean);
+  if (keyWordIssue(key) || list.length < 2) {
+    stage.innerHTML = `<p class="crossword-preview__empty">${
+      keyWordIssue(key) ? "Type a key word to start." : "Add a word to see the crossword."
+    }</p>`;
+    stage.dataset.cells = "";
+    return [];
+  }
+  const { grid, cells } = layoutCells(list);
   const previous = new Set((stage.dataset.cells || "").split("|"));
   const ids = [...cells.values()].map((cell) => `${cellKey(cell)}${cell.letter}`);
   stage.dataset.cells = ids.join("|");
@@ -324,6 +411,73 @@ function renderPreview(level, key, words, valid) {
     )
     .join("")}</div>`;
   return grid.detached;
+}
+
+// Where suggestions come from; set by wireGameLevels (one lesson studio is open at a time).
+let lessonWordsOf = () => [];
+
+const ICON_SPARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7L4.5 10.9 10.1 9 12 3.5Z" /></svg>';
+
+function suggestBoxHtml(title, lead, buttons, fallback) {
+  return `<p class="word-suggest__title">${ICON_SPARK}<span>${escapeHtml(title)}</span></p>
+    ${
+      buttons.length
+        ? `<p class="word-suggest__lead">${escapeHtml(lead)}</p><div class="word-suggest__list">${buttons.join("")}</div>`
+        : `<p class="word-suggest__lead">${escapeHtml(fallback)}</p>`
+    }`;
+}
+
+/** Fills (or hides) a suggestion box; only re-renders when its content changes. */
+function setSuggestBox(box, html) {
+  if (box.dataset.html !== html) {
+    box.dataset.html = html;
+    box.innerHTML = html;
+  }
+  box.hidden = !html;
+}
+
+function renderSuggestions(level, key, words, typing) {
+  const lessonWords = lessonWordsOf();
+
+  // Key word longer than the wheel holds
+  let keyHtml = "";
+  if (key.length > KEY_MAX && LETTERS.test(key)) {
+    const picks = suggestKeyWords(key, lessonWords);
+    keyHtml = suggestBoxHtml(
+      `${key} has ${key.length} letters, but the wheel holds ${KEY_MAX}.`,
+      "Try a key word from this lesson:",
+      picks.map(
+        ({ word, makes, inside }) =>
+          `<button type="button" class="suggest-chip" data-use-key="${escapeHtml(word)}">
+            <strong>${escapeHtml(word)}</strong>
+            <small>${inside ? "in your word" : `makes ${makes} word${makes === 1 ? "" : "s"}`}</small>
+          </button>`,
+      ),
+      "Try a shorter word. One part of a compound word often works, like SILID from SILID-AKLATAN.",
+    );
+  }
+  setSuggestBox($("[data-key-suggest]", level), keyHtml);
+
+  // A hidden word longer than 7 letters
+  let wordHtml = "";
+  if (typing.length > WORD_MAX && LETTERS.test(typing)) {
+    const keyReady = !keyWordIssue(key);
+    const picks = keyReady && words.length < WORDS_MAX ? suggestWords(key, lessonWords, words) : [];
+    wordHtml = suggestBoxHtml(
+      `${typing} has ${typing.length} letters; game words can have up to ${WORD_MAX}.`,
+      `Words from this lesson that fit ${key}:`,
+      picks.map(
+        (word) =>
+          `<button type="button" class="suggest-chip" data-use-word="${escapeHtml(word)}">
+            <strong>${escapeHtml(word)}</strong><small>${word.length} letters</small>
+          </button>`,
+      ),
+      keyReady
+        ? `No lesson words fit ${key}'s letters yet. Try a shorter word using only ${[...new Set(key)].join(", ")}.`
+        : "Set a key word of 3 to 7 letters first, then add shorter words made from its letters.",
+    );
+  }
+  setSuggestBox($("[data-word-suggest]", level), wordHtml);
 }
 
 /** Re-checks a level and updates its tiles, chips, issues, status and preview. */
@@ -356,10 +510,11 @@ export function refreshLevel(level) {
     ? typingProblem
     : words.length >= WORDS_MAX
       ? `That's the maximum of ${WORDS_MAX} words for a level.`
-      : `Press Enter to add · ${WORDS_MIN}–${WORDS_MAX} words · ${WORD_MIN}+ letters each`;
+      : `Press Enter to add · ${WORDS_MIN}–${WORDS_MAX} words · ${WORD_MIN}–${WORD_MAX} letters each`;
   input.hidden = words.length >= WORDS_MAX && !typing;
   input.placeholder = words.length ? "Add another word…" : key ? `A word from ${key}…` : "Type a word, press Enter";
   $("[data-word-count]", level).textContent = `${words.length} of ${WORDS_MAX}`;
+  renderSuggestions(level, key, words, typing);
 
   // Preview (valid words only)
   const valid = new Set(words.filter((word) => !wordIssues.has(word)));
@@ -412,8 +567,12 @@ function flash(element) {
   element.classList.add("is-shaking");
 }
 
-/** Wires every level inside `container` (works for levels added later too). */
-export function wireGameLevels(container, { onSkipGame } = {}) {
+/**
+ * Wires every level inside `container` (works for levels added later too).
+ * `lessonWords()` returns the lesson's 3–7 letter words, used for suggestions.
+ */
+export function wireGameLevels(container, { onSkipGame, lessonWords } = {}) {
+  if (lessonWords) lessonWordsOf = lessonWords;
   container.addEventListener("input", (event) => {
     const level = event.target.closest("[data-game-level]");
     if (!level) return;
@@ -522,6 +681,23 @@ export function wireGameLevels(container, { onSkipGame } = {}) {
     }
     if (event.target.closest("[data-skip-game-tip]")) {
       onSkipGame?.();
+      return;
+    }
+    const useKey = event.target.closest("[data-use-key]");
+    if (useKey) {
+      $("[data-key-word]", level).value = useKey.dataset.useKey;
+      refreshLevel(level);
+      $("[data-word-input]", level).focus();
+      return;
+    }
+    const useWord = event.target.closest("[data-use-word]");
+    if (useWord) {
+      const input = $("[data-word-input]", level);
+      addWords(level, useWord.dataset.useWord);
+      input.value = "";
+      delete input.dataset.force;
+      refreshLevel(level);
+      input.focus();
       return;
     }
     if (event.target.closest("[data-word-field]") && !event.target.closest("[data-word-chip]")) {

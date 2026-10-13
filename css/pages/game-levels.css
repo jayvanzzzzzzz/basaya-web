@@ -395,6 +395,120 @@
   flex: 0 0 auto;
 }
 
+/* Suggestions when a typed word is longer than 7 letters */
+.word-suggest {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: var(--radius);
+  background:
+    radial-gradient(18rem 6rem at 0 0, var(--primary-soft), transparent 70%),
+    var(--surface);
+  box-shadow: 0 3px 0 var(--card-lip);
+  animation: fadeUp 280ms var(--ease-out);
+}
+
+.word-suggest[hidden] {
+  display: none;
+}
+
+.word-suggest__title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.word-suggest__title svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
+  fill: var(--primary);
+  stroke: none;
+  animation: checkPop 420ms var(--ease-spring);
+}
+
+.word-suggest__lead {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.76rem;
+}
+
+.word-suggest__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.suggest-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 2px 0 var(--card-lip);
+  cursor: pointer;
+  animation: chipIn 280ms var(--ease-spring) backwards;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.suggest-chip:nth-child(2) { animation-delay: 30ms; }
+.suggest-chip:nth-child(3) { animation-delay: 60ms; }
+.suggest-chip:nth-child(4) { animation-delay: 90ms; }
+.suggest-chip:nth-child(5) { animation-delay: 120ms; }
+.suggest-chip:nth-child(6) { animation-delay: 150ms; }
+
+.suggest-chip strong {
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  letter-spacing: 0.1em;
+}
+
+.suggest-chip small {
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.suggest-chip:hover,
+.suggest-chip:focus-visible {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.suggest-chip:hover small,
+.suggest-chip:focus-visible small {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.suggest-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word-suggest,
+  .word-suggest__title svg,
+  .suggest-chip {
+    animation: none;
+  }
+}
+
 /* Crossword preview */
 .crossword-preview {
   display: grid;
