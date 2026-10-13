@@ -22,6 +22,97 @@ export function toast(message) {
   toast.timer = setTimeout(() => el.classList.remove("show"), 3200);
 }
 
+const NOTICE_ICONS = {
+  success: '<path d="m5 12.5 4.5 4.5L19 7.5" />',
+  danger: '<path d="M6 12h12" />',
+  info: '<path d="M12 11v6M12 7.5v.01" />',
+};
+
+/** Two-letter initials for an avatar: "Juan Dela Cruz" → "JD". */
+export const initials = (name = "") =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+
+/**
+ * A richer toast: avatar or icon, title, message, an optional action (like Undo),
+ * and a countdown bar that pauses while hovered or focused.
+ * Several can stack. Styles: css/components/notice.css.
+ *
+ * @param {object} options
+ * @param {string} options.title
+ * @param {string} [options.message]
+ * @param {string} [options.avatar]   Initials shown in the badge; otherwise the tone icon.
+ * @param {"success"|"danger"|"info"} [options.tone]
+ * @param {{ label: string, busyLabel?: string, run: () => Promise<void>|void }} [options.action]
+ *        The notice stays open (button shows busyLabel) until run() settles.
+ * @param {number} [options.duration] ms before it closes by itself.
+ * @returns {{ dismiss: () => void }}
+ */
+export function notify({ title, message = "", avatar, tone = "success", action, duration = 6000 }) {
+  let stack = $(".notice-stack");
+  if (!stack) {
+    stack = document.createElement("section");
+    stack.className = "notice-stack";
+    stack.setAttribute("aria-label", "Notifications");
+    stack.setAttribute("aria-live", "polite");
+    document.body.append(stack);
+  }
+
+  const icon = `<svg viewBox="0 0 24 24" aria-hidden="true">${NOTICE_ICONS[tone] || NOTICE_ICONS.info}</svg>`;
+  const notice = document.createElement("div");
+  notice.className = `notice notice--${tone}`;
+  notice.setAttribute("role", tone === "danger" ? "alert" : "status");
+  notice.style.setProperty("--notice-duration", `${duration}ms`);
+  notice.innerHTML = `
+    <span class="notice__badge${avatar ? " notice__badge--avatar" : ""}" aria-hidden="true">
+      ${avatar ? escapeHtml(avatar) : icon}
+      ${avatar ? `<span class="notice__tone">${icon}</span>` : ""}
+    </span>
+    <div class="notice__text">
+      <strong>${escapeHtml(title)}</strong>
+      ${message ? `<span>${escapeHtml(message)}</span>` : ""}
+    </div>
+    ${action ? `<button type="button" class="notice__action">${escapeHtml(action.label)}</button>` : ""}
+    <button type="button" class="notice__close" aria-label="Dismiss notification">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+    </button>
+    <span class="notice__timer" aria-hidden="true"><i></i></span>`;
+  stack.append(notice);
+
+  let closed = false;
+  const dismiss = () => {
+    if (closed) return;
+    closed = true;
+    notice.classList.add("is-leaving");
+    const remove = () => notice.remove();
+    notice.addEventListener("animationend", remove, { once: true });
+    setTimeout(remove, 400); // in case animations are off
+  };
+
+  // The bar's animation is the timer, so CSS pausing (hover/focus) pauses it too.
+  notice.querySelector(".notice__timer i").addEventListener("animationend", dismiss);
+  notice.querySelector(".notice__close").addEventListener("click", dismiss);
+
+  const actionButton = notice.querySelector(".notice__action");
+  actionButton?.addEventListener("click", async () => {
+    actionButton.disabled = true;
+    actionButton.textContent = action.busyLabel || action.label;
+    notice.classList.add("is-busy");
+    try {
+      await action.run();
+    } finally {
+      dismiss();
+    }
+  });
+
+  return { dismiss };
+}
+
 export function setLoading(loading) {
   $("#loading-screen").hidden = !loading;
 }

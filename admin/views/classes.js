@@ -13,6 +13,8 @@ import {
   time,
   openModal,
   toast,
+  notify,
+  initials,
 } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import {
@@ -22,6 +24,12 @@ import {
   requestsPanel,
   wireRequestsPanel,
 } from "./classDeletion.js";
+import {
+  isUnassigned,
+  openAssignTeacherModal,
+  teacherLabel,
+  teacherOptions,
+} from "./classTeacher.js";
 
 function closeClassMenus() {
   document.querySelectorAll(".admin-class-menu-popup").forEach((menu) => {
@@ -50,6 +58,7 @@ const GRADE_LEVELS = ["7", "8", "9", "10"];
 const NO_GRADE = "none";
 // Kept across re-renders (e.g. after editing a class).
 let activeGrade = "all";
+let onlyUnassigned = false;
 
 /** The class's grade level, or from older names like "Grade 8 - Rizal". */
 function gradeOf(classroom) {
@@ -85,9 +94,26 @@ function gradeTabs(classes) {
       <span class="admin-class-filter__count">${count}</span>
     </button>`;
 
+  // Works on top of the grade tabs; only shown while some class has no teacher.
+  const unassigned = classes.filter(isUnassigned).length;
+  if (!unassigned) onlyUnassigned = false;
+  const unassignedToggle = unassigned
+    ? `<button
+        type="button"
+        class="admin-class-filter admin-class-filter--alert ${onlyUnassigned ? "is-active" : ""}"
+        data-unassigned-filter
+        aria-pressed="${onlyUnassigned}"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5Z" /><path d="M12 10v4M12 16.8v.01" /></svg>
+        <span>Needs a teacher</span>
+        <span class="admin-class-filter__count">${unassigned}</span>
+      </button>`
+    : "";
+
   return `<nav class="admin-class-filters" aria-label="Filter classes by grade level">
     ${tab("all", "All", classes.length)}
     ${grades.map((grade) => tab(grade, gradeLabel(grade), counts.get(grade) || 0)).join("")}
+    ${unassignedToggle}
   </nav>`;
 }
 
@@ -134,15 +160,14 @@ export async function renderClasses() {
               ${state.allClasses
                 .map((classroom) => {
                   const className = classroom.className || "Untitled class";
-                  const teacherName =
-                    teacherNameById.get(classroom.teacherId) || "Unassigned";
+                  const teacherName = teacherNameById.get(classroom.teacherId);
                   const initials = className
                     .split(/\s+/)
                     .map((part) => part.charAt(0))
                     .join("")
                     .slice(0, 2)
                     .toUpperCase();
-                  return `<tr data-class-name="${escapeHtml(className)}" data-grade="${escapeHtml(gradeOf(classroom))}">
+                  return `<tr data-class-name="${escapeHtml(className)}" data-grade="${escapeHtml(gradeOf(classroom))}" ${teacherName ? "" : "data-unassigned"}>
                     <td>
                       <div class="admin-class-table__identity">
                         <span class="admin-class-table__mark" aria-hidden="true">${escapeHtml(initials || "C")}</span>
@@ -153,10 +178,17 @@ export async function renderClasses() {
                       </div>
                     </td>
                     <td>
-                      <span class="admin-class-table__teacher">
-                        <span class="admin-class-table__teacher-dot" aria-hidden="true"></span>
-                        ${escapeHtml(teacherName)}
-                      </span>
+                      ${
+                        teacherName
+                          ? `<span class="admin-class-table__teacher">
+                              <span class="admin-class-table__teacher-dot" aria-hidden="true"></span>
+                              ${escapeHtml(teacherName)}
+                            </span>`
+                          : `<span class="admin-class-table__unassigned">
+                              <span class="class-teacher-badge">Needs a teacher</span>
+                              <button type="button" class="class-assign-button" data-assign-class="${escapeHtml(classroom.id)}">Assign</button>
+                            </span>`
+                      }
                     </td>
                     <td class="admin-class-table__date">${escapeHtml(time(classroom.createdAt))}</td>
                     <td>
@@ -207,7 +239,8 @@ export async function renderClasses() {
     rows.forEach((row) => {
       const matches =
         row.dataset.className.toLowerCase().includes(query) &&
-        (activeGrade === "all" || row.dataset.grade === activeGrade);
+        (activeGrade === "all" || row.dataset.grade === activeGrade) &&
+        (!onlyUnassigned || row.hasAttribute("data-unassigned"));
       row.hidden = !matches;
       if (matches) visibleCount += 1;
     });
@@ -217,7 +250,9 @@ export async function renderClasses() {
       const inGrade = activeGrade === "all" ? "" : ` in ${gradeLabel(activeGrade)}`;
       emptyRow.querySelector("td").textContent = query
         ? `No classes match that name${inGrade}.`
-        : `No classes${inGrade} yet.`;
+        : onlyUnassigned
+          ? `Every class${inGrade} has a teacher.`
+          : `No classes${inGrade} yet.`;
     }
   };
 
@@ -242,6 +277,22 @@ export async function renderClasses() {
       closeClassMenus();
       applyFilters();
       pager.reset();
+    }),
+  );
+
+  $("[data-unassigned-filter]")?.addEventListener("click", (event) => {
+    onlyUnassigned = !onlyUnassigned;
+    event.currentTarget.classList.toggle("is-active", onlyUnassigned);
+    event.currentTarget.setAttribute("aria-pressed", String(onlyUnassigned));
+    closeClassMenus();
+    applyFilters();
+    pager.reset();
+  });
+
+  document.querySelectorAll("[data-assign-class]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const classroom = state.allClasses.find((c) => c.id === button.dataset.assignClass);
+      if (classroom) openAssignTeacherModal(classroom, renderClasses);
     }),
   );
 
@@ -279,12 +330,20 @@ export async function renderClasses() {
 }
 
 function openEditClassModal(classroom) {
+  const unassigned = isUnassigned(classroom);
   openModal(
     `<h2>Edit class</h2>
      <p>Update the classroom details shown across the platform.</p>
      <form id="edit-class-form" class="form-card">
        <label>Class name<input name="className" required maxlength="100" value="${escapeHtml(classroom.className || "")}" /></label>
        <label>Section<input name="section" maxlength="40" value="${escapeHtml(classroom.section || "")}" placeholder="e.g. Rizal" /></label>
+       <label>Teacher
+         <select name="teacherId">
+           ${unassigned ? `<option value="" selected>Unassigned: choose a teacher…</option>` : ""}
+           ${teacherOptions(classroom.teacherId)}
+         </select>
+         <small class="assign-teacher__hint">Changing the teacher moves the whole class: students, lesson plan and progress.</small>
+       </label>
        <label>Description<textarea name="description" maxlength="500" placeholder="A short note about this class">${escapeHtml(classroom.description || "")}</textarea></label>
        <div class="modal-actions">
          <button type="button" class="button secondary" data-cancel>Cancel</button>
@@ -298,15 +357,28 @@ function openEditClassModal(classroom) {
         .addEventListener("submit", async (event) => {
           event.preventDefault();
           const values = Object.fromEntries(new FormData(event.currentTarget));
+          const teacherChanged = values.teacherId && values.teacherId !== classroom.teacherId;
           try {
             await updateDoc(doc(db, "classes", classroom.id), {
               className: values.className.trim(),
               section: values.section.trim(),
               description: values.description.trim(),
+              ...(teacherChanged ? { teacherId: values.teacherId } : {}),
               updatedAt: serverTimestamp(),
             });
             close();
-            toast("Class updated.");
+            if (teacherChanged) {
+              const teacher = state.teachers.find((t) => t.id === values.teacherId);
+              const name = teacherLabel(teacher);
+              notify({
+                tone: "success",
+                avatar: initials(name),
+                title: "Class updated",
+                message: `${values.className.trim()} is now led by ${name}.`,
+              });
+            } else {
+              toast("Class updated.");
+            }
             await renderClasses();
           } catch (error) {
             toast(error.message);

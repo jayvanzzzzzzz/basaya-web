@@ -1,8 +1,10 @@
 // About / Privacy Policy / Contact pop-up, opened from the footer links
 // (any button marked [data-site-info="about|privacy|contact"]).
 // One dialog with three tabs, built here so every page shares the same text.
+// The Contact tab's form lives in js/contact-form.js.
 
-const CONTACT_EMAIL = "jayvanzsingca5@gmail.com";
+import { contactPanel, wireContactForm } from "./contact-form.js";
+
 const SCHOOL = "Eastwoods Professional College of Science and Technology";
 const PROGRAM = "Bachelor of Science in Information Technology";
 const TEAM = ["Jayvanz Singca", "Scean Dulatre", "Ronniel Olegario"];
@@ -49,6 +51,7 @@ const PANELS = {
       <li>Class information: the classes a student has joined and their teacher.</li>
       <li>Learning activity: lesson progress, game scores, and completed activities.</li>
       <li>Notifications about new lessons sent to the student's app.</li>
+      <li>Contact form messages: emailed to the BaSaya team, not saved in the app.</li>
     </ul>
     <h3>How it is used</h3>
     <p>
@@ -59,21 +62,11 @@ const PANELS = {
     <h3>Your choices</h3>
     <p>
       Students can ask to leave a class, and teachers can request that a class be deleted.
-      To correct or remove your data, contact your school admin or email us below.
+      To correct or remove your data, contact your school admin or message us in the Contact tab.
     </p>
     <p class="site-info__meta">Last updated: October 2026</p>
   `,
-  contact: `
-    <h2>Contact us</h2>
-    <p>Questions, feedback, or found a problem? Send the BaSaya team an email.</p>
-    <a class="site-info__email" href="mailto:${CONTACT_EMAIL}">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7 8 6 8-6" /></svg>
-      <span>${CONTACT_EMAIL}<small>Email the BaSaya team</small></span>
-    </a>
-    <p class="site-info__meta">
-      Need an account or forgot your password? Please contact your school admin.
-    </p>
-  `,
+  contact: contactPanel,
 };
 
 const logoUrl = new URL("../img/logo.png", import.meta.url).href;
@@ -147,6 +140,7 @@ function close() {
 function setUp() {
   const element = build();
   element.querySelector(".site-info__close").addEventListener("click", close);
+  wireContactForm(element.querySelector("#site-info-contact"));
 
   const tabs = [...element.querySelectorAll("[data-tab]")];
   tabs.forEach((tab, index) => {

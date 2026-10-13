@@ -1,0 +1,213 @@
+/* ============================================================
+   REMOVE TEACHER — profile-card confirmation (admin/views/teachers.js)
+   ============================================================ */
+.remove-teacher {
+  display: grid;
+  gap: 1rem;
+}
+
+.remove-teacher__head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-right: 2.5rem;
+}
+
+.remove-teacher__icon {
+  display: grid;
+  width: 2.9rem;
+  height: 2.9rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--danger-soft);
+  color: var(--danger);
+  animation: deletionShake 600ms var(--ease-out) 200ms;
+}
+
+.remove-teacher svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.remove-teacher__icon svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.remove-teacher .remove-teacher__head h2 {
+  margin: 0;
+}
+
+.remove-teacher__head p {
+  margin: 0.15rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+
+/* The person being removed */
+.remove-teacher__person {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  overflow: hidden;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(18rem 8rem at 100% 0%, var(--primary-softer), transparent 70%),
+    var(--surface-2);
+  box-shadow: 0 3px 0 var(--card-lip);
+}
+
+.remove-teacher__avatar {
+  display: grid;
+  width: 3.1rem;
+  height: 3.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 4px var(--surface);
+}
+
+.remove-teacher__who {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.remove-teacher__who strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-teacher__who span {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-teacher__role {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* What changes / what stays */
+.remove-teacher__impact {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remove-teacher__impact li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.remove-teacher__impact li > svg {
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 auto;
+  padding: 0.42rem;
+  border-radius: 0.65rem;
+  stroke-width: 2.3;
+}
+
+.remove-teacher__impact .is-lost > svg {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.remove-teacher__impact .is-kept > svg {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.remove-teacher__impact span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.remove-teacher__impact strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.remove-teacher__impact small {
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.remove-teacher .modal-actions {
+  margin-top: 0.25rem;
+}
+
+.remove-teacher .form-error:empty {
+  display: none;
+}
+
+/* ---------- Table row leaving / coming back ---------- */
+.teacher-table tbody tr.is-leaving td {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: var(--danger-soft);
+  opacity: 0;
+  transform: translateX(2.5rem);
+  transition:
+    opacity 320ms var(--ease-in-out) 120ms,
+    transform 420ms var(--ease-in-out) 120ms,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.teacher-table tbody tr.is-collapsing td {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.teacher-table tbody tr.is-restored td {
+  animation: teacherRestored 1.6s var(--ease-out);
+}
+
+@keyframes teacherRestored {
+  0%,
+  35% {
+    border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+    background: var(--success-soft);
+  }
+}
+
+@media (max-width: 560px) {
+  .remove-teacher__role {
+    display: none;
+  }
+}
