@@ -35,7 +35,7 @@ function scoredState(summary) {
   const level = LEVEL_CARD[summary.level];
   return {
     percent: summary.score,
-    text: `${summary.score}%`,
+    text: `${summary.score}`,
     label: level.label,
     tone: level.tone,
     stars: level.stars,
@@ -47,8 +47,9 @@ function scoredState(summary) {
 
 /** Pag-unawa has no score until lectures have comprehension questions: show completion. */
 function lectureState(docs) {
+  const ids = new Set(student.lessons.map((lesson) => lesson.id));
   const total = student.lessons.length;
-  const finished = docs.filter((item) => item.lectureFinished === true).length;
+  const finished = docs.filter((item) => ids.has(item.id) && item.lectureFinished === true).length;
   if (!total || !finished) return NOT_STARTED;
   const done = finished === total;
   return {

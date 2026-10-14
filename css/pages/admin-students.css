@@ -1,0 +1,38 @@
+/* ============================================================
+   ADMIN → STUDENTS (admin/views/students.js)
+   The table itself reuses the teacher table (components/tables.css).
+   ============================================================ */
+.student-table {
+  min-width: 760px;
+}
+
+/* "Password set": the new sign-in details, shown once */
+.temp-password {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0.4rem 0 0.8rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.temp-password dt {
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.temp-password dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.temp-password code {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}

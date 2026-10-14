@@ -26,6 +26,7 @@ const STATUS = {
   "not-started": ["idle", "Not started"],
   overdue: ["overdue", "Missed deadline"],
   scheduled: ["scheduled", "Not open yet"],
+  "before-joining": ["before", "Closed before joining"],
 };
 
 /** #/classes/{classId}/students/{studentId} — one student's progress, with remarks. */
@@ -36,7 +37,7 @@ export async function renderStudentProgress(classId, studentId) {
   const student = context.students.find((item) => item.id === studentId);
   if (!student) return navigate(`/classes/${encodeURIComponent(classId)}/students`);
 
-  const progress = await loadStudentProgress(studentId, lessons);
+  const progress = await loadStudentProgress(studentId, lessons, student.joinedAt);
   const joined = student.joinedAt?.toDate?.().toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -100,7 +101,7 @@ export async function renderStudentProgress(classId, studentId) {
         <div><h3>${escapeHtml(skill.name)}</h3><p>${escapeHtml(skill.detail)}</p></div>
       </header>
       <div class="skill-card__meter">
-        ${scoreRing(summary.score, { color: skill.color })}
+        ${scoreRing(summary.score, { color: skill.color, unit: "" })}
         <div class="skill-card__verdict">
           ${remarkChip(summary.level)}
           ${trendBadge(summary.trend) || `<small>${summary.lessons ? "Trend after 3 lessons" : "No results yet"}</small>`}

@@ -887,7 +887,8 @@
 }
 
 .status-chip--idle,
-.status-chip--scheduled {
+.status-chip--scheduled,
+.status-chip--before {
   background: var(--surface-3);
   color: var(--ink-3);
 }

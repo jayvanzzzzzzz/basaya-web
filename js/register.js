@@ -2,6 +2,7 @@ import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebase
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "./firebase.js";
 import { $ } from "./helpers.js";
+import { passwordProblem, passwordRulesMarkup, watchPasswordRules } from "./password-rules.js";
 
 // Student sign-up (register.html), the same as the Android app's RegisterActivity:
 // a Firebase Auth account plus users/{uid} with role "student". Lessons come later from
@@ -15,6 +16,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const setError = (field, message = "") => {
   form.querySelector(`[data-error="${field}"]`).textContent = message;
 };
+
+// Checklist under the password that ticks each rule as it's met.
+form.querySelector("[data-password-rules]").outerHTML = passwordRulesMarkup("fil");
+watchPasswordRules(form.elements.password, form.querySelector(".password-rules"));
 
 form.querySelectorAll("input").forEach((input) =>
   input.addEventListener("input", () => {
@@ -62,7 +67,7 @@ form.addEventListener("submit", async (event) => {
     firstName: firstName ? "" : "Kailangan ang first name.",
     lastName: lastName ? "" : "Kailangan ang last name.",
     email: !email ? "Kailangan ang email." : EMAIL_PATTERN.test(email) ? "" : "Mukhang mali ang email.",
-    password: !password ? "Kailangan ang password." : password.length < 8 ? "Dapat hindi bababa sa 8 karakter." : "",
+    password: !password ? "Kailangan ang password." : passwordProblem(password, "fil"),
   };
   Object.entries(errors).forEach(([field, message]) => setError(field, message));
   const firstInvalid = Object.keys(errors).find((field) => errors[field]);

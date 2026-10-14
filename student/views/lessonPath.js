@@ -6,8 +6,12 @@ import {
   formatWhen,
   loadContentCounts,
   loadLessonProgress,
+  resumeOf,
 } from "../data.js";
+import { unlockLecturePlayer } from "../lectureAudio.js";
+import { onLeave } from "../router.js";
 import { buddy, content, icon, showDialog } from "../ui.js";
+import { muteNextLecture, prepareLecture } from "./lecture.js";
 
 // One lesson's path (the app's DashboardActivity): Lecture → Laro → Gawain → Bigkas →
 // Pagsusulit. Finished parts can't be redone (the lecture can be read again), and the
@@ -28,19 +32,26 @@ const DONE_MESSAGES = {
   quiz: "Natapos mo na ang pagsusulit. Hindi na ito maaaring ulitin.",
 };
 
-/** The count line under each card: a score once there is one, else how many items. */
+/**
+ * The count line under each card: a score once there is one, else how far the student got
+ * (a part left halfway, see resumeOf), else how many items.
+ */
 function countLine(key, progress, counts) {
-  if (key === "lecture") return `${counts.lecture} pages`;
+  const started = (part, total) => resumeOf(progress, part, total)?.done ?? 0;
+  if (key === "lecture")
+    return progress.lectureFinished || !started("lecture", counts.lecture)
+      ? `${counts.lecture} pages`
+      : `${started("lecture", counts.lecture)}/${counts.lecture} pages`;
   if (key === "game")
     return progress.gameTotal > 0 ? `${progress.gameScore || 0}/${progress.gameTotal} levels` : `0/${counts.game} levels`;
   if (key === "activity")
     return progress.activityTotal != null
       ? `Pahina • ${progress.activityScore}/${progress.activityTotal}`
-      : `0/${counts.activity} pages`;
+      : `${started("activity", counts.activity)}/${counts.activity} pages`;
   if (key === "pronunciation")
     return progress.pronunciationTotal != null
       ? `Salita • ${progress.pronunciationScore}/${progress.pronunciationTotal}`
-      : `0/${counts.pronunciation} salita`;
+      : `${started("pronunciation", counts.pronunciation)}/${counts.pronunciation} salita`;
   return progress.quizTotal != null ? `Puntos • ${progress.quizScore}/${progress.quizTotal}` : `0/${counts.quiz} questions`;
 }
 
@@ -105,28 +116,102 @@ export async function renderLessonPath(lessonId) {
                   ? `<span class="st-step__badge st-step__badge--locked">${icon("lock")}Naka-lock</span>`
                   : icon("chevron", "st-step__chevron")
             }
+            ${part.key === "lecture" ? `<span class="st-step__spinner" aria-hidden="true"></span>` : ""}
           </button>
         </li>`;
     })
     .join("");
 
-  const open = (part, { reviewing = false } = {}) => {
-    // Nothing opens before the open date; after the deadline only the lecture can be reread.
+  /** Nothing opens before the open date; after the deadline only the lecture can be reread. */
+  const blocked = (reviewing) => {
     const state = availability(lesson);
     if (state === "not-yet-open") {
       showDialog({ iconName: "lock", tone: "locked", title: "Hindi pa bukas", message: `Mabubuksan mo ang “${lesson.title}” sa ${formatWhen(lesson.openAt)}.` });
-      return;
+      return true;
     }
     if (state === "closed" && !reviewing) {
       showDialog({ iconName: "lock", tone: "locked", title: "Sarado na", message: "Lumampas na ang deadline ng araling ito. Hindi na ito maaaring sagutan." });
+      return true;
+    }
+    return false;
+  };
+  const partUrl = (part) => `/lesson/${encodeURIComponent(lessonId)}/${part}`;
+  const open = (part, { reviewing = false } = {}) => {
+    if (!blocked(reviewing)) navigate(partUrl(part));
+  };
+
+  // ----- Lecture: opens only once the audio of its first page is downloaded -----
+  let active = true;
+  let preparing = false;
+  onLeave(() => {
+    active = false;
+  });
+
+  /** The spinner on the lecture card while its audio downloads. */
+  const setPreparing = (on) => {
+    preparing = on;
+    const card = $('[data-part="lecture"]');
+    if (!card) return;
+    card.classList.toggle("is-preparing", on);
+    card.setAttribute("aria-busy", String(on));
+    const count = card.querySelector("em");
+    if (on) {
+      count.dataset.text = count.textContent;
+      count.textContent = "Inihahanda…";
+    } else if (count.dataset.text != null) {
+      count.textContent = count.dataset.text;
+    }
+  };
+
+  const openLecture = async ({ reviewing = false, retry = false } = {}) => {
+    if (blocked(reviewing)) return;
+    unlockLecturePlayer(); // still inside the tap: lets the first sentence play on iPhones
+    setPreparing(true);
+    let status;
+    try {
+      status = await prepareLecture(lesson, { retry });
+    } catch (error) {
+      console.error("Failed to load the lecture", error);
+      status = "error";
+    }
+    if (!active) return; // the student left the lesson page meanwhile
+    setPreparing(false);
+    if (status === "ready") return navigate(partUrl("lecture"));
+
+    if (status === "error") {
+      const answer = await showDialog({
+        iconName: "refresh",
+        tone: "locked",
+        title: "Hindi ma-load ang aralin",
+        message: "Suriin ang iyong internet at subukan muli.",
+        primary: "Subukan muli",
+        secondary: "Isara",
+      });
+      if (active && answer === "primary") openLecture({ reviewing });
       return;
     }
-    navigate(`/lesson/${encodeURIComponent(lessonId)}/${part}`);
+    const answer = await showDialog({
+      iconName: "mute",
+      tone: "locked",
+      title: status === "slow" ? "Matagal ma-load ang tunog" : "Hindi ma-load ang tunog",
+      message:
+        status === "slow"
+          ? "Mabagal ang internet kaya hindi pa handa ang tunog ng aralin."
+          : "Hindi ma-download ang tunog ng aralin. Suriin ang iyong internet.",
+      primary: "Subukan muli",
+      secondary: "Buksan nang walang tunog",
+    });
+    if (!active) return;
+    if (answer === "primary") openLecture({ reviewing, retry: true });
+    else if (answer === "secondary") {
+      muteNextLecture();
+      navigate(partUrl("lecture"));
+    }
   };
 
   $("#path-steps").addEventListener("click", async (event) => {
     const key = event.target.closest("[data-part]")?.dataset.part;
-    if (!key) return;
+    if (!key || preparing) return;
 
     if (key === "lecture" && finished.lecture) {
       const answer = await showDialog({
@@ -137,7 +222,7 @@ export async function renderLessonPath(lessonId) {
         primary: "Basahin muli",
         secondary: "Isara",
       });
-      if (answer === "primary") open("lecture", { reviewing: true });
+      if (answer === "primary") openLecture({ reviewing: true });
       return;
     }
     if (finished[key]) {
@@ -148,6 +233,7 @@ export async function renderLessonPath(lessonId) {
       showDialog({ iconName: "lock", tone: "locked", title: "Naka-lock", message: "Tapusin muna ang aralin para mabuksan ang pagsusulit" });
       return;
     }
-    open(key);
+    if (key === "lecture") openLecture();
+    else open(key);
   });
 }

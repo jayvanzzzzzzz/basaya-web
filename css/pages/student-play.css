@@ -486,20 +486,77 @@ body:has(.st-focus-loading--sky) {
   transform: scale(1.12);
 }
 
+/* Shuffle: each tile glides to its new spot, dipping a little smaller on the way
+   (`scale` is separate from the pop-in animation's transform, so that doesn't replay). */
 .st-game__wheel.is-shuffling .st-wheel-letter {
-  opacity: 0;
-  transform: scale(0.55);
-  transition: opacity 200ms, transform 200ms;
+  transition:
+    left 540ms var(--ease-in-out),
+    top 540ms var(--ease-in-out),
+    scale 270ms var(--ease-in-out);
 }
 
+.st-game__wheel.is-dipping .st-wheel-letter {
+  scale: 0.84;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-game__wheel.is-shuffling .st-wheel-letter {
+    transition: none;
+  }
+}
+
+/* Shuffle button in the middle of the wheel, inside the letter ring */
 .st-game__shuffle {
   position: absolute;
-  right: 0;
-  bottom: 0.25rem;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  width: clamp(2.2rem, 18%, 2.9rem);
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(31, 58, 122, 0.08);
+  color: #1f3a7a;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition:
+    background-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.st-game__shuffle:hover {
+  background: rgba(31, 58, 122, 0.14);
+}
+
+.st-game__shuffle:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.st-game__shuffle:focus-visible {
+  outline: 3px solid #ff8a5b;
+  outline-offset: 2px;
+}
+
+:root[data-theme="dark"] .st-game__shuffle {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e8eeff;
+}
+
+.st-game__shuffle svg {
+  width: 52%;
+  height: 52%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
 }
 
 .st-game__shuffle.is-spinning-once svg {
-  animation: stSpin 0.5s var(--ease-in-out);
+  animation: stSpin 0.55s var(--ease-in-out);
 }
 
 .st-level-done__bar {
@@ -583,6 +640,7 @@ body:has(.st-focus-loading--sky) {
   background: var(--primary-softer);
 }
 
+.st-notif--extended { --tone: var(--st-talasalitaan); --tone-tint: var(--st-talasalitaan-tint); }
 .st-notif--day { --tone: var(--st-pagkilala); --tone-tint: var(--st-pagkilala-tint); }
 .st-notif--hour { --tone: var(--st-pagbigkas); --tone-tint: var(--st-pagbigkas-tint); }
 .st-notif--closed { --tone: var(--ink-3); --tone-tint: var(--surface-3); }

@@ -179,7 +179,7 @@
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
-  cursor: text;
+  cursor: var(--cursor-text, text);
   transition:
     border-color var(--dur) var(--ease-out),
     box-shadow var(--dur) var(--ease-out);

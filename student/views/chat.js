@@ -16,6 +16,7 @@ import {
 import { student, classId } from "../data.js";
 import { onLeave } from "../router.js";
 import { content, icon, showDialog } from "../ui.js";
+import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.js";
 
 // "Chat ng klase" (the app's ChatFragment): the class's one group chat with the teacher.
 // Students send up to 300 characters, one message every 5 seconds, only while the teacher
@@ -80,6 +81,7 @@ const ICONS = {
   lock: '<rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />',
   chat: '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />',
   up: '<path d="m6 15 6-6 6 6" />',
+  down: '<path d="m6 9 6 6 6-6" />',
 };
 const chatIcon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
@@ -141,6 +143,7 @@ export async function renderChat() {
             <h2>${escapeHtml(className)}</h2>
             <span data-chat-status>Ikaw, ang guro, at ang mga kaklase mo</span>
           </div>
+          ${membersButton(LABELS.fil)}
         </header>
         <div class="chat-closed" data-chat-closed hidden>
           ${chatIcon("lock")}
@@ -153,6 +156,11 @@ export async function renderChat() {
           <ol class="chat-messages" data-messages aria-live="polite">
             <li class="chat-loading" aria-label="Naglo-load"><span></span><span></span><span></span></li>
           </ol>
+          <div class="chat-jump" data-jump hidden>
+            <button type="button" class="chat-jump__button" data-jump-button aria-label="Pumunta sa pinakabagong mensahe" title="Pumunta sa pinakabagong mensahe">
+              ${chatIcon("down")}<span class="chat-jump__count" data-jump-count hidden></span>
+            </button>
+          </div>
         </div>
         <form class="chat-composer" data-composer>
           <textarea rows="1" maxlength="${STUDENT_MAX}" placeholder="Sumulat ng mensahe…" aria-label="Mensahe" data-input></textarea>
@@ -169,6 +177,10 @@ export async function renderChat() {
   const send = $("[data-send]", root);
   const count = $("[data-count]", root);
   const composer = $("[data-composer]", root);
+
+  $("[data-members]", root).addEventListener("click", () =>
+    openClassMembers({ classId: id, className, meId: student.uid, labels: LABELS.fil }),
+  );
 
   let recent = [];
   let older = [];
@@ -191,11 +203,36 @@ export async function renderChat() {
     if (keepOffset) scroller.scrollTop = scroller.scrollHeight - fromBottom;
     else if (stick) scroller.scrollTop = scroller.scrollHeight;
     firstLoad = false;
+    updateJump();
   };
+
+  // "Go to newest" button: shown once scrolled up, with a count of messages that came in meanwhile.
+  const jump = $("[data-jump]", root);
+  const jumpCount = $("[data-jump-count]", root);
+  let unseen = 0;
+  const updateJump = () => {
+    const away = !nearBottom();
+    if (!away) unseen = 0;
+    jump.hidden = !away;
+    jumpCount.hidden = !unseen;
+    jumpCount.textContent = unseen > 99 ? "99+" : String(unseen);
+    $("[data-jump-button]", root).setAttribute(
+      "aria-label",
+      unseen ? `Pumunta sa pinakabagong mensahe (${unseen} bago)` : "Pumunta sa pinakabagong mensahe",
+    );
+  };
+  scroller.addEventListener("scroll", updateJump, { passive: true });
+  $("[data-jump-button]", root).addEventListener("click", () =>
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" }),
+  );
 
   const stopRecent = watchRecent(
     id,
     (messages, full) => {
+      const lastSeenAt = recent.at(-1)?.sentAt ?? Infinity;
+      if (!firstLoad && !nearBottom()) {
+        unseen += messages.filter((m) => m.sentAt > lastSeenAt && m.senderId !== student.uid).length;
+      }
       recent = messages;
       recentFull = full;
       render();
@@ -333,6 +370,7 @@ export async function renderChat() {
     input.blur(); // the box is locked until the countdown ends
     updateComposer();
     scroller.scrollTop = scroller.scrollHeight;
+    updateJump();
     try {
       await sendStudentMessage(id, student.uid, name, text);
       // The rules count the 5 seconds from when the server got it.

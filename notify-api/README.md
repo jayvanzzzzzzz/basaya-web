@@ -5,9 +5,12 @@ The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 | Endpoint | Who can call it | What it does |
 |---|---|---|
 | `POST /api/notify-lesson` | the class's teacher | Sends the "new lesson" push notification to the FCM topic `class_<classId>`. The Android app subscribes to that topic when the student opens the Home screen. |
+| `POST /api/notify-deadline` | the class's teacher | Tells the class a lesson's deadline was extended: saves it to the notification list and sends a `deadline_extended` push to `class_<classId>`. |
 | `POST /api/remove-student` | the class's teacher | Removes a student from a class, with their progress for its lessons. |
+| `POST /api/remove-class-lesson` | the class's teacher | Takes a lesson out of a class and deletes every student's progress on it, so adding it back starts fresh. |
 | `POST /api/delete-class` | admin | Deletes a class with its roster, lessons and every student's progress. |
-| `POST /api/send-password-reset` | admin | Emails a teacher a BaSaya-branded password reset link. The link opens `reset-password.html` on the website. |
+| `POST /api/send-password-reset` | admin | Emails a teacher or student a BaSaya-branded password reset link. The link opens `reset-password.html` on the website. |
+| `POST /api/set-temporary-password` | admin | Sets a temporary password for a student who can't get the reset email (fake or mistyped address), and signs them out of other devices. |
 | `POST /api/contact` | anyone (the site's Contact form) | Emails the message, with an optional photo, to the team's Gmail. Limited to 5 messages per hour per IP, with a honeypot field against bots. |
 
 Signed-in calls send `Authorization: Bearer <Firebase ID token>`. Email templates are in `lib/emails.js`.

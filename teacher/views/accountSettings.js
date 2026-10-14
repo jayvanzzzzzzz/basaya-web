@@ -10,6 +10,7 @@ import {
 import { auth, db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, page, toast } from "../../js/helpers.js";
+import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
 
 export function renderAccountSettings() {
   page(
@@ -87,11 +88,12 @@ export function renderAccountSettings() {
             </label>
             <label>
               New password
-              <input name="newPassword" type="password" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters" />
+              <input name="newPassword" type="password" required minlength="${MIN_LENGTH}" autocomplete="new-password" placeholder="Enter new password" />
             </label>
+            ${passwordRulesMarkup()}
             <label>
               Confirm new password
-              <input name="confirmPassword" type="password" required minlength="6" autocomplete="new-password" placeholder="Type it again" />
+              <input name="confirmPassword" type="password" required minlength="${MIN_LENGTH}" autocomplete="new-password" placeholder="Type it again" />
             </label>
             <div class="account-settings__form-footer">
               <span>Your current password confirms it’s you.</span>
@@ -128,6 +130,10 @@ export function renderAccountSettings() {
     }
   });
 
+  watchPasswordRules(
+    $("#account-password-form").elements.newPassword,
+    $("#account-password-form .password-rules"),
+  );
   $("#account-password-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -136,6 +142,11 @@ export function renderAccountSettings() {
     const newPassword = values.get("newPassword");
     const confirmPassword = values.get("confirmPassword");
 
+    const problem = passwordProblem(newPassword);
+    if (problem) {
+      toast(problem);
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast("Your new passwords do not match.");
       return;

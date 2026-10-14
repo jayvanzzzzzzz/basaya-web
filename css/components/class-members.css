@@ -1,0 +1,453 @@
+/* ============================================================
+   CLASS MEMBERS
+   The (i) button in the class chat header and the members dialog it opens
+   (js/classMembers.js): teacher on top, students A–Z, the signed-in account tagged.
+   Used by the teacher's Messages page and the student's Chat page.
+   ============================================================ */
+
+/* ---------- The (i) button ---------- */
+.chat-info {
+  position: relative;
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    transform var(--dur) var(--ease-spring),
+    box-shadow var(--dur-fast) ease;
+}
+
+.chat-info svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.chat-info svg path:last-child {
+  stroke-width: 2.8;
+}
+
+.chat-info:hover,
+.chat-info[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: var(--primary-soft);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.chat-info:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.chat-info:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+/* ---------- The dialog ---------- */
+.modal.cm-modal {
+  width: min(100%, 27rem);
+  padding: 0;
+}
+
+.modal.cm-modal::before {
+  display: none;
+}
+
+.cm svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.cm-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.6rem 4rem 1.15rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(18rem 8rem at 0% 0%, color-mix(in srgb, var(--brand-violet) 14%, transparent), transparent 70%),
+    radial-gradient(14rem 8rem at 100% 0%, color-mix(in srgb, var(--brand-sky) 12%, transparent), transparent 70%),
+    var(--surface);
+}
+
+.cm-head__tile {
+  display: grid;
+  width: 3.1rem;
+  height: 3.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 1.05rem;
+  background: linear-gradient(135deg, hsl(var(--h) 75% 62%), hsl(calc(var(--h) + 35) 70% 52%));
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 4px 0 hsl(var(--h) 55% 38% / 0.4);
+}
+
+.cm-head__text {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.cm-eyebrow {
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.modal .cm-head h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-head__meta {
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.cm-section {
+  padding: 1.1rem 1.5rem 0;
+}
+
+.cm-section:last-child {
+  padding-bottom: 1.5rem;
+}
+
+.cm-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cm-label {
+  margin: 0 0 0.6rem;
+  color: var(--ink-3);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cm-badge {
+  margin-bottom: 0.6rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cm-badge[hidden] {
+  display: none;
+}
+
+/* "Ikaw" / "You" */
+.cm-you {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin-left: 0.45rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+}
+
+.cm-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Teacher ---------- */
+.cm-teacher {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--primary) 8%, var(--surface)), var(--surface) 70%);
+}
+
+.cm-teacher__avatar {
+  position: relative;
+  display: grid;
+  width: 2.9rem;
+  height: 2.9rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, hsl(var(--h) 72% 60%), hsl(calc(var(--h) + 40) 68% 50%));
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* Graduation cap seal on the teacher's avatar */
+.cm-teacher__avatar i {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.2rem;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+}
+
+.cm-teacher__avatar i svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  stroke-width: 2.4;
+}
+
+.cm-teacher__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.cm-teacher__text strong {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.cm-teacher__text > span {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cm-teacher.is-empty {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.cm-teacher__icon {
+  display: grid;
+  width: 2.9rem;
+  height: 2.9rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.cm-teacher__icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.cm-teacher.is-empty .cm-teacher__text > span {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ---------- Students ---------- */
+.cm-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  transition:
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+
+.cm-search[hidden] {
+  display: none;
+}
+
+.cm-search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.cm-search svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+
+.cm-search input {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  box-shadow: none;
+}
+
+.cm-list {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cm-letter {
+  margin: 0.55rem 0 0.15rem;
+  padding-left: 0.6rem;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cm-letter:first-child {
+  margin-top: 0;
+}
+
+.cm-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.cm-row:not(.is-skeleton):hover {
+  background: var(--surface-2);
+}
+
+.cm-row.is-me {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.cm-row__avatar {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: hsl(var(--h) 70% 92%);
+  color: hsl(var(--h) 55% 34%);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+:root[data-theme="dark"] .cm-row__avatar {
+  background: hsl(var(--h) 35% 24%);
+  color: hsl(var(--h) 70% 82%);
+}
+
+.cm-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--ink-3);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.cm-empty svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+/* ---------- Loading ---------- */
+.is-skeleton .cm-teacher__avatar,
+.is-skeleton .cm-row__avatar,
+.cm-bar {
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 50%, var(--surface-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.cm-teacher.is-skeleton {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.cm-bar {
+  width: 55%;
+  height: 0.75rem;
+  border-radius: var(--radius-pill);
+}
+
+.cm-row.is-skeleton:nth-child(2n) .cm-bar {
+  width: 42%;
+}
+
+@media (max-width: 560px) {
+  .modal.cm-modal {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-skeleton .cm-teacher__avatar,
+  .is-skeleton .cm-row__avatar,
+  .cm-bar {
+    animation: none;
+  }
+}

@@ -35,6 +35,7 @@
     <!-- Components -->
     <link rel="stylesheet" href="../css/components/buttons.css" />
     <link rel="stylesheet" href="../css/components/forms.css" />
+    <link rel="stylesheet" href="../css/components/password-rules.css" />
     <link rel="stylesheet" href="../css/components/modal.css" />
     <link rel="stylesheet" href="../css/components/toast.css" />
     <link rel="stylesheet" href="../css/components/loading.css" />
@@ -50,6 +51,7 @@
     <link rel="stylesheet" href="../css/pages/student-play.css" />
     <link rel="stylesheet" href="../css/pages/messages.css" />
     <link rel="stylesheet" href="../css/pages/student-chat.css" />
+    <link rel="stylesheet" href="../css/components/class-members.css" />
   </head>
   <body class="st-body">
     <div id="loading-screen" class="loading-screen loading-screen--dark" role="status" aria-live="polite">
@@ -72,10 +74,38 @@
             <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
             <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
           </button>
-          <a class="st-topbar__me" href="#/account" aria-label="Account">
-            <span id="st-first-name" class="st-topbar__name"></span>
-            <span id="st-avatar" class="st-avatar" aria-hidden="true">B</span>
-          </a>
+          <div class="st-menu">
+            <button
+              class="st-topbar__me"
+              id="st-menu-toggle"
+              type="button"
+              aria-label="Account menu"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="st-menu"
+            >
+              <span id="st-first-name" class="st-topbar__name"></span>
+              <span id="st-avatar" class="st-avatar" aria-hidden="true">B</span>
+              <svg class="st-topbar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            <div class="st-menu__popup" id="st-menu" role="menu" aria-labelledby="st-menu-toggle" hidden>
+              <div class="st-menu__who">
+                <span id="st-menu-avatar" class="st-avatar st-avatar--lg" aria-hidden="true">B</span>
+                <span class="st-menu__id">
+                  <strong id="st-menu-name"></strong>
+                  <span id="st-menu-email"></span>
+                </span>
+              </div>
+              <a class="st-menu__item" href="#/account" role="menuitem">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
+                <span>Aking account</span>
+              </a>
+              <button class="st-menu__item st-menu__item--danger" id="st-menu-logout" type="button" role="menuitem">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" /></svg>
+                <span>Mag-sign out</span>
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -136,6 +166,7 @@
         showStartupError(error.message || "Hindi ma-load ang Firebase.");
       });
     </script>
+    <script type="module" src="../js/password-toggle.js"></script>
     <script type="module" src="../js/theme.js"></script>
     <script type="module" src="../js/site-info.js"></script>
   </body>

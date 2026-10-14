@@ -82,6 +82,32 @@ function lessonCard(lesson, search) {
     </li>`;
 }
 
+// Lahat / Bukas / Sarado tabs. "Hindi pa bukas" lessons count as Bukas.
+const TABS = [
+  { key: "all", label: "Lahat" },
+  { key: "open", label: "Bukas" },
+  { key: "closed", label: "Sarado" },
+];
+let activeTab = "all";
+
+const tabOf = (lesson) => (availability(lesson) === "closed" ? "closed" : "open");
+
+/**
+ * List order: open lessons by nearest deadline, then open ones with no deadline,
+ * then not-yet-open (soonest to open first), then closed (most recently closed first).
+ */
+function compareBySchedule(a, b) {
+  const rank = { open: 0, "not-yet-open": 1, closed: 2 };
+  const stateA = availability(a);
+  const stateB = availability(b);
+  if (stateA !== stateB) return rank[stateA] - rank[stateB];
+  if (stateA === "closed") return b.dueAt - a.dueAt || a.order - b.order;
+  if (stateA === "not-yet-open") return a.openAt - b.openAt || a.order - b.order;
+  if (a.dueAt == null || b.dueAt == null)
+    return (a.dueAt == null) - (b.dueAt == null) || a.order - b.order;
+  return a.dueAt - b.dueAt || a.order - b.order;
+}
+
 /** Before the open date, or after the deadline of an unfinished lesson. */
 function showLocked(lesson) {
   const closed = availability(lesson) === "closed";
@@ -107,6 +133,8 @@ function emptyState(kind, query = "") {
       text: "Bumalik muli para tingnan ang mga bagong gawain.",
     },
     "no-results": { title: `Walang lesson na nahanap para sa “${query}”.`, text: "" },
+    "no-open": { title: "Walang bukas na aralin.", text: "" },
+    "no-closed": { title: "Walang saradong aralin.", text: "" },
   };
   const state = states[kind];
   return `
@@ -132,6 +160,7 @@ export async function renderHome() {
         ${icon("search")}
         <input id="home-search" type="search" placeholder="Hanapin ang aralin" autocomplete="off" aria-label="Hanapin ang aralin" />
       </label>
+      <div class="st-tabs" id="home-tabs" role="tablist" aria-label="Salain ang mga aralin" hidden></div>
       <div id="home-list" aria-live="polite">
         <div class="st-loading"><span></span><span></span><span></span></div>
       </div>
@@ -139,9 +168,22 @@ export async function renderHome() {
 
   const list = $("#home-list");
   const search = $("#home-search");
+  const tabs = $("#home-tabs");
+
+  const drawTabs = () => {
+    const closed = student.lessons.filter((lesson) => tabOf(lesson) === "closed").length;
+    const count = { all: student.lessons.length, open: student.lessons.length - closed, closed };
+    tabs.innerHTML = TABS.map(
+      ({ key, label }) => `
+        <button class="st-tab${key === activeTab ? " is-active" : ""}" type="button" role="tab" data-tab="${key}" aria-selected="${key === activeTab}">
+          ${label}<span class="st-tab__count">${count[key]}</span>
+        </button>`,
+    ).join("");
+  };
 
   const draw = () => {
     const query = search.value.trim();
+    tabs.hidden = !classId() || !student.lessons.length;
     if (!classId()) {
       list.innerHTML = emptyState("no-class");
       return;
@@ -150,13 +192,26 @@ export async function renderHome() {
       list.innerHTML = emptyState("no-lessons");
       return;
     }
+    drawTabs();
+    const inTab = student.lessons
+      .filter((lesson) => activeTab === "all" || tabOf(lesson) === activeTab)
+      .sort(compareBySchedule);
     const shown = query
-      ? student.lessons.filter((lesson) => lesson.title.toLowerCase().includes(query.toLowerCase()))
-      : student.lessons;
+      ? inTab.filter((lesson) => lesson.title.toLowerCase().includes(query.toLowerCase()))
+      : inTab;
     list.innerHTML = shown.length
       ? `<ul class="st-lessons">${shown.map((lesson) => lessonCard(lesson, query)).join("")}</ul>`
-      : emptyState("no-results", query);
+      : query
+        ? emptyState("no-results", query)
+        : emptyState(`no-${activeTab}`);
   };
+
+  tabs.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-tab]");
+    if (!tab || tab.dataset.tab === activeTab) return;
+    activeTab = tab.dataset.tab;
+    draw();
+  });
 
   const load = async () => {
     // The class may have changed elsewhere (e.g. the teacher approved leaving).
@@ -179,8 +234,9 @@ export async function renderHome() {
       return;
     }
     if (!ids.length) return;
-    if (search.value) {
+    if (search.value || activeTab !== "all") {
       search.value = "";
+      activeTab = "all";
       draw();
     }
     const cards = ids.map((id) => list.querySelector(`[data-lesson="${CSS.escape(id)}"]`)).filter(Boolean);

@@ -36,11 +36,14 @@ export async function loadClassContext(classId) {
     .map((link) => ({ id: link.id, ...link.data() }))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  // A game the teacher skipped counts as done (lessons/{id}/game/status).
+  // No game counts as done: skipped (lessons/{id}/game/status), or no game levels at all.
   const skipped = await Promise.all(
     links.map((link) =>
-      getDoc(doc(db, "lessons", link.lessonId || link.id, "game", "status"))
-        .then((snap) => snap.exists() && snap.data().completion === "skipped")
+      getDocs(collection(db, "lessons", link.lessonId || link.id, "game"))
+        .then((snap) => {
+          const status = snap.docs.find((item) => item.id === "status");
+          return status?.data().completion === "skipped" || !snap.docs.some((item) => item.id !== "status");
+        })
         .catch(() => false),
     ),
   );
@@ -70,8 +73,11 @@ export async function loadClassContext(classId) {
  * One student's progress in this class: skill summary (same rules as the app), each
  * lesson's parts and scores, hard words and last activity. `error` is set when their
  * records can't be read (e.g. they have moved to another class).
+ * `joinedAt` (the roster's Firestore timestamp): lessons whose deadline passed before the student joined are
+ * "before-joining" — they could never have done them, so they don't count against them.
  */
-export async function loadStudentProgress(studentId, lessons) {
+export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
+  const joinedMillis = toMillis(joinedAt);
   let progressDocs;
   try {
     const snap = await getDocs(collection(db, "users", studentId, "assignedLessons"));
@@ -110,15 +116,18 @@ export async function loadStudentProgress(studentId, lessons) {
 
     const open = !lesson.openAt || lesson.openAt <= now;
     const overdue = !parts.finished && lesson.dueAt != null && lesson.dueAt < now;
+    const closedBeforeJoining = overdue && joinedMillis != null && lesson.dueAt < joinedMillis;
     const status = parts.finished
       ? "done"
-      : !open
-        ? "scheduled"
-        : overdue
-          ? "overdue"
-          : parts.started
-            ? "in-progress"
-            : "not-started";
+      : closedBeforeJoining
+        ? "before-joining"
+        : !open
+          ? "scheduled"
+          : overdue
+            ? "overdue"
+            : parts.started
+              ? "in-progress"
+              : "not-started";
     return { lesson, parts, skills, status, lectureDone: parts.parts.lecture };
   });
 
@@ -129,16 +138,20 @@ export async function loadStudentProgress(studentId, lessons) {
   return { summary, perLesson, hardWords, lastActive, hasData: docs.length > 0 };
 }
 
-/** Lessons finished / lessons open so far (scheduled ones don't count yet). */
+/** Lessons the student can be held to: open now, and not closed before they joined. */
+const counted = (progress) =>
+  progress.perLesson.filter((row) => row.status !== "scheduled" && row.status !== "before-joining");
+
+/** Lessons finished / lessons open so far (not-yet-open and closed-before-joining don't count). */
 export function completionOf(progress) {
-  const open = progress.perLesson.filter((row) => row.status !== "scheduled");
+  const open = counted(progress);
   const done = open.filter((row) => row.status === "done").length;
   return { done, total: open.length, percent: open.length ? Math.round((done * 100) / open.length) : null };
 }
 
 /** Lectures finished — Pag-unawa has no score yet, so the app shows completion instead. */
 export function lecturesOf(progress) {
-  const open = progress.perLesson.filter((row) => row.status !== "scheduled");
+  const open = counted(progress);
   return { done: open.filter((row) => row.lectureDone).length, total: open.length };
 }
 

@@ -34,6 +34,7 @@
     <!-- Components -->
     <link rel="stylesheet" href="../css/components/buttons.css" />
     <link rel="stylesheet" href="../css/components/forms.css" />
+    <link rel="stylesheet" href="../css/components/password-rules.css" />
     <link rel="stylesheet" href="../css/components/cards.css" />
     <link rel="stylesheet" href="../css/components/directory.css" />
     <link rel="stylesheet" href="../css/components/menus.css" />
@@ -42,6 +43,7 @@
     <link rel="stylesheet" href="../css/components/modal.css" />
     <link rel="stylesheet" href="../css/components/class-deletion.css" />
     <link rel="stylesheet" href="../css/components/toast.css" />
+    <link rel="stylesheet" href="../css/components/notice.css" />
     <link rel="stylesheet" href="../css/components/loading.css" />
     <link rel="stylesheet" href="../css/components/theme-toggle.css" />
     <link rel="stylesheet" href="../css/components/site-footer.css" />
@@ -50,10 +52,14 @@
     <link rel="stylesheet" href="../css/pages/teacher-dashboard.css" />
     <link rel="stylesheet" href="../css/pages/class-page.css" />
     <link rel="stylesheet" href="../css/pages/messages.css" />
+    <link rel="stylesheet" href="../css/components/class-members.css" />
     <link rel="stylesheet" href="../css/pages/add-lesson.css" />
     <link rel="stylesheet" href="../css/pages/account-settings.css" />
     <link rel="stylesheet" href="../css/pages/progress.css" />
     <link rel="stylesheet" href="../css/pages/lesson-studio.css" />
+    <link rel="stylesheet" href="../css/pages/admin-lessons.css" />
+    <link rel="stylesheet" href="../css/pages/game-levels.css" />
+    <link rel="stylesheet" href="../css/pages/lesson-viewer.css" />
   </head>
   <body>
     <div id="loading-screen" class="loading-screen teacher-loading" role="status" aria-live="polite">
@@ -207,6 +213,7 @@
         showStartupError(error.message || "The Firebase SDK could not load.");
       });
     </script>
+    <script type="module" src="../js/password-toggle.js"></script>
     <script type="module" src="../js/theme.js"></script>
     <script type="module" src="../js/site-info.js"></script>
   </body>

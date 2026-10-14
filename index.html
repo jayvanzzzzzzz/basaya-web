@@ -38,6 +38,7 @@
     <!-- Page -->
     <link rel="stylesheet" href="css/pages/login.css" />
     <link rel="stylesheet" href="css/pages/get-app.css" />
+    <link rel="stylesheet" href="css/pages/forgot-password.css" />
   </head>
   <body>
     <div id="loading-screen" class="loading-screen loading-screen--dark">
@@ -149,13 +150,28 @@
                 placeholder="you@email.com"
             /></label>
             <label
-              >Password<input
-                id="password"
-                type="password"
-                autocomplete="current-password"
-                required
-                placeholder="Your password"
-            /></label>
+              >Password<span class="password-field"
+                ><input
+                  id="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  placeholder="Your password"
+                /><button
+                  type="button"
+                  class="password-field__toggle"
+                  id="password-toggle"
+                  aria-label="Show password"
+                  aria-controls="password"
+                  aria-pressed="false"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+                    <circle cx="12" cy="12" r="2.5" />
+                    <path class="password-field__slash" d="M4 4l16 16" />
+                  </svg></button></span
+            ></label>
+            <button class="auth-forgot" type="button" data-forgot-open aria-haspopup="dialog">Forgot password?</button>
             <p id="login-error" class="form-error" role="alert"></p>
             <button class="button primary login-submit" type="submit">
               <span class="login-submit__label">Sign in to BaSaya</span>
@@ -196,6 +212,36 @@
         </section>
       </div>
     </main>
+
+    <!-- "Forgot password?": emails a reset link (js/forgot-password.js) -->
+    <dialog id="forgot-password" class="forgot" aria-labelledby="forgot-title">
+      <div class="forgot__card">
+        <button class="forgot__close" type="button" data-forgot-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+
+        <form class="forgot__state" data-forgot-state="form" novalidate>
+          <span class="forgot__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2" /></svg>
+          </span>
+          <h2 id="forgot-title">Forgot your password?</h2>
+          <p>Type the email you sign in with. We'll send you a link to set a new password.</p>
+          <label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@email.com" /></label>
+          <p class="form-error" role="alert" data-forgot-error></p>
+          <button class="button primary forgot__submit" type="submit">Send reset link</button>
+        </form>
+
+        <div class="forgot__state forgot__state--center" data-forgot-state="sent" hidden>
+          <span class="forgot__icon forgot__icon--success" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3.5 6.5h17v11h-17z" /><path d="m3.5 7 8.5 6.5L20.5 7" /></svg>
+          </span>
+          <h2>Check your email</h2>
+          <p>If <strong data-forgot-email></strong> has a BaSaya account, a reset link is on its way. It works for 1 hour. Check your spam folder too.</p>
+          <p class="forgot__hint">No email? Your school admin can reset your password for you.</p>
+          <button class="button primary" type="button" data-forgot-close>Back to sign in</button>
+        </div>
+      </div>
+    </dialog>
 
     <!-- "Get the app": QR to download the Android app (js/get-app.js) -->
     <dialog id="get-app" class="get-app" aria-labelledby="get-app-title">
@@ -315,6 +361,7 @@
     </script>
     <script type="module" src="js/theme.js"></script>
     <script type="module" src="js/get-app.js"></script>
+    <script type="module" src="js/forgot-password.js"></script>
     <script type="module" src="js/site-info.js"></script>
   </body>
 </html>

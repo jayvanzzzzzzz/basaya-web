@@ -175,11 +175,12 @@ export function contactEmail({ name, email, topic, message, role, page, sentAt, 
 }
 
 /**
- * Password reset for a teacher, requested by an admin.
- * @param {{ name: string, email: string, link: string }} input
+ * Password reset for a teacher or student, requested by an admin.
+ * @param {{ name: string, email: string, link: string, role?: "teacher" | "student" }} input
  */
-export function passwordResetEmail({ name, email, link }) {
+export function passwordResetEmail({ name, email, link, role = "teacher" }) {
   const first = (name || "there").split(" ")[0];
+  const account = role === "student" ? "student account" : "teacher account";
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
       <tr>
@@ -189,7 +190,7 @@ export function passwordResetEmail({ name, email, link }) {
     <h1 style="margin:22px 0 8px;font-size:26px;line-height:1.3;color:${C.ink};font-weight:800;letter-spacing:-0.4px;">Reset your password</h1>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:${C.ink2};">Hi ${escape(first)},</p>
     <p style="margin:0;font-size:15px;line-height:1.7;color:${C.ink2};">
-      Your school admin asked BaSaya to send you a password reset link for your teacher account
+      Your school admin asked BaSaya to send you a password reset link for your ${account}
       <strong style="color:${C.ink};">${escape(email)}</strong>. Click the button below to choose a new password.
     </p>
 
@@ -215,15 +216,15 @@ export function passwordResetEmail({ name, email, link }) {
   return {
     subject: "Reset your BaSaya password",
     html: layout({
-      preheader: "Use this link within 1 hour to choose a new password for your teacher account.",
+      preheader: `Use this link within 1 hour to choose a new password for your ${account}.`,
       eyebrow: "Account security",
       body,
-      footerNote: `This email was sent to ${escape(email)} because a password reset was requested for your BaSaya teacher account.`,
+      footerNote: `This email was sent to ${escape(email)} because a password reset was requested for your BaSaya ${account}.`,
     }),
     text: [
       `Hi ${first},`,
       "",
-      `Your school admin asked BaSaya to send you a password reset link for your teacher account (${email}).`,
+      `Your school admin asked BaSaya to send you a password reset link for your ${account} (${email}).`,
       "",
       `Set a new password: ${link}`,
       "",

@@ -7,8 +7,7 @@ import {
   verifyPasswordResetCode,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from "./firebase.js";
-
-const MIN_LENGTH = 8;
+import { passwordChecks, passwordProblem } from "./password-rules.js";
 const code = new URLSearchParams(location.search).get("oobCode");
 const form = document.getElementById("reset-form");
 const password = document.getElementById("new-password");
@@ -31,25 +30,18 @@ function showInvalid(firebaseError) {
       ? "This link was already used"
       : "This link has expired";
   document.querySelector("[data-invalid-text]").textContent = missing
-    ? "Open the link straight from your email, or ask your school admin to send a new one."
-    : "Reset links work for 1 hour and only once. Ask your school admin to send you a new one.";
+    ? "Open the link straight from your email, or ask for a new one from the sign-in page."
+    : "Reset links work for 1 hour and only once. Ask for a new one from the sign-in page (Forgot password?), or ask your school admin.";
   show("invalid");
 }
 
-/** 0–4, plus which rules pass. */
+/** 0–4 (how many rules pass), plus which ones. */
 function strength(value) {
-  const rules = {
-    length: value.length >= MIN_LENGTH,
-    mix: /[a-z]/i.test(value) && /\d/.test(value),
-    case: (/[a-z]/.test(value) && /[A-Z]/.test(value)) || /[^a-z\d]/i.test(value),
-  };
-  let score = Object.values(rules).filter(Boolean).length;
-  if (rules.length && value.length >= 12) score += 1;
-  if (!rules.length) score = Math.min(score, 1);
-  return { score: Math.min(score, 4), rules };
+  const rules = passwordChecks(value);
+  return { score: Object.values(rules).filter(Boolean).length, rules };
 }
 
-const LABELS = ["Use at least 8 characters", "Weak", "Fair", "Good", "Strong"];
+const LABELS = ["Use at least 8 characters", "Weak", "Fair", "Almost there", "Strong"];
 
 password.addEventListener("input", () => {
   const { score, rules } = strength(password.value);
@@ -76,13 +68,9 @@ document.querySelectorAll("[data-reveal]").forEach((button) =>
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   error.textContent = "";
-  if (password.value.length < MIN_LENGTH) {
-    error.textContent = `Your password needs at least ${MIN_LENGTH} characters.`;
-    password.focus();
-    return;
-  }
-  if (strength(password.value).score < 2) {
-    error.textContent = "Please make it stronger: mix letters and numbers.";
+  const problem = passwordProblem(password.value);
+  if (problem) {
+    error.textContent = problem;
     password.focus();
     return;
   }

@@ -1,0 +1,9 @@
+# Make the browser check for a newer copy of every script and stylesheet on each load.
+# Without this, Apache sends no Cache-Control header, so the browser may keep using an old
+# copy of a JS module after it changes. "no-cache" still lets an unchanged file come
+# back as a quick 304 Not Modified.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|html)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

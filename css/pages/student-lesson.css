@@ -185,6 +185,39 @@
   color: var(--ink-3);
 }
 
+/* Lecture card while its audio downloads (views/lessonPath.js openLecture) */
+.st-step__spinner {
+  display: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 auto;
+  border: 3px solid color-mix(in srgb, var(--tone) 22%, transparent);
+  border-top-color: var(--tone);
+  border-radius: 50%;
+  animation: stSpin 0.8s linear infinite;
+}
+
+.st-step__card.is-preparing {
+  cursor: progress;
+}
+
+.st-step__card.is-preparing .st-step__spinner {
+  display: block;
+}
+
+.st-step__card.is-preparing .st-step__chevron,
+.st-step__card.is-preparing .st-step__badge {
+  display: none;
+}
+
+/* A loading spinner must keep turning (animations.css shortens every other animation). */
+@media (prefers-reduced-motion: reduce) {
+  .st-step__spinner {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
 /* ---------- Lecture ---------- */
 .st-lecture {
   display: flex;

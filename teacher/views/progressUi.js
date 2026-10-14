@@ -15,13 +15,13 @@ const SKILL_ICONS = {
 export const skillIcon = (key) =>
   `<svg viewBox="0 0 24 24" aria-hidden="true">${SKILL_ICONS[key] || ""}</svg>`;
 
-/** Circular score meter that sweeps in. `score` 0–100 or null. */
-export function scoreRing(score, { color = "var(--primary)", size = 92, stroke = 9, label, sub } = {}) {
+/** Circular score meter that sweeps in. `score` 0–100 or null; `unit` follows the number (skills pass ""). */
+export function scoreRing(score, { color = "var(--primary)", size = 92, stroke = 9, label, sub, unit = "%" } = {}) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const value = score == null ? 0 : Math.max(0, Math.min(100, score));
   const offset = circumference * (1 - value / 100);
-  const text = label ?? (score == null ? "—" : `${score}%`);
+  const text = label ?? (score == null ? "—" : `${score}${unit}`);
   return `<div class="score-ring" style="--ring-size:${size}px; --ring-color:${color}">
     <svg viewBox="0 0 ${size} ${size}" aria-hidden="true">
       <circle class="score-ring__track" cx="${size / 2}" cy="${size / 2}" r="${radius}" stroke-width="${stroke}" />
@@ -78,7 +78,7 @@ export function trendBadge(trend) {
 export function scoreCell(score, { skipped = false } = {}) {
   if (skipped) return '<td class="score-cell score-cell--skip">Skipped</td>';
   if (score == null) return '<td class="score-cell score-cell--empty">—</td>';
-  return `<td class="score-cell score-cell--${remarkFor(score).key}">${score}%</td>`;
+  return `<td class="score-cell score-cell--${remarkFor(score).key}">${score}</td>`;
 }
 
 const NOTE_ICONS = {

@@ -12,6 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "../../js/firebase.js";
 import { $, escapeHtml, openModal, toast } from "../../js/helpers.js";
+import { passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
 import { student, classId, fullName, loadProfile } from "../data.js";
 import { logout, refreshTopbar } from "../session.js";
 import { buddy, content, icon, showDialog } from "../ui.js";
@@ -310,8 +311,9 @@ function showPasswordDialog() {
       <h2>Palitan ang password</h2>
       <label>Kasalukuyang password<input name="current" type="password" autocomplete="current-password" /></label>
       <span class="form-error" data-error="current"></span>
-      <label>Bagong password<input name="next" type="password" autocomplete="new-password" placeholder="Hindi bababa sa 8 karakter" /></label>
+      <label>Bagong password<input name="next" type="password" autocomplete="new-password" /></label>
       <span class="form-error" data-error="next"></span>
+      ${passwordRulesMarkup("fil")}
       <label>Ulitin ang bagong password<input name="confirm" type="password" autocomplete="new-password" /></label>
       <span class="form-error" data-error="confirm"></span>
       <div class="st-dialog__actions">
@@ -323,6 +325,7 @@ function showPasswordDialog() {
       backdrop.querySelector(".modal").classList.add("st-modal");
       backdrop.querySelector("[data-close]").addEventListener("click", close);
       const form = backdrop.querySelector("#password-form");
+      watchPasswordRules(form.elements.next, form.querySelector(".password-rules"));
       const setError = (field, message) => {
         form.querySelector(`[data-error="${field}"]`).textContent = message || "";
       };
@@ -330,12 +333,11 @@ function showPasswordDialog() {
         event.preventDefault();
         const { current, next, confirm } = Object.fromEntries(new FormData(form));
         setError("current", current ? "" : "Ilagay ang kasalukuyang password");
-        setError(
-          "next",
-          next.length < 8 ? "Dapat hindi bababa sa 8 karakter" : next === current ? "Iba dapat sa kasalukuyang password" : "",
-        );
+        const nextProblem =
+          passwordProblem(next, "fil") || (next === current ? "Iba dapat sa kasalukuyang password" : "");
+        setError("next", nextProblem);
         setError("confirm", confirm !== next ? "Hindi magkapareho ang password" : "");
-        if (!current || next.length < 8 || next === current || confirm !== next) return;
+        if (!current || nextProblem || confirm !== next) return;
 
         const submit = form.querySelector('[type="submit"]');
         submit.disabled = true;

@@ -31,12 +31,11 @@ import {
   wireGameLevels,
   wordsFromText,
 } from "./gameLevels.js";
-import { openLessonViewer } from "./lessonViewer.js";
+import { openLessonViewer, loadLessonSections as getLessonSections } from "./lessonViewer.js";
 import { openDeleteLesson } from "./lessonDeletion.js";
 import { confirmDuplicateTitle, findDuplicate, sameTitle } from "./duplicateTitle.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
-const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
 const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
 const MAX_AUDIO_GENERATIONS_PER_SENTENCE = 5;
 const previews = new WeakMap();
@@ -339,29 +338,6 @@ export async function renderLessons() {
 
   $("#add-lesson")?.addEventListener("click", () => openLessonModal());
   $("#add-lesson-empty")?.addEventListener("click", () => openLessonModal());
-}
-
-async function getLessonSections(lessonId) {
-  const entries = await Promise.all(
-    [...SINGLE_SECTIONS, "game"].map(async (section) => {
-      const snapshot = await getDocs(collection(db, "lessons", lessonId, section));
-      return [
-        section,
-        snapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
-      ];
-    }),
-  );
-
-  const data = Object.fromEntries(entries);
-
-  return {
-    activity: data.activity[0] || null,
-    lectures: data.lectures[0] || null,
-    pronunciation: data.pronunciation[0] || null,
-    quiz: data.quiz[0] || null,
-    game: (data.game || []).filter((item) => item.id !== "status"),
-    gameStatus: (data.game || []).find((item) => item.id === "status") || null,
-  };
 }
 
 function options(values, selected) {
@@ -791,6 +767,23 @@ async function openLessonModal(existing = null) {
     const lecturePages = $("[data-lecture-pages]", modal);
     const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
     const lecturePageNavigation = $("[data-lecture-page-navigation]", modal);
+
+    // One clip at a time: replaying (or starting another clip) stops the one already
+    // playing, so the same audio never overlaps itself and sounds like an echo.
+    const previewPlayer = new Audio();
+    const stopOtherAudio = (current) => {
+      if (previewPlayer !== current) previewPlayer.pause();
+      $$("audio", modal).forEach((audio) => {
+        if (audio !== current) audio.pause();
+      });
+    };
+    modal.addEventListener("play", (event) => stopOtherAudio(event.target), true);
+    // Closing the editor stops whatever is still playing.
+    new MutationObserver((_, observer) => {
+      if (modal.isConnected) return;
+      stopOtherAudio(null);
+      observer.disconnect();
+    }).observe(document.body, { childList: true, subtree: true });
     const pronunciationWords = $("[data-pronunciation-words]", modal);
     const quizQuestions = $("[data-quiz-questions]", modal);
     const gameLevels = $("[data-game-levels]", modal);
@@ -919,8 +912,14 @@ async function openLessonModal(existing = null) {
           return;
         }
 
-        const player = new Audio(preview.objectUrl);
-        player.play().catch(() => toast("Could not play the audio preview."));
+        stopOtherAudio(previewPlayer);
+        previewPlayer.src = preview.objectUrl;
+        previewPlayer.currentTime = 0;
+        previewPlayer
+          .play()
+          .catch((error) => {
+            if (error.name !== "AbortError") toast("Could not play the audio preview.");
+          });
         return;
       }
 

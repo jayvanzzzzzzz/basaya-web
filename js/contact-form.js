@@ -77,7 +77,7 @@ export const contactPanel = `
       <p data-done-text></p>
       <button type="button" class="button secondary" data-contact-again>Send another message</button>
     </div>
-    <p class="site-info__meta contact__note">Need an account or forgot your password? Please contact your school admin.</p>
+    <p class="site-info__meta contact__note">Forgot your password? Use “Forgot password?” on the sign-in page, or ask your school admin.</p>
   </div>
 `;
 

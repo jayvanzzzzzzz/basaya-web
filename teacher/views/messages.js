@@ -12,6 +12,7 @@ import {
   watchRecent,
   watchState,
 } from "../../js/chat.js";
+import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.js";
 
 // Messages: one group chat per class with its students (#/messages/<classId>).
 // The class list shows each chat's last message and an unread dot; the sidebar shows how
@@ -76,6 +77,9 @@ function updateNavBadge() {
 /** Re-run `listener` whenever a class chat summary changes (cleared on route change). */
 export const onChatSummaries = (listener) => summaryListeners.add(listener);
 
+/** Whether this class's chat has messages the teacher hasn't read. */
+export const hasUnreadChat = (classId) => unreadIn(classId);
+
 /** "New messages" dot for a class card on the dashboard ("" when there's nothing new). */
 export const chatDot = (classId) =>
   unreadIn(classId)
@@ -117,6 +121,7 @@ const ICONS = {
   lock: '<rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />',
   chat: '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />',
   up: '<path d="m6 15 6-6 6 6" />',
+  down: '<path d="m6 9 6 6 6-6" />',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
@@ -205,6 +210,7 @@ function chatShellHtml(classroom) {
         <h2>${escapeHtml(name)}</h2>
         <span data-chat-status>Class group chat</span>
       </div>
+      ${membersButton(LABELS.en)}
       <label class="chat-switch" title="When closed, students can read but not send">
         <input type="checkbox" data-chat-open checked />
         <span class="chat-switch__track" aria-hidden="true"><span></span></span>
@@ -223,6 +229,11 @@ function chatShellHtml(classroom) {
       <ol class="chat-messages" data-messages aria-live="polite">
         <li class="chat-loading" aria-label="Loading messages"><span></span><span></span><span></span></li>
       </ol>
+      <div class="chat-jump" data-jump hidden>
+        <button type="button" class="chat-jump__button" data-jump-button aria-label="Go to newest message" title="Go to newest message">
+          ${icon("down")}<span class="chat-jump__count" data-jump-count hidden></span>
+        </button>
+      </div>
     </div>
     <form class="chat-composer" data-composer>
       <textarea rows="1" maxlength="${TEACHER_MAX}" placeholder="Message ${escapeHtml(name)}…" aria-label="Message" data-input></textarea>
@@ -289,11 +300,36 @@ function openChat(classroom) {
     if (keepOffset) scroller.scrollTop = scroller.scrollHeight - fromBottom;
     else if (stick) scroller.scrollTop = scroller.scrollHeight;
     firstLoad = false;
+    updateJump();
   };
+
+  // "Go to newest" button: shown once scrolled up, with a count of messages that came in meanwhile.
+  const jump = $("[data-jump]", root);
+  const jumpCount = $("[data-jump-count]", root);
+  let unseen = 0;
+  const updateJump = () => {
+    const away = !nearBottom();
+    if (!away) unseen = 0;
+    jump.hidden = !away;
+    jumpCount.hidden = !unseen;
+    jumpCount.textContent = unseen > 99 ? "99+" : String(unseen);
+    $("[data-jump-button]", root).setAttribute(
+      "aria-label",
+      unseen ? `Go to newest message (${unseen} new)` : "Go to newest message",
+    );
+  };
+  scroller.addEventListener("scroll", updateJump, { passive: true });
+  $("[data-jump-button]", root).addEventListener("click", () =>
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" }),
+  );
 
   const stopRecent = watchRecent(
     classId,
     (messages, full) => {
+      const lastSeenAt = recent.at(-1)?.sentAt ?? Infinity;
+      if (!firstLoad && !nearBottom()) {
+        unseen += messages.filter((m) => m.sentAt > lastSeenAt && m.senderId !== state.user.uid).length;
+      }
       recent = messages;
       recentFull = full;
       render();
@@ -381,6 +417,15 @@ function openChat(classroom) {
     list.querySelectorAll(".is-confirming").forEach((item) => item.classList.remove("is-confirming")),
   );
 
+  $("[data-members]", root).addEventListener("click", () =>
+    openClassMembers({
+      classId,
+      className: classroom.className || "Untitled class",
+      meId: state.user.uid,
+      labels: LABELS.en,
+    }),
+  );
+
   // Open / close
   const toggleOpen = async (open) => {
     try {
@@ -421,6 +466,7 @@ function openChat(classroom) {
     input.value = "";
     update();
     scroller.scrollTop = scroller.scrollHeight;
+    updateJump();
     try {
       await sendTeacherMessage(classId, text, state.user.uid, myName());
     } catch (error) {

@@ -63,3 +63,7 @@ export function scheduleStatus(link, now = new Date()) {
 /** Sends the "new lesson" push to every student in the class. Throws on failure. */
 export const notifyStudents = (classId, lessonIds) =>
   postToApi("notify-lesson", { classId, lessonIds });
+
+/** Tells the class a lesson's deadline was extended (push + notification list). Throws on failure. */
+export const notifyDeadline = (classId, lessonId) =>
+  postToApi("notify-deadline", { classId, lessonId });

@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteField,
   doc,
   documentId,
   getDoc,
@@ -12,7 +13,7 @@ import {
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../js/firebase.js";
-import { summarize, resultsFrom } from "../js/scoring.js";
+import { summarize, resultsFrom, lessonParts } from "../js/scoring.js";
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
 // the Android app (C:\Projects\BaSaya) exactly, so a student can switch between the app and
@@ -70,12 +71,30 @@ export const now = () =>
 
 const linkLessonId = (link) => link.get("lessonId")?.trim() || link.id;
 
+/** No game in this lesson: skipped by the admin (game/status), or it has no game levels. */
 async function gameSkipped(lessonId) {
   try {
-    const snap = await getDoc(doc(db, "lessons", lessonId, "game", "status"));
-    return snap.exists() && snap.get("completion") === "skipped";
+    const snap = await getDocs(collection(db, "lessons", lessonId, "game"));
+    const status = snap.docs.find((item) => item.id === "status");
+    return status?.get("completion") === "skipped" || !snap.docs.some((item) => item.id !== "status");
   } catch {
     return false;
+  }
+}
+
+/**
+ * Clears crossword words found mid-level (views/game.js keeps them in localStorage) for
+ * lessons with no saved progress, e.g. after the teacher removed the lesson and added it
+ * back, so the game starts fresh too.
+ */
+function forgetFoundWords(lessonIds) {
+  try {
+    const prefixes = lessonIds.map((lessonId) => `basaya.crossword.${student.uid}.${lessonId}.`);
+    Object.keys(localStorage)
+      .filter((key) => prefixes.some((prefix) => key.startsWith(prefix)))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Storage blocked: nothing was kept.
   }
 }
 
@@ -87,10 +106,12 @@ export async function loadClassLessons() {
     return [];
   }
 
-  const [linksSnap, progressSnap] = await Promise.all([
+  const [linksSnap, progressSnap, rosterSnap] = await Promise.all([
     getDocs(collection(db, "classes", id, "classLessons")),
     getDocs(collection(db, "users", student.uid, "assignedLessons")),
+    getDoc(doc(db, "classes", id, "students", student.uid)).catch(() => null),
   ]);
+  const joinedAt = toMillis(rosterSnap?.get?.("joinedAt"));
   const links = new Map(linksSnap.docs.map((link) => [linkLessonId(link), link]));
   const ids = [...links.keys()];
   if (!ids.length) {
@@ -108,12 +129,15 @@ export async function loadClassLessons() {
   ).flatMap((snap) => snap.docs);
 
   const progress = new Map(progressSnap.docs.map((item) => [item.id, item.data()]));
+  forgetFoundWords(ids.filter((lessonId) => !progress.has(lessonId)));
   const skipped = await Promise.all(lessonDocs.map((lesson) => gameSkipped(lesson.id)));
 
   student.lessons = lessonDocs
     .map((lesson, index) => {
       const link = links.get(lesson.id);
       const data = progress.get(lesson.id) || {};
+      const dueAt = toMillis(link.get("dueAt"));
+      const finished = lessonParts(data, skipped[index]).finished;
       return {
         id: lesson.id,
         title: lesson.get("title") || "",
@@ -121,7 +145,10 @@ export async function loadClassLessons() {
         difficulty: lesson.get("difficulty") || "",
         order: link.get("order") ?? lesson.get("order") ?? 0,
         openAt: toMillis(link.get("openAt")),
-        dueAt: toMillis(link.get("dueAt")),
+        dueAt,
+        // Its deadline passed before the student joined: they never could do it, so it
+        // isn't shown to them (teacher/views/progressData.js leaves it out of their totals).
+        closedBeforeJoining: !finished && dueAt != null && joinedAt != null && dueAt < joinedAt,
         assignedAt: toMillis(link.get("createdAt")),
         gameSkipped: skipped[index],
         lectureFinished: data.lectureFinished === true,
@@ -131,6 +158,7 @@ export async function loadClassLessons() {
         quizFinished: data.quizFinished === true,
       };
     })
+    .filter((lesson) => !lesson.closedBeforeJoining)
     .sort((a, b) => a.order - b.order);
   return student.lessons;
 }
@@ -334,6 +362,36 @@ export async function saveProgress(lessonId, fields, skill) {
     });
   }
 }
+
+// ---------- Resume (assignedLessons/{lessonId}.resume.{part}) ----------
+// Where the student stopped in the lecture, Gawain or Bigkas, so closing the page or
+// switching to the app continues from there. Same shape as the app's LessonResume.kt;
+// the quiz never resumes. Every state has `done` and `total` for the lesson path counts.
+
+/** The saved place in one part, or null. A state for a different number of items is ignored. */
+export function resumeOf(progress, part, total) {
+  const state = progress?.resume?.[part];
+  if (!state || typeof state !== "object") return null;
+  const done = Number(state.done);
+  if (!Number.isInteger(done) || done < 0 || Number(state.total) !== total) return null;
+  return { ...state, done: Math.min(done, total) };
+}
+
+/** Saves the place in a part. Never throws: losing one save only costs a few steps. */
+export async function saveResume(lessonId, part, state) {
+  try {
+    await setDoc(
+      progressRef(lessonId),
+      { resume: { [part]: { ...state, updatedAt: serverTimestamp() } } },
+      { merge: true },
+    );
+  } catch (error) {
+    console.warn(`Could not save the ${part} place`, error);
+  }
+}
+
+/** Fields that drop the saved place, to merge into the write that finishes the part. */
+export const clearResume = (part) => ({ resume: { [part]: deleteField() } });
 
 /** Progress docs of the class's lessons only (the app's LessonCompletion.classDocs). */
 export async function loadClassProgressDocs() {

@@ -18,7 +18,6 @@ const carouselSlides = [...(carousel?.querySelectorAll("[data-carousel-slide]") 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let carouselIndex = 0;
 let carouselTimer;
-let pointerPaused = false;
 let focusPaused = false;
 
 function showCarouselSlide(index) {
@@ -44,7 +43,6 @@ function startCarousel() {
     reducedMotion.matches ||
     loginView.hidden ||
     document.hidden ||
-    pointerPaused ||
     focusPaused
   ) {
     return;
@@ -56,14 +54,6 @@ function startCarousel() {
 
 if (carousel && carouselSlides.length) {
   showCarouselSlide(0);
-  carousel.addEventListener("pointerenter", () => {
-    pointerPaused = true;
-    stopCarousel();
-  });
-  carousel.addEventListener("pointerleave", () => {
-    pointerPaused = false;
-    startCarousel();
-  });
   carousel.addEventListener("focusin", () => {
     focusPaused = true;
     stopCarousel();
@@ -86,10 +76,26 @@ function revealLogin() {
   startCarousel();
 }
 
+// The eye button inside the password field shows or hides the password.
+const passwordInput = $("#password");
+const passwordToggle = $("#password-toggle");
+
+function setPasswordVisible(visible) {
+  passwordInput.type = visible ? "text" : "password";
+  passwordToggle.setAttribute("aria-pressed", String(visible));
+  passwordToggle.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+}
+
+passwordToggle.addEventListener("click", () => {
+  setPasswordVisible(passwordInput.type === "password");
+  passwordInput.focus();
+});
+
 function clearSignedOutCredentials() {
   if (sessionStorage.getItem("basayaSignedOut") !== "true") return;
   $("#email").value = "";
-  $("#password").value = "";
+  passwordInput.value = "";
+  setPasswordVisible(false);
   $("#login-error").textContent = "";
 }
 
@@ -113,7 +119,9 @@ loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (signingIn) return;
   const email = $("#email").value.trim();
-  const password = $("#password").value;
+  const password = passwordInput.value;
+  // Hide it again so a browser's "save password" prompt never sees it as plain text.
+  setPasswordVisible(false);
   const error = $("#login-error");
   error.textContent = "";
   setSigningIn(true);

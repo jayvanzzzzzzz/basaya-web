@@ -13,8 +13,9 @@ import { $, escapeHtml, navigate } from "../../js/helpers.js";
 import { student, classId, formatWhen, isComplete, loadClassLessons, now } from "../data.js";
 import { buddy, content, icon } from "../ui.js";
 
-// "Mga Abiso" (the app's NotificationsActivity + LessonInbox): "new lesson" items from
-// classes/{classId}/notifications (written by notify-api), shown once the lesson opens, and
+// "Mga Abiso" (the app's NotificationsActivity + LessonInbox): "new lesson" and "deadline
+// extended" items from classes/{classId}/notifications (written by notify-api), shown once
+// the lesson opens, and
 // deadline reminders made here from each lesson's dueAt (1 day before, 1 hour before, and
 // when it closes). Everything after the "read up to" time is unread; that time is kept in
 // this browser and in users/{uid}.notifReadAt, so it follows the account to the app too.
@@ -67,6 +68,7 @@ async function loadFeed() {
     feed = snap.docs
       .map((item) => ({
         id: item.id,
+        type: item.get("type"),
         title: item.get("title"),
         body: item.get("body") || "",
         lessonIds: (item.get("lessonIds") || []).filter((value) => typeof value === "string"),
@@ -84,7 +86,7 @@ function visibleItems() {
   const newLessons = feed
     .map((item) => ({ ...item, lessonIds: item.lessonIds.filter((id) => ids.has(id)) }))
     .filter((item) => item.lessonIds.length)
-    .map((item) => ({ key: `feed:${item.id}`, kind: "new", title: item.title, body: item.body, time: item.visibleAt, lessonIds: item.lessonIds }));
+    .map((item) => ({ key: `feed:${item.id}`, kind: item.type === "deadline_extended" ? "extended" : "new", title: item.title, body: item.body, time: item.visibleAt, lessonIds: item.lessonIds }));
 
   const deadlines = student.lessons.flatMap((lesson) => {
     if (lesson.dueAt == null || isComplete(lesson)) return [];
@@ -149,7 +151,7 @@ function whenLabel(time) {
   return { day, clock };
 }
 
-const KIND_ICON = { new: "book", day: "clock", hour: "clock", closed: "lock" };
+const KIND_ICON = { new: "book", extended: "clock", day: "clock", hour: "clock", closed: "lock" };
 
 function itemHtml(item, unread, index) {
   const { day, clock } = whenLabel(item.time);

@@ -53,7 +53,7 @@ export async function renderClassReport(classId) {
   const entries = await Promise.all(
     students.map(async (student) => ({
       student,
-      progress: await loadStudentProgress(student.id, lessons),
+      progress: await loadStudentProgress(student.id, lessons, student.joinedAt),
     })),
   );
   const report = classReport(entries);
@@ -75,7 +75,7 @@ export async function renderClassReport(classId) {
           <div><h3>${escapeHtml(skill.name)}</h3><p>${escapeHtml(skill.detail)}</p></div>
         </header>
         <div class="skill-card__meter">
-          ${scoreRing(skill.average, { color: skill.color, sub: skill.average == null ? "" : "class avg" })}
+          ${scoreRing(skill.average, { color: skill.color, unit: "", sub: skill.average == null ? "" : "class avg" })}
           <div class="skill-card__verdict">
             ${scoredSkill ? remarkChip(skill.remark) : '<span class="remark remark--info">Completion only</span>'}
             <small>${skill.scoredStudents} of ${report.readableStudents} with results</small>

@@ -1,12 +1,23 @@
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
-import { availability, findLesson, loadActivity, refreshSummary, saveProgress } from "../data.js";
+import {
+  availability,
+  clearResume,
+  findLesson,
+  loadActivity,
+  loadLessonProgress,
+  refreshSummary,
+  resumeOf,
+  saveProgress,
+  saveResume,
+} from "../data.js";
 import { onLeave } from "../router.js";
 import { buddy, confettiFrom, content, icon, setBuddyMood, shake } from "../ui.js";
 import { renderResults } from "./results.js";
 
 // Gawain (the app's PracticeActivity): tap the correct words, then check. A page counts as
 // right only on its first check; retries are counted separately. Saves the Pagkilala skill.
+// Every check saves the place (resume.activity), so a closed Gawain continues on that page.
 
 const sameSet = (a, b) => a.size === b.size && [...a].every((value) => b.has(value));
 
@@ -17,7 +28,8 @@ export async function renderActivity(lessonId) {
   if (availability(lesson) !== "open" || lesson.activityFinished) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
-  const activity = await loadActivity(lessonId);
+  const [activity, progress] = await Promise.all([loadActivity(lessonId), loadLessonProgress(lessonId)]);
+  if (progress.activityFinished) return navigate(pathUrl);
   if (!activity?.pages.length) {
     toast("Walang gawain para sa araling ito.");
     return navigate(pathUrl);
@@ -55,14 +67,21 @@ export async function renderActivity(lessonId) {
   const feedbackText = $("#activity-feedback-text");
   const feedbackBuddy = feedback.querySelector(".st-buddy");
 
-  let pageIndex = 0;
+  const total = activity.pages.length;
+  const resume = resumeOf(progress, "activity", total);
+  let pageIndex = resume?.done ?? 0;
   let checked = false;
-  let score = 0; // pages right on their first check
-  let retries = 0;
+  let score = Number(resume?.score) || 0; // pages right on their first check
+  let retries = Number(resume?.retries) || 0;
   const checkedPages = new Set();
+  // A page already checked wrong before closing no longer counts as a first try.
+  if (resume?.tried) checkedPages.add(pageIndex);
   const selected = new Set();
   let saving = false;
   onLeave(() => {});
+
+  const savePlace = (done) =>
+    saveResume(lessonId, "activity", { done, total, score, retries, tried: done === pageIndex });
 
   const page = () => activity.pages[pageIndex];
   const correctSet = () => new Set(page().correctIndices);
@@ -147,9 +166,10 @@ export async function renderActivity(lessonId) {
     const firstCheck = !checkedPages.has(pageIndex);
     checkedPages.add(pageIndex);
     if (!right) retries += 1;
+    if (right && firstCheck) score += 1;
+    savePlace(right ? pageIndex + 1 : pageIndex);
 
     if (right) {
-      if (firstCheck) score += 1;
       showFeedback(
         true,
         correct.size === 0
@@ -171,11 +191,16 @@ export async function renderActivity(lessonId) {
     if (saving) return;
     saving = true;
     action.disabled = true;
-    const total = activity.pages.length;
     try {
       await saveProgress(
         lessonId,
-        { activityFinished: true, activityScore: score, activityTotal: total, activityCompletedAt: serverTimestamp() },
+        {
+          activityFinished: true,
+          activityScore: score,
+          activityTotal: total,
+          activityCompletedAt: serverTimestamp(),
+          ...clearResume("activity"),
+        },
         { key: "pagkilala", correct: score, attempts: total, items: total, extras: { retries } },
       );
       refreshSummary();
@@ -222,5 +247,12 @@ export async function renderActivity(lessonId) {
     }
   });
 
-  showPage();
+  // Every page was answered before closing: only the result is left to save.
+  if (pageIndex >= total) {
+    pageIndex = total - 1;
+    showPage();
+    finish();
+  } else {
+    showPage();
+  }
 }

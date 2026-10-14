@@ -41,7 +41,30 @@ export function onLeave(fn) {
   cleanup = previous ? () => (previous(), fn()) : fn;
 }
 
-export async function renderRoute() {
+// One render at a time: navigating fast while a page is still loading used to run
+// two renders into the same #page-content, and the older one then crashed on
+// elements the newer one had replaced. A hash change mid-render is queued and
+// the latest route is drawn once the current render settles.
+let rendering = null;
+let pending = false;
+
+export function renderRoute() {
+  if (rendering) {
+    pending = true;
+    return rendering;
+  }
+  rendering = (async () => {
+    do {
+      pending = false;
+      await drawRoute();
+    } while (pending);
+  })().finally(() => {
+    rendering = null;
+  });
+  return rendering;
+}
+
+async function drawRoute() {
   if (!student.uid) return;
   const leaving = cleanup;
   cleanup = null;
@@ -80,6 +103,8 @@ export async function renderRoute() {
     else navigate("/home");
   } catch (error) {
     console.error(error);
+    // The student already moved on; the queued render will draw the new page.
+    if (pending) return;
     $("#app-view").classList.remove("is-focus");
     $("#page-content").innerHTML = `
       <div class="st-empty">

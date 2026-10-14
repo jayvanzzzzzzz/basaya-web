@@ -1,6 +1,7 @@
 import { $, currentRoute, navigate, shell, empty } from "../js/helpers.js";
 import { state } from "../js/state.js";
 import { renderTeachers } from "./views/teachers.js";
+import { renderStudents } from "./views/students.js";
 import { renderClasses } from "./views/classes.js";
 import { renderLessons } from "./views/lessons.js";
 import { refreshDeletionBadge } from "./views/classDeletion.js";
@@ -14,6 +15,7 @@ export async function renderRoute() {
   );
   try {
     if (route === "/teachers") await renderTeachers();
+    else if (route === "/students") await renderStudents();
     else if (route === "/classes") await renderClasses();
     else if (route === "/lessons") await renderLessons();
     else navigate("/teachers");

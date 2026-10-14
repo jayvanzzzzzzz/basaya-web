@@ -14,10 +14,32 @@ import { renderResults } from "./results.js";
 
 // Pagsusulit (the app's QuizActivity): one question at a time, the rocket moves along the
 // track, and a question is right only when exactly the correct choice(s) were picked.
-// Opens only after the lecture. Saves the Pagsusulit skill.
+// Opens only after the lecture. Saves the Pagsusulit skill. The questions and each question's
+// choices come in a new random order every time; closing starts the quiz over (no resume).
 
 const LETTERS = "ABCDEFGH";
 const sameSet = (a, b) => a.size === b.size && [...a].every((value) => b.has(value));
+
+function shuffle(list) {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/** Shuffles the questions and their choices; the correct answers move with their choices. */
+function shuffleQuiz(questions) {
+  return shuffle(questions).map((question) => {
+    const order = shuffle(question.choices.map((_, i) => i)); // order[new position] = old index
+    return {
+      ...question,
+      choices: order.map((i) => question.choices[i]),
+      correct: new Set([...question.correct].map((i) => order.indexOf(i))),
+    };
+  });
+}
 
 export async function renderQuiz(lessonId) {
   const lesson = await findLesson(lessonId);
@@ -36,6 +58,7 @@ export async function renderQuiz(lessonId) {
     toast("Walang pagsusulit para sa araling ito.");
     return navigate(pathUrl);
   }
+  quiz.questions = shuffleQuiz(quiz.questions);
 
   content().innerHTML = `
     <section class="st-quiz">

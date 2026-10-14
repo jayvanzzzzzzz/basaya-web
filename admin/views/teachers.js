@@ -15,6 +15,7 @@ import { state, getAllTeachers } from "../../js/state.js";
 import { $, escapeHtml, toast, notify, initials, page, empty, openModal, currentRoute } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import { sendPasswordReset } from "../../js/api.js";
+import { MIN_LENGTH } from "../../js/password-rules.js";
 import { assignClasses, classIdsOf, teacherLabel, teacherOptions } from "./classTeacher.js";
 
 let pager = null;
@@ -193,7 +194,7 @@ function openAddTeacherModal() {
      <form id="add-teacher-form" class="form-card">
        <label>Full name<input name="displayName" required placeholder="Juan Dela Cruz" /></label>
        <label>Email<input name="email" type="email" required placeholder="teacher@school.edu" /></label>
-       <label>Temporary password<input name="password" type="password" required minlength="6" placeholder="At least 6 characters" /></label>
+       <label>Temporary password<input name="password" type="password" required minlength="${MIN_LENGTH}" placeholder="At least ${MIN_LENGTH} characters" /></label>
        <p id="add-teacher-error" class="form-error" role="alert"></p>
        <div class="modal-actions"><button class="button primary" type="submit">Create account</button></div>
      </form>`,
@@ -208,6 +209,11 @@ function openAddTeacherModal() {
           const password = form.get("password");
           const errorEl = modal.querySelector("#add-teacher-error");
           errorEl.textContent = "";
+          // Temporary password: length only, no small/capital/number rule.
+          if (password.length < MIN_LENGTH) {
+            errorEl.textContent = `The temporary password needs at least ${MIN_LENGTH} characters.`;
+            return;
+          }
           try {
             // Created on the secondary Auth instance so this doesn't
             // replace the admin's own active session.

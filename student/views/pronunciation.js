@@ -1,16 +1,28 @@
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { $, escapeHtml, navigate, toast } from "../../js/helpers.js";
-import { availability, findLesson, loadPronunciation, refreshSummary, saveProgress } from "../data.js";
+import {
+  availability,
+  clearResume,
+  findLesson,
+  loadLessonProgress,
+  loadPronunciation,
+  refreshSummary,
+  resumeOf,
+  saveProgress,
+  saveResume,
+} from "../data.js";
 import { onLeave } from "../router.js";
 import { Microphone, browserRecognitionAvailable, listenWithBrowser, score, transcribe } from "../speech.js";
 import { buddy, confetti, confettiFrom, content, icon, setBuddyMood, shake } from "../ui.js";
 import { renderResults } from "./results.js";
 
 // Bigkas (the app's PronunciationActivity): hear the word, say it into the mic, and
-// basaya-stt (Whisper) checks it. Five tries per word; "nothing heard" never costs a try.
-// Saves the Pagbigkas skill: first-try correct words, plus the words that needed help.
+// basaya-stt (Whisper) checks it. Three lives per word; "nothing heard" never costs one, and a
+// word whose lives run out scores 0. Saves the Pagbigkas skill: first-try correct words, plus
+// the words that needed help. Every scored try saves the place (resume.pronunciation): the
+// word, its lives left and the score so far, so a closed Bigkas continues there.
 
-const MAX_LIVES = 5;
+const MAX_LIVES = 3;
 const ADVANCE_DELAY_MS = 2400;
 
 export async function renderPronunciation(lessonId) {
@@ -20,7 +32,8 @@ export async function renderPronunciation(lessonId) {
   if (availability(lesson) !== "open" || lesson.pronunciationFinished) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
-  const activity = await loadPronunciation(lessonId);
+  const [activity, progress] = await Promise.all([loadPronunciation(lessonId), loadLessonProgress(lessonId)]);
+  if (progress.pronunciationFinished) return navigate(pathUrl);
   if (!activity?.words.length) {
     toast("Walang pronunciation activity para sa lesson na ito.");
     return navigate(pathUrl);
@@ -64,12 +77,20 @@ export async function renderPronunciation(lessonId) {
   const micArea = $(".st-pron__mic-area");
   const player = new Audio();
 
-  let index = 0;
+  const resume = resumeOf(progress, "pronunciation", words.length);
+  let index = resume?.done ?? 0;
   let lives = MAX_LIVES;
-  let correctCount = 0;
-  let firstTryCorrect = 0;
+  let correctCount = Number(resume?.correct) || 0;
+  let firstTryCorrect = Number(resume?.firstTryCorrect) || 0;
   let missesOnWord = 0;
-  const hardWords = new Set();
+  const hardWords = new Set(Array.isArray(resume?.hardWords) ? resume.hardWords : []);
+  // Lives and misses of the word the student closed on (a fresh word gets MAX_LIVES).
+  let restored = resume
+    ? {
+        lives: Math.min(Math.max(Number(resume.lives) || MAX_LIVES, 1), MAX_LIVES),
+        misses: Number(resume.misses) || 0,
+      }
+    : null;
   let processing = false;
   let useBrowser = false; // set once basaya-stt is unavailable (e.g. free daily limit)
   let microphone = null;
@@ -104,9 +125,22 @@ export async function renderPronunciation(lessonId) {
     speaker.disabled = !enabled;
   };
 
+  /** `done` words are finished; lives/misses belong to word `done` when it is the current one. */
+  const savePlace = (done) =>
+    saveResume(lessonId, "pronunciation", {
+      done,
+      total: words.length,
+      lives: done === index ? lives : MAX_LIVES,
+      misses: done === index ? missesOnWord : 0,
+      correct: correctCount,
+      firstTryCorrect,
+      hardWords: [...hardWords],
+    });
+
   const showWord = () => {
-    lives = MAX_LIVES;
-    missesOnWord = 0;
+    lives = restored?.lives ?? MAX_LIVES;
+    missesOnWord = restored?.misses ?? 0;
+    restored = null;
     $("#pron-word").textContent = words[index].word;
     $("#pron-count").textContent = `Salita ${index + 1} / ${words.length}`;
     $("#pron-bar").style.width = `${(index * 100) / words.length}%`;
@@ -187,6 +221,7 @@ export async function renderPronunciation(lessonId) {
     if (result.band === "great" || result.band === "okay") {
       correctCount += 1;
       if (missesOnWord === 0) firstTryCorrect += 1;
+      savePlace(index + 1);
       setEnabled(false);
       setMood("happy");
       confettiFrom(mascot, 40);
@@ -204,6 +239,8 @@ export async function renderPronunciation(lessonId) {
     hardWords.add(words[index].word);
     updateLives(true);
     setMood("cheer");
+    // Out of lives: the word scores 0 and the next one is up.
+    savePlace(lives <= 0 ? index + 1 : index);
     if (lives <= 0) {
       setEnabled(false);
       showNote("cheer", "Ayos lang! Lilipat tayo sa susunod na salita.");
@@ -306,6 +343,7 @@ export async function renderPronunciation(lessonId) {
           pronunciationScore: correctCount,
           pronunciationTotal: words.length,
           pronunciationCompletedAt: serverTimestamp(),
+          ...clearResume("pronunciation"),
         },
         {
           key: "pagbigkas",
@@ -347,7 +385,9 @@ export async function renderPronunciation(lessonId) {
     });
   };
 
-  showWord();
+  // Every word was done before closing: only the result is left to save.
+  if (index >= words.length) finish();
+  else showWord();
 }
 
 const heartIcon = () =>

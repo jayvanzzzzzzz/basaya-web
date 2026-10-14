@@ -16,6 +16,9 @@
 /* ---------- Left: brand world ---------- */
 .auth-copy {
   position: relative;
+  /* The welcome text and carousel aren't meant to be selected or highlighted. */
+  -webkit-user-select: none;
+  user-select: none;
   isolation: isolate;
   display: flex;
   flex-direction: column;

@@ -110,8 +110,8 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
       <div class="st-game__wheel-wrap">
         <div class="st-game__wheel" id="game-wheel" role="group" aria-label="Mga titik: idaan ang daliri sa mga titik para bumuo ng salita">
           <svg class="st-game__line" id="game-line" aria-hidden="true"><polyline points="" /></svg>
+          <button class="st-game__shuffle" type="button" id="game-shuffle" aria-label="Haluin ang mga titik">${icon("refresh")}</button>
         </div>
-        <button class="st-icon-button st-game__shuffle" type="button" id="game-shuffle" aria-label="Haluin ang mga titik">${icon("refresh")}</button>
       </div>
     </section>`;
 
@@ -308,20 +308,26 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
 
   // ----- Shuffle -----
   let shuffling = false;
+  // The same letter tiles glide around the wheel to their new places (no fade out and in).
   $("#game-shuffle").addEventListener("click", (event) => {
-    if (shuffling || selecting || letters.length < 2) return;
+    if (shuffling || selecting || letterEls.length < 2) return;
     shuffling = true;
-    event.currentTarget.classList.add("is-spinning-once");
-    wheel.classList.add("is-shuffling");
+    const button = event.currentTarget;
+    button.classList.add("is-spinning-once");
+    const spelled = (list) => list.map((el) => el.textContent).join("");
+    let next = shuffle(letterEls);
+    // Make sure something moves: fall back to turning the wheel one step.
+    if (spelled(next) === spelled(letterEls)) next = [...letterEls.slice(1), letterEls[0]];
+    letterEls = next;
+    letters = next.map((el) => el.textContent);
+    wheel.classList.add("is-shuffling", "is-dipping");
+    layoutWheel();
+    setTimeout(() => wheel.classList.remove("is-dipping"), 270);
     setTimeout(() => {
-      let next = shuffle(letters);
-      if (next.join("") === letters.join("")) next = [...letters].reverse();
-      letters = next;
-      buildWheel();
       wheel.classList.remove("is-shuffling");
-      $("#game-shuffle").classList.remove("is-spinning-once");
+      button.classList.remove("is-spinning-once");
       shuffling = false;
-    }, 260);
+    }, 560);
   });
 
   // ----- Finding words -----

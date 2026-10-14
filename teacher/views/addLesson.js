@@ -12,6 +12,7 @@ import { $, escapeHtml, toast, navigate, page } from "../../js/helpers.js";
 import { readSchedule, notifyStudents } from "../../js/schedule.js";
 import { paginate } from "../../js/pagination.js";
 import { openLessonModal } from "./lessons.js";
+import { openLessonViewer } from "../../admin/views/lessonViewer.js";
 
 export async function renderAddLessonPage(classId) {
   if (!state.user) return navigate("/login");
@@ -141,12 +142,11 @@ export async function renderAddLessonPage(classId) {
     if (event.target.matches('input[name="lesson"]')) updateSelection();
   });
 
-  // "View" button per lesson row — opens the same lesson modal,
-  // pre-filled with that lesson's details.
+  // "Preview" per lesson row: the admin's read-only lesson viewer, without its Edit button.
   document.querySelectorAll("[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => {
       const lesson = state.allLessons.find((l) => l.id === btn.dataset.view);
-      if (lesson) openLessonModal(lesson);
+      if (lesson) openLessonViewer(lesson);
     }),
   );
 

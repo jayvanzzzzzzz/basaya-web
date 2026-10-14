@@ -1,10 +1,70 @@
 import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
-import { availability, findLesson, loadLecture, saveProgress } from "../data.js";
+import {
+  availability,
+  clearResume,
+  findLesson,
+  loadLecture,
+  loadLessonProgress,
+  resumeOf,
+  saveProgress,
+  saveResume,
+} from "../data.js";
+import { audioSource, downloadPageAudio, lecturePlayer } from "../lectureAudio.js";
 import { onLeave } from "../router.js";
 import { content, icon, showDialog } from "../ui.js";
 
 // The lecture (the app's LectureActivity): tap to reveal each sentence while the talking
-// book reads it aloud. The last page's button marks the lecture finished.
+// book reads it aloud. The last page's button marks the lecture finished. Until then each
+// finished page saves the place (resume.lecture), so a closed lecture opens on the next page.
+// The lesson path opens it only once the first page's audio is downloaded (prepareLecture).
+
+/** How long the lesson path waits for the audio before asking the student. */
+const AUDIO_WAIT_MS = 10_000;
+
+/** What prepareLecture() loaded, for renderLecture(): { lessonId, data, muted }. */
+let prepared = null;
+
+async function loadForLecture(lesson) {
+  const [lecture, progress] = await Promise.all([loadLecture(lesson.id), loadLessonProgress(lesson.id)]);
+  // Rereading a finished lecture always starts at page 1 and saves nothing.
+  const tracking = !progress.lectureFinished && !lesson.lectureFinished;
+  const resume = tracking && lecture ? resumeOf(progress, "lecture", lecture.pages.length) : null;
+  const startPage = lecture?.pages.length ? Math.min(resume?.done ?? 0, lecture.pages.length - 1) : 0;
+  return { lecture, progress, tracking, startPage };
+}
+
+/**
+ * Loads the lecture and the student's place in it, then downloads the audio of the page it
+ * opens on. Resolves to "ready", "slow" (not downloaded within AUDIO_WAIT_MS) or "failed";
+ * rejects when the lecture itself can't be loaded. `retry` keeps what was loaded and only
+ * downloads the audio again (downloads still running carry on).
+ */
+export async function prepareLecture(lesson, { retry = false } = {}) {
+  if (!retry || prepared?.lessonId !== lesson.id) {
+    prepared = { lessonId: lesson.id, data: loadForLecture(lesson), muted: false };
+  }
+  const current = prepared;
+  let data;
+  try {
+    data = await current.data;
+  } catch (error) {
+    if (prepared === current) prepared = null;
+    throw error;
+  }
+  if (!data.lecture?.pages.length) return "ready"; // the lecture view says there's nothing to read
+  return Promise.race([
+    downloadPageAudio(data.lecture.pages[data.startPage]).then(
+      () => "ready",
+      () => "failed",
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("slow"), AUDIO_WAIT_MS)),
+  ]);
+}
+
+/** The student chose to open the prepared lecture without sound: start with the speaker off. */
+export function muteNextLecture() {
+  if (prepared) prepared.muted = true;
+}
 
 export async function renderLecture(lessonId) {
   const lesson = await findLesson(lessonId);
@@ -15,7 +75,20 @@ export async function renderLecture(lessonId) {
   if (state === "not-yet-open" || (state === "closed" && !lesson.lectureFinished)) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
-  const lecture = await loadLecture(lessonId);
+  // Opened from the lesson path, everything is ready. Opened by its address (e.g. a reload),
+  // load it here and wait for the audio at most AUDIO_WAIT_MS.
+  if (prepared?.lessonId !== lessonId) {
+    try {
+      await prepareLecture(lesson);
+    } catch (error) {
+      console.error("Failed to load the lecture", error);
+      toast("Hindi ma-load ang aralin. Subukan muli.");
+      return navigate(pathUrl);
+    }
+  }
+  const { lecture, tracking, startPage } = await prepared.data;
+  const muted = prepared.muted;
+  prepared = null; // the next visit loads the place again
   if (!lecture?.pages.length) {
     toast("Walang lecture para sa araling ito.");
     return navigate(pathUrl);
@@ -28,7 +101,7 @@ export async function renderLecture(lessonId) {
         <div class="st-track" id="lecture-track">
           ${lecture.pages.map(() => "<i></i>").join("")}
         </div>
-        <button class="st-icon-button" type="button" id="lecture-speaker" aria-label="I-on o i-off ang tunog" aria-pressed="true">${icon("speaker")}</button>
+        <button class="st-icon-button" type="button" id="lecture-speaker" aria-label="I-on o i-off ang tunog" aria-pressed="${!muted}">${icon(muted ? "mute" : "speaker")}</button>
       </header>
       <div class="st-lecture__head">
         <span class="st-lecture__page" id="lecture-page"></span>
@@ -52,19 +125,21 @@ export async function renderLecture(lessonId) {
   const nextButton = $("#lecture-next");
   const book = $("#lecture-book");
   const speaker = $("#lecture-speaker");
-  // One element for every sentence: once a tap has unlocked it, iPhones let it keep playing.
-  const player = new Audio();
-  player.preload = "auto";
-  let speakerOn = true;
+  // One element for every sentence and every visit: the lesson path unlocked it on the card
+  // tap, and iPhones then let it keep playing.
+  const player = lecturePlayer();
+  const listeners = new AbortController();
+  let speakerOn = !muted;
   let pageIndex = 0;
   let sentenceIndex = 0;
   let saving = false;
 
   const setTalking = (talking) => book.classList.toggle("is-talking", talking);
-  player.addEventListener("playing", () => setTalking(true));
-  player.addEventListener("ended", () => setTalking(false));
-  player.addEventListener("pause", () => setTalking(false));
-  player.addEventListener("error", () => setTalking(false));
+  const { signal } = listeners;
+  player.addEventListener("playing", () => setTalking(true), { signal });
+  player.addEventListener("ended", () => setTalking(false), { signal });
+  player.addEventListener("pause", () => setTalking(false), { signal });
+  player.addEventListener("error", () => setTalking(false), { signal });
 
   const stopAudio = () => {
     player.pause();
@@ -72,6 +147,7 @@ export async function renderLecture(lessonId) {
   };
   onLeave(() => {
     stopAudio();
+    listeners.abort();
     player.removeAttribute("src");
     document.removeEventListener("keydown", onKey);
   });
@@ -80,8 +156,8 @@ export async function renderLecture(lessonId) {
     stopAudio();
     const url = lecture.pages[pageIndex].audioUrls[index];
     if (!speakerOn || !url) return;
-    player.src = url;
-    player.play().catch(() => setTalking(false)); // blocked until the first tap on some phones
+    player.src = audioSource(url); // the downloaded copy when there is one
+    player.play().catch(() => setTalking(false));
   };
 
   const updateTrack = () => {
@@ -119,6 +195,8 @@ export async function renderLecture(lessonId) {
     $("#lecture-page").textContent = `PAHINA ${index + 1} NG ${lecture.pages.length}`;
     nextButton.hidden = true;
     $("#lecture-hint").hidden = false;
+    // Download the next page's audio while this one is read.
+    downloadPageAudio(lecture.pages[index + 1]).catch(() => {});
     reveal();
   };
 
@@ -128,7 +206,8 @@ export async function renderLecture(lessonId) {
     stopAudio();
     nextButton.disabled = true;
     try {
-      if (availability(lesson) === "open") await saveProgress(lessonId, { lectureFinished: true });
+      if (availability(lesson) === "open")
+        await saveProgress(lessonId, { lectureFinished: true, ...clearResume("lecture") });
     } catch (error) {
       console.error("Failed to mark lecture finished", error);
       toast("Hindi na-save ang iyong progreso. Subukan muli.");
@@ -144,7 +223,9 @@ export async function renderLecture(lessonId) {
       iconName: "door",
       tone: "locked",
       title: "Lumabas sa Aralin",
-      message: "Sigurado ka bang gusto mong lumabas? Mawawala ang iyong kasalukuyang progreso sa pahinang ito.",
+      message: tracking
+        ? "Sigurado ka bang gusto mong lumabas? Itutuloy mo ang aralin sa pahinang ito sa susunod."
+        : "Sigurado ka bang gusto mong lumabas?",
       primary: "Oo",
       secondary: "Hindi",
     });
@@ -162,8 +243,13 @@ export async function renderLecture(lessonId) {
   sheet.addEventListener("click", reveal);
   document.addEventListener("keydown", onKey);
   nextButton.addEventListener("click", () => {
-    if (pageIndex < lecture.pages.length - 1) showPage(pageIndex + 1);
-    else finish();
+    if (pageIndex < lecture.pages.length - 1) {
+      if (tracking && availability(lesson) === "open")
+        saveResume(lessonId, "lecture", { done: pageIndex + 1, total: lecture.pages.length });
+      showPage(pageIndex + 1);
+    } else {
+      finish();
+    }
   });
   // Tapping the book replays the sentence just read (and turns sound back on if muted).
   book.addEventListener("click", () => {
@@ -179,5 +265,6 @@ export async function renderLecture(lessonId) {
   });
   $("#lecture-close").addEventListener("click", confirmClose);
 
-  showPage(0);
+  // The saved place is the next unread page; the last page stays readable before finishing.
+  showPage(startPage);
 }

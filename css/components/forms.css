@@ -242,3 +242,76 @@ input[type="datetime-local"] {
     grid-template-columns: 1fr;
   }
 }
+
+/* Edge adds its own reveal eye to password fields; hide it so only ours shows. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+/* Password input with a show/hide eye button inside its right edge. */
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 3rem;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out);
+}
+
+.password-field__toggle:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.password-field__toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.password-field__toggle svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Slashed eye while the password is hidden; plain eye once it is shown. */
+.password-field__toggle[aria-pressed="true"] .password-field__slash {
+  display: none;
+}
+
+/* Text cursor (I-beam) with a black outline, so it shows on any field background —
+   the system one can disappear against light or dark inputs. Falls back to the normal one. */
+:root {
+  --cursor-text: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='24' viewBox='0 0 16 24'%3E%3Cpath d='M5 2.5h6M5 21.5h6M8 3v18' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M5 2.5h6M5 21.5h6M8 3v18' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") 8 12, text;
+}
+
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="image"]):not(:disabled),
+textarea:not(:disabled),
+[contenteditable="true"] {
+  cursor: var(--cursor-text);
+}

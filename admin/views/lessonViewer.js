@@ -1,10 +1,40 @@
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "../../js/firebase.js";
 import { $, $$, escapeHtml, openModal, safeHttpUrl } from "../../js/helpers.js";
 import { crosswordHtml, splitLevel } from "./gameLevels.js";
 
 // "View lesson": the whole lesson as the editor shows it, but read-only.
 // Audio plays (one clip at a time, or a lecture page in sequence), the quiz shows
 // its answers and each game level shows its crossword. "Edit lesson" hands over to
-// the lesson studio. Styles: css/pages/lesson-viewer.css.
+// the lesson studio. Also the teacher's lesson Preview (teacher/views/addLesson.js),
+// without the Edit button. Styles: css/pages/lesson-viewer.css, plus the difficulty
+// pill (admin-lessons.css) and crossword (game-levels.css).
+
+const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
+
+/** Every section of a lesson, read from its subcollections. */
+export async function loadLessonSections(lessonId) {
+  const entries = await Promise.all(
+    [...SINGLE_SECTIONS, "game"].map(async (section) => {
+      const snapshot = await getDocs(collection(db, "lessons", lessonId, section));
+      return [
+        section,
+        snapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
+      ];
+    }),
+  );
+
+  const data = Object.fromEntries(entries);
+
+  return {
+    activity: data.activity[0] || null,
+    lectures: data.lectures[0] || null,
+    pronunciation: data.pronunciation[0] || null,
+    quiz: data.quiz[0] || null,
+    game: (data.game || []).filter((item) => item.id !== "status"),
+    gameStatus: (data.game || []).find((item) => item.id === "status") || null,
+  };
+}
 
 export const SECTIONS = [
   { id: "activity", label: "Activity", icon: '<path d="M9 11.5 11.5 14 16 9.5" /><rect x="3.5" y="3.5" width="17" height="17" rx="4" />' },
@@ -232,7 +262,7 @@ function counts(sections) {
   };
 }
 
-function frameHtml(lesson) {
+function frameHtml(lesson, editable) {
   const meta = difficulty(lesson.difficulty);
   return `
     <div class="lesson-viewer">
@@ -267,7 +297,7 @@ function frameHtml(lesson) {
         <span class="lv-footer__note" data-audio-note>${icon(ICON_EYE)}Viewing only. Nothing here can be changed.</span>
         <div class="lv-footer__actions">
           <button type="button" class="button secondary" data-close-viewer>Close</button>
-          <button type="button" class="button primary" data-edit-lesson>${icon(ICON_EDIT)}Edit lesson</button>
+          ${editable ? `<button type="button" class="button primary" data-edit-lesson>${icon(ICON_EDIT)}Edit lesson</button>` : ""}
         </div>
       </footer>
     </div>`;
@@ -275,10 +305,11 @@ function frameHtml(lesson) {
 
 /**
  * @param {object} lesson
- * @param {{ loadSections: (id: string) => Promise<object>, onEdit: (lesson) => void }} options
+ * @param {{ loadSections?: (id: string) => Promise<object>, onEdit?: (lesson) => void }} options
+ *   Without `onEdit` there is no "Edit lesson" button.
  */
-export function openLessonViewer(lesson, { loadSections, onEdit }) {
-  openModal(frameHtml(lesson), (backdrop, close) => {
+export function openLessonViewer(lesson, { loadSections = loadLessonSections, onEdit } = {}) {
+  openModal(frameHtml(lesson, Boolean(onEdit)), (backdrop, close) => {
     const modal = backdrop.querySelector(".modal");
     modal.classList.add("lesson-viewer-modal");
     const body = $("[data-body]", modal);
@@ -382,7 +413,7 @@ export function openLessonViewer(lesson, { loadSections, onEdit }) {
     });
 
     $("[data-close-viewer]", modal).addEventListener("click", close);
-    $("[data-edit-lesson]", modal).addEventListener("click", () => {
+    $("[data-edit-lesson]", modal)?.addEventListener("click", () => {
       close();
       onEdit(lesson);
     });

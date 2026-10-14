@@ -1,6 +1,6 @@
 import {
+  Timestamp,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -11,15 +11,19 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
-import { $, escapeHtml, toast, navigate, page, openModal } from "../../js/helpers.js";
+import { $, escapeHtml, toast, notify, navigate, page, openModal } from "../../js/helpers.js";
+import { removeClassLesson } from "../../js/api.js";
 import {
   formatWhen,
+  fromInputValue,
+  notifyDeadline,
   notifyStudents,
   readSchedule,
   scheduleStatus,
   toInputValue,
 } from "../../js/schedule.js";
 import { openClassModal } from "./dashboard.js";
+import { hasUnreadChat, onChatSummaries } from "./messages.js";
 import { paginate } from "../../js/pagination.js";
 import { deletionBanner, wireDeletionBanner } from "./classDeletion.js";
 
@@ -34,6 +38,35 @@ function scheduleMarkup(link) {
   if (link.dueAt) parts.push(`<span>Due ${escapeHtml(formatWhen(link.dueAt))}</span>`);
   if (!link.openAt && !link.dueAt) parts.push("<span>No schedule</span>");
   return `<div class="class-lesson__schedule">${parts.join("")}</div>`;
+}
+
+// Lesson tabs. "Not open yet" lessons count as Open; only past-deadline ones are Closed.
+const LESSON_TABS = [
+  { key: "all", label: "All" },
+  { key: "open", label: "Open" },
+  { key: "closed", label: "Closed" },
+];
+/** Tab picked per class, so it survives re-renders (e.g. after editing a schedule). */
+const lessonTabByClass = new Map();
+
+const millisOf = (timestamp) => timestamp?.toMillis?.() ?? null;
+
+/**
+ * List order: open lessons by nearest deadline, then open ones with no deadline,
+ * then not-open-yet (soonest to open first), then closed (most recently closed first).
+ */
+function compareBySchedule(a, b) {
+  const rank = { open: 0, scheduled: 1, closed: 2 };
+  const statusA = scheduleStatus(a.link);
+  const statusB = scheduleStatus(b.link);
+  if (statusA !== statusB) return rank[statusA] - rank[statusB];
+  const dueA = millisOf(a.link.dueAt);
+  const dueB = millisOf(b.link.dueAt);
+  if (statusA === "closed") return dueB - dueA || a.number - b.number;
+  if (statusA === "scheduled")
+    return millisOf(a.link.openAt) - millisOf(b.link.openAt) || a.number - b.number;
+  if (dueA == null || dueB == null) return (dueA == null) - (dueB == null) || a.number - b.number;
+  return dueA - dueB || a.number - b.number;
 }
 
 function openScheduleModal(classId, link, lesson, onSaved) {
@@ -66,6 +99,95 @@ function openScheduleModal(classId, link, lesson, onSaved) {
         } catch (err) {
           toast(err.message);
         }
+      });
+    },
+  );
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const EXTEND_PRESETS = [
+  { days: 1, label: "+1 day" },
+  { days: 3, label: "+3 days" },
+  { days: 7, label: "+1 week" },
+];
+
+function openExtendModal(classId, link, lesson, onSaved) {
+  const currentDue = link.dueAt.toDate();
+  // Presets count from the current deadline, or from now once it has passed,
+  // so the new deadline is always in the future.
+  const base = () => Math.max(currentDue.getTime(), Date.now());
+  const closed = currentDue.getTime() < Date.now();
+  openModal(
+    `<h2>Extend deadline</h2>
+     <p>${escapeHtml(lesson.title)}</p>
+     <form id="extend-form">
+       <p class="extend-deadline__current">Current deadline: <strong>${escapeHtml(formatWhen(link.dueAt))}</strong>${
+         closed ? ' <span class="schedule-chip schedule-chip--closed">Closed</span>' : ""
+       }</p>
+       <div class="extend-deadline__presets" role="group" aria-label="Extend by">
+         ${EXTEND_PRESETS.map(
+           (preset) =>
+             `<button class="button secondary small" type="button" data-extend-days="${preset.days}">${preset.label}</button>`,
+         ).join("")}
+       </div>
+       <label>New deadline <input type="datetime-local" name="dueAt" required /></label>
+       <label class="extend-deadline__notify">
+         <input type="checkbox" name="notify" checked />
+         <span>Notify students</span>
+       </label>
+       <p class="lesson-schedule__hint">${
+         closed
+           ? "The lesson reopens for students who haven't finished it until the new deadline."
+           : "Students who haven't finished get more time. Reminders move to the new deadline."
+       }</p>
+       <div class="modal-actions">
+         <button class="button secondary" type="button" id="extend-cancel">Cancel</button>
+         <button class="button primary" type="submit">Extend deadline</button>
+       </div>
+     </form>`,
+    (backdrop, close) => {
+      const form = backdrop.querySelector("#extend-form");
+      const input = form.elements.dueAt;
+      const pick = (days) => {
+        input.value = toInputValue({ toDate: () => new Date(base() + days * DAY) });
+        backdrop.querySelectorAll("[data-extend-days]").forEach((b) =>
+          b.classList.toggle("is-active", Number(b.dataset.extendDays) === days),
+        );
+      };
+      pick(EXTEND_PRESETS[0].days);
+      backdrop.querySelectorAll("[data-extend-days]").forEach((b) =>
+        b.addEventListener("click", () => pick(Number(b.dataset.extendDays))),
+      );
+      input.addEventListener("input", () =>
+        backdrop.querySelectorAll("[data-extend-days]").forEach((b) => b.classList.remove("is-active")),
+      );
+      backdrop.querySelector("#extend-cancel").addEventListener("click", close);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const due = fromInputValue(input.value);
+        if (!due) return toast("Pick the new deadline.");
+        if (due <= currentDue) return toast("The new deadline must be later than the current one.");
+        if (due <= new Date()) return toast("The new deadline has already passed. Pick a later date.");
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        try {
+          await saveSchedule(classId, link, { openAt: link.openAt ?? null, dueAt: Timestamp.fromDate(due) });
+        } catch (err) {
+          submit.disabled = false;
+          return toast(err.message);
+        }
+        close();
+        if (form.elements.notify.checked) {
+          try {
+            await notifyDeadline(classId, link.lessonId || link.id);
+            toast("Deadline extended. Students were notified.");
+          } catch (err) {
+            toast(`Deadline extended, but students were not notified (${err.message}).`);
+          }
+        } else {
+          toast("Deadline extended.");
+        }
+        onSaved();
       });
     },
   );
@@ -149,14 +271,23 @@ export async function renderClass(classId) {
       link,
       lesson: state.allLessons.find((l) => l.id === link.lessonId),
     }))
-    .filter((x) => x.lesson);
+    .filter((x) => x.lesson)
+    // "Lesson N" keeps the order the lessons were assigned in.
+    .map((item, index) => ({ ...item, number: index + 1 }))
+    .sort(compareBySchedule);
+  const tabCount = {
+    all: linkedLessons.length,
+    closed: linkedLessons.filter(({ link }) => scheduleStatus(link) === "closed").length,
+  };
+  tabCount.open = tabCount.all - tabCount.closed;
+  const activeTab = lessonTabByClass.get(classId) || "all";
   const subtitle =
     classroom.description ||
     "A clear view of your students, lessons, and classroom progress.";
   page(
     classroom.className,
     subtitle,
-    `<button class="button secondary class-back-button" id="all-classrooms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>All classrooms</button><button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg>Class chat</button><button class="button secondary" id="edit-class">Edit class</button><button class="button secondary" id="view-students">View students${leaveCount ? `<span class="button-badge" title="${leaveCount} leave request${leaveCount === 1 ? "" : "s"}">${leaveCount}</span>` : ""}</button><button class="button primary" id="add-lesson">+ Add lesson</button>`,
+    `<button class="button secondary class-back-button" id="all-classrooms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>All classrooms</button><button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><span class="class-chat-button__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg></span>Class chat<span class="class-chat-button__badge" data-class-chat-badge hidden><span class="sr-only">New messages</span></span></button><button class="button secondary" id="edit-class">Edit class</button><button class="button secondary" id="view-students">View students${leaveCount ? `<span class="button-badge" title="${leaveCount} leave request${leaveCount === 1 ? "" : "s"}">${leaveCount}</span>` : ""}</button><button class="button primary" id="add-lesson">+ Add lesson</button>`,
   );
   $("#page-header").classList.add("teacher-class-header");
   $("#page-content").classList.add("teacher-class-page");
@@ -198,13 +329,19 @@ export async function renderClass(classId) {
       </div>
       ${
         linkedLessons.length
-          ? `<div class="class-lessons__list stagger-in">${linkedLessons
+          ? `<div class="class-lesson-tabs" role="tablist" aria-label="Filter lessons">${LESSON_TABS.map(
+              ({ key, label }) => `
+                <button class="class-lesson-tab${key === activeTab ? " is-active" : ""}" type="button" role="tab" data-lesson-tab="${key}" aria-selected="${key === activeTab}">
+                  ${label}<span class="class-lesson-tab__count">${tabCount[key]}</span>
+                </button>`,
+            ).join("")}</div>
+            <div class="class-lessons__list stagger-in">${linkedLessons
               .map(
-                ({ link, lesson }, index) => `
-                  <article class="class-lesson">
-                    <span class="class-lesson__number">${String(index + 1).padStart(2, "0")}</span>
+                ({ link, lesson, number }) => `
+                  <article class="class-lesson" data-tab="${scheduleStatus(link) === "closed" ? "closed" : "open"}">
+                    <span class="class-lesson__number">${String(number).padStart(2, "0")}</span>
                     <div class="class-lesson__content">
-                      <span class="class-lesson__label">Lesson ${index + 1}</span>
+                      <span class="class-lesson__label">Lesson ${number}</span>
                       <h3>${escapeHtml(lesson.title)}</h3>
                       <p>${escapeHtml(lesson.description || "No description provided.")}</p>
                       ${scheduleMarkup(link)}
@@ -215,6 +352,14 @@ export async function renderClass(classId) {
                           ? `<button class="class-lesson__action class-lesson__action--notify" type="button" data-notify="${escapeHtml(link.id)}" aria-label="Notify students about ${escapeHtml(lesson.title)}">
                               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0"/></svg>
                               <span>Notify students</span>
+                            </button>`
+                          : ""
+                      }
+                      ${
+                        link.dueAt
+                          ? `<button class="class-lesson__action" type="button" data-extend="${escapeHtml(link.id)}" aria-label="Extend the deadline of ${escapeHtml(lesson.title)}">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2.5h6"/></svg>
+                              <span>Extend</span>
                             </button>`
                           : ""
                       }
@@ -229,7 +374,8 @@ export async function renderClass(classId) {
                     </div>
                   </article>`,
               )
-              .join("")}</div>`
+              .join("")}</div>
+            <p class="class-lessons__none" hidden></p>`
           : `<div class="class-lessons__empty">
               <div class="class-lessons__empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></div>
               <h3>No lessons assigned yet</h3>
@@ -245,6 +391,13 @@ export async function renderClass(classId) {
     navigate(`/classes/${encodeURIComponent(classId)}/report`),
   );
   $("#class-chat").addEventListener("click", () => navigate(`/messages/${encodeURIComponent(classId)}`));
+  // Red bubble on "Class chat" while the class has messages the teacher hasn't read.
+  const showChatBadge = () => {
+    const badge = $("[data-class-chat-badge]");
+    if (badge) badge.hidden = !hasUnreadChat(classId);
+  };
+  showChatBadge();
+  onChatSummaries(showChatBadge);
   $("#edit-class").addEventListener("click", () => openClassModal(classroom));
   $("#view-students").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}/students`),
@@ -255,28 +408,46 @@ export async function renderClass(classId) {
   $("#add-lesson-inline")?.addEventListener("click", add);
   $("#add-lesson-empty")?.addEventListener("click", add);
   if (linkedLessons.length) {
-    paginate({
-      rows: () => [...document.querySelectorAll(".class-lessons__list > .class-lesson")],
-      after: $(".class-lessons__list"),
-      label: ["lesson", "lessons"],
-    });
+    const rows = () => [...document.querySelectorAll(".class-lessons__list > .class-lesson")];
+    const none = $(".class-lessons__none");
+    const showTab = (tab) => {
+      rows().forEach((row) => (row.hidden = tab !== "all" && row.dataset.tab !== tab));
+      document.querySelectorAll("[data-lesson-tab]").forEach((button) => {
+        const active = button.dataset.lessonTab === tab;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+      none.hidden = tabCount[tab] > 0;
+      none.textContent = tab === "closed" ? "No closed lessons." : "No open lessons.";
+    };
+    showTab(activeTab);
+    const pager = paginate({ rows, after: $(".class-lessons__list"), label: ["lesson", "lessons"] });
+    document.querySelectorAll("[data-lesson-tab]").forEach((button) =>
+      button.addEventListener("click", () => {
+        lessonTabByClass.set(classId, button.dataset.lessonTab);
+        showTab(button.dataset.lessonTab);
+        pager.reset();
+      }),
+    );
   }
+  const findLinked = (linkId) => linkedLessons.find(({ link }) => link.id === linkId);
   document.querySelectorAll("[data-unlink]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      if (!confirm("Remove this lesson from the class?")) return;
-      await deleteDoc(
-        doc(db, "classes", classId, "classLessons", b.dataset.unlink),
-      );
-      toast("Lesson removed from class.");
-      renderClass(classId);
+    b.addEventListener("click", () => {
+      const found = findLinked(b.dataset.unlink);
+      if (found) openRemoveLessonModal(classroom, found.lesson, students.length);
     }),
   );
-  const findLinked = (linkId) => linkedLessons.find(({ link }) => link.id === linkId);
   document.querySelectorAll("[data-schedule]").forEach((b) =>
     b.addEventListener("click", () => {
       const found = findLinked(b.dataset.schedule);
       if (found)
         openScheduleModal(classId, found.link, found.lesson, () => renderClass(classId));
+    }),
+  );
+  document.querySelectorAll("[data-extend]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const found = findLinked(b.dataset.extend);
+      if (found) openExtendModal(classId, found.link, found.lesson, () => renderClass(classId));
     }),
   );
   document.querySelectorAll("[data-notify]").forEach((b) =>
@@ -293,6 +464,55 @@ export async function renderClass(classId) {
         toast(`Students were not notified (${err.message}).`);
       }
     }),
+  );
+}
+
+function openRemoveLessonModal(classroom, lesson, studentCount) {
+  const students = `${studentCount} student${studentCount === 1 ? "" : "s"}`;
+  openModal(
+    `<div class="remove-lesson">
+       <span class="remove-lesson__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span>
+       <h2>Remove “${escapeHtml(lesson.title)}”?</h2>
+       <p>It will be taken out of <strong>${escapeHtml(classroom.className)}</strong>${studentCount ? `, and the progress of all ${students} on it will be deleted:` : "."}</p>
+       ${
+         studentCount
+           ? `<ul class="remove-student__list">
+                <li>Lecture, game, activity and quiz completion</li>
+                <li>Scores and answers saved for this lesson</li>
+              </ul>`
+           : ""
+       }
+       <p class="muted">The lesson stays in your library. If you add it back, everyone starts fresh. This can't be undone.</p>
+       <p class="form-error" id="remove-lesson-error" role="alert"></p>
+       <div class="modal-actions">
+         <button type="button" class="button secondary" data-cancel>Keep lesson</button>
+         <button type="button" class="button danger" data-confirm-remove>Remove lesson</button>
+       </div>
+     </div>`,
+    (modal, close) => {
+      $("[data-cancel]", modal).addEventListener("click", close);
+      const confirmButton = $("[data-confirm-remove]", modal);
+      confirmButton.addEventListener("click", async () => {
+        confirmButton.disabled = true;
+        confirmButton.textContent = "Removing…";
+        try {
+          await removeClassLesson(classroom.id, lesson.id);
+          close();
+          notify({
+            tone: "danger",
+            title: "Lesson removed",
+            message: studentCount
+              ? `“${lesson.title}” was taken out of ${classroom.className}. Progress was reset for ${students}.`
+              : `“${lesson.title}” was taken out of ${classroom.className}.`,
+          });
+          await renderClass(classroom.id);
+        } catch (error) {
+          $("#remove-lesson-error", modal).textContent = `Couldn't remove the lesson: ${error.message}.`;
+          confirmButton.disabled = false;
+          confirmButton.textContent = "Remove lesson";
+        }
+      });
+    },
   );
 }
 

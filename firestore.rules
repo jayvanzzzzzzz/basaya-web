@@ -55,11 +55,22 @@ service cloud.firestore {
         !exists(/databases/$(database)/documents/classes/$(before)/students/$(userId));
     }
 
+    // The teacher of the class the signed-in student is on the roster of (the chat's
+    // member list shows the teacher's name; a removed teacher's doc reads as missing).
+    function teachesMyClass(teacherId) {
+      let myClass = get(/databases/$(database)/documents/users/$(request.auth.uid))
+        .data.get('classId', '');
+      return myClass is string && myClass != '' &&
+        exists(/databases/$(database)/documents/classes/$(myClass)/students/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/classes/$(myClass)).data.get('teacherId', '') == teacherId;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (
         request.auth.uid == userId ||
         isAdmin() ||
-        (isTeacher() && teachesClass(resource.data.get('classId', null)))
+        (isTeacher() && teachesClass(resource.data.get('classId', null))) ||
+        ((resource == null || resource.data.get('role', '') == "teacher") && teachesMyClass(userId))
       );
 
       allow create: if signedIn() && (                                                                                                                                            
