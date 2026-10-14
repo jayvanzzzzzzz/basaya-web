@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fil">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="BaSaya para sa mga mag-aaral" />
+    <meta name="theme-color" content="#5b4cf4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="BaSaya" />
+    <title>BaSaya — Mag-aaral</title>
+    <link rel="icon" type="image/png" href="../img/favicon.png?v=1" sizes="128x128" />
+    <link rel="apple-touch-icon" href="../img/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Theme before first paint: the saved choice, else the device's setting (js/theme.js).
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light")
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <!-- Base -->
+    <link rel="stylesheet" href="../css/base/tokens.css" />
+    <link rel="stylesheet" href="../css/base/reset.css" />
+    <link rel="stylesheet" href="../css/base/typography.css" />
+    <link rel="stylesheet" href="../css/base/animations.css" />
+    <!-- Components -->
+    <link rel="stylesheet" href="../css/components/buttons.css" />
+    <link rel="stylesheet" href="../css/components/forms.css" />
+    <link rel="stylesheet" href="../css/components/modal.css" />
+    <link rel="stylesheet" href="../css/components/toast.css" />
+    <link rel="stylesheet" href="../css/components/loading.css" />
+    <link rel="stylesheet" href="../css/components/theme-toggle.css" />
+    <link rel="stylesheet" href="../css/components/site-footer.css" />
+    <link rel="stylesheet" href="../css/components/contact-form.css" />
+    <!-- Student -->
+    <link rel="stylesheet" href="../css/layout/student-shell.css" />
+    <link rel="stylesheet" href="../css/pages/student-home.css" />
+    <link rel="stylesheet" href="../css/pages/student-lesson.css" />
+    <link rel="stylesheet" href="../css/pages/student-progress.css" />
+    <link rel="stylesheet" href="../css/pages/student-account.css" />
+    <link rel="stylesheet" href="../css/pages/student-play.css" />
+    <link rel="stylesheet" href="../css/pages/messages.css" />
+    <link rel="stylesheet" href="../css/pages/student-chat.css" />
+  </head>
+  <body class="st-body">
+    <div id="loading-screen" class="loading-screen loading-screen--dark" role="status" aria-live="polite">
+      <div class="loader-punch"><span></span><span></span><span></span></div>
+      <p>Inihahanda ang iyong mga aralin…</p>
+    </div>
+
+    <div id="app-view" class="st-shell" hidden>
+      <header class="st-topbar">
+        <a class="st-topbar__brand" href="#/home">
+          <img src="../img/logo.png" alt="" />
+          <span>BaSaya</span>
+        </a>
+        <div class="st-topbar__actions">
+          <a class="st-bell" id="st-bell" href="#/notifications" aria-label="Mga abiso">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2.2 2.2 0 0 0 4 0" /></svg>
+            <span class="st-bell__badge" id="st-bell-badge" hidden></span>
+          </a>
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Palitan ang tema">
+            <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+            <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
+          </button>
+          <a class="st-topbar__me" href="#/account" aria-label="Account">
+            <span id="st-first-name" class="st-topbar__name"></span>
+            <span id="st-avatar" class="st-avatar" aria-hidden="true">B</span>
+          </a>
+        </div>
+      </header>
+
+      <main id="page-content" class="st-content" tabindex="-1"></main>
+
+      <nav class="st-nav" aria-label="Pangunahing menu">
+        <a href="#/home" data-nav="home" style="--tab: var(--st-tab-home)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5v-15Z" /><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5" /></svg>
+          <span>Mga Aralin</span>
+        </a>
+        <a href="#/progress" data-nav="progress" style="--tab: var(--st-tab-progress)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10m7 10V4m7 16v-7" /></svg>
+          <span>Progreso</span>
+        </a>
+        <a href="#/chat" data-nav="chat" style="--tab: var(--st-tab-chat)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg>
+          <span>Chat</span>
+        </a>
+        <a href="#/account" data-nav="account" style="--tab: var(--st-tab-profile)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
+          <span>Account</span>
+        </a>
+      </nav>
+    </div>
+
+    <template id="modal-template"
+      ><div class="modal-backdrop">
+        <section class="modal" role="dialog" aria-modal="true">
+          <button class="modal-close" aria-label="Isara">×</button>
+          <div class="modal-content"></div>
+        </section></div
+    ></template>
+    <div id="toast" class="toast" role="status"></div>
+
+    <script type="module">
+      const loading = document.getElementById("loading-screen");
+      const showStartupError = (message) => {
+        if (loading.hidden) return;
+        const paragraph = document.createElement("p");
+        paragraph.style.maxWidth = "30rem";
+        const heading = document.createElement("strong");
+        heading.textContent = "Hindi mabuksan ang BaSaya.";
+        paragraph.append(
+          heading,
+          document.createElement("br"),
+          document.createElement("br"),
+          String(message),
+        );
+        loading.replaceChildren(paragraph);
+      };
+      const startupTimeout = setTimeout(
+        () => showStartupError("Matagal sumagot ang server. Tingnan ang iyong internet, saka i-reload ang page."),
+        12000,
+      );
+      window.addEventListener("pagehide", () => clearTimeout(startupTimeout), { once: true });
+      import("./app.js").catch((error) => {
+        console.error("Student portal startup failed:", error);
+        showStartupError(error.message || "Hindi ma-load ang Firebase.");
+      });
+    </script>
+    <script type="module" src="../js/theme.js"></script>
+    <script type="module" src="../js/site-info.js"></script>
+  </body>
+</html>

@@ -28,7 +28,8 @@ const PANELS = {
     <p>
       BaSaya is a Tagalog learning platform for Filipino classrooms. Teachers create
       classes, assign lessons and game levels, and follow each student's progress here on
-      the web. Students learn, practice, and play through the BaSaya Android app.
+      the web. Students learn, practice, and play in the BaSaya Android app or on this
+      website, with the same account.
     </p>
     <div class="site-info__school">
       <p class="site-info__meta">A Capstone Project · ${PROGRAM}</p>

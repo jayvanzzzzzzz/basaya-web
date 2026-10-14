@@ -1,0 +1,70 @@
+/* ============================================================
+   REGISTER — register.html (js/register.js)
+   Student sign-up; the card layout comes from reset-password.css.
+   ============================================================ */
+.register-card {
+  width: min(100%, 30rem);
+}
+
+@media (max-width: 420px) {
+  .register-card {
+    padding: 1.75rem 1.1rem 1.4rem;
+  }
+}
+
+.register-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.register-step {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.register-step legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.35rem;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.register-step legend span {
+  display: inline-grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.register-step small {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.register-form .form-error:empty {
+  display: none;
+}
+
+.register-login {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.register-login a {
+  color: var(--primary);
+  font-weight: 700;
+}

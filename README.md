@@ -10,6 +10,31 @@ A no-build teacher web app using Firebase Authentication and Cloud Firestore. It
 4. Deploy `firestore.rules` using the Firebase console or `firebase deploy --only firestore:rules`.
 5. Host these static files (Firebase Hosting, Netlify, GitHub Pages, or any web server). Do not open `index.html` directly from disk because browser modules/Firebase authentication need an HTTP(S) origin.
 
+## Student website (`student/`)
+
+Students who can't install the Android app (e.g. on an iPhone) sign in on the same login page and land on `student/`. **Create a student account** on the login page opens `register.html`, which makes the same `users/{uid}` profile as the app (`role: "student"`).
+
+It reads and writes the same Firestore fields as the app, so a student can switch between the two and the teacher's reports don't change:
+
+| Screen | Same as the app's | Writes |
+|---|---|---|
+| Mga Aralin (`#/home`) | `HomeFragment` | — |
+| Sumali sa Klase (`#/join`) | `JoinClassActivity` | roster entry + `users/{uid}.classId/className` in one batch |
+| Lesson path (`#/lesson/{id}`) | `DashboardActivity` | — |
+| Lecture | `LectureActivity` | `lectureFinished` |
+| Laro (crossword) | `CrosswordActivity` | `game*` fields + `skills.talasalitaan` (added up per level) |
+| Gawain | `PracticeActivity` | `activity*` fields + `skills.pagkilala` |
+| Bigkas | `PronunciationActivity` | `pronunciation*` fields + `skills.pagbigkas` (with `hardWords`) |
+| Pagsusulit | `QuizActivity` | `quiz*` fields + `skills.pagsusulit` |
+| Progreso (`#/progress`) | `ProgressFragment` | `users/{uid}.skillSummary` |
+| Chat (`#/chat`) | `ChatFragment` | `messages`, `chatSenders`, `chat/state` (same rules as the app) |
+| Mga Abiso (`#/notifications`) | `NotificationsActivity` | `users/{uid}.notifReadAt` |
+| Account (`#/account`) | `ProfileFragment` | name, gender, birthday, leave request |
+
+Lessons work online only (no download), and there are no push notifications: the 🔔 shows new lessons and deadline reminders when the site is open.
+
+**Bigkas** records the student in the browser (16 kHz WAV, like the app) and sends it to the `basaya-stt` Worker with the student's Firebase sign-in token. The Worker accepts that only from the sites in its `ALLOWED_ORIGIN` (see `C:\Projects\BaSaya\cloudflare\basaya-stt\README.md`), so add every site this portal is hosted on there. If the Worker is busy or out of its free daily limit, the page falls back to the browser's own speech recognition when it has one.
+
 ## Lesson schedule and notifications
 
 When adding lessons to a class, a teacher can set an optional **open date** and **deadline**. Students can't open a lesson before it opens, and an unfinished lesson locks after its deadline. The Firestore rules enforce both with server time, so changing the phone's clock doesn't help. Adding a lesson sends a push notification to the class through `notify-api/`, which runs on Vercel (see `notify-api/README.md`).

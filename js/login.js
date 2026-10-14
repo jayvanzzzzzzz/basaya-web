@@ -106,6 +106,7 @@ function setSigningIn(active) {
 const ROLE_DESTINATIONS = {
   teacher: "teacher/index.html",
   admin: "admin/index.html",
+  student: "student/index.html",
 };
 
 loginForm.addEventListener("submit", async (event) => {

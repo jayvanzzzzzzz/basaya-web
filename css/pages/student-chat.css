@@ -1,0 +1,71 @@
+/* ============================================================
+   STUDENT — Chat ng klase
+   The chat itself uses css/pages/messages.css (the teacher's chat); this file
+   only fits it into the student page column and the phone screen.
+   ============================================================ */
+.st-shell.is-chat .st-content {
+  padding-bottom: calc(var(--st-nav-height) + var(--st-safe-bottom) + 0.75rem);
+}
+
+.st-chat {
+  display: flex;
+  height: calc(100vh - 4rem - var(--st-nav-height) - var(--st-safe-bottom) - 2rem);
+  height: calc(100dvh - 4rem - var(--st-nav-height) - var(--st-safe-bottom) - 2rem);
+  min-height: 22rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--lip);
+}
+
+@media (min-width: 46rem) {
+  .st-chat {
+    height: calc(100dvh - 4rem - var(--st-nav-height) - 3rem);
+  }
+}
+
+.st-chat .chat {
+  flex: 1;
+}
+
+.st-chat svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.st-chat .chat-msg {
+  max-width: 88%;
+}
+
+/* Touch screens have no hover: show the delete button on the student's own messages. */
+.st-chat .chat-msg__remove {
+  opacity: 1;
+}
+
+.st-chat .chat-composer.is-closed {
+  opacity: 0.6;
+}
+
+/* Right after sending: the box is locked and counts down ("Maghintay lamang ng 5 segundo…"). */
+.st-chat .chat-composer textarea:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+  background: var(--surface-3);
+}
+
+.st-chat .chat-composer.is-cooling textarea::placeholder {
+  color: var(--primary);
+  font-weight: 650;
+  opacity: 1;
+}
+
+/* "Dela Cruz, Juan · GURO" */
+.st-chat__role {
+  color: var(--primary);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}

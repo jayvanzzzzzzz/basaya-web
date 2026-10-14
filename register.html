@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fil">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Gumawa ng BaSaya account para sa mag-aaral" />
+    <title>BaSaya — Gumawa ng account</title>
+    <link rel="icon" type="image/png" href="img/favicon.png?v=1" sizes="128x128" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Theme before first paint: the saved choice, else the device's setting (js/theme.js).
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light")
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <!-- Base -->
+    <link rel="stylesheet" href="css/base/tokens.css" />
+    <link rel="stylesheet" href="css/base/reset.css" />
+    <link rel="stylesheet" href="css/base/typography.css" />
+    <link rel="stylesheet" href="css/base/animations.css" />
+    <!-- Components -->
+    <link rel="stylesheet" href="css/components/buttons.css" />
+    <link rel="stylesheet" href="css/components/forms.css" />
+    <link rel="stylesheet" href="css/components/theme-toggle.css" />
+    <link rel="stylesheet" href="css/components/site-footer.css" />
+    <link rel="stylesheet" href="css/components/contact-form.css" />
+    <!-- Page (shares the reset-password card layout) -->
+    <link rel="stylesheet" href="css/pages/reset-password.css" />
+    <link rel="stylesheet" href="css/pages/register.css" />
+  </head>
+  <body>
+    <main class="reset-page">
+      <button class="theme-toggle theme-toggle--floating" type="button" data-theme-toggle aria-label="Palitan ang tema">
+        <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+        <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
+      </button>
+
+      <a class="reset-brand" href="index.html">
+        <img src="img/logo.png" alt="" />
+        BaSaya
+      </a>
+
+      <section class="reset-card register-card">
+        <form id="register-form" class="register-form" novalidate>
+          <div class="reset-heading">
+            <h1>Sumali sa BaSaya!</h1>
+            <p>Ilang hakbang na lang, magsisimula na ang iyong pagbabasa.</p>
+          </div>
+
+          <fieldset class="register-step">
+            <legend><span>1</span> Ang iyong pangalan</legend>
+            <label>First name
+              <input id="first-name" name="firstName" autocomplete="given-name" maxlength="60" required />
+            </label>
+            <span class="form-error" data-error="firstName"></span>
+            <label>Middle name <small>Opsyonal</small>
+              <input id="middle-name" name="middleName" autocomplete="additional-name" maxlength="60" />
+            </label>
+            <label>Last name
+              <input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required />
+            </label>
+            <span class="form-error" data-error="lastName"></span>
+          </fieldset>
+
+          <fieldset class="register-step">
+            <legend><span>2</span> Ang iyong account</legend>
+            <label>Email
+              <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@email.com" />
+            </label>
+            <span class="form-error" data-error="email"></span>
+            <label>Password
+              <span class="reset-password">
+                <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Hindi bababa sa 8 karakter" />
+                <button type="button" class="reset-reveal" data-reveal="password" aria-label="Ipakita ang password">
+                  <svg class="reset-reveal__show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="reset-reveal__hide" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M10.6 6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.8 3.5M6.6 7.6C3.9 9.4 2.5 12 2.5 12S6 18.5 12 18.5c1.7 0 3.2-.5 4.4-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+                </button>
+              </span>
+            </label>
+            <span class="form-error" data-error="password"></span>
+          </fieldset>
+
+          <p class="form-error" id="register-error" role="alert"></p>
+          <button class="button primary reset-submit" type="submit" id="register-submit">Gumawa ng account</button>
+          <p class="register-login">May account na? <a href="index.html">Mag-login</a></p>
+        </form>
+      </section>
+
+      <footer class="site-footer site-footer--auth reset-footer">
+        <p>© 2026 BaSaya · A Capstone Project, BS Information Technology</p>
+        <p>Eastwoods Professional College of Science and Technology</p>
+        <nav class="site-footer__links" aria-label="Site information">
+          <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
+          <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
+          <button type="button" data-site-info="contact" aria-haspopup="dialog">Contact</button>
+        </nav>
+      </footer>
+    </main>
+
+    <script type="module" src="js/register.js"></script>
+    <script type="module" src="js/theme.js"></script>
+    <script type="module" src="js/site-info.js"></script>
+  </body>
+</html>

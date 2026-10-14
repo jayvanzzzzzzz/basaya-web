@@ -1,0 +1,250 @@
+/* ============================================================
+   STUDENT — Aking Progreso (five skill cards)
+   ============================================================ */
+.st-progress__title h1 {
+  margin: 0.25rem 0 0;
+  font-size: 1.5rem;
+}
+
+.st-progress__title p {
+  margin: 0.2rem 0 1rem;
+  color: var(--ink-2);
+}
+
+.st-progress-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, #ffe08a 0%, #ffb86b 100%);
+  box-shadow: 0 5px 0 #e89a4c;
+  color: #3a2300;
+}
+
+:root[data-theme="dark"] .st-progress-hero {
+  background: linear-gradient(180deg, #5c4a1e 0%, #6a4322 100%);
+  box-shadow: 0 5px 0 #2e2010;
+  color: #fbe9c8;
+}
+
+.st-progress-hero__buddy {
+  width: 3.75rem;
+  height: 3.75rem;
+}
+
+.st-progress-hero__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.st-progress-hero h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 1.15rem;
+}
+
+.st-progress-hero p {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Lessons-finished ring */
+.st-ring {
+  --size: 5.25rem;
+  position: relative;
+  display: grid;
+  width: var(--size);
+  height: var(--size);
+  flex: 0 0 auto;
+  align-content: center;
+  justify-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.92) 76%, transparent 78%),
+    conic-gradient(#24994a calc(var(--value) * 1%), rgba(255, 255, 255, 0.45) 0);
+  color: #1f2547;
+  text-align: center;
+}
+
+:root[data-theme="dark"] .st-ring {
+  background:
+    radial-gradient(closest-side, #2a2418 76%, transparent 78%),
+    conic-gradient(#6cc791 calc(var(--value) * 1%), rgba(255, 255, 255, 0.15) 0);
+  color: #fbe9c8;
+}
+
+.st-ring strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.st-ring small {
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.st-skills {
+  display: grid;
+  gap: 0.9rem;
+}
+
+@media (min-width: 40rem) {
+  .st-skills {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.st-skill {
+  --tone: var(--st-unawa);
+  --tone-tint: var(--st-unawa-tint);
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--lip);
+  animation: stRise 380ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 90ms);
+}
+
+.st-skill--talasalitaan { --tone: var(--st-talasalitaan); --tone-tint: var(--st-talasalitaan-tint); }
+.st-skill--pagkilala { --tone: var(--st-pagkilala); --tone-tint: var(--st-pagkilala-tint); }
+.st-skill--pagbigkas { --tone: var(--st-pagbigkas); --tone-tint: var(--st-pagbigkas-tint); }
+.st-skill--pagsusulit { --tone: var(--st-pagsusulit); --tone-tint: var(--st-pagsusulit-tint); }
+
+.st-skill__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.st-skill__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--tone-tint);
+  color: var(--tone);
+}
+
+.st-skill__icon svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.st-skill__name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.st-skill__name strong {
+  font-family: var(--font-display);
+}
+
+.st-skill__name small {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.st-skill__percent {
+  color: var(--tone);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.st-skill__percent.is-empty {
+  color: var(--ink-3);
+}
+
+.st-skill__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.st-skill__row .st-stars {
+  margin-left: auto;
+}
+
+.st-skill__bar > i {
+  background: var(--tone);
+}
+
+.st-skill__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.st-skill__foot p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.88rem;
+}
+
+/* Mini chart: one bar per lesson (latest 6), newest in full color */
+.st-minibars {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  gap: 3px;
+  height: 1.75rem;
+}
+
+.st-minibars i {
+  width: 7px;
+  border-radius: 3px;
+  background: var(--tone);
+  opacity: 0.45;
+  transform-origin: bottom;
+  animation: stGrow 320ms var(--ease-spring) both;
+}
+
+.st-minibars i.is-latest {
+  opacity: 1;
+}
+
+@keyframes stGrow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.st-words {
+  margin-top: 1.25rem;
+  padding: 1.1rem;
+}
+
+.st-words h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.st-words p {
+  margin: 0.2rem 0 0.75rem;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+}
+
+.st-words__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.st-words__list span {
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--st-pagbigkas-tint);
+  color: var(--st-pagbigkas);
+  font-weight: 700;
+}

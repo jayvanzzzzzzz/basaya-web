@@ -1,0 +1,653 @@
+/* ============================================================
+   STUDENT — Bigkas (pronunciation), Laro (crossword), Mga Abiso
+   ============================================================ */
+
+/* ---------- Bigkas ---------- */
+.st-pron {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.st-pron .st-focus-bar {
+  margin-bottom: 0;
+}
+
+.st-pron__bar {
+  flex: 1;
+  height: 0.75rem;
+}
+
+.st-pron__bar > i {
+  background: linear-gradient(90deg, #f25c54, #ff8a5b);
+}
+
+.st-lives {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--st-pagbigkas-tint);
+  color: var(--st-pagbigkas);
+  font-weight: 800;
+}
+
+.st-lives svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: currentColor;
+  stroke: none;
+}
+
+.st-pron__instruction {
+  margin: 0;
+  color: var(--ink-2);
+  font-weight: 650;
+  text-align: center;
+}
+
+.st-pron__stage {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.st-pron__buddy {
+  width: 4.75rem;
+  height: 4.75rem;
+}
+
+.st-pron__word {
+  position: relative;
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 1.25rem 3.25rem 1.25rem 1rem;
+  border-radius: var(--radius-xl);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.st-pron__word--in {
+  animation: stRise 360ms var(--ease-spring) both;
+}
+
+.st-pron__word.is-correct {
+  transform: scale(1.06);
+}
+
+.st-pron__count {
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.st-pron__word strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 9vw, 2.6rem);
+  line-height: 1.15;
+  text-align: center;
+}
+
+.st-pron__speaker {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--st-pagbigkas);
+}
+
+.st-pron__speaker:active {
+  transform: translateY(calc(-50% + 2px));
+}
+
+.st-pron__note {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  animation: stRise 300ms var(--ease-spring) both;
+}
+
+.st-pron__note[hidden] {
+  display: none;
+}
+
+.st-pron__note span[hidden] {
+  display: none;
+}
+
+.st-pron__note--success { background: var(--success-soft); color: var(--success); }
+.st-pron__note--cheer { background: var(--warning-soft); color: var(--warning); }
+.st-pron__note--info { background: var(--info-soft); color: var(--info); }
+
+.st-pron__note span {
+  color: inherit;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Mic with two ripples that grow with the student's voice (--level 0..1) */
+.st-pron__mic-area {
+  --level: 0;
+  position: relative;
+  display: grid;
+  width: 9rem;
+  height: 9rem;
+  margin: auto auto 0;
+  place-items: center;
+}
+
+.st-pron__ring {
+  position: absolute;
+  inset: 1.25rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--st-pagbigkas) 30%, transparent);
+  opacity: 0;
+}
+
+.st-pron__mic-area.is-listening .st-pron__ring {
+  animation: stRipple 1.4s linear infinite;
+}
+
+.st-pron__mic-area.is-listening .st-pron__ring--two {
+  animation-delay: 0.7s;
+}
+
+@keyframes stRipple {
+  from { opacity: calc(0.45 + var(--level) * 0.55); transform: scale(1); }
+  to { opacity: 0; transform: scale(calc(1.6 + var(--level) * 0.9)); }
+}
+
+.st-pron__mic {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 6.5rem;
+  height: 6.5rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #ff7a6b, #e5503e);
+  box-shadow:
+    0 6px 0 #b8392b,
+    0 18px 30px -12px rgba(229, 80, 62, 0.6);
+  color: #fff;
+  transform: scale(calc(1 + var(--level) * 0.1));
+  transition: transform 120ms linear;
+}
+
+.st-pron__mic:active:not(:disabled) {
+  box-shadow: 0 2px 0 #b8392b;
+  transform: translateY(4px);
+}
+
+.st-pron__mic:disabled {
+  opacity: 0.7;
+}
+
+.st-pron__mic svg {
+  width: 2.6rem;
+  height: 2.6rem;
+  stroke-width: 2.2;
+}
+
+.st-pron__spinner {
+  position: absolute;
+  inset: -0.4rem;
+  border: 4px solid transparent;
+  border-top-color: var(--st-pagbigkas);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.st-pron__mic-area.is-thinking .st-pron__spinner {
+  opacity: 1;
+  animation: stSpin 0.8s linear infinite;
+}
+
+.st-pron__hint {
+  margin: 0;
+  color: var(--ink-2);
+  font-weight: 650;
+  text-align: center;
+}
+
+/* ---------- Laro (sky, sun and clouds like the app) ---------- */
+body:has(.st-game),
+body:has(.st-focus-loading--sky) {
+  background: linear-gradient(180deg, #8fd3ff 0%, #c9ecff 55%, #fff5d6 100%);
+  background-attachment: fixed;
+}
+
+:root[data-theme="dark"] body:has(.st-game),
+:root[data-theme="dark"] body:has(.st-focus-loading--sky) {
+  background: linear-gradient(180deg, #16244a 0%, #1f2f5c 60%, #2b2f55 100%);
+}
+
+.st-game {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.st-game__sun {
+  position: fixed;
+  top: -2.5rem;
+  right: -2.5rem;
+  z-index: -1;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe36b 45%, rgba(255, 227, 107, 0.35) 46%, transparent 70%);
+  animation: stSpin 40s linear infinite;
+}
+
+.st-game__cloud {
+  position: fixed;
+  z-index: -1;
+  width: 7rem;
+  height: 2.2rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow:
+    1.6rem -0.9rem 0 0.2rem rgba(255, 255, 255, 0.75),
+    3.4rem 0 0 -0.2rem rgba(255, 255, 255, 0.75);
+  animation: stDrift 8s var(--ease-in-out) infinite alternate;
+}
+
+.st-game__cloud--one { top: 5.5rem; left: 8%; }
+.st-game__cloud--two { top: 11rem; right: 18%; transform: scale(0.75); animation-duration: 10s; animation-direction: alternate-reverse; }
+
+:root[data-theme="dark"] .st-game__cloud {
+  opacity: 0.12;
+}
+
+/* Night sky: the sun becomes a soft moon. */
+:root[data-theme="dark"] .st-game__sun {
+  background: radial-gradient(circle, #e8e4c8 45%, rgba(232, 228, 200, 0.18) 46%, transparent 70%);
+  opacity: 0.55;
+}
+
+.st-game__progress {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes stDrift {
+  from { translate: 0 0; }
+  to { translate: 2.5rem 0; }
+}
+
+.st-game__bar {
+  margin-bottom: 0;
+}
+
+.st-game__level {
+  flex: 1;
+  color: #1f3a7a;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+:root[data-theme="dark"] .st-game__level {
+  color: #e8eeff;
+}
+
+.st-game__progress {
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  box-shadow: 0 3px 0 #c5d3e6;
+  color: #1f2547;
+  font-weight: 800;
+}
+
+.st-game__progress.is-bump {
+  animation: stStarPop 380ms var(--ease-spring);
+}
+
+.st-game__board {
+  display: grid;
+  flex: 1;
+  min-height: 9rem;
+  place-items: center;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.st-game__grid {
+  --cell: 40px;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), var(--cell));
+  grid-template-rows: repeat(var(--rows), var(--cell));
+  gap: 4px;
+}
+
+/* Candy tiles: empty = white with a blue lip, found = the word's color */
+.st-cell {
+  --fill: #ffffff;
+  --lip-color: #c5d3e6;
+  display: grid;
+  width: var(--cell);
+  height: var(--cell);
+  place-items: center;
+  padding-bottom: calc(var(--cell) * 0.09);
+  border-radius: calc(var(--cell) * 0.22);
+  background: var(--fill);
+  box-shadow: inset 0 calc(var(--cell) * -0.09) 0 var(--lip-color);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: calc(var(--cell) * 0.5);
+  font-weight: 800;
+  line-height: 1;
+  animation: stTileIn 320ms var(--ease-spring) both;
+  animation-delay: calc(var(--i) * 28ms);
+}
+
+.st-cell.is-pop {
+  animation: stStarPop 300ms var(--ease-spring);
+}
+
+.st-cell.is-cheer {
+  animation: stHop 0.9s var(--ease-spring) 2;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+.st-game__preview-row {
+  display: grid;
+  min-height: 2.75rem;
+  place-items: center;
+}
+
+.st-game__preview {
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  box-shadow: 0 3px 0 #c5d3e6;
+  color: #1f2547;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity 140ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.st-game__preview.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.st-game__preview.is-success {
+  background: #dff5e5;
+  box-shadow: 0 3px 0 #9bd8ad;
+  color: #1e8a44;
+  transform: translateY(-0.6rem) scale(1.15);
+}
+
+.st-game__preview.is-error {
+  background: #ffe4e1;
+  box-shadow: 0 3px 0 #f2a59d;
+  color: #c0392b;
+  animation: stShake 420ms var(--ease-out);
+}
+
+.st-game__wheel-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding-bottom: 0.25rem;
+}
+
+.st-game__wheel {
+  position: relative;
+  width: min(74vw, 18.5rem, 38vh);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 6px 0 rgba(31, 58, 122, 0.18),
+    0 20px 40px -18px rgba(31, 58, 122, 0.45);
+  touch-action: none;
+  cursor: pointer;
+}
+
+:root[data-theme="dark"] .st-game__wheel {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.st-game__line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.st-game__line polyline {
+  fill: none;
+  stroke: #ff8a5b;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 9;
+  opacity: 0.85;
+}
+
+.st-wheel-letter {
+  --size: 52px;
+  position: absolute;
+  display: grid;
+  width: var(--size);
+  height: var(--size);
+  place-items: center;
+  padding-bottom: 4px;
+  border-radius: 50%;
+  color: #1f3a7a;
+  font-family: var(--font-display);
+  font-size: calc(var(--size) * 0.52);
+  font-weight: 800;
+  pointer-events: none;
+  animation: stStarPop 360ms var(--ease-spring) both;
+  animation-delay: calc(250ms + var(--i) * 60ms);
+  transition:
+    transform 120ms var(--ease-out),
+    background-color 120ms var(--ease-out),
+    color 120ms var(--ease-out);
+}
+
+:root[data-theme="dark"] .st-wheel-letter {
+  color: #e8eeff;
+}
+
+.st-wheel-letter.is-selected {
+  background: linear-gradient(160deg, #ff9a6b, #f2784b);
+  color: #fff;
+  transform: scale(1.12);
+}
+
+.st-game__wheel.is-shuffling .st-wheel-letter {
+  opacity: 0;
+  transform: scale(0.55);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.st-game__shuffle {
+  position: absolute;
+  right: 0;
+  bottom: 0.25rem;
+}
+
+.st-game__shuffle.is-spinning-once svg {
+  animation: stSpin 0.5s var(--ease-in-out);
+}
+
+.st-level-done__bar {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.st-level-done .button.secondary {
+  max-width: 22rem;
+}
+
+/* ---------- Home: a lesson opened from a notification glows ---------- */
+.st-lesson.is-glow {
+  animation: stGlow 0.85s var(--ease-in-out) 3;
+}
+
+@keyframes stGlow {
+  0%, 100% { box-shadow: var(--lip), 0 0 0 3px var(--gold); transform: scale(1); }
+  50% { box-shadow: var(--lip), 0 0 0 3px var(--brand-violet); transform: scale(1.03); }
+}
+
+/* ---------- Mga Abiso ---------- */
+.st-notifs {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.st-hero--notifs {
+  align-items: center;
+}
+
+.st-hero--notifs h1 {
+  font-size: 1.15rem;
+}
+
+.st-notifs__buddy {
+  width: 4rem;
+  height: 4rem;
+}
+
+.st-notifs__section {
+  margin: 0.75rem 0 0.25rem;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.st-notifs__list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-notifs__list > li {
+  animation: stRise 320ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i), 10) * 45ms);
+}
+
+.st-notif {
+  --tone: var(--st-pagsusulit);
+  --tone-tint: var(--st-pagsusulit-tint);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--lip);
+  color: var(--ink);
+  text-align: left;
+}
+
+.st-notif.is-unread {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: var(--primary-softer);
+}
+
+.st-notif--day { --tone: var(--st-pagkilala); --tone-tint: var(--st-pagkilala-tint); }
+.st-notif--hour { --tone: var(--st-pagbigkas); --tone-tint: var(--st-pagbigkas-tint); }
+.st-notif--closed { --tone: var(--ink-3); --tone-tint: var(--surface-3); }
+
+.st-notif__icon {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--tone-tint);
+  color: var(--tone);
+}
+
+.st-notif__icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.st-notif__text {
+  display: grid;
+  flex: 1;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.st-notif__text span {
+  color: var(--ink-2);
+  font-size: 0.88rem;
+}
+
+.st-notif__when {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  font-size: 0.75rem;
+}
+
+.st-notif__when b {
+  color: var(--tone);
+}
+
+.st-notif__when small {
+  color: var(--ink-3);
+}
+
+.st-notif__dot {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-game__sun,
+  .st-game__cloud,
+  .st-cell,
+  .st-wheel-letter,
+  .st-pron__ring,
+  .st-lesson.is-glow {
+    animation: none !important;
+  }
+}

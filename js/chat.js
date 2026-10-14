@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -16,7 +17,7 @@ import { db } from "./firebase.js";
 import { postToApi } from "./api.js";
 
 // Class chat: one group chat per class (classes/{classId}/messages), shared by the
-// teacher (this site) and the class's students (the Android app). Rules: firestore.rules
+// teacher (teacher/) and the class's students (student/ and the Android app). Rules: firestore.rules
 // ("Class chat"). Reads are kept low: only the latest PAGE messages are live, older ones
 // load on request, and unread badges come from chat/state (one small doc per class).
 
@@ -109,6 +110,73 @@ export async function sendTeacherMessage(classId, text, senderId, senderName) {
     console.warn("Chat push not sent", error),
   );
 }
+
+// ---------- Students (student/ on this site, ClassChat.kt in the app) ----------
+
+export const STUDENT_COOLDOWN_MS = 5_000;
+export const DELETE_WINDOW_MS = 5 * 60_000;
+
+/** The student's name as the class roster has it (the rules check messages against it). */
+export async function rosterName(classId, uid) {
+  const snap = await getDoc(doc(db, "classes", classId, "students", uid));
+  return snap.get("fullName") || "";
+}
+
+/**
+ * A student sends with one batch: the message, their last-send time (for the 5-second
+ * limit) and the class's summary. Throws if the rules refuse it (too fast, chat closed).
+ */
+export async function sendStudentMessage(classId, uid, name, text) {
+  const body = text.trim();
+  if (!body || body.length > STUDENT_MAX) return;
+  const batch = writeBatch(db);
+  batch.set(doc(messagesOf(classId)), {
+    text: body,
+    senderId: uid,
+    senderName: name,
+    role: "student",
+    sentAt: serverTimestamp(),
+  });
+  batch.set(doc(db, "classes", classId, "chatSenders", uid), { lastSentAt: serverTimestamp() });
+  batch.set(
+    stateOf(classId),
+    { lastAt: serverTimestamp(), lastText: body.slice(0, 120), lastSenderName: name, lastRole: "student" },
+    { merge: true },
+  );
+  await batch.commit();
+}
+
+// Filipino surname prefixes that belong to the surname: "Juan Dela Cruz" → "Dela Cruz, Juan".
+const SURNAME_PARTICLES = new Set(["de", "del", "dela", "delos", "la", "las", "los", "san", "santa", "sta", "sto", "santo", "di", "da", "dos", "van", "von"]);
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv"]);
+// "Gng. Santos" reads wrong reordered, so names that start with a title stay as written.
+const NAME_TITLES = new Set(["gng", "g", "bb", "mr", "mrs", "ms", "dr", "sir", "maam", "ma'am", "teacher"]);
+
+/**
+ * A teacher's name as "Last, First" (students are already saved that way). Teachers only
+ * have one display name ("Juan Dela Cruz"), so it is reordered when shown; names that
+ * already have a comma, or are one word, stay as they are. Same as ClassChat.kt in the app.
+ */
+export function lastFirst(name = "") {
+  const clean = name.trim().replace(/\s+/g, " ");
+  if (!clean || clean.includes(",")) return clean;
+  const words = clean.split(" ");
+  const key = (word) => word.toLowerCase().replace(/\./g, "");
+  if (NAME_TITLES.has(key(words[0]))) return clean;
+  const suffix = words.length > 2 && NAME_SUFFIXES.has(key(words.at(-1))) ? words.pop() : "";
+  if (words.length < 2) return clean;
+  let start = words.length - 1;
+  while (start > 1 && SURNAME_PARTICLES.has(key(words[start - 1]))) start -= 1;
+  const first = [...words.slice(0, start), suffix].filter(Boolean).join(" ");
+  return `${words.slice(start).join(" ")}, ${first}`;
+}
+
+/** A student can delete their own message within 5 minutes; it stays in place as "deleted". */
+export const canDeleteOwn = (message, uid, now = Date.now()) =>
+  !message.deleted && !message.pending && message.senderId === uid && now - message.sentAt < DELETE_WINDOW_MS;
+
+export const deleteOwnMessage = (classId, messageId) =>
+  updateDoc(doc(messagesOf(classId), messageId), { text: "", deleted: true, deletedBy: "sender" });
 
 /** The teacher removes any message; it stays in place as "removed". */
 export const removeMessage = (classId, messageId) =>

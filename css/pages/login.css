@@ -630,6 +630,18 @@
   animation: fadeIn 900ms var(--ease-out) 400ms backwards;
 }
 
+.auth-register {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.auth-register a {
+  color: var(--primary);
+  font-weight: 700;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .auth-shell {
