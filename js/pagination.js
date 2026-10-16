@@ -81,8 +81,8 @@ export function paginate({
       }
     });
 
-    // One short page needs no controls.
-    nav.hidden = total <= pageSizes[0];
+    // Always shown, even for a single page; an empty list has its own empty-state row instead.
+    nav.hidden = total === 0;
     if (nav.hidden) return;
 
     const noun = total === 1 ? label[0] : label[1];

@@ -1,3 +1,5 @@
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "../../js/firebase.js";
 import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
 import { SKILLS } from "../../js/scoring.js";
 import {
@@ -29,6 +31,35 @@ const STATUS = {
   "before-joining": ["before", "Closed before joining"],
 };
 
+// The student app saves gender in Filipino; the teacher portal is in English.
+const GENDERS = { Lalaki: "Male", Babae: "Female", "Ayokong sabihin": "Prefer not to say" };
+
+const notSet = (label) => `${label} <em class="progress-identity__empty">not set</em>`;
+
+/** "2016-10-12" → "Oct 12, 2016 (9 yrs old)". */
+function formatBirthdate(dob = "") {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+  if (!match) return null;
+  const [year, month, day] = match.slice(1).map(Number);
+  const born = new Date(year, month - 1, day);
+  const today = new Date();
+  const hadBirthday =
+    today.getMonth() > born.getMonth() ||
+    (today.getMonth() === born.getMonth() && today.getDate() >= born.getDate());
+  const age = today.getFullYear() - year - (hadBirthday ? 0 : 1);
+  const date = born.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return age >= 0 ? `${date} (${age} ${age === 1 ? "yr" : "yrs"} old)` : date;
+}
+
+function personalDetails(profile) {
+  const gender = GENDERS[profile?.gender] || profile?.gender;
+  const birthdate = formatBirthdate(profile?.dob);
+  return [
+    gender ? `<strong>${escapeHtml(gender)}</strong>` : notSet("Gender"),
+    birthdate ? `Born <strong>${escapeHtml(birthdate)}</strong>` : notSet("Birthdate"),
+  ].join(" · ");
+}
+
 /** #/classes/{classId}/students/{studentId} — one student's progress, with remarks. */
 export async function renderStudentProgress(classId, studentId) {
   const context = await loadClassContext(classId);
@@ -37,7 +68,12 @@ export async function renderStudentProgress(classId, studentId) {
   const student = context.students.find((item) => item.id === studentId);
   if (!student) return navigate(`/classes/${encodeURIComponent(classId)}/students`);
 
-  const progress = await loadStudentProgress(studentId, lessons, student.joinedAt);
+  const [progress, profile] = await Promise.all([
+    loadStudentProgress(studentId, lessons, student.joinedAt),
+    getDoc(doc(db, "users", studentId))
+      .then((snap) => snap.data() || null)
+      .catch(() => null),
+  ]);
   const joined = student.joinedAt?.toDate?.().toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -142,6 +178,7 @@ export async function renderStudentProgress(classId, studentId) {
           <div>
             <h2>${escapeHtml(student.name)}</h2>
             <p>Last active · <strong>${escapeHtml(relativeTime(progress.lastActive))}</strong></p>
+            <p class="progress-identity__details">${personalDetails(profile)}</p>
           </div>
         </article>
         <article class="progress-stat">

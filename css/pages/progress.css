@@ -246,6 +246,14 @@
   color: var(--ink-2);
 }
 
+.progress-identity p.progress-identity__details {
+  margin-top: 0.2rem;
+}
+
+.progress-identity__empty {
+  font-style: italic;
+}
+
 .progress-stat > div {
   display: grid;
   gap: 0.15rem;

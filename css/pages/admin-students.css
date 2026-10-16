@@ -6,6 +6,68 @@
   min-width: 760px;
 }
 
+/* Class ribbons: All students, each class, No class yet (same look as the lecture page ribbons) */
+.student-ribbons {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.2rem 0 0.35rem;
+  scrollbar-width: thin;
+}
+
+.student-ribbon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.student-ribbon:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.student-ribbon[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 2px 0 var(--primary-lip);
+}
+
+.student-ribbon__label {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-ribbon__count {
+  min-width: 1.6rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.student-ribbon[aria-pressed="true"] .student-ribbon__count {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+
 /* "Password set": the new sign-in details, shown once */
 .temp-password {
   display: grid;

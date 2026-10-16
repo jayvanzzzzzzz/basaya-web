@@ -17,7 +17,17 @@ import { MIN_LENGTH } from "../../js/password-rules.js";
 // for a student whose email is fake or mistyped (they can't get the link).
 // Reuses the teacher table's look (css/components/tables.css, menus.css).
 
-const studentName = (student) => student.displayName || student.email || "this student";
+// Students sign up with firstName / middleName / lastName (app and register.html); the app's
+// profile editor also saves fullName as "Last, First". Only teachers have displayName.
+const fullNameOf = (student) =>
+  [student.firstName, student.middleName, student.lastName]
+    .map((part) => (part || "").trim())
+    .filter(Boolean)
+    .join(" ") ||
+  (student.fullName || "").trim().replace(/^,\s*|,\s*$/g, "") ||
+  (student.displayName || "").trim();
+
+const studentName = (student) => fullNameOf(student) || student.email || "this student";
 
 function closeStudentMenus() {
   document.querySelectorAll(".student-table .teacher-table__menu-popup").forEach((menu) => {
@@ -36,12 +46,33 @@ async function getAllStudents() {
     .sort((a, b) => studentName(a).localeCompare(studentName(b)));
 }
 
+// The class ribbon picked last ("all", "none" or a class id), kept when the page re-renders.
+let selectedRibbon = "all";
+
+const countLabel = (count) => (count === 1 ? "student" : "students");
+
 export async function renderStudents() {
   const [students] = await Promise.all([getAllStudents(), getAllClasses()]);
   const classNames = new Map(
     state.allClasses.map((c) => [c.id, [c.className, c.section].filter(Boolean).join(" · ")]),
   );
   const classOf = (student) => classNames.get(student.classId) || "";
+  // A student whose class was deleted counts as "No class yet", as the Class column shows.
+  const ribbonOf = (student) => (classNames.has(student.classId) ? student.classId : "none");
+
+  // All students, every created class (A–Z, even with no students), then No class yet.
+  const ribbons = [
+    { id: "all", label: "All students", count: students.length },
+    ...state.allClasses
+      .map((c) => ({
+        id: c.id,
+        label: classNames.get(c.id) || "Untitled class",
+        count: students.filter((s) => ribbonOf(s) === c.id).length,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
+    { id: "none", label: "No class yet", count: students.filter((s) => ribbonOf(s) === "none").length },
+  ];
+  if (!ribbons.some((ribbon) => ribbon.id === selectedRibbon)) selectedRibbon = "all";
 
   page("Student accounts", "Find a student and help them back into their account.");
 
@@ -50,13 +81,20 @@ export async function renderStudents() {
         <div class="teacher-directory__intro">
           <div>
             <span class="teacher-directory__eyebrow">People</span>
-            <h2>All students</h2>
+            <h2 id="student-ribbon-title">All students</h2>
             <p>Students create their own accounts. Reset a password here when they can't sign in.</p>
           </div>
-          <span class="teacher-directory__count">
-            <strong>${students.length}</strong>
-            ${students.length === 1 ? "student" : "students"}
-          </span>
+          <span class="teacher-directory__count" id="student-ribbon-count"></span>
+        </div>
+        <div class="student-ribbons" role="group" aria-label="Show students by class">
+          ${ribbons
+            .map(
+              (ribbon) => `<button type="button" class="student-ribbon" data-ribbon="${escapeHtml(ribbon.id)}" aria-pressed="false">
+                <span class="student-ribbon__label">${escapeHtml(ribbon.label)}</span>
+                <span class="student-ribbon__count" aria-label="${ribbon.count} ${countLabel(ribbon.count)}">${ribbon.count}</span>
+              </button>`,
+            )
+            .join("")}
         </div>
         <label class="admin-directory-search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
@@ -71,13 +109,13 @@ export async function renderStudents() {
           <tbody>
             ${students
               .map(
-                (s) => `<tr data-student="${escapeHtml(s.id)}" data-search="${escapeHtml(
-                  [s.displayName, s.email, classOf(s)].filter(Boolean).join(" ").toLowerCase(),
+                (s) => `<tr data-student="${escapeHtml(s.id)}" data-ribbon="${escapeHtml(ribbonOf(s))}" data-search="${escapeHtml(
+                  [fullNameOf(s), s.email, classOf(s)].filter(Boolean).join(" ").toLowerCase(),
                 )}">
                   <td>
                     <div class="teacher-table__person">
                       <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml(initials(studentName(s)))}</span>
-                      <span class="teacher-table__name">${escapeHtml(s.displayName || "Unnamed student")}</span>
+                      <span class="teacher-table__name">${escapeHtml(fullNameOf(s) || "Unnamed student")}</span>
                     </div>
                   </td>
                   <td class="teacher-table__email">${escapeHtml(s.email || "No email on file")}</td>
@@ -109,7 +147,7 @@ export async function renderStudents() {
               )
               .join("")}
             <tr class="admin-directory-search-empty" hidden>
-              <td colspan="4">No students match that search.</td>
+              <td colspan="4"></td>
             </tr>
           </tbody>
         </table>
@@ -117,22 +155,57 @@ export async function renderStudents() {
       </section>`
     : `<div class="card empty"><h3>No student accounts yet</h3><p>Students show up here once they create an account in the app or on the website.</p></div>`;
 
-  $("#student-search")?.addEventListener("input", (event) => {
-    const text = event.currentTarget.value.trim().toLowerCase();
+  if (!students.length) return;
+
+  const searchInput = $("#student-search");
+  const studentRows = [...document.querySelectorAll(".student-table tbody tr[data-student]")];
+
+  // Rows show when they're in the selected ribbon and match the search.
+  const applyFilters = () => {
+    const text = searchInput.value.trim().toLowerCase();
+    const ribbon = ribbons.find((item) => item.id === selectedRibbon);
     let visible = 0;
-    document.querySelectorAll(".student-table tbody tr[data-student]").forEach((row) => {
-      row.hidden = !row.dataset.search.includes(text);
+    studentRows.forEach((row) => {
+      row.hidden =
+        (selectedRibbon !== "all" && row.dataset.ribbon !== selectedRibbon) ||
+        !row.dataset.search.includes(text);
       if (!row.hidden) visible += 1;
     });
+
+    document.querySelectorAll(".student-ribbon").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.ribbon === selectedRibbon));
+    });
+    $("#student-ribbon-title").textContent = ribbon.label;
+    $("#student-ribbon-count").innerHTML = `<strong>${ribbon.count}</strong> ${countLabel(ribbon.count)}`;
+
     const emptyRow = $(".student-table .admin-directory-search-empty");
-    if (emptyRow) emptyRow.hidden = visible !== 0;
+    emptyRow.hidden = visible !== 0;
+    emptyRow.querySelector("td").textContent =
+      ribbon.count === 0
+        ? selectedRibbon === "none"
+          ? "Every student is in a class."
+          : "No students in this class yet."
+        : "No students match that search.";
+  };
+
+  searchInput.addEventListener("input", applyFilters);
+  applyFilters();
+
+  const pager = paginate({
+    rows: () => studentRows,
+    after: $(".teacher-table-wrap"),
+    search: searchInput,
+    label: ["student", "students"],
   });
 
-  paginate({
-    rows: () => [...document.querySelectorAll(".student-table tbody tr[data-student]")],
-    after: $(".teacher-table-wrap"),
-    search: $("#student-search"),
-    label: ["student", "students"],
+  // Picking a ribbon keeps the search text and goes back to page 1.
+  document.querySelector(".student-ribbons").addEventListener("click", (event) => {
+    const button = event.target.closest(".student-ribbon");
+    if (!button || button.dataset.ribbon === selectedRibbon) return;
+    selectedRibbon = button.dataset.ribbon;
+    closeStudentMenus();
+    applyFilters();
+    pager.reset();
   });
 
   const byId = new Map(students.map((s) => [s.id, s]));

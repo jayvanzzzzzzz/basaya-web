@@ -275,9 +275,11 @@ service cloud.firestore {
       }
 
       // Teachers can add an existing lesson only to a class they own.
+      // Admins can read them to see which classes use a lesson (lesson editor).
       match /classLessons/{lessonId} {
         allow read: if signedIn() &&
-          (get(/databases/$(database)/documents/classes/$(classId))
+          (isAdmin() ||
+           get(/databases/$(database)/documents/classes/$(classId))
              .data.teacherId == request.auth.uid ||
            exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
 

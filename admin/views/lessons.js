@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getCountFromServer,
   getDocs,
   serverTimestamp,
   setDoc,
@@ -11,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { generateSpeech, saveSpeech } from "../../js/tts.js";
-import { state, getAllLessons } from "../../js/state.js";
+import { state, getAllClasses, getAllLessons } from "../../js/state.js";
 import {
   $,
   $$,
@@ -360,6 +361,7 @@ function studioHtml(lesson = {}, sections = {}) {
         </div>
         <span class="lesson-studio__badge">Admin only</span>
       </div>
+      ${lesson.id ? '<p class="lesson-usage" data-lesson-usage role="status" hidden></p>' : ""}
 
       <div class="lesson-studio__tabs">
         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
@@ -774,6 +776,7 @@ async function openLessonModal(existing = null) {
   const sections = existing ? await getLessonSections(existing.id) : {};
 
   openModal(studioHtml(existing || {}, sections), (modal, close) => {
+    if (existing) showLessonUsage($("[data-lesson-usage]", modal), existing.id);
     const activityPages = $("[data-activity-pages]", modal);
     const lecturePages = $("[data-lecture-pages]", modal);
     const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
@@ -1238,6 +1241,58 @@ async function createPreview(button, row, text) {
   } finally {
     button.disabled = (previews.get(row)?.generationCount || 0) >= MAX_AUDIO_GENERATIONS_PER_SENTENCE;
   }
+}
+
+/** Classes whose lesson plan has this lesson, each with how many students it has. */
+async function lessonUsage(lessonId) {
+  if (!state.allClasses.length) await getAllClasses();
+  const using = (
+    await Promise.all(
+      state.allClasses.map(async (classroom) => {
+        const links = await getDocs(collection(db, "classes", classroom.id, "classLessons"));
+        // Older links have auto-generated ids and keep the lesson id in a field.
+        const hasLesson = links.docs.some((link) => (link.get("lessonId")?.trim() || link.id) === lessonId);
+        return hasLesson ? classroom : null;
+      }),
+    )
+  ).filter(Boolean);
+  const students = await Promise.all(
+    using.map((classroom) =>
+      getCountFromServer(collection(db, "classes", classroom.id, "students"))
+        .then((snap) => snap.data().count)
+        .catch(() => 0),
+    ),
+  );
+  return using.map((classroom, index) => ({
+    name: [classroom.className, classroom.section].filter(Boolean).join(" · ") || "Untitled class",
+    students: students[index],
+  }));
+}
+
+/**
+ * Edits reach every class using the lesson right away (classes only link to it), so the
+ * editor says which ones. Stays hidden when no class uses it or the classes can't be read.
+ */
+async function showLessonUsage(banner, lessonId) {
+  let usage;
+  try {
+    usage = await lessonUsage(lessonId);
+  } catch (error) {
+    console.warn("Could not read which classes use this lesson", error);
+    return;
+  }
+  if (!banner?.isConnected || !usage.length) return;
+
+  const plural = (count, word, words = `${word}s`) => `${count} ${count === 1 ? word : words}`;
+  const students = usage.reduce((sum, item) => sum + item.students, 0);
+  banner.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>
+    <span>
+      <strong>Used by ${plural(usage.length, "class", "classes")} · ${plural(students, "student")}.</strong>
+      Changes reach them right away.
+      <small>${usage.map((item) => escapeHtml(item.name)).join(", ")}</small>
+    </span>`;
+  banner.hidden = false;
 }
 
 async function saveLesson(existing, values, elements) {

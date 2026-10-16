@@ -27,6 +27,40 @@
   background: var(--surface);
 }
 
+/* "Used by 3 classes · 45 students": shown under the heading when editing a lesson in use */
+.lesson-usage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.7rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--info-soft);
+  color: var(--ink-2);
+  font-size: 0.86rem;
+}
+
+.lesson-usage svg {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.05rem;
+  fill: none;
+  stroke: var(--info);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.lesson-usage strong {
+  color: var(--ink);
+}
+
+.lesson-usage small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-3);
+}
+
 .lesson-studio__heading {
   position: relative;
   isolation: isolate;
