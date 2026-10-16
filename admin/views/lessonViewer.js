@@ -26,13 +26,18 @@ export async function loadLessonSections(lessonId) {
 
   const data = Object.fromEntries(entries);
 
+  const status = (docs) => docs.find((item) => item.id === "status") || null;
   return {
-    activity: data.activity[0] || null,
+    // activity/status (and game/status) say the admin skipped that part.
+    activity: data.activity.find((item) => item.id === "content") ||
+      data.activity.find((item) => item.id !== "status") ||
+      null,
+    activityStatus: status(data.activity),
     lectures: data.lectures[0] || null,
     pronunciation: data.pronunciation[0] || null,
     quiz: data.quiz[0] || null,
     game: (data.game || []).filter((item) => item.id !== "status"),
-    gameStatus: (data.game || []).find((item) => item.id === "status") || null,
+    gameStatus: status(data.game || []),
   };
 }
 
@@ -102,7 +107,10 @@ function sectionHead(title, instruction) {
 
 // ───────────── Sections ─────────────
 
-function activityHtml(activity) {
+function activityHtml(activity, status) {
+  if (status?.completion === "skipped") {
+    return emptyState("The Gawain is skipped for this lesson, so it has no activity pages.");
+  }
   const pages = activity?.pages || [];
   if (!pages.length) return emptyState("This lesson has no activity yet.");
   return `
@@ -252,7 +260,7 @@ function counts(sections) {
   const words = sections.pronunciation?.words || [];
   const clips = [...lectureSentences, ...words.map((_, i) => sections.pronunciation?.cloudAudio?.[i])];
   return {
-    activity: sections.activity?.pages?.length || 0,
+    activity: sections.activityStatus?.completion === "skipped" ? 0 : sections.activity?.pages?.length || 0,
     lectures: sections.lectures?.pages?.length || 0,
     pronunciation: words.length,
     quiz: sections.quiz?.questions?.length || 0,
@@ -362,7 +370,7 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
     const tabs = $$(".lv-tab", modal);
     let sections = null;
     const render = {
-      activity: () => activityHtml(sections.activity),
+      activity: () => activityHtml(sections.activity, sections.activityStatus),
       lectures: () => lecturesHtml(sections.lectures),
       pronunciation: () => pronunciationHtml(sections.pronunciation),
       quiz: () => quizHtml(sections.quiz),
@@ -424,7 +432,7 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
         sections = loaded;
         const c = counts(sections);
         $("[data-stats]", modal).innerHTML = [
-          ["Activity pages", c.activity],
+          ["Activity pages", sections.activityStatus?.completion === "skipped" ? "Skipped" : c.activity],
           ["Lecture pages", c.lectures],
           ["Words", c.pronunciation],
           ["Questions", c.quiz],

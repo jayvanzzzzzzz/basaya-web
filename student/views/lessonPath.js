@@ -94,7 +94,9 @@ export async function renderLessonPath(lessonId) {
   };
   // A finished quiz stays open even if the lecture flag lags behind.
   const quizLocked = !finished.lecture && !finished.quiz;
-  const parts = PARTS.filter((part) => !(part.key === "game" && lesson.gameSkipped));
+  const parts = PARTS.filter(
+    (part) => !(part.key === "game" && lesson.gameSkipped) && !(part.key === "activity" && lesson.activitySkipped),
+  );
 
   $("#path-steps").innerHTML = parts
     .map((part, index) => {

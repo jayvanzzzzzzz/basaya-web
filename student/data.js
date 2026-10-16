@@ -14,6 +14,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../js/firebase.js";
 import { summarize, resultsFrom, lessonParts } from "../js/scoring.js";
+import { skippedParts } from "../js/skippedParts.js";
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
 // the Android app (C:\Projects\BaSaya) exactly, so a student can switch between the app and
@@ -71,17 +72,6 @@ export const now = () =>
 
 const linkLessonId = (link) => link.get("lessonId")?.trim() || link.id;
 
-/** No game in this lesson: skipped by the admin (game/status), or it has no game levels. */
-async function gameSkipped(lessonId) {
-  try {
-    const snap = await getDocs(collection(db, "lessons", lessonId, "game"));
-    const status = snap.docs.find((item) => item.id === "status");
-    return status?.get("completion") === "skipped" || !snap.docs.some((item) => item.id !== "status");
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Clears crossword words found mid-level (views/game.js keeps them in localStorage) for
  * lessons with no saved progress, e.g. after the teacher removed the lesson and added it
@@ -130,7 +120,7 @@ export async function loadClassLessons() {
 
   const progress = new Map(progressSnap.docs.map((item) => [item.id, item.data()]));
   forgetFoundWords(ids.filter((lessonId) => !progress.has(lessonId)));
-  const skipped = await Promise.all(lessonDocs.map((lesson) => gameSkipped(lesson.id)));
+  const skipped = await Promise.all(lessonDocs.map((lesson) => skippedParts(lesson.id)));
 
   student.lessons = lessonDocs
     .map((lesson, index) => {
@@ -150,7 +140,8 @@ export async function loadClassLessons() {
         // isn't shown to them (teacher/views/progressData.js leaves it out of their totals).
         closedBeforeJoining: !finished && dueAt != null && joinedAt != null && dueAt < joinedAt,
         assignedAt: toMillis(link.get("createdAt")),
-        gameSkipped: skipped[index],
+        gameSkipped: skipped[index].game,
+        activitySkipped: skipped[index].activity,
         lectureFinished: data.lectureFinished === true,
         gameFinished: data.gameFinished === true,
         activityFinished: data.activityFinished === true,
@@ -179,11 +170,11 @@ export function availability(lesson) {
   return "open";
 }
 
-/** Every part is done (a game the teacher skipped doesn't count). */
+/** Every part is done (a game or Gawain the admin skipped doesn't count). */
 export const isComplete = (lesson) =>
   lesson.lectureFinished &&
   (lesson.gameFinished || lesson.gameSkipped) &&
-  lesson.activityFinished &&
+  (lesson.activityFinished || lesson.activitySkipped) &&
   lesson.quizFinished;
 
 /** Open lessons, and closed ones the student finished (review only). */

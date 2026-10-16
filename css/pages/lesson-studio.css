@@ -452,6 +452,19 @@
   background: var(--warning-soft);
 }
 
+/* "Skip Gawain" ticked: the activity fields are shown but inactive */
+[data-activity-editor] {
+  display: grid;
+  gap: 1rem;
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+[data-activity-editor].is-skipped {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.6);
+}
+
 /* Lecture page ribbons */
 .lecture-page-navigation {
   width: 100%;

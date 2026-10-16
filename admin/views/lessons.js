@@ -423,15 +423,26 @@ function studioHtml(lesson = {}, sections = {}) {
             </div>
           </div>
 
-          <label>Activity title<input data-activity-title value="${escapeHtml(sections.activity?.title || "")}" placeholder="PAGSASANAY: HANAPIN ANG PANGNGALAN" /></label>
-          <label>Instruction<textarea data-activity-instruction placeholder="Pindutin at piliin ang mga salitang pangngalan sa pangungusap.">${escapeHtml(sections.activity?.instruction || "")}</textarea></label>
-          <label>General explanation<textarea data-activity-explanation placeholder="Ipaliwanag ang konsepto.">${escapeHtml(sections.activity?.explanation || "")}</textarea></label>
+          <label class="game-skip-option">
+            <input
+              type="checkbox"
+              data-skip-activity
+              ${sections.activityStatus?.completion === "skipped" ? "checked" : ""}
+            />
+            <span>Skip Gawain for this lesson</span>
+          </label>
+          <p class="muted">When selected, the activity controls are disabled and no activity is saved.</p>
+          <div data-activity-editor>
+            <label>Activity title<input data-activity-title value="${escapeHtml(sections.activity?.title || "")}" placeholder="PAGSASANAY: HANAPIN ANG PANGNGALAN" /></label>
+            <label>Instruction<textarea data-activity-instruction placeholder="Pindutin at piliin ang mga salitang pangngalan sa pangungusap.">${escapeHtml(sections.activity?.instruction || "")}</textarea></label>
+            <label>General explanation<textarea data-activity-explanation placeholder="Ipaliwanag ang konsepto.">${escapeHtml(sections.activity?.explanation || "")}</textarea></label>
 
-          <div class="lesson-subheading">
-            <h4>Activity pages</h4>
-            <button type="button" class="button secondary small" data-add-activity-page>+ Add page</button>
+            <div class="lesson-subheading">
+              <h4>Activity pages</h4>
+              <button type="button" class="button secondary small" data-add-activity-page>+ Add page</button>
+            </div>
+            <div data-activity-pages></div>
           </div>
-          <div data-activity-pages></div>
         </section>
 
         <section class="lesson-step" data-panel="lectures">
@@ -789,10 +800,14 @@ async function openLessonModal(existing = null) {
     const gameLevels = $("[data-game-levels]", modal);
     const skipGame = $("[data-skip-game]", modal);
     const gameEditor = $("[data-game-editor]", modal);
+    const skipActivity = $("[data-skip-activity]", modal);
+    const activityEditor = $("[data-activity-editor]", modal);
 
     const initialActivity = sections.activity?.pages?.length
       ? sections.activity.pages
-      : [{}];
+      : sections.activityStatus?.completion === "skipped"
+        ? []
+        : [{}];
     const initialLectures = sections.lectures?.pages?.length
       ? sections.lectures.pages
       : [{}];
@@ -853,14 +868,17 @@ async function openLessonModal(existing = null) {
       });
     };
 
-    const updateGameEditor = () => {
-      gameEditor.classList.toggle("is-skipped", skipGame.checked);
-      gameEditor
+    // A ticked "Skip …" box keeps its builder on screen but inactive.
+    const updateSkipped = (editor, checkbox) => {
+      editor.classList.toggle("is-skipped", checkbox.checked);
+      editor
         .querySelectorAll("button, input, textarea, select")
         .forEach((control) => {
-          control.disabled = skipGame.checked;
+          control.disabled = checkbox.checked;
         });
     };
+    const updateGameEditor = () => updateSkipped(gameEditor, skipGame);
+    const updateActivityEditor = () => updateSkipped(activityEditor, skipActivity);
 
     $$("[data-game-level]", gameLevels).forEach(refreshLevel);
     wireGameLevels(gameLevels, {
@@ -882,6 +900,8 @@ async function openLessonModal(existing = null) {
     renumberLevels();
     updateGameEditor();
     skipGame.addEventListener("change", updateGameEditor);
+    updateActivityEditor();
+    skipActivity.addEventListener("change", updateActivityEditor);
 
     const showStep = (step) => {
       $$(".lesson-tab", modal).forEach((button) =>
@@ -1119,6 +1139,22 @@ async function openLessonModal(existing = null) {
         if (choice.action === "save-as") titleInput.value = choice.title;
       }
 
+      // Skipping the Gawain or the game deletes what this lesson already has saved for
+      // it, so ask first.
+      const savedPages = skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
+      const savedLevels = skipGame.checked ? sections.game?.length || 0 : 0;
+      if (savedPages || savedLevels) {
+        submit.disabled = true;
+        const confirmed = await confirmDeleteSkipped({ pages: savedPages, levels: savedLevels });
+        submit.disabled = false;
+        if (!confirmed) {
+          const [step, checkbox] = savedPages ? ["activity", skipActivity] : ["quiz", skipGame];
+          showStep(step);
+          checkbox.closest(".game-skip-option").scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      }
+
       submit.disabled = true;
       submit.textContent = "Saving…";
 
@@ -1131,6 +1167,7 @@ async function openLessonModal(existing = null) {
           quizQuestions,
           gameLevels,
           skipGame,
+          skipActivity,
         });
 
         toast(existing ? "Lesson updated." : "Lesson published.");
@@ -1224,7 +1261,7 @@ async function saveLesson(existing, values, elements) {
     });
   }
 
-  const activity = readActivity(elements.activityPages);
+  const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages);
   const lectures = await readLectures(elements.lecturePages, lessonRef.id);
   const pronunciation = await readPronunciation(
     elements.pronunciationWords,
@@ -1233,7 +1270,7 @@ async function saveLesson(existing, values, elements) {
   const quiz = readQuiz(elements.quizQuestions);
   const game = elements.skipGame.checked ? [] : readGameLevels(elements.gameLevels);
 
-  await setDoc(doc(db, "lessons", lessonRef.id, "activity", "content"), activity);
+  await replaceActivity(lessonRef.id, activity);
   await setDoc(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
     title: $("[data-lecture-title]", document.body).value.trim() || values.title.trim(),
     pages: lectures,
@@ -1403,6 +1440,69 @@ function readQuiz(container) {
       };
     })
     .filter((item) => item.question && item.choices.every(Boolean));
+}
+
+/** Resolves true to delete the saved Gawain pages / game levels and skip them, false to go back. */
+function confirmDeleteSkipped({ pages = 0, levels = 0 }) {
+  const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  const what = [pages && plural(pages, "Gawain page"), levels && plural(levels, "game level")]
+    .filter(Boolean)
+    .join(" and ");
+  const skipping = [pages && "Gawain", levels && "game"].filter(Boolean).join(" and ");
+  const one = pages + levels === 1;
+  return new Promise((resolve) => {
+    openModal(
+      `<h2>Delete ${what}?</h2>
+       <p>This lesson already has <strong>${what}</strong>. Skipping the ${skipping} deletes ${one ? "it" : "them"} when you save, and ${one ? "it" : "they"} can't be brought back.</p>
+       <p class="muted">Students keep their progress. The skipped ${pages && levels ? "parts just won't show" : "part just won't show"} in this lesson anymore.</p>
+       <div class="modal-actions">
+         <button type="button" class="button secondary" data-cancel>Keep ${one ? "it" : "them"}</button>
+         <button type="button" class="button danger" data-confirm>Delete &amp; skip</button>
+       </div>`,
+      (backdrop, close) => {
+        let settled = false;
+        const finish = (choice) => {
+          if (settled) return;
+          settled = true;
+          watcher.disconnect();
+          close();
+          resolve(choice);
+        };
+        // Closing with × or the backdrop counts as "go back".
+        const watcher = new MutationObserver(() => {
+          if (!backdrop.isConnected) finish(false);
+        });
+        watcher.observe(document.body, { childList: true });
+
+        $("[data-cancel]", backdrop).addEventListener("click", () => finish(false));
+        $("[data-confirm]", backdrop).addEventListener("click", () => finish(true));
+        setTimeout(() => $("[data-cancel]", backdrop).focus(), 50);
+      },
+    );
+  });
+}
+
+/**
+ * Saves activity/content, or with activity = null deletes the Gawain and saves
+ * activity/status = { completion: "skipped" }, as the game does (see replaceGameLevels).
+ */
+async function replaceActivity(lessonId, activity) {
+  const statusRef = doc(db, "lessons", lessonId, "activity", "status");
+  if (activity) {
+    const batch = writeBatch(db);
+    batch.set(doc(db, "lessons", lessonId, "activity", "content"), activity);
+    batch.delete(statusRef);
+    await batch.commit();
+    return;
+  }
+
+  const existing = await getDocs(collection(db, "lessons", lessonId, "activity"));
+  const batch = writeBatch(db);
+  existing.docs.forEach((item) => {
+    if (item.id !== "status") batch.delete(item.ref);
+  });
+  batch.set(statusRef, { completion: "skipped" });
+  await batch.commit();
 }
 
 async function replaceGameLevels(lessonId, levels, skipGame) {

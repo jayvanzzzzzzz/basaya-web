@@ -32,6 +32,7 @@ async function readSections(lessonId) {
 
 function countsOf(snapshots) {
   const first = (id) => snapshots[id][0]?.data() || {};
+  const activity = snapshots.activity.find((item) => item.id !== "status")?.data() || {};
   const lectures = first("lectures").pages || [];
   const pronunciation = first("pronunciation");
   const levels = snapshots.game.filter((item) => item.id !== "status");
@@ -41,7 +42,7 @@ function countsOf(snapshots) {
     ...(pronunciation.cloudAudio || []),
   ].filter((clip) => safeHttpUrl(clip?.audioUrl)).length;
   return {
-    activity: { value: first("activity").pages?.length || 0, unit: "page" },
+    activity: { value: activity.pages?.length || 0, unit: "page" },
     lectures: { value: lectures.length, unit: "page" },
     pronunciation: { value: pronunciation.words?.length || 0, unit: "word" },
     quiz: { value: first("quiz").questions?.length || 0, unit: "question" },

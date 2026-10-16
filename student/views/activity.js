@@ -25,7 +25,7 @@ export async function renderActivity(lessonId) {
   const lesson = await findLesson(lessonId);
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
-  if (availability(lesson) !== "open" || lesson.activityFinished) return navigate(pathUrl);
+  if (availability(lesson) !== "open" || lesson.activityFinished || lesson.activitySkipped) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
   const [activity, progress] = await Promise.all([loadActivity(lessonId), loadLessonProgress(lessonId)]);

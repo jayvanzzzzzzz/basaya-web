@@ -152,17 +152,20 @@ export function resultsFrom(progressDocs) {
 }
 
 /**
- * A lesson is finished only when every part is done: lecture, game (or skipped by the
- * teacher), Gawain, Bigkas and Pagsusulit — same as the app's LessonCompletion.
+ * A lesson is finished only when every part is done: lecture, game and Gawain (or skipped
+ * by the admin, see js/skippedParts.js), Bigkas and Pagsusulit — same as the app's
+ * LessonCompletion. `skipped` is { game, activity }.
  */
-export function lessonParts(doc = {}, gameSkipped = false) {
+export function lessonParts(doc = {}, skipped = {}) {
   const parts = {
     lecture: doc.lectureFinished === true,
-    game: gameSkipped || doc.gameFinished === true,
-    activity: doc.activityFinished === true,
+    game: skipped.game === true || doc.gameFinished === true,
+    activity: skipped.activity === true || doc.activityFinished === true,
     pronunciation: doc.pronunciationFinished === true,
     quiz: doc.quizFinished === true,
   };
   const done = Object.values(parts).filter(Boolean).length;
-  return { parts, done, total: 5, finished: done === 5, started: done > 0 && !(gameSkipped && done === 1) };
+  // A skipped part counts as done, but doesn't make the lesson "started".
+  const skippedCount = [skipped.game, skipped.activity].filter((value) => value === true).length;
+  return { parts, done, total: 5, finished: done === 5, started: done > skippedCount };
 }

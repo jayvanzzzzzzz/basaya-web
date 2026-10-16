@@ -5,6 +5,7 @@ import {
   getDocs,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
+import { skippedParts } from "../../js/skippedParts.js";
 import { state, getAllLessons } from "../../js/state.js";
 import {
   SKILLS,
@@ -36,17 +37,8 @@ export async function loadClassContext(classId) {
     .map((link) => ({ id: link.id, ...link.data() }))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  // No game counts as done: skipped (lessons/{id}/game/status), or no game levels at all.
-  const skipped = await Promise.all(
-    links.map((link) =>
-      getDocs(collection(db, "lessons", link.lessonId || link.id, "game"))
-        .then((snap) => {
-          const status = snap.docs.find((item) => item.id === "status");
-          return status?.data().completion === "skipped" || !snap.docs.some((item) => item.id !== "status");
-        })
-        .catch(() => false),
-    ),
-  );
+  // A skipped game or Gawain counts as done (js/skippedParts.js).
+  const skipped = await Promise.all(links.map((link) => skippedParts(link.lessonId || link.id)));
 
   const lessons = links.map((link, index) => {
     const id = link.lessonId || link.id;
@@ -57,7 +49,8 @@ export async function loadClassContext(classId) {
       title: lesson?.title || "Untitled lesson",
       openAt: toMillis(link.openAt),
       dueAt: toMillis(link.dueAt),
-      gameSkipped: skipped[index],
+      gameSkipped: skipped[index].game,
+      activitySkipped: skipped[index].activity,
     };
   });
 
@@ -95,7 +88,7 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
   const hardWordCounts = new Map();
   const perLesson = lessons.map((lesson) => {
     const data = docs.find((item) => item.id === lesson.id) || {};
-    const parts = lessonParts(data, lesson.gameSkipped);
+    const parts = lessonParts(data, { game: lesson.gameSkipped, activity: lesson.activitySkipped });
     const skills = Object.fromEntries(
       SKILLS.map(({ key }) => {
         const record = data.skills?.[key];

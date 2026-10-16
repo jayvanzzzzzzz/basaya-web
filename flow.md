@@ -106,7 +106,7 @@ The token is sent along with every later request (to the database, to basaya-tts
 | Step | What the admin fills in | Saved as |
 |---|---|---|
 | 1. Basics | Title, difficulty, order, description | `lessons/{id}` |
-| 2. Activity | Sentences; taps the correct words (tap-the-word) | `lessons/{id}/activity/content` |
+| 2. Activity | Sentences; taps the correct words (tap-the-word), or **Skip Gawain** | `lessons/{id}/activity/content` |
 | 3. Lectures | Pages of sentences + **Generate audio** for each | `lessons/{id}/lectures/content` |
 | 4. Pronunciation | Words to say + **Generate audio** for each | `lessons/{id}/pronunciation/content` |
 | 5. Quiz & game | Questions (3 choices) and game levels, or **Skip game** | `lessons/{id}/quiz/content`, `lessons/{id}/game/*` |
@@ -122,6 +122,8 @@ Preview:    the crossword exactly as the app will draw it
 - A word is only accepted if it uses the key word's letters, and no letter more times than the key word has it.
   `MILA` → ✗ "LAMESA has no I". `SAMAA` → ✗ "uses A 3 times, LAMESA has it only twice".
 - **Publish** is blocked until every level is valid. A tip offers **Skip game** if words are hard to find.
+- Saving a lesson with **Skip game** or **Skip Gawain** ticked when it already has saved levels or activity pages asks first, because they are deleted.
+- A skipped game or Gawain is hidden from students and counts as done (`js/skippedParts.js`; the app's `GameStatus` / `ActivityStatus`).
 - Saved order: key word first, then longest to shortest.
 
 ### What happens when the admin clicks **Publish lesson**
@@ -131,7 +133,7 @@ Preview:    the crossword exactly as the app will draw it
 2. Check the game levels (rules above)
 3. Save lessons/{id}  (title, difficulty, order, description)
 4. Upload every NEW audio preview to basaya-tts  → get back a link   (section 5, part B)
-5. Save activity, lectures (+ audio links), pronunciation (+ audio links), quiz
+5. Save activity (or delete it and save activity/status = "skipped"), lectures (+ audio links), pronunciation (+ audio links), quiz
 6. Replace the game levels (or save game/status = "skipped")
 7. "Lesson published."
 ```
@@ -467,7 +469,7 @@ Firestore
 ├── users/{uid}                         role, names, classId, className, skillSummary
 │   └── assignedLessons/{lessonId}      one student's results for one lesson
 ├── lessons/{lessonId}                  title, difficulty, order, description
-│   ├── activity/content                tap-the-word pages
+│   ├── activity/content                tap-the-word pages  (or activity/status = skipped)
 │   ├── lectures/content                pages, sentences, cloudAudio links
 │   ├── pronunciation/content           words, cloudAudio links
 │   ├── quiz/content                    questions, choices, answers

@@ -62,6 +62,7 @@ function lectureState(docs) {
 }
 
 const NO_GAME = { percent: null, text: "--", label: "Walang laro", tone: "soft", message: "Walang laro sa mga aralin mo ngayon." };
+const NO_ACTIVITY = { percent: null, text: "--", label: "Walang gawain", tone: "soft", message: "Walang gawain sa mga aralin mo ngayon." };
 
 function skillCard(key, state, index) {
   const style = STYLE[key];
@@ -133,10 +134,12 @@ export async function renderProgress() {
   const docs = await loadClassProgressDocs();
   const summary = summarize(resultsFrom(docs));
 
-  const skippedGames = new Set(student.lessons.filter((lesson) => lesson.gameSkipped).map((lesson) => lesson.id));
-  const finished = docs.filter((item) => lessonParts(item, skippedGames.has(item.id)).finished).length;
+  const lessonsById = new Map(student.lessons.map((lesson) => [lesson.id, lesson]));
+  const skippedOf = (id) => ({ game: lessonsById.get(id)?.gameSkipped, activity: lessonsById.get(id)?.activitySkipped });
+  const finished = docs.filter((item) => lessonParts(item, skippedOf(item.id)).finished).length;
   const total = student.lessons.length;
-  const allGamesSkipped = total > 0 && skippedGames.size === total;
+  const allGamesSkipped = total > 0 && student.lessons.every((lesson) => lesson.gameSkipped);
+  const allActivitiesSkipped = total > 0 && student.lessons.every((lesson) => lesson.activitySkipped);
 
   const levels = Object.values(summary.skills).map((skill) => skill.level);
   const hasData = Object.values(summary.skills).some((skill) => skill.lessons > 0) || docs.some((item) => item.lectureFinished);
@@ -174,7 +177,9 @@ export async function renderProgress() {
             ? lectureState(docs)
             : key === "talasalitaan" && skill.lessons === 0 && allGamesSkipped
               ? NO_GAME
-              : scoredState(skill);
+              : key === "pagkilala" && skill.lessons === 0 && allActivitiesSkipped
+                ? NO_ACTIVITY
+                : scoredState(skill);
         return skillCard(key, state, index);
       }).join("")}
     </div>

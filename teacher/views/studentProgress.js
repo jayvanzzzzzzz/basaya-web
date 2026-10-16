@@ -127,7 +127,7 @@ export async function renderStudentProgress(classId, studentId) {
         <td>${statusChip(row.status)}</td>
         <td class="score-cell ${row.lectureDone ? "score-cell--check" : "score-cell--empty"}">${row.lectureDone ? "✓" : "—"}</td>
         ${scoreCell(row.skills.talasalitaan, { skipped: row.lesson.gameSkipped })}
-        ${scoreCell(row.skills.pagkilala)}
+        ${scoreCell(row.skills.pagkilala, { skipped: row.lesson.activitySkipped })}
         ${scoreCell(row.skills.pagbigkas)}
         ${scoreCell(row.skills.pagsusulit)}
       </tr>`,
