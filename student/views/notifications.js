@@ -89,7 +89,8 @@ function visibleItems() {
     .map((item) => ({ key: `feed:${item.id}`, kind: item.type === "deadline_extended" ? "extended" : "new", title: item.title, body: item.body, time: item.visibleAt, lessonIds: item.lessonIds }));
 
   const deadlines = student.lessons.flatMap((lesson) => {
-    if (lesson.dueAt == null || isComplete(lesson)) return [];
+    // A Practice lesson has nothing to finish, so no "due soon" reminders.
+    if (lesson.dueAt == null || lesson.practice || isComplete(lesson)) return [];
     const deadline = formatWhen(lesson.dueAt);
     const body = `Tapusin ang “${lesson.title}” bago mag-${deadline}.`;
     const lessonIds = [lesson.id];

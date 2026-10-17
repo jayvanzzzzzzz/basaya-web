@@ -297,6 +297,13 @@
   background: var(--surface);
 }
 
+/* Bigkas syllables under the word: "Students see: ar·ki·pe·la·go" */
+.syllable-preview {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .audio-actions {
   display: flex;
   align-items: end;

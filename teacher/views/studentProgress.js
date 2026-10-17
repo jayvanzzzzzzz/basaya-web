@@ -1,7 +1,7 @@
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
-import { SKILLS } from "../../js/scoring.js";
+import { SKILLS, LEVELS } from "../../js/scoring.js";
 import {
   loadClassContext,
   loadStudentProgress,
@@ -21,6 +21,16 @@ import {
   relativeTime,
   initials,
 } from "./progressUi.js";
+import {
+  addExportActions,
+  printMeta,
+  printSignature,
+  downloadWorkbook,
+  teacherName,
+  today,
+  fileName,
+  dateStamp,
+} from "./reportExport.js";
 
 const STATUS = {
   done: ["done", "Finished"],
@@ -58,6 +68,132 @@ function personalDetails(profile) {
     gender ? `<strong>${escapeHtml(gender)}</strong>` : notSet("Gender"),
     birthdate ? `Born <strong>${escapeHtml(birthdate)}</strong>` : notSet("Birthdate"),
   ].join(" · ");
+}
+
+const TRENDS = { UP: "Improving", DOWN: "Slipping", STEADY: "Steady" };
+
+/** Explains a score from a part left unfinished at the deadline. */
+const missedCell = (row, skill, cell) =>
+  row.missed.includes(skill)
+    ? cell.replace("<td ", '<td title="Not finished by the deadline: the items left undone count as wrong" ')
+    : cell;
+
+const dateOf = (millis) =>
+  millis
+    ? new Date(millis).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+/** Workbook: summary and skills, lesson breakdown, and words to practice. */
+function exportStudentExcel({ classroom, student, profile, progress, joined }) {
+  const completion = completionOf(progress);
+  const lectures = lecturesOf(progress);
+  const score = (value, skipped) => (skipped ? "Skipped" : value);
+
+  return downloadWorkbook(
+    `BaSaya Progress - ${fileName(student.name)} - ${fileName(classroom.className)} - ${dateStamp()}.xlsx`,
+    [
+      {
+        name: "Summary",
+        title: "Student Progress Report",
+        meta: [
+          ["Student", student.name],
+          ["Class", classroom.className],
+          ["Teacher", teacherName()],
+          ["Gender", GENDERS[profile?.gender] || profile?.gender],
+          ["Birthdate", formatBirthdate(profile?.dob)],
+          ["Joined", joined],
+          ["Lessons finished", `${completion.done} of ${completion.total}${completion.percent == null ? "" : ` (${completion.percent}%)`}`],
+          ["Lectures finished", `${lectures.done} of ${lectures.total}`],
+        ],
+        tables: [
+          {
+            heading: "Skills",
+            columns: [
+              { header: "Skill", width: 18, bold: true },
+              { header: "Score", type: "score", width: 11 },
+              { header: "Remark", type: "remark", width: 18 },
+              { header: "Trend", type: "center", width: 12 },
+              { header: "Lessons", type: "number", width: 10 },
+              { header: "Items", type: "number", width: 10 },
+              { header: "Needs help", type: "center", width: 12 },
+            ],
+            rows: SKILLS.map((skill) => {
+              const summary = progress.summary.skills[skill.key];
+              return [
+                skill.name,
+                summary.score,
+                summary.score == null ? null : LEVELS[summary.level].label,
+                TRENDS[summary.trend],
+                summary.lessons,
+                summary.items,
+                summary.needsHelp ? "Yes" : "No",
+              ];
+            }),
+          },
+        ],
+      },
+      {
+        name: "Teacher notes",
+        title: `Teacher notes — ${student.name}`,
+        tables: [
+          {
+            columns: [
+              { header: "Note", width: 34, bold: true, wrap: true },
+              { header: "Details", width: 80, wrap: true },
+            ],
+            rows: studentRemarks(progress).map((note) => [note.title, note.text]),
+          },
+        ],
+      },
+      {
+        name: "Lessons",
+        title: `Lesson breakdown — ${student.name}`,
+        meta: [["Scores", "First-try accuracy per activity"]],
+        tables: [
+          {
+            freeze: 2,
+            filter: true,
+            columns: [
+              { header: "No.", type: "number", width: 6 },
+              { header: "Lesson", width: 34, bold: true, wrap: true },
+              { header: "Status", type: "center", width: 20 },
+              { header: "Due", type: "center", width: 14 },
+              { header: "Lecture", type: "center", width: 10 },
+              { header: "Vocabulary", type: "score", width: 13 },
+              { header: "Word Recognition", type: "score", width: 17 },
+              { header: "Pronunciation", type: "score", width: 13 },
+              { header: "Comprehension", type: "score", width: 15 },
+            ],
+            rows: progress.perLesson.map((row) => [
+              row.lesson.number,
+              row.lesson.title,
+              STATUS[row.status][1],
+              dateOf(row.lesson.dueAt),
+              row.lectureDone ? "Done" : null,
+              score(row.skills.talasalitaan, row.lesson.gameSkipped),
+              score(row.skills.pagkilala, row.lesson.activitySkipped),
+              score(row.skills.pagbigkas),
+              score(row.skills.pagsusulit),
+            ]),
+          },
+        ],
+      },
+      {
+        name: "Words to practice",
+        title: `Words to practice (Pronunciation) — ${student.name}`,
+        meta: [["Words", "Missed at least once in pronunciation practice"]],
+        tables: [
+          {
+            columns: [
+              { header: "Word", width: 24, bold: true },
+              { header: "Times missed", type: "number", width: 14 },
+            ],
+            rows: progress.hardWords.map((item) => [item.word, item.count]),
+          },
+        ],
+      },
+    ],
+  );
 }
 
 /** #/classes/{classId}/students/{studentId} — one student's progress, with remarks. */
@@ -110,9 +246,13 @@ export async function renderStudentProgress(classId, studentId) {
   const needsHelp = progress.summary.needsHelp;
   const remarks = studentRemarks(progress);
 
+  addExportActions({
+    excel: () => exportStudentExcel({ classroom, student, profile, progress, joined }),
+  });
+
   const skillCards = SKILLS.map((skill, index) => {
     const summary = progress.summary.skills[skill.key];
-    // Pag-unawa has no comprehension score yet — show lecture completion like the app.
+    // The lecture has no score — show lectures finished like the app.
     if (skill.key === "pagUnawa" && summary.lessons === 0) {
       const percent = lectures.total ? Math.round((lectures.done * 100) / lectures.total) : null;
       return `<article class="skill-card" style="--skill:${skill.color}; --i:${index}">
@@ -162,16 +302,21 @@ export async function renderStudentProgress(classId, studentId) {
         <td class="lesson-name">${escapeHtml(row.lesson.title)}</td>
         <td>${statusChip(row.status)}</td>
         <td class="score-cell ${row.lectureDone ? "score-cell--check" : "score-cell--empty"}">${row.lectureDone ? "✓" : "—"}</td>
-        ${scoreCell(row.skills.talasalitaan, { skipped: row.lesson.gameSkipped })}
-        ${scoreCell(row.skills.pagkilala, { skipped: row.lesson.activitySkipped })}
-        ${scoreCell(row.skills.pagbigkas)}
-        ${scoreCell(row.skills.pagsusulit)}
+        ${missedCell(row, "talasalitaan", scoreCell(row.skills.talasalitaan, { skipped: row.lesson.gameSkipped }))}
+        ${missedCell(row, "pagkilala", scoreCell(row.skills.pagkilala, { skipped: row.lesson.activitySkipped }))}
+        ${missedCell(row, "pagbigkas", scoreCell(row.skills.pagbigkas))}
+        ${missedCell(row, "pagsusulit", scoreCell(row.skills.pagsusulit))}
       </tr>`,
     )
     .join("");
 
   $("#page-content").innerHTML = `
     <div class="progress-page">
+      ${printMeta("Student Progress Report", [
+        classroom.className,
+        `Teacher: ${teacherName()}`,
+        `Printed ${today()}`,
+      ])}
       <section class="progress-overview">
         <article class="progress-identity">
           <span class="progress-identity__avatar">${escapeHtml(initials(student.name))}</span>
@@ -207,7 +352,7 @@ export async function renderStudentProgress(classId, studentId) {
           ${remarksList(remarks)}
         </section>
         <section class="progress-section progress-panel">
-          <div class="progress-section__head"><div><span class="eyebrow">Pagbigkas</span><h2>Words to practice</h2></div></div>
+          <div class="progress-section__head"><div><span class="eyebrow">Pronunciation</span><h2>Words to practice</h2></div></div>
           ${
             progress.hardWords.length
               ? `<div class="word-chips">${progress.hardWords
@@ -232,14 +377,15 @@ export async function renderStudentProgress(classId, studentId) {
             ? `<div class="progress-table-wrap"><table class="progress-table">
                 <thead><tr>
                   <th scope="col">#</th><th scope="col">Lesson</th><th scope="col">Status</th>
-                  <th scope="col">Lecture</th><th scope="col">Talasalitaan</th><th scope="col">Pagkilala</th>
-                  <th scope="col">Pagbigkas</th><th scope="col">Pagsusulit</th>
+                  <th scope="col">Lecture</th><th scope="col">Vocabulary</th><th scope="col">Word Recognition</th>
+                  <th scope="col">Pronunciation</th><th scope="col">Comprehension</th>
                 </tr></thead>
                 <tbody>${lessonRows}</tbody>
               </table></div>`
             : '<p class="progress-panel__empty">No lessons assigned to this class yet.</p>'
         }
       </section>
+      ${printSignature()}
     </div>`;
 }
 

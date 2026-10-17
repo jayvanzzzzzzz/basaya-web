@@ -1,10 +1,11 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { db, messaging } from "../lib/firebase.js";
 import { ID_PATTERN, allowCors, requireUser } from "../lib/http.js";
+import { linkEntryId, linkLessonId } from "../lib/classLessons.js";
 
 // POST /api/notify-lesson
 // Headers: Authorization: Bearer <teacher's Firebase ID token>
-// Body:    { classId, lessonIds: [...] }
+// Body:    { classId, lessonIds: [...] }   (classLessons link ids, see lib/classLessons.js)
 //
 // Checks that the caller teaches the class, saves the notification to
 // classes/{classId}/notifications (the students' notification list) and sends a
@@ -68,14 +69,15 @@ export default async function handler(req, res) {
     }
 
     const linkRefs = ids.map((id) => firestore.doc(`classes/${classId}/classLessons/${id}`));
-    const lessonRefs = ids.map((id) => firestore.doc(`lessons/${id}`));
-    const [linkSnaps, lessonSnaps] = await Promise.all([
-      firestore.getAll(...linkRefs),
-      firestore.getAll(...lessonRefs),
-    ]);
+    const linkSnaps = await firestore.getAll(...linkRefs);
     if (linkSnaps.some((snap) => !snap.exists)) {
       return res.status(404).json({ error: "Lesson is not in this class" });
     }
+    const lessonSnaps = await firestore.getAll(
+      ...linkSnaps.map((link) => firestore.doc(`lessons/${linkLessonId(link)}`)),
+    );
+    // What the students' apps open: the class lesson entries (an Assessment's is its lesson id).
+    const entryIds = linkSnaps.map(linkEntryId);
     const lessons = lessonSnaps.map((snap) => ({
       title: (snap.exists && snap.get("title")) || "Aralin",
     }));
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
         type: "new_lesson",
         notificationId: feedRef.id,
         classId,
-        lessonIds: ids.join(","),
+        lessonIds: entryIds.join(","),
         title,
         body,
         visibleAt: String(visibleAt.toMillis()),
@@ -106,7 +108,7 @@ export default async function handler(req, res) {
     const batch = firestore.batch();
     batch.set(feedRef, {
       type: "new_lesson",
-      lessonIds: ids,
+      lessonIds: entryIds,
       title,
       body,
       visibleAt,

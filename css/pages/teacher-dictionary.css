@@ -1,0 +1,270 @@
+/* ---------- Dictionary (teacher/views/dictionary.js) ---------- */
+.dict-teacher {
+  display: grid;
+  gap: 1rem;
+}
+
+.dict-heading {
+  margin: 0.25rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dict-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1rem 0.25rem;
+  color: var(--ink-3);
+}
+
+.dict-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dict-filter select {
+  min-width: 14rem;
+}
+
+/* A–Z, like the student page */
+.dict-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dict-letters button {
+  min-width: 2.25rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dict-letters button:hover {
+  background: var(--surface-2);
+}
+
+.dict-letters button.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.dict-row h3 {
+  margin: 0 0 0.2rem;
+}
+
+/* Pantig next to the word: ba·hay */
+.dict-syllables {
+  margin-left: 0.35rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.dict-row__text {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dict-row__text:hover h3 {
+  color: var(--primary);
+}
+
+.dict-more {
+  justify-self: center;
+  margin-top: 0.5rem;
+}
+
+#dict-results {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* One word in full */
+.dict-entry {
+  display: grid;
+  gap: 1rem;
+}
+
+.dict-back {
+  justify-self: start;
+}
+
+.dict-entry__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dict-entry__head h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  overflow-wrap: anywhere;
+}
+
+.dict-entry__head h2:focus {
+  outline: none;
+}
+
+.dict-entry__syllables {
+  margin: 0.15rem 0 0.5rem;
+  color: var(--ink-3);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dict-entry__sense {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.dict-entry__sense h3 {
+  margin: 0 0 0.4rem;
+  color: var(--primary);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dict-entry__sense ol {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding-left: 1.3rem;
+}
+
+.dict-entry__examples {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.dict-entry__syn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.dict-entry__chip {
+  border: 0;
+  cursor: pointer;
+}
+
+.dict-hint {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.dict-row__text p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dict-row__actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.tag--muted {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+
+.tag--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.button.danger-text {
+  color: var(--danger);
+}
+
+.dict-credit {
+  margin: 0.75rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.dict-credit a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Add / edit form */
+.dict-form small {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.dict-sense {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 0.75rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.dict-sense legend {
+  padding: 0 0.35rem;
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.dict-sense [data-remove-sense] {
+  justify-self: start;
+}
+
+#dict-add-sense {
+  justify-self: start;
+}
+
+@media (max-width: 560px) {
+  .dict-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dict-row__actions {
+    justify-content: flex-start;
+  }
+}

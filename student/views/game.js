@@ -399,6 +399,8 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
 /** The app's CrosswordCompleteScreen: "Antas X / N", then the next level or back to the lesson. */
 function showLevelComplete({ lessonId, pathUrl, levelNumber, total, lessonTitle }) {
   const last = levelNumber >= total;
+  // A Practice lesson can be played again from level 1 (nothing was saved).
+  const replay = last && student.lessons.some((lesson) => lesson.id === lessonId && lesson.practice);
   content().innerHTML = `
     <section class="st-results st-level-done">
       ${buddy("happy", "st-results__buddy")}
@@ -411,10 +413,12 @@ function showLevelComplete({ lessonId, pathUrl, levelNumber, total, lessonTitle 
       </div>
       <button class="button primary st-wide st-big" type="button" id="level-next">${last ? "TAPOS NA" : "SUSUNOD NA ANTAS"}</button>
       ${last ? "" : `<a class="button secondary st-wide" href="#${pathUrl}">Bumalik sa aralin</a>`}
+      ${replay ? `<p class="st-results__practice">${icon("refresh")}Pagsasanay lang ito. Hindi naitatala ang iyong iskor.</p><button class="button secondary st-wide" type="button" id="level-replay">Maglaro muli</button>` : ""}
     </section>`;
   if (last) confetti({ count: 140 });
   $("#level-next").addEventListener("click", () => {
     if (last) navigate(pathUrl);
     else renderGame(lessonId);
   });
+  $("#level-replay")?.addEventListener("click", () => renderGame(lessonId));
 }

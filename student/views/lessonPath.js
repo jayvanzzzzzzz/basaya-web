@@ -15,10 +15,11 @@ import { muteNextLecture, prepareLecture } from "./lecture.js";
 
 // One lesson's path (the app's DashboardActivity): Lecture → Laro → Gawain → Bigkas →
 // Pagsusulit. Finished parts can't be redone (the lecture can be read again), and the
-// quiz opens only after the lecture.
+// quiz opens only after the lecture. A Practice lesson (Pagsasanay) saves nothing, so every
+// part stays open and can be done again.
 
 const PARTS = [
-  { key: "lecture", title: "Lecture", sub: "Unawain ang aralin", icon: "book", tone: "unawa" },
+  { key: "lecture", title: "Lektura", sub: "Unawain ang aralin", icon: "book", tone: "unawa" },
   { key: "game", title: "Laro", sub: "Hanapin ang tamang salita", icon: "puzzle", tone: "talasalitaan" },
   { key: "activity", title: "Gawain", sub: "Sanayin ang natutuhan", icon: "pencil", tone: "pagkilala" },
   { key: "pronunciation", title: "Bigkas", sub: "Bigkasin ang bawat salita", icon: "mic", tone: "pagbigkas" },
@@ -52,7 +53,9 @@ function countLine(key, progress, counts) {
     return progress.pronunciationTotal != null
       ? `Salita • ${progress.pronunciationScore}/${progress.pronunciationTotal}`
       : `${started("pronunciation", counts.pronunciation)}/${counts.pronunciation} salita`;
-  return progress.quizTotal != null ? `Puntos • ${progress.quizScore}/${progress.quizTotal}` : `0/${counts.quiz} questions`;
+  return progress.quizTotal != null
+    ? `Puntos • ${progress.quizScore}/${progress.quizTotal}`
+    : `${started("quiz", counts.quiz)}/${counts.quiz} questions`;
 }
 
 export async function renderLessonPath(lessonId) {
@@ -71,7 +74,7 @@ export async function renderLessonPath(lessonId) {
       <header class="st-hero st-hero--path">
         <a class="st-icon-button st-icon-button--light" href="#/home" aria-label="Bumalik">${icon("back")}</a>
         <div class="st-hero__text">
-          <span class="st-hero__eyebrow">ARALIN</span>
+          <span class="st-hero__eyebrow">ARALIN · ${lesson.practice ? "PAGSASANAY" : "PAGTATAYA"}</span>
           <h1>${escapeHtml(lesson.title || "BaSaya")}</h1>
           ${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}
         </div>
@@ -79,7 +82,11 @@ export async function renderLessonPath(lessonId) {
       </header>
       <div class="st-path__heading">
         <h2>Ang iyong landas</h2>
-        <p>Tapusin ang bawat hakbang, isa-isa!</p>
+        <p>${
+          lesson.practice
+            ? "Pagsasanay ito: sagutan ang kahit anong hakbang, ilang beses man. Hindi naitatala ang iyong iskor."
+            : "Tapusin ang bawat hakbang, isa-isa!"
+        }</p>
       </div>
       <ol id="path-steps" class="st-steps"><li class="st-loading"><span></span><span></span><span></span></li></ol>
     </section>`;
@@ -92,8 +99,9 @@ export async function renderLessonPath(lessonId) {
     pronunciation: progress.pronunciationFinished === true,
     quiz: progress.quizFinished === true,
   };
-  // A finished quiz stays open even if the lecture flag lags behind.
-  const quizLocked = !finished.lecture && !finished.quiz;
+  // A finished quiz stays open even if the lecture flag lags behind. A Practice lesson
+  // saves nothing, so nothing is ever finished and nothing waits for the lecture.
+  const quizLocked = !lesson.practice && !finished.lecture && !finished.quiz;
   const parts = PARTS.filter(
     (part) => !(part.key === "game" && lesson.gameSkipped) && !(part.key === "activity" && lesson.activitySkipped),
   );

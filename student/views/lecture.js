@@ -11,7 +11,7 @@ import {
 } from "../data.js";
 import { audioSource, downloadPageAudio, lecturePlayer } from "../lectureAudio.js";
 import { onLeave } from "../router.js";
-import { content, icon, showDialog } from "../ui.js";
+import { content, icon, setTalking as moveMouth, showDialog, talkingBuddy } from "../ui.js";
 
 // The lecture (the app's LectureActivity): tap to reveal each sentence while the talking
 // book reads it aloud. The last page's button marks the lecture finished. Until then each
@@ -90,7 +90,7 @@ export async function renderLecture(lessonId) {
   const muted = prepared.muted;
   prepared = null; // the next visit loads the place again
   if (!lecture?.pages.length) {
-    toast("Walang lecture para sa araling ito.");
+    toast("Walang lektura para sa araling ito.");
     return navigate(pathUrl);
   }
 
@@ -108,7 +108,7 @@ export async function renderLecture(lessonId) {
         <h1>${escapeHtml(lecture.title || "Aralin")}</h1>
       </div>
       <button class="st-talking-book" type="button" id="lecture-book" aria-label="Ang nagsasalitang aklat. Pindutin para ulitin ang pangungusap.">
-        <img src="../img/logo.png" alt="" />
+        ${talkingBuddy("st-talking-book__buddy")}
         <span class="st-talking-book__waves" aria-hidden="true"><i></i><i></i><i></i></span>
       </button>
       <div class="st-lecture__sheet" id="lecture-sheet" tabindex="0" aria-label="Pindutin ang pahina para sa susunod na pangungusap">
@@ -134,7 +134,10 @@ export async function renderLecture(lessonId) {
   let sentenceIndex = 0;
   let saving = false;
 
-  const setTalking = (talking) => book.classList.toggle("is-talking", talking);
+  const setTalking = (talking) => {
+    book.classList.toggle("is-talking", talking);
+    moveMouth(book.querySelector(".st-talker"), talking);
+  };
   const { signal } = listeners;
   player.addEventListener("playing", () => setTalking(true), { signal });
   player.addEventListener("ended", () => setTalking(false), { signal });

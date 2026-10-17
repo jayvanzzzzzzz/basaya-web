@@ -24,6 +24,8 @@ import {
   toast,
 } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
+import { syllablesFor } from "../../js/dictionary.js";
+import { syllabify } from "../../js/syllables.js";
 import {
   gameLevelHtml,
   readGameLevels,
@@ -366,14 +368,14 @@ function studioHtml(lesson = {}, sections = {}) {
       <div class="lesson-studio__tabs">
         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
         <button type="button" class="lesson-tab" data-step="activity">2. Activity</button>
-        <button type="button" class="lesson-tab" data-step="lectures">3. Lectures</button>
+        <button type="button" class="lesson-tab" data-step="lectures">3. Lektura</button>
         <button type="button" class="lesson-tab" data-step="pronunciation">4. Pronunciation</button>
         <button type="button" class="lesson-tab" data-step="quiz">5. Quiz & game</button>
       </div>
 
       <div class="lecture-page-navigation" data-lecture-page-navigation hidden>
         <div class="lesson-subheading">
-          <h4>Lecture pages</h4>
+          <h4>Lektura pages</h4>
         </div>
         <div class="lecture-page-navigation__controls">
           <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
@@ -451,12 +453,12 @@ function studioHtml(lesson = {}, sections = {}) {
           <div class="lesson-section-intro">
             <span class="lesson-section-number">03</span>
             <div>
-              <h3>Lecture pages</h3>
+              <h3>Lektura pages</h3>
               <p>Generate and listen to each sentence before publishing the lesson.</p>
             </div>
           </div>
 
-          <label>Lecture title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || lesson.title || "")}" placeholder="PANGGALAN" /></label>
+          <label>Lektura title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || lesson.title || "")}" placeholder="PANGGALAN" /></label>
 
           <div class="lecture-pages" data-lecture-pages></div>
         </section>
@@ -598,7 +600,7 @@ function lecturePageHtml(page = {}) {
   return `
     <article class="builder-card" data-lecture-page>
       <div class="builder-card__header">
-        <strong data-lecture-page-title>Lecture page</strong>
+        <strong data-lecture-page-title>Lektura page</strong>
         <button type="button" class="text-button danger" data-remove-lecture-page>Remove</button>
       </div>
       <div class="sentence-builder" data-sentences>
@@ -636,6 +638,27 @@ function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null
   `;
 }
 
+const syllablePreviewText = (syllables, fixed = false) =>
+  syllables.includes("·") ? `Students see: ${escapeHtml(syllables)}${fixed ? " (fixed in the Dictionary)" : ""}` : "";
+
+/**
+ * The syllables Bigkas shows under a word: the automatic split right away, then a
+ * teacher's fix from the Dictionary if there is one (fetched after typing stops).
+ */
+function refreshSyllablePreview(row, delay = 0) {
+  const preview = $("[data-syllable-preview]", row);
+  const word = $("[data-pronunciation-text]", row).value.trim();
+  const auto = syllabify(word);
+  preview.innerHTML = syllablePreviewText(auto);
+  clearTimeout(row.syllableTimer);
+  if (!word) return;
+  row.syllableTimer = setTimeout(async () => {
+    const shown = await syllablesFor(word);
+    if ($("[data-pronunciation-text]", row).value.trim() === word)
+      preview.innerHTML = syllablePreviewText(shown, shown !== auto);
+  }, delay);
+}
+
 function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
   const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
@@ -643,6 +666,7 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
       <label>
         Word
         <input data-pronunciation-text value="${escapeHtml(word)}" placeholder="Arkipelago" />
+        <small class="muted syllable-preview" data-syllable-preview>${syllablePreviewText(syllabify(word))}</small>
       </label>
       <div class="audio-actions">
         <button type="button" class="button secondary small" data-generate-pronunciation-audio>Generate audio</button>
@@ -836,6 +860,7 @@ async function openLessonModal(existing = null) {
     pronunciationWords.innerHTML = initialWords
       .map((item) => pronunciationWordHtml(item.word, item.audioRef, item.cloudAudio))
       .join("");
+    $("[data-pronunciation-word]", pronunciationWords).forEach((row) => refreshSyllablePreview(row));
     quizQuestions.innerHTML = initialQuestions.map(questionHtml).join("");
     gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
 
@@ -991,7 +1016,7 @@ async function openLessonModal(existing = null) {
         const lecturePage = button.closest("[data-lecture-page]");
         const sentenceRows = $$("[data-lecture-sentence]", lecturePage);
         if (sentenceRows.length >= MAX_SENTENCES_PER_LECTURE_PAGE) {
-          toast(`A lecture page can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+          toast(`A Lektura page can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
           return;
         }
 
@@ -1064,6 +1089,10 @@ async function openLessonModal(existing = null) {
     });
 
     modal.addEventListener("input", (event) => {
+      if (event.target.matches("[data-pronunciation-text]")) {
+        refreshSyllablePreview(event.target.closest("[data-pronunciation-word]"), 500);
+        return;
+      }
       if (!event.target.matches("[data-activity-words]")) return;
 
       const activityPage = event.target.closest("[data-activity-page]");
@@ -1387,7 +1416,7 @@ async function readLectures(container, lessonId) {
   for (const [pageIndex, page] of $$("[data-lecture-page]", container).entries()) {
     const sentenceRows = $$("[data-lecture-sentence]", page);
     if (sentenceRows.length > MAX_SENTENCES_PER_LECTURE_PAGE) {
-      throw new Error(`Lecture page ${pageIndex + 1} can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+      throw new Error(`Lektura page ${pageIndex + 1} can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
     }
     const sentences = [];
     const audioResNames = [];

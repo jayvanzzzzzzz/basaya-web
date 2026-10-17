@@ -4,6 +4,8 @@ import { renderTeachers } from "./views/teachers.js";
 import { renderStudents } from "./views/students.js";
 import { renderClasses } from "./views/classes.js";
 import { renderLessons } from "./views/lessons.js";
+import { renderAccount } from "./views/account.js";
+import { renderDictionary } from "../teacher/views/dictionary.js";
 import { refreshDeletionBadge } from "./views/classDeletion.js";
 
 export async function renderRoute() {
@@ -18,6 +20,8 @@ export async function renderRoute() {
     else if (route === "/students") await renderStudents();
     else if (route === "/classes") await renderClasses();
     else if (route === "/lessons") await renderLessons();
+    else if (route === "/dictionary") await renderDictionary();
+    else if (route === "/settings") renderAccount();
     else navigate("/teachers");
     // Keep the "All classes" badge (pending deletion requests) current on every page.
     if (route !== "/classes") refreshDeletionBadge();

@@ -1,4 +1,5 @@
-// Branded HTML emails sent from notify-api (contact form, password reset).
+// Branded HTML emails sent from notify-api (contact form, password reset,
+// admin password change approval).
 // Email clients ignore <style> and modern CSS, so everything is tables with
 // inline styles, a 600px column, and system fonts. Each template also has a
 // plain-text version for clients that don't show HTML.
@@ -175,12 +176,18 @@ export function contactEmail({ name, email, topic, message, role, page, sentAt, 
 }
 
 /**
- * Password reset for a teacher or student, requested by an admin.
- * @param {{ name: string, email: string, link: string, role?: "teacher" | "student" }} input
+ * Password reset link: sent by an admin (requestedBy "admin"), or asked for by the
+ * account owner through "Forgot password?" (requestedBy "self").
+ * @param {{ name: string, email: string, link: string, role?: string,
+ *           requestedBy?: "admin" | "self" }} input
  */
-export function passwordResetEmail({ name, email, link, role = "teacher" }) {
+export function passwordResetEmail({ name, email, link, role = "teacher", requestedBy = "admin" }) {
   const first = (name || "there").split(" ")[0];
-  const account = role === "student" ? "student account" : "teacher account";
+  const account = ["student", "teacher", "admin"].includes(role) ? `${role} account` : "account";
+  const byAdmin = requestedBy === "admin";
+  const intro = byAdmin
+    ? `Your school admin asked BaSaya to send you a password reset link for your ${account}`
+    : `We received a request to reset the password for your BaSaya ${account}`;
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
       <tr>
@@ -190,7 +197,7 @@ export function passwordResetEmail({ name, email, link, role = "teacher" }) {
     <h1 style="margin:22px 0 8px;font-size:26px;line-height:1.3;color:${C.ink};font-weight:800;letter-spacing:-0.4px;">Reset your password</h1>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:${C.ink2};">Hi ${escape(first)},</p>
     <p style="margin:0;font-size:15px;line-height:1.7;color:${C.ink2};">
-      Your school admin asked BaSaya to send you a password reset link for your ${account}
+      ${intro}
       <strong style="color:${C.ink};">${escape(email)}</strong>. Click the button below to choose a new password.
     </p>
 
@@ -205,7 +212,7 @@ export function passwordResetEmail({ name, email, link, role = "teacher" }) {
         <td style="background:${C.soft};border:1px solid ${C.border};border-radius:14px;padding:16px 18px;font-size:13px;line-height:1.6;color:${C.ink2};">
           <strong style="color:${C.ink};">Didn't expect this?</strong><br />
           You can safely ignore this email. Your current password keeps working until you set a new one.
-          If you think someone else requested it, let your school admin know.
+          ${byAdmin ? "If you think someone else requested it, let your school admin know." : "Someone may have typed your email by mistake. Your account is still safe."}
         </td>
       </tr>
     </table>
@@ -224,12 +231,86 @@ export function passwordResetEmail({ name, email, link, role = "teacher" }) {
     text: [
       `Hi ${first},`,
       "",
-      `Your school admin asked BaSaya to send you a password reset link for your ${account} (${email}).`,
+      `${intro} (${email}).`,
       "",
       `Set a new password: ${link}`,
       "",
       "This link expires in 1 hour and can be used only once.",
       "Didn't expect this? You can ignore this email. Your current password keeps working.",
+      "",
+      `BaSaya · A Capstone Project, BS Information Technology · ${SCHOOL}`,
+    ].join("\n"),
+  };
+}
+
+/**
+ * Asks an admin to approve their own password change (api/request-admin-password-change).
+ * @param {{ name: string, email: string, approveLink: string, cancelLink: string,
+ *           requestedAt: Date, minutes: number }} input
+ */
+export function adminPasswordChangeEmail({ name, email, approveLink, cancelLink, requestedAt, minutes }) {
+  const first = (name || "there").split(" ")[0];
+  const when = requestedAt.toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const body = `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td width="56" height="56" align="center" bgcolor="${C.primarySoft}" style="width:56px;height:56px;border-radius:16px;background:${C.primarySoft};font-size:26px;line-height:56px;">&#128274;</td>
+      </tr>
+    </table>
+    <h1 style="margin:22px 0 8px;font-size:26px;line-height:1.3;color:${C.ink};font-weight:800;letter-spacing:-0.4px;">Approve your new password</h1>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:${C.ink2};">Hi ${escape(first)},</p>
+    <p style="margin:0;font-size:15px;line-height:1.7;color:${C.ink2};">
+      Someone signed in to the BaSaya admin account <strong style="color:${C.ink};">${escape(email)}</strong>
+      and asked to change its password on <strong style="color:${C.ink};">${escape(when)}</strong>.
+      The new password <strong style="color:${C.ink};">won't work until you approve it</strong>.
+    </p>
+
+    ${button(approveLink, "Approve new password")}
+
+    <p style="margin:0 0 24px;font-size:13px;line-height:1.6;color:${C.ink3};">
+      &#9201; This link expires in <strong style="color:${C.ink2};">${minutes} minutes</strong> and can be used only once.
+      After you approve, you'll be signed out everywhere. Sign in again with the new password.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="background:${C.soft};border:1px solid ${C.border};border-radius:14px;padding:16px 18px;font-size:13px;line-height:1.6;color:${C.ink2};">
+          <strong style="color:${C.ink};">Wasn't you?</strong><br />
+          <a href="${escape(cancelLink)}" target="_blank" style="color:${C.primary};font-weight:700;text-decoration:none;">Cancel this request</a>,
+          or simply ignore this email: your current password keeps working.
+          Whoever asked knew your current password, so change it soon.
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:24px 0 6px;font-size:12px;color:${C.ink3};">Button not working? Copy this link into your browser:</p>
+    <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="${escape(approveLink)}" style="color:${C.primary};text-decoration:none;">${escape(approveLink)}</a></p>`;
+
+  return {
+    subject: "Approve your new BaSaya admin password",
+    html: layout({
+      preheader: `Your new admin password won't work until you approve it (link valid ${minutes} minutes).`,
+      eyebrow: "Account security",
+      body,
+      footerNote: `This email was sent to ${escape(email)} because a password change was requested for your BaSaya admin account.`,
+    }),
+    text: [
+      `Hi ${first},`,
+      "",
+      `Someone signed in to the BaSaya admin account ${email} and asked to change its password on ${when}.`,
+      "The new password won't work until you approve it.",
+      "",
+      `Approve: ${approveLink}`,
+      "",
+      `This link expires in ${minutes} minutes and can be used only once.`,
+      "After you approve, you'll be signed out everywhere. Sign in again with the new password.",
+      "",
+      `Wasn't you? Cancel: ${cancelLink}`,
+      "Or ignore this email: your current password keeps working. Whoever asked knew your current password, so change it soon.",
       "",
       `BaSaya · A Capstone Project, BS Information Technology · ${SCHOOL}`,
     ].join("\n"),

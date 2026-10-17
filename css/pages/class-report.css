@@ -1,0 +1,699 @@
+/* ============================================================
+   CLASS REPORT (teacher/views/classReport.js)
+   A calm, report-style layout: key figures, skill table, findings,
+   student table. Shared pieces (remark chips, dist bars, score cells)
+   come from progress.css.
+   ============================================================ */
+.report-page {
+  /* Wide tables scroll inside their panel instead of widening the page */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 1.25rem;
+}
+
+/* ---------- Key figures ---------- */
+.rp-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.rp-kpi {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.15rem 1.35rem 1.2rem;
+}
+
+.rp-kpi + .rp-kpi {
+  border-left: 1px solid var(--border);
+}
+
+.rp-kpi__label {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rp-kpi__value {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.rp-kpi__foot {
+  display: flex;
+  min-height: 1.6rem;
+  align-items: center;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.rp-kpi--alert .rp-kpi__value {
+  color: var(--danger);
+}
+
+/* Thin completion bar */
+.rp-meter {
+  display: inline-block;
+  width: 3.5rem;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+  vertical-align: middle;
+}
+
+.rp-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+.rp-meter--wide {
+  width: 100%;
+  max-width: 11rem;
+}
+
+/* ---------- Panels ---------- */
+.rp-panel {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.rp-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.6rem 1.5rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-panel__head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.rp-panel__head p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+}
+
+.rp-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.rp-muted {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.rp-empty {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+
+/* ---------- Tables ---------- */
+.rp-table-wrap {
+  overflow-x: auto;
+  margin: -0.25rem -0.4rem 0;
+  padding: 0 0.4rem;
+}
+
+.rp-table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  text-align: left;
+}
+
+.rp-table thead th {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rp-table tbody th,
+.rp-table tbody td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.rp-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.rp-table tbody tr:hover > * {
+  background: var(--surface-2);
+}
+
+.rp-table .rp-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Skill performance: Average and With results centred */
+.rp-table--skills .rp-num {
+  text-align: center;
+}
+
+.rp-table .rp-num b {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* Skill column */
+.rp-skill {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 12rem;
+}
+
+.rp-skill__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--skill) 12%, var(--surface));
+  color: var(--skill);
+}
+
+.rp-skill__icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.rp-skill strong,
+.rp-skill small {
+  display: block;
+}
+
+.rp-skill strong {
+  font-weight: 600;
+}
+
+.rp-skill small {
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+.rp-dist {
+  min-width: 13rem;
+}
+
+.rp-dist .dist-bar {
+  height: 0.5rem;
+  border-radius: 3px;
+}
+
+.rp-dist .dist-legend {
+  margin: 0.45rem 0 0;
+}
+
+.rp-help {
+  max-width: 16rem;
+  font-size: 0.82rem;
+}
+
+/* Names contain commas ("Cruz, Juan"), so one per line */
+.rp-help a,
+.rp-help .rp-muted {
+  display: block;
+  width: max-content;
+  line-height: 1.55;
+}
+
+.rp-help a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 2px;
+}
+
+.rp-help a:hover {
+  color: var(--primary);
+  text-decoration-color: currentColor;
+}
+
+/* Student column */
+.rp-student {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 12rem;
+  color: var(--ink);
+}
+
+.rp-student strong {
+  font-weight: 600;
+}
+
+.rp-student:hover strong {
+  color: var(--primary);
+}
+
+.rp-avatar {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Score cells: a quiet tinted pill instead of a filled cell */
+/* Skill score columns: header and scores centred */
+.rp-table th.rp-score,
+.report-table td.score-cell {
+  text-align: center;
+}
+
+.report-table td.score-cell {
+  background: none;
+  font-weight: 600;
+}
+
+.report-table td.score-cell--very-good,
+.report-table td.score-cell--good,
+.report-table td.score-cell--fair,
+.report-table td.score-cell--poor {
+  background: none;
+}
+
+.report-table tbody tr:hover td.score-cell {
+  background: var(--surface-2);
+}
+
+.report-table td.score-cell--very-good { color: var(--success); }
+.report-table td.score-cell--good { color: var(--info); }
+.report-table td.score-cell--fair { color: var(--warning); }
+.report-table td.score-cell--poor { color: var(--danger); }
+
+.report-table td.score-cell--empty {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.rp-lessons {
+  white-space: nowrap;
+}
+
+.rp-lessons > span:last-child {
+  margin-left: 0.5rem;
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-row--muted > * {
+  color: var(--ink-3);
+}
+
+/* Status */
+.rp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.rp-status::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.rp-status--alert { color: var(--danger); }
+.rp-status--good { color: var(--success); }
+.rp-status--muted { color: var(--ink-3); }
+
+/* ---------- Findings (shared remarks list, quieter here) ---------- */
+.report-page .remarks-list {
+  gap: 0;
+}
+
+.report-page .remarks-list__item {
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  animation: none;
+}
+
+.report-page .remarks-list__item:first-child {
+  padding-top: 0.1rem;
+}
+
+.report-page .remarks-list__item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.report-page .remarks-list__icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--tone-soft);
+}
+
+.report-page .remarks-list__icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.report-page .remarks-list strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.report-page .remarks-list p {
+  font-size: 0.82rem;
+}
+
+/* ---------- Needs attention ---------- */
+.rp-attention {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-attention li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-attention li:first-child {
+  padding-top: 0;
+}
+
+.rp-attention li:last-child {
+  border-bottom: 0;
+}
+
+.rp-attention a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.rp-attention a:hover {
+  color: var(--primary);
+}
+
+.rp-attention__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.rp-tag {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
+  border-radius: 0.4rem;
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+/* ---------- What to re-teach (item analysis) ---------- */
+.ia-filter {
+  display: grid;
+  gap: 0.3rem;
+  min-width: min(100%, 16rem);
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ia-filter select {
+  font-size: 0.88rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.ia-scope {
+  display: none;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.82rem;
+}
+
+.ia-summary {
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--success) 7%, var(--surface));
+}
+
+.ia-summary--reteach {
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
+
+.ia-summary strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.ia-summary p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-2);
+  font-size: 0.84rem;
+}
+
+#ia-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.ia-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.25rem 2rem;
+}
+
+.ia-column {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+}
+
+.ia-column h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.ia-column h3 small {
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.ia-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ia-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 4.6rem;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.ia-item:first-child {
+  border-top: 0;
+}
+
+.ia-item__text {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.ia-item__text small {
+  color: var(--ink-3);
+  font-size: 0.75rem;
+}
+
+.ia-item__stat {
+  display: grid;
+  grid-template-columns: 5rem 2.6rem;
+  align-items: center;
+  gap: 0.1rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ia-item__stat b {
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.ia-item__stat small {
+  grid-column: 1 / -1;
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+.ia-bar {
+  display: block;
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.ia-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--warning);
+}
+
+.ia-item--reteach .ia-bar i {
+  background: var(--danger);
+}
+
+.ia-item .rp-tag {
+  justify-self: end;
+}
+
+.ia-note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+/* No playful motion on a report: just a soft fade in */
+.report-page .dist-bar__part {
+  animation: none;
+}
+
+.report-page > * {
+  animation: fadeIn var(--dur-slow) var(--ease-out) backwards;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .rp-columns,
+  .ia-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .rp-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rp-kpi:nth-child(3) {
+    border-left: 0;
+  }
+
+  .rp-kpi:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 560px) {
+  .rp-panel {
+    padding: 1rem;
+  }
+
+  .rp-kpi {
+    padding: 0.95rem 1rem;
+  }
+
+  .rp-kpi__value {
+    font-size: 1.6rem;
+  }
+
+  .ia-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ia-item__stat {
+    grid-column: 1;
+  }
+}

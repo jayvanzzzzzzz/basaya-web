@@ -27,7 +27,7 @@ export const LABELS = {
     search: "Search students",
     noMatch: (text) => `No student matches “${text}”.`,
     failed: "Couldn't load the members. Check your connection and try again.",
-    button: "Class members",
+    button: "Class Members",
   },
   fil: {
     eyebrow: "Mga miyembro",
@@ -57,7 +57,7 @@ const svg = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]
 
 /** The (i) button for a chat header. */
 export const membersButton = (labels) =>
-  `<button type="button" class="chat-info" data-members aria-haspopup="dialog" aria-label="${escapeHtml(labels.button)}" title="${escapeHtml(labels.button)}">${svg("info")}</button>`;
+  `<button type="button" class="chat-info" data-members aria-haspopup="dialog" aria-label="${escapeHtml(labels.button)}">${svg("info")}<span class="chat-info__tip" aria-hidden="true">${escapeHtml(labels.button)}</span></button>`;
 
 /** A stable hue per name, so each person keeps their avatar color (same as the chat). */
 const hueOf = (text) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 360, 7);

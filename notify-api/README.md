@@ -11,6 +11,9 @@ The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 | `POST /api/delete-class` | admin | Deletes a class with its roster, lessons and every student's progress. |
 | `POST /api/send-password-reset` | admin | Emails a teacher or student a BaSaya-branded password reset link. The link opens `reset-password.html` on the website. |
 | `POST /api/set-temporary-password` | admin | Sets a temporary password for a student who can't get the reset email (fake or mistyped address), and signs them out of other devices. |
+| `POST /api/forgot-password` | anyone (login page "Forgot password?", admin Account settings) | Emails the BaSaya-branded reset link to whoever owns that email. Same answer whether or not the account exists. Limited to 5 per hour per IP (`resetLimits`). If it fails, the site falls back to Firebase's plain reset email. |
+| `POST /api/request-admin-password-change` | admin (signed in again in the last 5 minutes) | Keeps the admin's new password waiting (encrypted, 30 minutes) and emails them **Approve** / **Cancel** links to `confirm-password-change.html`. The password doesn't change until they approve. |
+| `POST /api/confirm-admin-password-change` | anyone with the one-time link | Called by `confirm-password-change.html`: `check`, `approve` (sets the password and signs the admin out everywhere) or `cancel`. Each link works once. |
 | `POST /api/contact` | anyone (the site's Contact form) | Emails the message, with an optional photo, to the team's Gmail. Limited to 5 messages per hour per IP, with a honeypot field against bots. |
 
 Signed-in calls send `Authorization: Bearer <Firebase ID token>`. Email templates are in `lib/emails.js`.
@@ -28,6 +31,7 @@ Signed-in calls send `Authorization: Bearer <Firebase ID token>`. Email template
    | `GMAIL_USER` | the Gmail address that sends BaSaya's emails, e.g. `adminbasaya@gmail.com` |
    | `GMAIL_APP_PASSWORD` | that account's 16-letter App Password, without spaces (see below) |
    | `CONTACT_TO` | optional: where Contact form messages go (default: `GMAIL_USER`) |
+   | `PASSWORD_CHANGE_SECRET` | a long random text (32+ characters) that encrypts admin passwords waiting for approval. Make one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Changing it cancels requests that are still waiting. |
    | `SITE_URL` | optional: the website's address for email links and the logo (default: `https://basaya.onrender.com`) |
 4. Put the deployment URL in `../firebase-config.js` as `notifyApiUrl`, e.g. `"https://basaya-notify-api.vercel.app"`.
 
@@ -49,4 +53,6 @@ If the branded reset email can't be sent (for example the App Password isn't set
 
 ## Optional: clean up rate-limit records
 
-`/api/contact` keeps one small document per sender IP (hashed) in `contactLimits`, with an `expiresAt` field. To have Firestore delete old ones automatically: Firebase Console → Firestore → **TTL policies** → add a policy on collection `contactLimits`, field `expiresAt`.
+`/api/contact` keeps one small document per sender IP (hashed) in `contactLimits`, with an `expiresAt` field. To have Firestore delete old ones automatically: Firebase Console → Firestore → **TTL policies** → add a policy on collection `contactLimits`, field `expiresAt`. Do the same for `resetLimits` (used by `/api/forgot-password`).
+
+Admin password changes waiting for approval live in `adminPasswordChanges`, also with an `expiresAt` field; add the same kind of policy there. (Expired ones are refused either way.)

@@ -25,6 +25,7 @@ export const ICONS = {
   door: '<path d="M14 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4" />',
   key: '<circle cx="8" cy="15" r="4" /><path d="m11 12 8-8m-3 3 2 2m-4 0 1.5 1.5" />',
   chevron: '<path d="m9 18 6-6-6-6" />',
+  info: '<path d="M12 10.5V17M12 6.8h.01" />',
   clock: '<circle cx="12" cy="13" r="7.5" /><path d="M12 9.5V13l2.5 1.5M5 4 2.5 6.5M19 4l2.5 2.5" />',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2.2 2.2 0 0 0 4 0" />',
   chat: '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />',
@@ -42,6 +43,80 @@ export const buddy = (mood = "idle", className = "") =>
 export function setBuddyMood(element, mood) {
   if (!element) return;
   element.className = element.className.replace(/st-buddy--\w+/, `st-buddy--${mood}`);
+}
+
+/**
+ * The buddy with a mouth that moves while audio plays: logo-talk.png is the logo with its
+ * mouth and waving arm painted out, and the SVG draws the same grin back on top (in the
+ * image's 500×500 coordinates) so it can open and close. The arm is its own layer: waving
+ * when idle, resting (logo-talk-rest.png) while talking. Toggle it with setTalking().
+ */
+const MOUTH = "M215 218Q240 232 269 228C263 241 253 257 237 258C225 258 218 246 215 218Z";
+
+export const talkingBuddy = (className = "") =>
+  `<span class="st-talker ${className}" aria-hidden="true">
+    <span class="st-talker__body">
+      <img class="st-talker__arm st-talker__arm--wave" src="../img/logo-talk-wave.png" alt="" />
+      <img class="st-talker__arm st-talker__arm--rest" src="../img/logo-talk-rest.png" alt="" />
+      <img class="st-talker__book" src="../img/logo-talk.png" alt="" />
+      <svg class="st-talker__face" viewBox="0 0 500 500">
+        <defs><clipPath id="st-talker-clip"><path d="${MOUTH}" /></clipPath></defs>
+        <g class="st-talker__mouth">
+          <path class="st-talker__inside" d="${MOUTH}" />
+          <g clip-path="url(#st-talker-clip)">
+            <path class="st-talker__teeth" d="M210 216Q240 231 274 226L274 234Q240 240 210 225Z" />
+            <ellipse class="st-talker__tongue" cx="238" cy="253" rx="17" ry="7" transform="rotate(-6 238 253)" />
+          </g>
+          <path class="st-talker__lip" d="${MOUTH}" />
+        </g>
+      </svg>
+    </span>
+  </span>`;
+
+const TALK_FRAMES = [
+  { transform: "scaleY(1)" },
+  { transform: "scaleY(0.25)", offset: 0.18 },
+  { transform: "scaleY(0.85)", offset: 0.38 },
+  { transform: "scaleY(0.35)", offset: 0.55 },
+  { transform: "scaleY(1)", offset: 0.74 },
+  { transform: "scaleY(0.3)", offset: 0.9 },
+  { transform: "scaleY(1)" },
+];
+const BOB_FRAMES = [
+  { transform: "translateY(0) rotate(0deg)" },
+  { transform: "translateY(-3%) rotate(-1.5deg)" },
+  { transform: "translateY(0) rotate(0deg)" },
+  { transform: "translateY(-2%) rotate(1.5deg)" },
+  { transform: "translateY(0) rotate(0deg)" },
+];
+const talking = new WeakMap(); // talker element → its running animations
+
+/** Starts or stops the mouth (and a gentle bob); stopping eases back instead of snapping. */
+export function setTalking(talker, on) {
+  if (!talker?.animate) return;
+  const parts = [talker.querySelector(".st-talker__mouth"), talker.querySelector(".st-talker__body")];
+  const running = talking.get(talker);
+  talker.classList.toggle("is-talking", on);
+  if (on) {
+    if (running) return;
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    talking.set(talker, [
+      parts[0].animate(TALK_FRAMES, { duration: calm ? 1400 : 900, iterations: Infinity, easing: "ease-in-out" }),
+      calm ? null : parts[1].animate(BOB_FRAMES, { duration: 1800, iterations: Infinity, easing: "ease-in-out" }),
+    ]);
+    return;
+  }
+  if (!running) return;
+  talking.delete(talker);
+  running.forEach((animation, i) => {
+    if (!animation) return;
+    const now = getComputedStyle(parts[i]).transform;
+    animation.cancel();
+    parts[i].animate([{ transform: now === "none" ? "none" : now }, { transform: "none" }], {
+      duration: 220,
+      easing: "ease-out",
+    });
+  });
 }
 
 /**

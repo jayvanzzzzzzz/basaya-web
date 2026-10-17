@@ -1,11 +1,12 @@
 import { $, escapeHtml } from "../../js/helpers.js";
-import { SKILLS, lessonParts, resultsFrom, summarize } from "../../js/scoring.js";
+import { SKILLS, lessonParts, summarize } from "../../js/scoring.js";
 import {
-  student,
   firstName,
   loadClassLessons,
   loadClassProgressDocs,
   saveSummary,
+  scoredLessons,
+  scoredResults,
 } from "../data.js";
 import { buddy, content, icon, stars } from "../ui.js";
 
@@ -13,11 +14,11 @@ import { buddy, content, icon, stars } from "../ui.js";
 // combined grade. Uses the same scoring as the app and the teacher's reports (js/scoring.js).
 
 const STYLE = {
-  pagUnawa: { name: "Pag-unawa sa Binasa", source: "Lektura", icon: "book" },
+  pagUnawa: { name: "Lektura", source: "Mga nabasang aralin", icon: "book" },
   talasalitaan: { name: "Talasalitaan", source: "Crossword", icon: "puzzle" },
   pagkilala: { name: "Pagkilala sa Salita", source: "Gawain", icon: "pencil" },
   pagbigkas: { name: "Pagbigkas", source: "Pronunciation", icon: "mic" },
-  pagsusulit: { name: "Pagsusulit", source: "Quiz", icon: "clipboard" },
+  pagsusulit: { name: "Pag-unawa sa Binasa", source: "Pagsusulit", icon: "clipboard" },
 };
 
 const LEVEL_CARD = {
@@ -45,10 +46,11 @@ function scoredState(summary) {
   };
 }
 
-/** Pag-unawa has no score until lectures have comprehension questions: show completion. */
+/** Lektura has no score: show how many lectures were read. */
 function lectureState(docs) {
-  const ids = new Set(student.lessons.map((lesson) => lesson.id));
-  const total = student.lessons.length;
+  const lessons = scoredLessons();
+  const ids = new Set(lessons.map((lesson) => lesson.id));
+  const total = lessons.length;
   const finished = docs.filter((item) => ids.has(item.id) && item.lectureFinished === true).length;
   if (!total || !finished) return NOT_STARTED;
   const done = finished === total;
@@ -132,14 +134,16 @@ export async function renderProgress() {
 
   await loadClassLessons();
   const docs = await loadClassProgressDocs();
-  const summary = summarize(resultsFrom(docs));
+  const summary = summarize(await scoredResults(docs));
 
-  const lessonsById = new Map(student.lessons.map((lesson) => [lesson.id, lesson]));
+  // Practice lessons save nothing, so they are left out of every count here.
+  const lessons = scoredLessons();
+  const lessonsById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
   const skippedOf = (id) => ({ game: lessonsById.get(id)?.gameSkipped, activity: lessonsById.get(id)?.activitySkipped });
   const finished = docs.filter((item) => lessonParts(item, skippedOf(item.id)).finished).length;
-  const total = student.lessons.length;
-  const allGamesSkipped = total > 0 && student.lessons.every((lesson) => lesson.gameSkipped);
-  const allActivitiesSkipped = total > 0 && student.lessons.every((lesson) => lesson.activitySkipped);
+  const total = lessons.length;
+  const allGamesSkipped = total > 0 && lessons.every((lesson) => lesson.gameSkipped);
+  const allActivitiesSkipped = total > 0 && lessons.every((lesson) => lesson.activitySkipped);
 
   const levels = Object.values(summary.skills).map((skill) => skill.level);
   const hasData = Object.values(summary.skills).some((skill) => skill.lessons > 0) || docs.some((item) => item.lectureFinished);

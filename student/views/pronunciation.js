@@ -1,5 +1,7 @@
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { $, escapeHtml, navigate, toast } from "../../js/helpers.js";
+import { $, escapeHtml, navigate, openModal, toast } from "../../js/helpers.js";
+import { lookupWord } from "../../js/dictionary.js";
+import { syllabify } from "../../js/syllables.js";
 import {
   availability,
   clearResume,
@@ -13,7 +15,7 @@ import {
 } from "../data.js";
 import { onLeave } from "../router.js";
 import { Microphone, browserRecognitionAvailable, listenWithBrowser, score, transcribe } from "../speech.js";
-import { buddy, confetti, confettiFrom, content, icon, setBuddyMood, shake } from "../ui.js";
+import { confetti, confettiFrom, content, icon, setBuddyMood, setTalking, shake, talkingBuddy } from "../ui.js";
 import { renderResults } from "./results.js";
 
 // Bigkas (the app's PronunciationActivity): hear the word, say it into the mic, and
@@ -48,10 +50,12 @@ export async function renderPronunciation(lessonId) {
       </header>
       <p class="st-pron__instruction">${escapeHtml(activity.instruction || "Bigkasin ang salitang ito.")}</p>
       <div class="st-pron__stage">
-        ${buddy("idle", "st-pron__buddy")}
+        ${talkingBuddy("st-buddy st-buddy--idle st-pron__buddy")}
         <div class="st-card st-pron__word" id="pron-card">
           <span class="st-pron__count" id="pron-count"></span>
+          <button class="st-icon-button st-pron__info" type="button" id="pron-info" hidden aria-label="Ano ang ibig sabihin ng salita?">${icon("info")}</button>
           <strong id="pron-word"></strong>
+          <span class="st-pron__syllables" id="pron-syllables"></span>
           <button class="st-icon-button st-pron__speaker" type="button" id="pron-speaker" aria-label="Pakinggan ang salita">${icon("speaker")}</button>
         </div>
       </div>
@@ -76,6 +80,63 @@ export async function renderPronunciation(lessonId) {
   const speaker = $("#pron-speaker");
   const micArea = $(".st-pron__mic-area");
   const player = new Audio();
+  // Each word's Diksiyonaryo entry, looked up once. Pantig under the word is split right
+  // away, then swapped for a teacher's fix when the entry comes back; the ⓘ button shows
+  // only for words the Diksiyonaryo has (display only; checking still uses the word).
+  const syllables = words.map((w) => syllabify(w.word));
+  const entries = words.map(() => null);
+  const showWordExtras = () => {
+    const text = syllables[index] || "";
+    const el = $("#pron-syllables");
+    if (!el) return;
+    el.textContent = text;
+    el.setAttribute("aria-label", `Pantig: ${text}`);
+    el.hidden = !text.includes("·");
+    const info = $("#pron-info");
+    const had = !info.hidden;
+    info.hidden = !entries[index];
+    // A little wiggle when the button appears, so the student notices it.
+    if (!info.hidden && !had) {
+      info.classList.remove("st-pron__info--hello");
+      void info.offsetWidth;
+      info.classList.add("st-pron__info--hello");
+    }
+  };
+  words.forEach((w, i) =>
+    lookupWord(w.word)
+      .catch(() => null)
+      .then((entry) => {
+        entries[i] = entry;
+        if (entry?.syllables) syllables[i] = entry.syllables;
+        if (i === index) showWordExtras();
+      }),
+  );
+
+  /** The word's meaning from the Diksiyonaryo: first meaning group only, kept short. */
+  const showMeaning = () => {
+    const entry = entries[index];
+    if (!entry) return;
+    const sense = entry.senses[0];
+    const syllableText = syllables[index] || "";
+    openModal(
+      `<div class="st-word-info">
+        <span class="st-word-info__icon">${icon("book")}</span>
+        <h2>${escapeHtml(entry.accent || entry.word)}</h2>
+        ${syllableText.includes("·") ? `<p class="st-word-info__syllables" aria-label="Pantig: ${escapeHtml(syllableText)}">${escapeHtml(syllableText)}</p>` : ""}
+        ${sense?.pos ? `<span class="st-word-info__pos">${escapeHtml(sense.pos)}</span>` : ""}
+        <ol class="st-word-info__meanings">${(sense?.definitions || []).map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ol>
+        ${sense?.examples.length ? `<ul class="st-word-info__examples">${sense.examples.map((e) => `<li>“${escapeHtml(e)}”</li>`).join("")}</ul>` : ""}
+        <button class="button primary" type="button" data-close-info>Isara</button>
+      </div>`,
+      (backdrop, close) => {
+        backdrop.querySelector(".modal").classList.add("st-modal");
+        backdrop.querySelector("[data-close-info]").addEventListener("click", close);
+        backdrop.querySelector("[data-close-info]").focus();
+        onLeave(close);
+      },
+    );
+  };
+  $("#pron-info").addEventListener("click", showMeaning);
 
   const resume = resumeOf(progress, "pronunciation", words.length);
   let index = resume?.done ?? 0;
@@ -107,7 +168,15 @@ export async function renderPronunciation(lessonId) {
     clearTimeout(advanceTimer);
   });
 
-  const setMood = (mood) => setBuddyMood(mascot, mood);
+  const setMood = (mood) => {
+    setTalking(mascot, false);
+    setBuddyMood(mascot, mood);
+  };
+  /** The book "says" the word: mouth moving, no other mood animation fighting it. */
+  const startTalking = () => {
+    setBuddyMood(mascot, "idle");
+    setTalking(mascot, true);
+  };
   const setLevel = (level) => micArea.style.setProperty("--level", level.toFixed(3));
 
   const showNote = (tone, title, text = "") => {
@@ -142,6 +211,8 @@ export async function renderPronunciation(lessonId) {
     missesOnWord = restored?.misses ?? 0;
     restored = null;
     $("#pron-word").textContent = words[index].word;
+    $("#pron-info").hidden = true; // so it wiggles again for the new word
+    showWordExtras();
     $("#pron-count").textContent = `Salita ${index + 1} / ${words.length}`;
     $("#pron-bar").style.width = `${(index * 100) / words.length}%`;
     updateLives(false);
@@ -187,10 +258,11 @@ export async function renderPronunciation(lessonId) {
     if (!window.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = "fil-PH";
+    utterance.onstart = startTalking;
     utterance.onend = () => setMood("idle");
+    utterance.onerror = () => setMood("idle");
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
-    setMood("happy");
   };
   const playWord = () => {
     if (processing) return;
@@ -199,9 +271,9 @@ export async function renderPronunciation(lessonId) {
     window.speechSynthesis?.cancel();
     if (current.audioUrl) {
       player.src = current.audioUrl;
+      player.onplaying = startTalking;
       player.onended = () => setMood("idle");
       player.onerror = () => speakWithTts(current.word);
-      setMood("happy");
       player.play().catch(() => speakWithTts(current.word));
     } else {
       speakWithTts(current.word);

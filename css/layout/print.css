@@ -1,0 +1,295 @@
+/* ============================================================
+   PRINT — Class Report and student progress on paper / PDF
+   (teacher/views/reportExport.js). Print always uses the light theme.
+   ============================================================ */
+
+/* Header buttons: icon + label */
+.report-action svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Print-only pieces stay out of the screen view */
+.print-meta,
+.print-signature {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm 12mm 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  /* Keep the remark colours, score tints and bars */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Final state immediately: rings full, rows visible */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* ---------- Shell: only the report itself ---------- */
+  .sidebar,
+  .site-footer,
+  .header-actions,
+  .pagination,
+  .toast,
+  .modal-backdrop,
+  .loading-screen {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 0;
+    background: none;
+  }
+
+  .content {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Plain title instead of the gradient hero */
+  .page-header {
+    min-height: 0;
+    margin-bottom: 0.8rem;
+    padding: 0 0 0.5rem;
+    border-bottom: 2px solid #000;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: #000;
+  }
+
+  .page-header::before,
+  .page-header::after {
+    display: none;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    color: #000;
+    font-size: 18pt;
+  }
+
+  .page-header p {
+    color: #333;
+  }
+
+  /* ---------- Print-only heading and sign-off ---------- */
+  .print-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #bbb;
+  }
+
+  .print-meta__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: 13pt;
+  }
+
+  .print-meta__brand img {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+
+  .print-meta__text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.9rem;
+    font-size: 9.5pt;
+    color: #333;
+  }
+
+  .print-meta__text strong {
+    color: #000;
+    font-size: 11pt;
+  }
+
+  .print-signature {
+    display: flex;
+    justify-content: space-between;
+    gap: 3rem;
+    margin-top: 2.2rem;
+    break-inside: avoid;
+  }
+
+  .print-signature > div {
+    display: flex;
+    flex: 0 1 16rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .print-signature__line {
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid #000;
+    font-weight: 600;
+  }
+
+  .print-signature small {
+    margin-top: 0.2rem;
+    color: #444;
+    font-size: 8.5pt;
+  }
+
+  /* ---------- Report content ---------- */
+  .progress-page {
+    gap: 1rem;
+  }
+
+  .progress-panel,
+  .progress-stat,
+  .progress-identity,
+  .skill-card,
+  .rp-kpis,
+  .rp-panel {
+    box-shadow: none !important;
+  }
+
+  .progress-panel,
+  .progress-stat,
+  .progress-identity,
+  .skill-card,
+  .rp-kpis,
+  .rp-panel {
+    border: 1px solid #ccc;
+  }
+
+  /* Class Report: keep the four key figures on one row */
+  .rp-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .rp-kpi + .rp-kpi {
+    border-top: 0;
+    border-left: 1px solid #ccc;
+  }
+
+  .rp-kpi__value {
+    font-size: 18pt;
+  }
+
+  .rp-panel {
+    padding: 0.8rem 0.9rem;
+  }
+
+  .rp-columns {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+
+  /* What to re-teach: the lesson picker becomes a "Showing: …" line */
+  .ia-filter {
+    display: none;
+  }
+
+  .ia-scope {
+    display: block;
+  }
+
+  .ia-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ia-item,
+  .ia-summary {
+    break-inside: avoid;
+  }
+
+  .rp-table-wrap {
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rp-table {
+    min-width: 0;
+    font-size: 9pt;
+  }
+
+  .rp-table thead {
+    display: table-header-group;
+  }
+
+  .rp-table tr,
+  .rp-kpis,
+  .rp-panel__head,
+  .rp-attention li {
+    break-inside: avoid;
+  }
+
+  .rp-panel__head {
+    break-after: avoid;
+  }
+
+  .skill-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .skill-card,
+  .progress-stat,
+  .remarks-list__item,
+  .progress-section__head,
+  .print-meta {
+    break-inside: avoid;
+  }
+
+  .progress-section__head {
+    break-after: avoid;
+  }
+
+  /* Every student / lesson on paper, not just the current page of the table */
+  .progress-page tr[data-paged-out] {
+    display: table-row !important;
+  }
+
+  .progress-table-wrap {
+    overflow: visible;
+    margin: 0;
+  }
+
+  .progress-table {
+    width: 100%;
+    font-size: 9.5pt;
+  }
+
+  .progress-table thead {
+    display: table-header-group;
+  }
+
+  .progress-table tr {
+    break-inside: avoid;
+  }
+
+  /* Links print as plain text */
+  .progress-page a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

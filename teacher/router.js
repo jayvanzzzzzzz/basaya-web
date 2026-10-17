@@ -8,6 +8,7 @@ import { renderStudentsPage } from "./views/students.js";
 import { renderStudentProgress } from "./views/studentProgress.js";
 import { renderClassReport } from "./views/classReport.js";
 import { leaveMessages, renderMessages, watchChatSummaries } from "./views/messages.js";
+import { renderDictionary } from "./views/dictionary.js";
 
 let statsLoaded = false;
 
@@ -51,6 +52,7 @@ export async function renderRoute() {
   try {
     if (route === "/dashboard") await renderDashboard();
     else if (route === "/settings") await renderAccountSettings();
+    else if (route === "/dictionary") await renderDictionary();
     else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
     else if (/^\/classes\/[^/]+\/students$/.test(route)) {
       await renderStudentsPage(classId);

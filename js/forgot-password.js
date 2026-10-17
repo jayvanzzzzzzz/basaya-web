@@ -1,10 +1,10 @@
-// "Forgot password?" pop-up on the login page. Firebase emails the reset link itself;
-// the Firebase console's password-reset template points it at reset-password.html.
+// "Forgot password?" pop-up on the login page. notify-api emails a BaSaya-branded
+// reset link (api/forgot-password); if the API can't be reached, Firebase sends its
+// plain one (the Firebase console's template points it at reset-password.html).
 // The answer is the same whether or not the email has an account, so the form
 // can't be used to find out who is registered.
 
-import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { auth } from "./firebase.js";
+import { sendResetLink } from "./api.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CLOSE_MS = 200;
@@ -61,7 +61,7 @@ async function send(event) {
 
   setSending(true);
   try {
-    await sendPasswordResetEmail(auth, email);
+    await sendResetLink(email);
   } catch (failure) {
     // No account for this email: answer the same as a sent link.
     if (failure.code !== "auth/user-not-found") {

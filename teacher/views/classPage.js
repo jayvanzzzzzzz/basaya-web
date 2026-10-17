@@ -1,6 +1,7 @@
 import {
   Timestamp,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -16,6 +17,8 @@ import { removeClassLesson } from "../../js/api.js";
 import {
   formatWhen,
   fromInputValue,
+  linkLessonId,
+  linkMode,
   notifyDeadline,
   notifyStudents,
   readSchedule,
@@ -32,6 +35,10 @@ const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Clos
 function scheduleMarkup(link) {
   const status = scheduleStatus(link);
   const parts = [
+    // Older links have no mode: they are Assessments.
+    link.mode === "practice"
+      ? `<span class="mode-chip mode-chip--practice" title="Students can retry anytime. Scores aren't saved or reported.">Practice</span>`
+      : `<span class="mode-chip">Assessment</span>`,
     `<span class="schedule-chip schedule-chip--${status}">${SCHEDULE_LABELS[status]}</span>`,
   ];
   if (link.openAt) parts.push(`<span>Opens ${escapeHtml(formatWhen(link.openAt))}</span>`);
@@ -179,7 +186,8 @@ function openExtendModal(classId, link, lesson, onSaved) {
         close();
         if (form.elements.notify.checked) {
           try {
-            await notifyDeadline(classId, link.lessonId || link.id);
+            // An older Assessment link was just moved to the lesson id (saveSchedule).
+            await notifyDeadline(classId, linkMode(link) === "practice" ? link.id : linkLessonId(link));
             toast("Deadline extended. Students were notified.");
           } catch (err) {
             toast(`Deadline extended, but students were not notified (${err.message}).`);
@@ -194,8 +202,9 @@ function openExtendModal(classId, link, lesson, onSaved) {
 }
 
 async function saveSchedule(classId, link, { openAt, dueAt }) {
-  const lessonId = link.lessonId || link.id;
-  if (link.id === lessonId) {
+  const lessonId = linkLessonId(link);
+  // A Practice link keeps its own id ("{lessonId}__practice"); students save nothing on it.
+  if (link.id === lessonId || linkMode(link) === "practice") {
     return updateDoc(doc(db, "classes", classId, "classLessons", link.id), { openAt, dueAt });
   }
   // Older links have auto-generated ids. Move them to the lesson id so the
@@ -434,7 +443,7 @@ export async function renderClass(classId) {
   document.querySelectorAll("[data-unlink]").forEach((b) =>
     b.addEventListener("click", () => {
       const found = findLinked(b.dataset.unlink);
-      if (found) openRemoveLessonModal(classroom, found.lesson, students.length);
+      if (found) openRemoveLessonModal(classroom, found.link, found.lesson, students.length);
     }),
   );
   document.querySelectorAll("[data-schedule]").forEach((b) =>
@@ -456,7 +465,7 @@ export async function renderClass(classId) {
       if (!found) return;
       b.disabled = true;
       try {
-        await notifyStudents(classId, [found.link.lessonId || found.link.id]);
+        await notifyStudents(classId, [found.link.id]);
         toast("Students were notified.");
         renderClass(classId);
       } catch (err) {
@@ -467,12 +476,16 @@ export async function renderClass(classId) {
   );
 }
 
-function openRemoveLessonModal(classroom, lesson, studentCount) {
+function openRemoveLessonModal(classroom, link, lesson, studentCount) {
+  // Practice saves no progress: removing it only takes that copy out (an Assessment of the
+  // same lesson stays, with its progress).
+  const practice = linkMode(link) === "practice";
+  if (practice) studentCount = 0;
   const students = `${studentCount} student${studentCount === 1 ? "" : "s"}`;
   openModal(
     `<div class="remove-lesson">
        <span class="remove-lesson__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span>
-       <h2>Remove “${escapeHtml(lesson.title)}”?</h2>
+       <h2>Remove “${escapeHtml(lesson.title)}”${practice ? " (Practice)" : ""}?</h2>
        <p>It will be taken out of <strong>${escapeHtml(classroom.className)}</strong>${studentCount ? `, and the progress of all ${students} on it will be deleted:` : "."}</p>
        ${
          studentCount
@@ -496,7 +509,8 @@ function openRemoveLessonModal(classroom, lesson, studentCount) {
         confirmButton.disabled = true;
         confirmButton.textContent = "Removing…";
         try {
-          await removeClassLesson(classroom.id, lesson.id);
+          if (practice) await deleteDoc(doc(db, "classes", classroom.id, "classLessons", link.id));
+          else await removeClassLesson(classroom.id, lesson.id);
           close();
           notify({
             tone: "danger",

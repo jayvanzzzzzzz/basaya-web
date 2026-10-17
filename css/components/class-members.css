@@ -57,6 +57,33 @@
   box-shadow: 0 0 0 3px var(--primary-ring);
 }
 
+/* Label tooltip under the button, right-aligned so it stays inside the header. */
+.chat-info__tip {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 20;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 0.74rem;
+  font-weight: 650;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-0.2rem);
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.chat-info:hover .chat-info__tip,
+.chat-info:focus-visible .chat-info__tip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ---------- The dialog ---------- */
 .modal.cm-modal {
   width: min(100%, 27rem);

@@ -1,0 +1,307 @@
+/* ---------- Diksiyonaryo (student/views/dictionary.js) ---------- */
+.st-bell.active {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* Top-bar icon: the A–Z thumb-index tabs are solid */
+.st-bell .st-dict-tabs {
+  fill: currentColor;
+  stroke: none;
+}
+
+.st-dict {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.st-hero--dict {
+  align-items: center;
+}
+
+.st-hero--dict h1 {
+  font-size: 1.2rem;
+}
+
+.st-dict__buddy {
+  width: 4rem;
+  height: 4rem;
+}
+
+.st-dict-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.st-dict-search svg {
+  position: absolute;
+  left: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-linecap: round;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.st-dict-search input {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0 1rem 0 2.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--lip);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+.st-dict-search input:focus {
+  border-color: var(--primary);
+  outline: 3px solid var(--primary-ring);
+}
+
+/* A–Y letters (Abakada order), scrolls sideways on a phone */
+.st-dict-letters {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.st-dict-letters button {
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.st-dict-letters button:active {
+  transform: translateY(1px);
+}
+
+.st-dict-heading,
+.st-dict-hint {
+  margin: 0.25rem 0 0.5rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.st-dict-heading {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.st-dict-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-dict-list > li {
+  animation: stRise 280ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i), 10) * 35ms);
+}
+
+.st-dict-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--lip);
+  color: var(--ink);
+  text-align: left;
+}
+
+.st-dict-row strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.st-dict-row span {
+  grid-column: 1;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-dict-row svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+/* One word */
+.st-dict-entry {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem 1.15rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--lip);
+  animation: stRise 260ms var(--ease-out) both;
+}
+
+.st-dict-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  justify-self: start;
+  padding: 0.25rem 0.5rem 0.25rem 0.1rem;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.st-dict-back svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+}
+
+.st-dict-entry header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.st-dict-entry h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 7vw, 2.1rem);
+  overflow-wrap: anywhere;
+}
+
+.st-dict-word {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+/* Pantig under the word: ba·hay */
+.st-dict-syllables {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.st-dict-entry h2:focus {
+  outline: none;
+}
+
+.st-dict-tag {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--st-talasalitaan-tint);
+  color: var(--st-talasalitaan);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.st-dict-sense h3 {
+  margin: 0 0 0.35rem;
+  color: var(--st-pagsusulit);
+  font-size: 0.8rem;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.st-dict-sense ol {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.4rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.st-dict-examples {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.85rem;
+  border-left: 3px solid var(--st-unawa);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--st-unawa-tint);
+  color: var(--ink-2);
+  font-style: italic;
+  list-style: none;
+}
+
+.st-dict-syn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-strong);
+}
+
+.st-dict-syn > span {
+  color: var(--ink-3);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.st-dict-chip {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.st-dict-credit {
+  margin: 0.5rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.st-dict-credit a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-dict-list > li,
+  .st-dict-entry {
+    animation: none;
+  }
+}

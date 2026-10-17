@@ -244,8 +244,8 @@
 .st-talking-book {
   position: relative;
   display: grid;
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 9.5rem;
+  height: 9.5rem;
   margin: 0.75rem auto;
   place-items: center;
   border: 0;
@@ -253,24 +253,20 @@
   background: var(--primary-soft);
 }
 
-.st-talking-book img {
-  width: 5rem;
-  height: 5rem;
-  object-fit: contain;
+.st-talking-book__buddy {
+  width: 9rem;
+  height: 9rem;
+  filter: drop-shadow(0 8px 12px rgba(31, 37, 71, 0.22));
 }
 
-.st-talking-book.is-talking img {
-  animation: stTalk 0.45s var(--ease-in-out) infinite alternate;
-}
-
-@keyframes stTalk {
-  from { transform: scale(1) rotate(-2deg); }
-  to { transform: scale(1.07) rotate(2deg); }
+/* The logo has empty space around the book; fill more of the circle. */
+.st-talking-book__buddy .st-talker__body {
+  scale: 1.18;
 }
 
 .st-talking-book__waves {
   position: absolute;
-  right: -0.4rem;
+  right: -1rem;
   display: flex;
   align-items: center;
   gap: 0.2rem;
@@ -283,8 +279,8 @@
 }
 
 .st-talking-book__waves i {
-  width: 0.25rem;
-  height: 1rem;
+  width: 0.32rem;
+  height: 1.5rem;
   border-radius: var(--radius-pill);
   background: var(--primary);
   animation: stWave 0.6s var(--ease-in-out) infinite alternate;
@@ -806,4 +802,25 @@ body:has(.st-focus-loading--space) {
 
 .st-results .button {
   max-width: 22rem;
+}
+
+/* Practice lesson: the score wasn't saved. */
+.st-results__practice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 22rem;
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--st-pagkilala-tint);
+  color: var(--st-pagkilala);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.st-results__practice svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
 }

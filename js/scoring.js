@@ -7,11 +7,11 @@
 // - Skills are never mixed into one student grade.
 
 export const SKILLS = [
-  { key: "pagUnawa", name: "Pag-unawa", detail: "Reading comprehension · Lecture", color: "#4f7cec" },
-  { key: "talasalitaan", name: "Talasalitaan", detail: "Vocabulary · Crossword game", color: "#24994a" },
-  { key: "pagkilala", name: "Pagkilala", detail: "Word recognition · Gawain", color: "#d9780a" },
-  { key: "pagbigkas", name: "Pagbigkas", detail: "Pronunciation", color: "#e5503e" },
-  { key: "pagsusulit", name: "Pagsusulit", detail: "Quiz", color: "#7a55d8" },
+  { key: "pagUnawa", name: "Lecture", detail: "Lessons read · completion only", color: "#4f7cec" },
+  { key: "talasalitaan", name: "Vocabulary", detail: "Crossword game", color: "#24994a" },
+  { key: "pagkilala", name: "Word Recognition", detail: "Activity", color: "#d9780a" },
+  { key: "pagbigkas", name: "Pronunciation", detail: "Saying the words aloud", color: "#e5503e" },
+  { key: "pagsusulit", name: "Comprehension", detail: "Quiz", color: "#7a55d8" },
 ];
 
 export const RECENCY_DECAY = 0.85;
@@ -58,7 +58,7 @@ export function trendOf(scores) {
  * ({ lessonId, correct, attempts, items, completedAtMillis }).
  */
 export function summarizeSkill(skillKey, results = []) {
-  // Lessons not attempted are "no data", never 0%.
+  // Lessons not attempted are "no data". A part missed at the deadline is a 0 (withMissed).
   const done = results
     .filter((result) => result.attempts > 0)
     .sort((a, b) => a.completedAtMillis - b.completedAtMillis);
@@ -146,6 +146,69 @@ export function resultsFrom(progressDocs) {
         parseRecord(doc.id, doc.skills?.[key]) ||
         (key === "pagsusulit" ? legacyQuiz(doc.id, doc) : null);
       if (parsed) results[key].push(parsed);
+    });
+  });
+  return results;
+}
+
+/**
+ * Scored parts that are scored anyway when left unfinished at the deadline (Pag-unawa has no
+ * score). `resume`/`correct`: where the part keeps its first-try right answers so far
+ * (resume.{part}.{field}); the crossword keeps its played levels in its skill record instead.
+ */
+export const MISSABLE_PARTS = [
+  { skill: "talasalitaan", finished: "gameFinished", skipped: "gameSkipped" },
+  { skill: "pagkilala", finished: "activityFinished", skipped: "activitySkipped", resume: "activity", correct: "score" },
+  { skill: "pagbigkas", finished: "pronunciationFinished", resume: "pronunciation", correct: "firstTryCorrect" },
+  { skill: "pagsusulit", finished: "quizFinished", resume: "quiz", correct: "score" },
+];
+
+/**
+ * Scores every part left unfinished when its lesson closed: what the student got right so far
+ * counts, and every item they didn't get to counts as wrong. Untouched parts become 0%.
+ * Same as the app's SkillScoring.withMissed.
+ * - lessons: the lessons the student is held to (not ones that closed before they joined),
+ *   as [{ id, dueAt, gameSkipped, activitySkipped, items: { skillKey: count } }].
+ * - Applies when the deadline passed, the part isn't finished (or skipped) and the lesson has
+ *   items for it. Correct answers come from the saved place (resume), or for the crossword
+ *   from the levels played; the result counts all the part's items and is dated at the deadline.
+ * Returns new results; each changed or added one has `missed: true`.
+ */
+export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now()) {
+  const results = Object.fromEntries(
+    SKILLS.map(({ key }) => [key, [...(resultsBySkill[key] || [])]]),
+  );
+  const docs = new Map(progressDocs.map((doc) => [doc.id, doc]));
+  lessons.forEach((lesson) => {
+    if (lesson.dueAt == null || lesson.dueAt >= now) return;
+    const doc = docs.get(lesson.id) || {};
+    MISSABLE_PARTS.forEach((part) => {
+      if (part.skipped && lesson[part.skipped] === true) return;
+      if (doc[part.finished] === true) return;
+      const items = Number(lesson.items?.[part.skill]) || 0;
+      if (items <= 0) return;
+
+      const list = results[part.skill];
+      const at = list.findIndex((result) => result.lessonId === lesson.id);
+      if (at >= 0) {
+        // Only a half-played crossword has a record before it's finished: the words of the
+        // levels not played are added as wrong.
+        const result = list[at];
+        const rest = items - result.items;
+        if (rest > 0) {
+          list[at] = { ...result, attempts: result.attempts + rest, items, missed: true };
+        }
+        return;
+      }
+      const saved = part.resume ? Number(doc.resume?.[part.resume]?.[part.correct]) : 0;
+      list.push({
+        lessonId: lesson.id,
+        correct: Math.min(Math.max(Math.floor(saved) || 0, 0), items),
+        attempts: items,
+        items,
+        completedAtMillis: lesson.dueAt,
+        missed: true,
+      });
     });
   });
   return results;

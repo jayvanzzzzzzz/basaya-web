@@ -1,12 +1,15 @@
 import { db } from "../lib/firebase.js";
 import { ID_PATTERN, allowCors, requireUser } from "../lib/http.js";
+import { isPracticeLink, linkLessonId } from "../lib/classLessons.js";
 
 // POST /api/remove-class-lesson
 // Headers: Authorization: Bearer <teacher's Firebase ID token>
 // Body:    { classId, lessonId }
 //
 // Takes a lesson out of a class the caller teaches, with the class's progress on it:
-//   - classes/{classId}/classLessons/*                (every link to this lesson)
+//   - classes/{classId}/classLessons/*                (every Assessment link to this lesson;
+//                                                       a Practice copy stays, the teacher
+//                                                       deletes that link directly)
 //   - users/{uid}/assignedLessons/{lessonId}          (for every student in the class)
 // so adding the lesson back later starts everyone fresh. The lesson itself (lessons/{id})
 // stays in the library. Done with the Admin SDK because Firestore rules only let
@@ -44,7 +47,7 @@ export default async function handler(req, res) {
     ]);
 
     // Links are keyed by lesson id, or carry it in "lessonId" (older links).
-    const links = linksSnap.docs.filter((link) => (link.get("lessonId") || link.id) === lessonId);
+    const links = linksSnap.docs.filter((link) => linkLessonId(link) === lessonId && !isPracticeLink(link));
     if (!links.length) {
       return res.status(404).json({ error: "This lesson is not in the class" });
     }

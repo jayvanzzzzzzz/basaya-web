@@ -337,6 +337,23 @@
   color: var(--danger);
 }
 
+/* Assessment / Practice */
+.mode-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.mode-chip--practice {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+
 .class-lesson__actions {
   display: flex;
   flex-wrap: wrap;
@@ -344,18 +361,19 @@
   gap: 0.3rem;
 }
 
+/* Icon-only buttons; the label shows as a tooltip on hover/focus. */
 .class-lesson__action,
 .class-lesson__remove {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid transparent;
+  position: relative;
+  display: inline-grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: var(--surface-2);
   color: var(--ink-2);
-  font-size: 0.78rem;
-  font-weight: 650;
   transition:
     color var(--dur-fast) ease,
     background-color var(--dur-fast) ease,
@@ -392,13 +410,42 @@
 
 .class-lesson__action svg,
 .class-lesson__remove svg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.3rem;
+  height: 1.3rem;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.8;
+  stroke-width: 2;
+}
+
+.class-lesson__action > span,
+.class-lesson__remove > span {
+  position: absolute;
+  bottom: calc(100% + 0.45rem);
+  left: 50%;
+  z-index: 5;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 0.74rem;
+  font-weight: 650;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 0.2rem);
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.class-lesson__action:hover > span,
+.class-lesson__action:focus-visible > span,
+.class-lesson__remove:hover > span,
+.class-lesson__remove:focus-visible > span {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 @media (max-width: 760px) {

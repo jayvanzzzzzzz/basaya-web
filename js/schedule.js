@@ -1,7 +1,16 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { postToApi } from "./api.js";
 
-// ----- Lesson schedule (classes/{classId}/classLessons/{lessonId}.openAt / .dueAt) -----
+// ----- Class lesson links (classes/{classId}/classLessons/{linkId}) -----
+// A library lesson can be in a class twice: as an Assessment (link id = lesson id, which the
+// Firestore rules and the students' progress docs rely on) and as Practice
+// (link id = "{lessonId}__practice"). Older links have auto ids and keep the lesson id in a field.
+
+export const linkLessonId = (link) => link.lessonId || link.id;
+export const linkMode = (link) => (link.mode === "practice" ? "practice" : "assessment");
+export const practiceLinkId = (lessonId) => `${lessonId}__practice`;
+
+// ----- Lesson schedule (classes/{classId}/classLessons/{linkId}.openAt / .dueAt) -----
 
 const pad = (n) => String(n).padStart(2, "0");
 

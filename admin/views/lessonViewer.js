@@ -43,7 +43,7 @@ export async function loadLessonSections(lessonId) {
 
 export const SECTIONS = [
   { id: "activity", label: "Activity", icon: '<path d="M9 11.5 11.5 14 16 9.5" /><rect x="3.5" y="3.5" width="17" height="17" rx="4" />' },
-  { id: "lectures", label: "Lectures", icon: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z" />' },
+  { id: "lectures", label: "Lektura", icon: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z" />' },
   { id: "pronunciation", label: "Pronunciation", icon: '<rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />' },
   { id: "quiz", label: "Quiz", icon: '<circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17v.01" />' },
   { id: "game", label: "Game", icon: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.5" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" /><path d="M17.25 13.5v7.5M13.5 17.25H21" />' },
@@ -138,9 +138,9 @@ function activityHtml(activity, status) {
 
 function lecturesHtml(lectures) {
   const pages = lectures?.pages || [];
-  if (!pages.length) return emptyState("This lesson has no lecture pages yet.");
+  if (!pages.length) return emptyState("This lesson has no Lektura pages yet.");
   return `
-    ${sectionHead(lectures.title || "Lectures", `${plural(pages.length, "page")} · press play to listen to a sentence, or play a whole page.`)}
+    ${sectionHead(lectures.title || "Lektura", `${plural(pages.length, "page")} · press play to listen to a sentence, or play a whole page.`)}
     <ol class="lv-cards">
       ${pages
         .map((page, pageIndex) => {
@@ -285,7 +285,7 @@ function frameHtml(lesson, editable) {
           <p>${escapeHtml(lesson.description || "No description yet.")}</p>
         </div>
         <dl class="lv-stats" data-stats>
-          ${["Activity pages", "Lecture pages", "Words", "Questions", "Game levels"].map((label) => `<div><dt>${label}</dt><dd class="lv-skeleton"></dd></div>`).join("")}
+          ${["Activity pages", "Lektura pages", "Words", "Questions", "Game levels"].map((label) => `<div><dt>${label}</dt><dd class="lv-skeleton"></dd></div>`).join("")}
         </dl>
       </header>
 
@@ -433,7 +433,7 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
         const c = counts(sections);
         $("[data-stats]", modal).innerHTML = [
           ["Activity pages", sections.activityStatus?.completion === "skipped" ? "Skipped" : c.activity],
-          ["Lecture pages", c.lectures],
+          ["Lektura pages", c.lectures],
           ["Words", c.pronunciation],
           ["Questions", c.quiz],
           ["Game levels", sections.gameStatus?.completion === "skipped" ? "Skipped" : c.game],

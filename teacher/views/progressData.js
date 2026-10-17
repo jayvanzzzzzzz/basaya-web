@@ -6,6 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { skippedParts } from "../../js/skippedParts.js";
+import { lessonItems } from "../../js/lessonItems.js";
 import { state, getAllLessons } from "../../js/state.js";
 import {
   SKILLS,
@@ -14,6 +15,7 @@ import {
   summarize,
   resultsFrom,
   lessonParts,
+  withMissed,
 } from "../../js/scoring.js";
 
 // Loads a class's lessons and students' progress for the student progress page and the
@@ -33,12 +35,20 @@ export async function loadClassContext(classId) {
     state.allLessons.length ? null : getAllLessons(),
   ]);
 
+  // Practice lessons save no scores, so the reports leave them out.
   const links = linksSnap.docs
     .map((link) => ({ id: link.id, ...link.data() }))
+    .filter((link) => link.mode !== "practice")
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  // A skipped game or Gawain counts as done (js/skippedParts.js).
-  const skipped = await Promise.all(links.map((link) => skippedParts(link.lessonId || link.id)));
+  // A skipped game or Gawain counts as done (js/skippedParts.js). Item counts weigh a
+  // missed part's 0; the quiz questions and Bigkas words feed the item analysis.
+  const ids = links.map((link) => link.lessonId || link.id);
+  const noItems = { items: {}, questions: [], words: [] };
+  const [skipped, contents] = await Promise.all([
+    Promise.all(ids.map((id) => skippedParts(id))),
+    Promise.all(ids.map((id) => lessonItems(id).catch(() => noItems))),
+  ]);
 
   const lessons = links.map((link, index) => {
     const id = link.lessonId || link.id;
@@ -51,6 +61,9 @@ export async function loadClassContext(classId) {
       dueAt: toMillis(link.dueAt),
       gameSkipped: skipped[index].game,
       activitySkipped: skipped[index].activity,
+      items: contents[index].items,
+      questions: contents[index].questions,
+      words: contents[index].words,
     };
   });
 
@@ -81,28 +94,34 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
 
   const lessonIds = new Set(lessons.map((lesson) => lesson.id));
   const docs = progressDocs.filter((item) => lessonIds.has(item.id));
-  const summary = summarize(resultsFrom(docs));
   const now = Date.now();
+  // Lessons that closed before they joined don't count; parts left unfinished at any other
+  // deadline count as 0 (js/scoring.js withMissed).
+  const held = lessons.filter(
+    (lesson) => !(lesson.dueAt != null && joinedMillis != null && lesson.dueAt < joinedMillis),
+  );
+  const results = withMissed(resultsFrom(docs), docs, held, now);
+  const summary = summarize(results);
 
   let lastActive = null;
   const hardWordCounts = new Map();
   const perLesson = lessons.map((lesson) => {
     const data = docs.find((item) => item.id === lesson.id) || {};
     const parts = lessonParts(data, { game: lesson.gameSkipped, activity: lesson.activitySkipped });
+    const missed = [];
     const skills = Object.fromEntries(
       SKILLS.map(({ key }) => {
-        const record = data.skills?.[key];
+        const result = results[key].find((item) => item.lessonId === lesson.id);
+        if (result?.missed) missed.push(key);
         const score =
-          typeof record?.attempts === "number" && record.attempts > 0
-            ? Math.round(((Number(record.correct) || 0) * 100) / record.attempts)
-            : key === "pagsusulit" && data.quizTotal > 0
-              ? Math.round((data.quizScore * 100) / data.quizTotal)
-              : null;
-        const at = toMillis(record?.completedAt);
+          result && result.attempts > 0 ? Math.round((result.correct * 100) / result.attempts) : null;
+        const at = toMillis(data.skills?.[key]?.completedAt);
         if (at && (!lastActive || at > lastActive)) lastActive = at;
         return [key, score];
       }),
     );
+    const quizRecord = data.skills?.pagsusulit;
+    const speechRecord = data.skills?.pagbigkas;
     (data.skills?.pagbigkas?.hardWords || []).forEach((word) =>
       hardWordCounts.set(word, (hardWordCounts.get(word) || 0) + 1),
     );
@@ -121,7 +140,22 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
             : parts.started
               ? "in-progress"
               : "not-started";
-    return { lesson, parts, skills, status, lectureDone: parts.parts.lecture };
+    return {
+      lesson,
+      parts,
+      skills,
+      status,
+      lectureDone: parts.parts.lecture,
+      // Parts counted as 0 because the deadline passed.
+      missed,
+      // Item analysis: null when there's nothing to count (not taken, or taken before tracking).
+      missedQuestions: Array.isArray(quizRecord?.missedQuestions) ? quizRecord.missedQuestions : null,
+      quizTakenUntracked: data.quizFinished === true && !Array.isArray(quizRecord?.missedQuestions),
+      hardWords: speechRecord ? (Array.isArray(speechRecord.hardWords) ? speechRecord.hardWords : []) : null,
+      // How far the student got in an unfinished quiz / Bigkas (student/views/quiz.js, pronunciation.js).
+      quizResume: data.resume?.quiz || null,
+      speechResume: data.resume?.pronunciation || null,
+    };
   });
 
   const hardWords = [...hardWordCounts.entries()]
@@ -142,7 +176,7 @@ export function completionOf(progress) {
   return { done, total: open.length, percent: open.length ? Math.round((done * 100) / open.length) : null };
 }
 
-/** Lectures finished — Pag-unawa has no score yet, so the app shows completion instead. */
+/** Lectures finished — the lecture has no score, so the app shows completion instead. */
 export function lecturesOf(progress) {
   const open = counted(progress);
   return { done: open.filter((row) => row.lectureDone).length, total: open.length };
@@ -201,7 +235,7 @@ export function studentRemarks(progress) {
     notes.push({
       tone: "warn",
       title: `Missed ${overdue.length === 1 ? "a deadline" : `${overdue.length} deadlines`}`,
-      text: `Unfinished after the deadline: ${overdue.map((row) => row.lesson.title).join(", ")}.`,
+      text: `Unfinished after the deadline: ${overdue.map((row) => row.lesson.title).join(", ")}. Whatever was left undone counts as wrong.`,
     });
   }
 
@@ -355,7 +389,7 @@ export function classRemarks(report, entries, lessons) {
         notes.push({
           tone: "warn",
           title: `${missed} missed the deadline for ${lesson.title}`,
-          text: "Their progress for this lesson can no longer be saved.",
+          text: "Their progress for this lesson can no longer be saved. Whatever was left undone counts as wrong.",
         });
       }
     });
@@ -377,4 +411,116 @@ export function classRemarks(report, entries, lessons) {
     });
   }
   return notes;
+}
+
+// ---------- Item analysis ("What to re-teach") ----------
+
+/** Share of the class that has to miss an item before it's flagged "Re-teach". */
+export const RETEACH_THRESHOLD = 50;
+
+const itemKey = (text) => String(text ?? "").trim().toLowerCase();
+
+/**
+ * Counts how many students missed each item, ranked hardest first. `known` are the lesson's
+ * current items; saved ones that are no longer in the lesson (it was edited) are kept too.
+ * `answers` is one list of missed items per student who counts.
+ */
+function rankItems(known, answers) {
+  const items = new Map();
+  const add = (text) => {
+    const key = itemKey(text);
+    if (key && !items.has(key)) items.set(key, { text: String(text).trim(), missed: 0, current: known.includes(text) });
+  };
+  known.forEach(add);
+  answers.forEach((missed) => missed.forEach(add));
+  answers.forEach((missed) => {
+    new Set(missed.map(itemKey)).forEach((key) => {
+      if (items.has(key)) items.get(key).missed += 1;
+    });
+  });
+  const students = answers.length;
+  return [...items.values()]
+    .map((item, order) => ({
+      ...item,
+      order,
+      percent: students ? Math.round((item.missed * 100) / students) : null,
+      reteach: students > 0 && (item.missed * 100) / students >= RETEACH_THRESHOLD,
+    }))
+    .filter((item) => item.current || item.missed)
+    .sort((a, b) => b.missed - a.missed || a.order - b.order);
+}
+
+/** A saved place only fits the lesson when it was made for the same number of items. */
+const fits = (resume, total) => resume && Number(resume.total) === total;
+const textsOf = (list) => (Array.isArray(list) ? list.filter((item) => typeof item === "string") : []);
+
+/** Unfinished at the deadline: the questions answered wrong, plus every one not answered. */
+function unfinishedQuiz(questions, resume) {
+  if (!fits(resume, questions.length)) return questions;
+  const answered = new Set((Array.isArray(resume.answered) ? resume.answered : []).map(Number));
+  return [...textsOf(resume.missed), ...questions.filter((_, position) => !answered.has(position))];
+}
+
+/** Unfinished at the deadline: the words missed so far, plus every word not reached (in order). */
+function unfinishedWords(words, resume) {
+  if (!fits(resume, words.length)) return words;
+  const done = Math.min(Math.max(Number(resume.done) || 0, 0), words.length);
+  return [...textsOf(resume.hardWords), ...words.slice(done)];
+}
+
+/**
+ * Per lesson: which quiz questions and Bigkas words the class missed, so the teacher can
+ * decide what to re-teach.
+ * - Quiz: students whose quiz saved its missed questions. A student who didn't finish by the
+ *   deadline counts with the answers they gave, and as wrong on every question they didn't
+ *   reach. Quizzes taken before question tracking began are only counted in `untracked`.
+ * - Words: students who finished Bigkas (their hardWords: words not right on the first try).
+ *   A student who didn't finish by the deadline counts with the words they said, and as
+ *   missing every word they didn't reach.
+ * Students who moved, or whose lesson closed before they joined, are left out.
+ */
+export function itemAnalysis(entries, lessons) {
+  return lessons.map((lesson) => {
+    const rows = entries
+      .filter((entry) => !entry.progress.error)
+      .map((entry) => entry.progress.perLesson.find((row) => row.lesson.id === lesson.id))
+      .filter((row) => row && row.status !== "before-joining");
+
+    const quizAnswers = [];
+    let untracked = 0;
+    let quizMissedDeadline = 0;
+    const wordAnswers = [];
+    let wordsMissedDeadline = 0;
+    rows.forEach((row) => {
+      if (row.missed.includes("pagsusulit")) {
+        quizMissedDeadline += 1;
+        quizAnswers.push(unfinishedQuiz(lesson.questions, row.quizResume));
+      } else if (row.missedQuestions) {
+        quizAnswers.push(row.missedQuestions);
+      } else if (row.quizTakenUntracked) {
+        untracked += 1;
+      }
+      if (row.missed.includes("pagbigkas")) {
+        wordsMissedDeadline += 1;
+        wordAnswers.push(unfinishedWords(lesson.words, row.speechResume));
+      } else if (row.hardWords) {
+        wordAnswers.push(row.hardWords);
+      }
+    });
+
+    return {
+      lesson,
+      quiz: {
+        students: quizAnswers.length,
+        missedDeadline: quizMissedDeadline,
+        untracked,
+        items: rankItems(lesson.questions, quizAnswers),
+      },
+      words: {
+        students: wordAnswers.length,
+        missedDeadline: wordsMissedDeadline,
+        items: rankItems(lesson.words, wordAnswers),
+      },
+    };
+  });
 }

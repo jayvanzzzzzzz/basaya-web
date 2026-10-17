@@ -1,3 +1,4 @@
+import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from "./firebase.js";
 import { notifyApiUrl } from "../firebase-config.js";
 
@@ -41,6 +42,23 @@ export const sendContact = (message) => postToApi("contact", message);
 /** Admin only: emails a student a BaSaya-branded password reset link. */
 export const sendStudentPasswordReset = (studentId) =>
   postToApi("send-password-reset", { userId: studentId });
+
+/**
+ * Anyone: emails a BaSaya-branded reset link if `email` has an account (same answer
+ * if not). Falls back to Firebase's plain reset email when the API can't send it.
+ */
+export async function sendResetLink(email) {
+  try {
+    await postToApi("forgot-password", { email });
+  } catch (error) {
+    console.warn("Branded reset email failed, using Firebase's:", error);
+    await sendPasswordResetEmail(auth, email);
+  }
+}
+
+/** Admin only: emails the admin an Approve link; the new password works only after that. */
+export const requestAdminPasswordChange = (password) =>
+  postToApi("request-admin-password-change", { password });
 
 /** Admin only: sets a temporary password for a student who can't get the reset email. */
 export const setTemporaryPassword = (studentId, password) =>

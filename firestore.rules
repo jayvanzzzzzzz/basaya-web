@@ -34,10 +34,18 @@ service cloud.firestore {
         (link.get('dueAt', null) == null || request.time <= link.dueAt);
     }
 
+    // A Practice lesson (link mode "practice") never saves progress: students can redo it
+    // as often as they like and the teacher's reports leave it out. A lesson can be in a
+    // class twice: as an Assessment (link id = lesson id) and as Practice
+    // (link id = "{lessonId}__practice"). Progress is only for the Assessment.
     function classLessonAllows(classId, lessonId) {
       let path = /databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId);
-      // Older links have auto-generated ids and no schedule.
-      return !exists(path) || scheduleAllows(get(path).data);
+      let practicePath = /databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId + '__practice');
+      return (exists(path) && scheduleAllows(get(path).data) &&
+          get(path).data.get('mode', 'assessment') != 'practice') ||
+        // Older links have auto-generated ids and no schedule; a lesson that is only in
+        // the class as Practice saves nothing.
+        (!exists(path) && !exists(practicePath));
     }
 
     function lessonIsOpen(userId, lessonId) {
@@ -308,5 +316,46 @@ service cloud.firestore {
 
       allow write: if false;
     }
+
+    // Diksiyonaryo: words teachers add or fix (js/dictionary.js). The doc id is the
+    // search key; `hidden: true` takes a Wiktionary seed word out, and `syllables` ("ba·hay")
+    // fixes the automatic syllable split (js/syllables.js). Everyone signed in
+    // reads, any teacher or admin adds/edits, and only whoever added a word (or an
+    // admin) deletes it. Any teacher may delete a "hidden" marker (shows the word again).
+    match /dictionary/{key} {
+      function validWord() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(["word", "key", "accent", "syllables", "senses", "synonyms", "hidden",
+            "createdBy", "createdByName", "createdAt", "updatedBy", "updatedByName", "updatedAt"]) &&
+          d.word is string && d.word.size() > 0 && d.word.size() <= 60 &&
+          d.key == key &&
+          d.accent is string && d.accent.size() <= 60 &&
+          (!("syllables" in d) || (d.syllables is string && d.syllables.size() <= 120)) &&
+          d.senses is list && d.senses.size() <= 5 &&
+          (d.hidden || d.senses.size() > 0) &&
+          d.synonyms is list && d.synonyms.size() <= 10 &&
+          d.hidden is bool &&
+          d.createdByName is string && d.createdByName.size() <= 120 &&
+          d.updatedBy == request.auth.uid &&
+          d.updatedByName is string && d.updatedByName.size() <= 120 &&
+          d.updatedAt == request.time;
+      }
+
+      allow read: if signedIn();
+
+      allow create: if (isTeacher() || isAdmin()) && validWord() &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdAt == request.time;
+
+      allow update: if (isTeacher() || isAdmin()) && validWord() &&
+        request.resource.data.createdBy == resource.data.createdBy &&
+        request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if isAdmin() ||
+        (isTeacher() && (resource.data.createdBy == request.auth.uid || resource.data.hidden == true));
+    }
+
+    // adminPasswordChanges (admin password changes waiting for email approval) has
+    // no rule on purpose: only notify-api reads and writes it, with the Admin SDK.
   }
 }

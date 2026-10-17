@@ -1,7 +1,6 @@
-import { createHash } from "node:crypto";
-import { Timestamp } from "firebase-admin/firestore";
 import { adminAuth, db } from "../lib/firebase.js";
 import { allowCors } from "../lib/http.js";
+import { withinRateLimit } from "../lib/rateLimit.js";
 import { contactEmail } from "../lib/emails.js";
 import { contactInbox, sendMail } from "../lib/mailer.js";
 
@@ -20,7 +19,6 @@ export const TOPICS = ["Question", "Report a problem", "Feedback", "Account help
 const PHOTO_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 const RATE_LIMIT = 5;
-const HOUR_MS = 60 * 60 * 1000;
 const EMAIL_PATTERN = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]{2,}$/;
 
 const clean = (value, max) =>
@@ -51,28 +49,6 @@ function validate(body) {
   return { value: { name, email, topic, message, page, photo } };
 }
 
-/** Counts this IP's messages in the last hour; false when over the limit. */
-async function withinRateLimit(req) {
-  const ip = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown")
-    .split(",")[0]
-    .trim();
-  const ref = db().doc(`contactLimits/${createHash("sha256").update(ip).digest("hex")}`);
-  return db().runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const now = Date.now();
-    const recent = (snap.get("sentAt") || [])
-      .map((t) => t.toMillis())
-      .filter((ms) => now - ms < HOUR_MS);
-    if (recent.length >= RATE_LIMIT) return false;
-    tx.set(ref, {
-      sentAt: [...recent, now].map((ms) => Timestamp.fromMillis(ms)),
-      // Lets a Firestore TTL policy clean these up (optional).
-      expiresAt: Timestamp.fromMillis(now + HOUR_MS),
-    });
-    return true;
-  });
-}
-
 /** "Teacher" / "Admin" when a valid sign-in token comes along; otherwise null. */
 async function senderRole(req) {
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
@@ -99,7 +75,7 @@ export default async function handler(req, res) {
     const { value, error } = validate(body);
     if (error) return res.status(400).json({ error });
 
-    if (!(await withinRateLimit(req))) {
+    if (!(await withinRateLimit(req, "contactLimits", RATE_LIMIT))) {
       return res
         .status(429)
         .json({ error: "You've sent several messages already. Please try again in an hour." });

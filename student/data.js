@@ -13,8 +13,9 @@ import {
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../js/firebase.js";
-import { summarize, resultsFrom, lessonParts } from "../js/scoring.js";
+import { summarize, resultsFrom, lessonParts, withMissed } from "../js/scoring.js";
 import { skippedParts } from "../js/skippedParts.js";
+import { lessonItems } from "../js/lessonItems.js";
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
 // the Android app (C:\Projects\BaSaya) exactly, so a student can switch between the app and
@@ -69,8 +70,25 @@ export const now = () =>
   clockAnchor ? Math.round(clockAnchor.serverMs + (performance.now() - clockAnchor.perfMs)) : Date.now();
 
 // ---------- Lessons of the student's class (the app's LessonRepository.syncLessons) ----------
+// A library lesson can be in the class twice: once as an Assessment (link id = lesson id) and
+// once as Practice (link id = "{lessonId}__practice"). Each is its own entry in
+// student.lessons: `id` is the entry (routes, progress, practice flag), `lessonId` the
+// library lesson whose content it shows. For an Assessment both are the lesson id, so its
+// progress stays at users/{uid}/assignedLessons/{lessonId}.
 
 const linkLessonId = (link) => link.get("lessonId")?.trim() || link.id;
+
+/** classLessons/{id}.mode: "practice" or "assessment" (older links have none: assessment). */
+const isPracticeLink = (link) => link.get("mode") === "practice";
+
+/** The entry's id: the link id for Practice, the lesson id for an Assessment (older links have auto ids). */
+const entryId = (link) => (isPracticeLink(link) ? link.id : linkLessonId(link));
+
+/** The library lesson behind a class entry (an Assessment's entry id is its lesson id). */
+const contentId = (id) => student.lessons.find((lesson) => lesson.id === id)?.lessonId || id;
+
+/** Lessons that count toward scores: every class lesson except Practice ones. */
+export const scoredLessons = () => student.lessons.filter((lesson) => !lesson.practice);
 
 /**
  * Clears crossword words found mid-level (views/game.js keeps them in localStorage) for
@@ -102,8 +120,8 @@ export async function loadClassLessons() {
     getDoc(doc(db, "classes", id, "students", student.uid)).catch(() => null),
   ]);
   const joinedAt = toMillis(rosterSnap?.get?.("joinedAt"));
-  const links = new Map(linksSnap.docs.map((link) => [linkLessonId(link), link]));
-  const ids = [...links.keys()];
+  const links = linksSnap.docs;
+  const ids = [...new Set(links.map(linkLessonId))];
   if (!ids.length) {
     student.lessons = [];
     return [];
@@ -112,24 +130,34 @@ export async function loadClassLessons() {
   // "in" queries take at most 30 ids.
   const chunks = [];
   for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
-  const lessonDocs = (
-    await Promise.all(
-      chunks.map((chunk) => getDocs(query(collection(db, "lessons"), where(documentId(), "in", chunk)))),
+  const lessonDocs = new Map(
+    (
+      await Promise.all(
+        chunks.map((chunk) => getDocs(query(collection(db, "lessons"), where(documentId(), "in", chunk)))),
+      )
     )
-  ).flatMap((snap) => snap.docs);
+      .flatMap((snap) => snap.docs)
+      .map((lesson) => [lesson.id, lesson]),
+  );
 
   const progress = new Map(progressSnap.docs.map((item) => [item.id, item.data()]));
-  forgetFoundWords(ids.filter((lessonId) => !progress.has(lessonId)));
-  const skipped = await Promise.all(lessonDocs.map((lesson) => skippedParts(lesson.id)));
+  forgetFoundWords(links.map(entryId).filter((entry) => !progress.has(entry)));
+  const skipped = new Map(
+    await Promise.all([...lessonDocs.keys()].map(async (lessonId) => [lessonId, await skippedParts(lessonId)])),
+  );
 
-  student.lessons = lessonDocs
-    .map((lesson, index) => {
-      const link = links.get(lesson.id);
-      const data = progress.get(lesson.id) || {};
+  student.lessons = links
+    .filter((link) => lessonDocs.has(linkLessonId(link)))
+    .map((link) => {
+      const lessonId = linkLessonId(link);
+      const lesson = lessonDocs.get(lessonId);
+      const id = entryId(link);
+      const data = progress.get(id) || {};
       const dueAt = toMillis(link.get("dueAt"));
-      const finished = lessonParts(data, skipped[index]).finished;
+      const finished = lessonParts(data, skipped.get(lessonId)).finished;
       return {
-        id: lesson.id,
+        id,
+        lessonId,
         title: lesson.get("title") || "",
         description: lesson.get("description") || "",
         difficulty: lesson.get("difficulty") || "",
@@ -140,8 +168,10 @@ export async function loadClassLessons() {
         // isn't shown to them (teacher/views/progressData.js leaves it out of their totals).
         closedBeforeJoining: !finished && dueAt != null && joinedAt != null && dueAt < joinedAt,
         assignedAt: toMillis(link.get("createdAt")),
-        gameSkipped: skipped[index].game,
-        activitySkipped: skipped[index].activity,
+        // Pagsasanay: the teacher chose Practice, so nothing the student does is saved.
+        practice: isPracticeLink(link),
+        gameSkipped: skipped.get(lessonId).game,
+        activitySkipped: skipped.get(lessonId).activity,
         lectureFinished: data.lectureFinished === true,
         gameFinished: data.gameFinished === true,
         activityFinished: data.activityFinished === true,
@@ -195,8 +225,10 @@ export function formatWhen(millis) {
 
 // ---------- Lesson content ----------
 
+// Each loader takes the class entry id (an Assessment's is the lesson id, see contentId).
+
 async function contentDoc(lessonId, part, preferred = "content") {
-  const snap = await getDocs(collection(db, "lessons", lessonId, part));
+  const snap = await getDocs(collection(db, "lessons", contentId(lessonId), part));
   if (snap.empty) return null;
   return snap.docs.find((item) => item.id === preferred) || snap.docs[0];
 }
@@ -285,7 +317,7 @@ export async function loadPronunciation(lessonId) {
 
 /** The crossword levels in order: [{ level, words }] (words as saved: key word first). */
 export async function loadGameLevels(lessonId) {
-  const snap = await getDocs(collection(db, "lessons", lessonId, "game"));
+  const snap = await getDocs(collection(db, "lessons", contentId(lessonId), "game"));
   return snap.docs
     .filter((item) => item.id !== "status")
     .map((item) => ({
@@ -306,7 +338,7 @@ export async function loadContentCounts(lessonId) {
       return 0;
     }
   };
-  const levels = getDocs(collection(db, "lessons", lessonId, "game"))
+  const levels = getDocs(collection(db, "lessons", contentId(lessonId), "game"))
     .then((snap) => snap.docs.filter((item) => item.id !== "status").length)
     .catch(() => 0);
   const [lecture, activity, quiz, pronunciation, game] = await Promise.all([
@@ -321,7 +353,25 @@ export async function loadContentCounts(lessonId) {
 
 // ---------- Progress (users/{uid}/assignedLessons/{lessonId}) ----------
 
+// ---------- Practice lessons ----------
+// A Practice lesson saves nothing to Firestore (the rules reject it too) and can be done
+// again and again. Only the game level reached is kept in memory for this visit, so
+// "Susunod na antas" still moves on; it starts over at level 1 after the last level.
+
+const practiceProgress = new Map();
+const isPractice = (lessonId) => student.lessons.some((lesson) => lesson.id === lessonId && lesson.practice);
+
+function rememberPractice(lessonId, fields) {
+  const kept = practiceProgress.get(lessonId) || {};
+  if (typeof fields.gameScore === "number") {
+    if (fields.gameFinished) delete kept.gameScore;
+    else kept.gameScore = fields.gameScore;
+  }
+  practiceProgress.set(lessonId, kept);
+}
+
 export async function loadLessonProgress(lessonId) {
+  if (isPractice(lessonId)) return { ...(practiceProgress.get(lessonId) || {}) };
   const snap = await getDoc(progressRef(lessonId));
   return snap.exists() ? snap.data() : {};
 }
@@ -332,6 +382,7 @@ export async function loadLessonProgress(lessonId) {
  * SkillProgressRepository.recordResult). The rules reject it outside the lesson's dates.
  */
 export async function saveProgress(lessonId, fields, skill) {
+  if (isPractice(lessonId)) return rememberPractice(lessonId, fields);
   const data = { ...fields };
   if (skill) {
     data.skills = {
@@ -370,6 +421,7 @@ export function resumeOf(progress, part, total) {
 
 /** Saves the place in a part. Never throws: losing one save only costs a few steps. */
 export async function saveResume(lessonId, part, state) {
+  if (isPractice(lessonId)) return;
   try {
     await setDoc(
       progressRef(lessonId),
@@ -387,7 +439,7 @@ export const clearResume = (part) => ({ resume: { [part]: deleteField() } });
 /** Progress docs of the class's lessons only (the app's LessonCompletion.classDocs). */
 export async function loadClassProgressDocs() {
   const snap = await getDocs(collection(db, "users", student.uid, "assignedLessons"));
-  const ids = new Set(student.lessons.map((lesson) => lesson.id));
+  const ids = new Set(scoredLessons().map((lesson) => lesson.id));
   return snap.docs.filter((item) => ids.has(item.id)).map((item) => ({ id: item.id, ...item.data() }));
 }
 
@@ -412,7 +464,7 @@ export async function saveSummary(summary) {
     {
       skillSummary: {
         needsHelp: summary.needsHelp,
-        lessonsAssigned: student.lessons.length,
+        lessonsAssigned: scoredLessons().length,
         skills,
         updatedAt: serverTimestamp(),
       },
@@ -422,10 +474,25 @@ export async function saveSummary(summary) {
 }
 
 /** Recomputes the skill summary after a part is finished. Never throws. */
+/**
+ * Skill results of the class's lessons, with a 0 for every part left unfinished when its
+ * lesson closed (js/scoring.js withMissed). Practice lessons never count; student.lessons
+ * already leaves out lessons that closed before the student joined.
+ */
+export async function scoredResults(docs) {
+  const now = Date.now();
+  const closed = scoredLessons().filter((lesson) => lesson.dueAt != null && lesson.dueAt < now);
+  const items = await Promise.all(
+    closed.map((lesson) => lessonItems(lesson.lessonId).then((found) => found.items).catch(() => ({}))),
+  );
+  const lessons = closed.map((lesson, index) => ({ ...lesson, items: items[index] }));
+  return withMissed(resultsFrom(docs), docs, lessons, now);
+}
+
 export async function refreshSummary() {
   try {
     if (!student.lessons.length) await loadClassLessons();
-    const summary = summarize(resultsFrom(await loadClassProgressDocs()));
+    const summary = summarize(await scoredResults(await loadClassProgressDocs()));
     await saveSummary(summary);
     return summary;
   } catch (error) {

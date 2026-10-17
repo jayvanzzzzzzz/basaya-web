@@ -60,7 +60,7 @@ export function sparkline(scores, color = "var(--primary)") {
 /** "Very good" / "Good" / "Fair" / "Poor" / "Not enough data" chip. */
 export function remarkChip(levelOrRemark) {
   const remark = typeof levelOrRemark === "string" ? LEVELS[levelOrRemark] : levelOrRemark;
-  return `<span class="remark remark--${remark.key}" title="${escapeHtml(remark.app)}">${escapeHtml(remark.label)}</span>`;
+  return `<span class="remark remark--${remark.key}">${escapeHtml(remark.label)}</span>`;
 }
 
 export function trendBadge(trend) {

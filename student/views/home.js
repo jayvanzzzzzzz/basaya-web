@@ -53,20 +53,28 @@ function highlight(title, search) {
   return `${escapeHtml(title.slice(0, start))}<mark>${escapeHtml(title.slice(start, end))}</mark>${escapeHtml(title.slice(end))}`;
 }
 
+/** Pagsasanay (Practice: nothing saved) or Pagtataya (Assessment: scores count). */
+const modeChip = (lesson) =>
+  lesson.practice
+    ? `<span class="st-chip st-chip--practice">${icon("refresh")}Pagsasanay</span>`
+    : `<span class="st-chip st-chip--assessment">${icon("star")}Pagtataya</span>`;
+
 function lessonCard(lesson, search) {
   const status = statusOf(lesson);
   const percent = percentOf(lesson);
   const difficulty = lesson.difficulty.toLowerCase();
+  // A Practice lesson saves no progress, so it has no status or progress bar.
   return `
     <li>
       <button class="st-lesson${canOpen(lesson) ? "" : " is-locked"}" type="button" data-lesson="${escapeHtml(lesson.id)}">
         <span class="st-lesson__top">
           <span class="st-lesson__eyebrow">${lesson.order > 0 ? `ARALIN ${lesson.order}` : "ARALIN"}</span>
-          <span class="st-chip st-chip--${status.key}">${icon(status.icon)}${status.label}</span>
+          ${lesson.practice ? "" : `<span class="st-chip st-chip--${status.key}">${icon(status.icon)}${status.label}</span>`}
         </span>
         <strong class="st-lesson__title">${highlight(lesson.title, search)}</strong>
         ${lesson.description ? `<span class="st-lesson__desc">${escapeHtml(lesson.description)}</span>` : ""}
         <span class="st-lesson__meta">
+          ${modeChip(lesson)}
           ${
             lesson.difficulty
               ? `<span class="st-difficulty st-difficulty--${DIFFICULTY.includes(difficulty) ? difficulty : "other"}"><i></i>${escapeHtml(
@@ -76,10 +84,14 @@ function lessonCard(lesson, search) {
           }
           ${scheduleChip(lesson)}
         </span>
-        <span class="st-lesson__progress">
+        ${
+          lesson.practice
+            ? ""
+            : `<span class="st-lesson__progress">
           <span class="st-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="Progreso ng aralin"><i style="width:${percent}%"></i></span>
           <b>${percent}%</b>
-        </span>
+        </span>`
+        }
       </button>
     </li>`;
 }

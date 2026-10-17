@@ -55,8 +55,21 @@
 }
 
 .st-pron__buddy {
-  width: 4.75rem;
-  height: 4.75rem;
+  width: 7.5rem;
+  height: 7.5rem;
+}
+
+/* Soft circle behind the book, like the lecture's talking book */
+.st-pron__buddy::before {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  content: "";
+}
+
+.st-pron__buddy .st-talker__body {
+  scale: 1.18;
 }
 
 .st-pron__word {
@@ -66,7 +79,7 @@
   justify-items: center;
   gap: 0.35rem;
   min-width: 0;
-  padding: 1.25rem 3.25rem 1.25rem 1rem;
+  padding: 1.25rem 3.25rem;
   border-radius: var(--radius-xl);
   transition: transform var(--dur) var(--ease-spring);
 }
@@ -96,12 +109,155 @@
   text-align: center;
 }
 
+/* Pantig under the word: ar·ki·pe·la·go */
+.st-pron__syllables {
+  overflow-wrap: anywhere;
+  color: var(--ink-3);
+  font-size: clamp(0.95rem, 4.2vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.st-pron__syllables[hidden] {
+  display: none;
+}
+
 .st-pron__speaker {
   position: absolute;
   top: 50%;
   right: 0.75rem;
   transform: translateY(-50%);
   color: var(--st-pagbigkas);
+}
+
+/* ⓘ: the word's meaning (left of the word, opposite the speaker). Solid and bright so it's noticed. */
+.st-pron__info {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  border-color: transparent;
+  border-radius: 50%;
+  background: var(--st-talasalitaan);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--st-talasalitaan) 60%, #000);
+  color: #fff;
+  transform: translateY(-50%);
+}
+
+.st-pron__info svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 3.2;
+}
+
+.st-pron__info[hidden] {
+  display: none;
+}
+
+.st-pron__info:active {
+  transform: translateY(calc(-50% + 2px));
+}
+
+.st-pron__info--hello {
+  animation: stInfoHello 900ms var(--ease-spring) 400ms both;
+}
+
+@keyframes stInfoHello {
+  0%,
+  100% {
+    transform: translateY(-50%) rotate(0) scale(1);
+  }
+  25% {
+    transform: translateY(-50%) rotate(-14deg) scale(1.15);
+  }
+  50% {
+    transform: translateY(-50%) rotate(12deg) scale(1.15);
+  }
+  75% {
+    transform: translateY(-50%) rotate(-6deg) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-pron__info--hello {
+    animation: none;
+  }
+}
+
+/* The ⓘ dialog: the word and its first meaning */
+.st-word-info {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  text-align: center;
+}
+
+.st-word-info__icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--st-talasalitaan-tint);
+  color: var(--st-talasalitaan);
+}
+
+.st-word-info__icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.st-word-info h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 7vw, 2.1rem);
+  overflow-wrap: anywhere;
+}
+
+.st-word-info__syllables {
+  margin: -0.35rem 0 0;
+  color: var(--ink-3);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.st-word-info__pos {
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--st-talasalitaan-tint);
+  color: var(--st-talasalitaan);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.st-word-info__meanings,
+.st-word-info__examples {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding-left: 1.4rem;
+  text-align: left;
+}
+
+.st-word-info__meanings {
+  color: var(--ink);
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.st-word-info__examples {
+  padding: 0.7rem 0.9rem 0.7rem 1.9rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.st-word-info .button {
+  width: 100%;
+  margin-top: 0.4rem;
 }
 
 .st-pron__speaker:active {

@@ -20,19 +20,24 @@ export function allowCors(req, res) {
   }
 }
 
-/** The caller's uid from "Authorization: Bearer <Firebase ID token>", or null (401 sent). */
-export async function requireUser(req, res) {
+/** The caller's decoded Firebase ID token (uid, auth_time…), or null (401 sent). */
+export async function requireToken(req, res) {
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) {
     res.status(401).json({ error: "Not signed in" });
     return null;
   }
   try {
-    return (await adminAuth().verifyIdToken(token)).uid;
+    return await adminAuth().verifyIdToken(token);
   } catch {
     res.status(401).json({ error: "Sign-in expired. Reload the page." });
     return null;
   }
+}
+
+/** The caller's uid from "Authorization: Bearer <Firebase ID token>", or null (401 sent). */
+export async function requireUser(req, res) {
+  return (await requireToken(req, res))?.uid ?? null;
 }
 
 /** True when users/{uid}.role is "admin"; otherwise sends 403. */

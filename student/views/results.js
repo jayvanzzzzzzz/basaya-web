@@ -1,11 +1,15 @@
 import { $, escapeHtml, navigate } from "../../js/helpers.js";
-import { buddy, confetti, content, stars } from "../ui.js";
+import { student } from "../data.js";
+import { renderRoute } from "../router.js";
+import { buddy, confetti, content, icon, stars } from "../ui.js";
 
 // The "finished!" screen shown after Gawain and Pagsusulit (the app's PracticeCompleteScreen
 // and QuizCompleteScreen): score counting up, stars, a remark, and back to the lesson.
+// In a Practice lesson the score wasn't saved: it says so and offers "Subukan muli".
 
 export function renderResults({ lessonId, title, heading, score, total, showPercent, remark, starCount, celebrate, scoreLabel }) {
   const percent = total > 0 ? Math.floor((score * 100) / total) : 0;
+  const practice = student.lessons.some((lesson) => lesson.id === lessonId && lesson.practice);
   content().innerHTML = `
     <section class="st-results">
       ${buddy(celebrate ? "happy" : "cheer", "st-results__buddy")}
@@ -18,7 +22,9 @@ export function renderResults({ lessonId, title, heading, score, total, showPerc
         ${stars(starCount)}
         <p class="st-results__remark">${escapeHtml(remark)}</p>
       </div>
-      <button class="button primary st-wide st-big" type="button" id="results-done">Bumalik sa aralin</button>
+      ${practice ? `<p class="st-results__practice">${icon("refresh")}Pagsasanay lang ito. Hindi naitatala ang iyong iskor.</p>` : ""}
+      ${practice ? `<button class="button primary st-wide st-big" type="button" id="results-retry">Subukan muli</button>` : ""}
+      <button class="button ${practice ? "secondary" : "primary st-big"} st-wide" type="button" id="results-done">Bumalik sa aralin</button>
     </section>`;
 
   // Score counts up from zero.
@@ -39,5 +45,7 @@ export function renderResults({ lessonId, title, heading, score, total, showPerc
 
   if (celebrate) setTimeout(() => confetti({ count: 140 }), 600);
   $("#results-done").addEventListener("click", () => navigate(`/lesson/${encodeURIComponent(lessonId)}`));
-  $("#results-done").focus({ preventScroll: true });
+  // Still on the part's route: drawing it again starts the part over.
+  $("#results-retry")?.addEventListener("click", () => renderRoute());
+  ($("#results-retry") || $("#results-done")).focus({ preventScroll: true });
 }

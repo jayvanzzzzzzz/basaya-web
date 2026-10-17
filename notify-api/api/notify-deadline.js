@@ -1,10 +1,11 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { db, messaging } from "../lib/firebase.js";
 import { ID_PATTERN, allowCors, requireUser } from "../lib/http.js";
+import { linkEntryId, linkLessonId } from "../lib/classLessons.js";
 
 // POST /api/notify-deadline
 // Headers: Authorization: Bearer <teacher's Firebase ID token>
-// Body:    { classId, lessonId }
+// Body:    { classId, lessonId }   (the classLessons link id, see lib/classLessons.js)
 //
 // Sent after the teacher extends a lesson's deadline (classLessons/{lessonId}.dueAt is
 // already saved). Like notify-lesson: checks that the caller teaches the class, saves the
@@ -43,11 +44,10 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "You don't teach this class" });
     }
 
-    const [linkSnap, lessonSnap] = await Promise.all([
-      firestore.doc(`classes/${classId}/classLessons/${lessonId}`).get(),
-      firestore.doc(`lessons/${lessonId}`).get(),
-    ]);
+    const linkSnap = await firestore.doc(`classes/${classId}/classLessons/${lessonId}`).get();
     if (!linkSnap.exists) return res.status(404).json({ error: "Lesson is not in this class" });
+    const lessonSnap = await firestore.doc(`lessons/${linkLessonId(linkSnap)}`).get();
+    const entryId = linkEntryId(linkSnap);
     const dueAt = linkSnap.get("dueAt");
     if (!dueAt) return res.status(400).json({ error: "This lesson has no deadline" });
 
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         type: "deadline_extended",
         notificationId: feedRef.id,
         classId,
-        lessonIds: lessonId,
+        lessonIds: entryId,
         title,
         body,
         visibleAt: String(visibleAt.toMillis()),
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
     await feedRef.set({
       type: "deadline_extended",
-      lessonIds: [lessonId],
+      lessonIds: [entryId],
       title,
       body,
       visibleAt,

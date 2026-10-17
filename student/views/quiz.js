@@ -7,6 +7,9 @@ import {
   loadQuiz,
   refreshSummary,
   saveProgress,
+  resumeOf,
+  saveResume,
+  clearResume,
 } from "../data.js";
 import { onLeave } from "../router.js";
 import { content, icon } from "../ui.js";
@@ -15,7 +18,10 @@ import { renderResults } from "./results.js";
 // Pagsusulit (the app's QuizActivity): one question at a time, the rocket moves along the
 // track, and a question is right only when exactly the correct choice(s) were picked.
 // Opens only after the lecture. Saves the Pagsusulit skill. The questions and each question's
-// choices come in a new random order every time; closing starts the quiz over (no resume).
+// choices come in a new random order every time. An answer is final once "Susunod" is pressed:
+// it's saved in resume.quiz, so closing continues with the questions not answered yet, and at
+// the deadline the answered ones count as given and the rest as wrong (js/scoring.js withMissed).
+//   resume.quiz = { done, total, score, answered: [question index as stored], missed: [question text] }
 
 const LETTERS = "ABCDEFGH";
 const sameSet = (a, b) => a.size === b.size && [...a].every((value) => b.has(value));
@@ -50,7 +56,8 @@ export async function renderQuiz(lessonId) {
   content().innerHTML = `<div class="st-focus-loading st-focus-loading--space"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
   const [quiz, progress] = await Promise.all([loadQuiz(lessonId), loadLessonProgress(lessonId)]);
   if (progress.quizFinished) return navigate(pathUrl);
-  if (!progress.lectureFinished) {
+  // A Practice lesson saves nothing, so its quiz never waits for the lecture.
+  if (!progress.lectureFinished && !lesson.practice) {
     toast("Tapusin muna ang aralin para mabuksan ang pagsusulit");
     return navigate(pathUrl);
   }
@@ -58,7 +65,17 @@ export async function renderQuiz(lessonId) {
     toast("Walang pagsusulit para sa araling ito.");
     return navigate(pathUrl);
   }
-  quiz.questions = shuffleQuiz(quiz.questions);
+  // Where the student stopped: only the questions not answered yet are asked.
+  const total = quiz.questions.length;
+  const resume = resumeOf(progress, "quiz", total);
+  const answered = new Set(
+    (Array.isArray(resume?.answered) ? resume.answered : []).map(Number).filter((i) => i >= 0 && i < total),
+  );
+  const earlierMissed = Array.isArray(resume?.missed) ? resume.missed.filter((text) => typeof text === "string") : [];
+  const earlierScore = Math.min(Math.max(Number(resume?.score) || 0, 0), answered.size);
+  quiz.questions = shuffleQuiz(
+    quiz.questions.map((question, position) => ({ ...question, position })).filter((question) => !answered.has(question.position)),
+  );
 
   content().innerHTML = `
     <section class="st-quiz">
@@ -89,8 +106,22 @@ export async function renderQuiz(lessonId) {
   let saving = false;
   onLeave(() => {});
 
+  const isRight = (i) => sameSet(answers[i], quiz.questions[i].correct);
+  /** Answers given so far, earlier sessions included, after `count` questions of this one. */
+  const answeredAfter = (count) => {
+    const asked = quiz.questions.slice(0, count);
+    return {
+      answered: [...answered, ...asked.map((question) => question.position)],
+      missed: [
+        ...earlierMissed,
+        ...asked.filter((_, i) => !isRight(i)).map((question) => question.question.trim()),
+      ],
+      score: earlierScore + asked.filter((_, i) => isRight(i)).length,
+    };
+  };
+
   const moveRocket = () => {
-    const fraction = (index + 1) / quiz.questions.length;
+    const fraction = (answered.size + index + 1) / total;
     $("#quiz-fill").style.width = `${fraction * 100}%`;
     $("#quiz-rocket").style.left = `calc(${fraction * 100}% - ${fraction * 2.4}rem)`;
   };
@@ -114,7 +145,7 @@ export async function renderQuiz(lessonId) {
 
   const showQuestion = () => {
     const question = quiz.questions[index];
-    $("#quiz-progress").textContent = `Tanong ${index + 1} ng ${quiz.questions.length}`;
+    $("#quiz-progress").textContent = `Tanong ${answered.size + index + 1} ng ${total}`;
     $("#quiz-question").textContent = question.question;
     $("#quiz-hint").textContent = question.multiple ? "Piliin lahat ng tamang sagot" : "Piliin ang tamang sagot";
     next.textContent = index === quiz.questions.length - 1 ? "Tapusin" : "Susunod";
@@ -143,13 +174,25 @@ export async function renderQuiz(lessonId) {
     if (saving) return;
     saving = true;
     next.disabled = true;
-    const total = quiz.questions.length;
-    const score = quiz.questions.filter((question, i) => sameSet(answers[i], question.correct)).length;
+    const { score, missed } = answeredAfter(quiz.questions.length);
     try {
       await saveProgress(
         lessonId,
-        { quizFinished: true, quizScore: score, quizTotal: total, quizCompletedAt: serverTimestamp() },
-        { key: "pagsusulit", correct: score, attempts: total, items: total },
+        {
+          quizFinished: true,
+          quizScore: score,
+          quizTotal: total,
+          quizCompletedAt: serverTimestamp(),
+          ...clearResume("quiz"),
+        },
+        {
+          key: "pagsusulit",
+          correct: score,
+          attempts: total,
+          items: total,
+          // The questions' text (they're shuffled), for the teacher's item analysis.
+          extras: { missedQuestions: missed },
+        },
       );
       refreshSummary();
     } catch (error) {
@@ -191,11 +234,14 @@ export async function renderQuiz(lessonId) {
   next.addEventListener("click", () => {
     if (index < quiz.questions.length - 1) {
       index += 1;
+      saveResume(lessonId, "quiz", { done: answered.size + index, total, ...answeredAfter(index) });
       showQuestion();
     } else {
       finish();
     }
   });
 
-  showQuestion();
+  // Every answer was saved but finishing wasn't: finish now.
+  if (quiz.questions.length) showQuestion();
+  else finish();
 }

@@ -9,7 +9,13 @@ import {
 import { db } from "../../js/firebase.js";
 import { state, getAllLessons } from "../../js/state.js";
 import { $, escapeHtml, toast, navigate, page } from "../../js/helpers.js";
-import { readSchedule, notifyStudents } from "../../js/schedule.js";
+import {
+  readSchedule,
+  notifyStudents,
+  linkLessonId,
+  linkMode,
+  practiceLinkId,
+} from "../../js/schedule.js";
 import { paginate } from "../../js/pagination.js";
 import { openLessonModal } from "./lessons.js";
 import { openLessonViewer } from "../../admin/views/lessonViewer.js";
@@ -27,7 +33,17 @@ export async function renderAddLessonPage(classId) {
     getAllLessons(),
   ]);
   const links = linksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const linkedIds = new Set(links.map((l) => l.lessonId));
+  // A lesson can be in the class once as an Assessment and once as Practice.
+  const inClass = { assessment: new Set(), practice: new Set() };
+  links.forEach((link) => inClass[linkMode(link)].add(linkLessonId(link)));
+  const MODE_LABEL = { assessment: "Assessment", practice: "Practice" };
+  /** "In this class" note: which type(s) the lesson is already in. */
+  const assignedNote = (lessonId) => {
+    const modes = ["assessment", "practice"].filter((mode) => inClass[mode].has(lessonId));
+    if (!modes.length) return "";
+    const label = modes.length === 2 ? "as Assessment & Practice" : `as ${MODE_LABEL[modes[0]]}`;
+    return `<span class="lesson-picker__assigned"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>In this class ${label}</span>`;
+  };
 
   page(
     "Build your lesson plan",
@@ -54,7 +70,8 @@ export async function renderAddLessonPage(classId) {
         </label>
         <div class="lesson-picker__list">${state.allLessons
           .map((l) => {
-            const already = linkedIds.has(l.id);
+            // Both types already in: nothing left to add. Otherwise applyMode() sets the checkbox.
+            const already = inClass.assessment.has(l.id) && inClass.practice.has(l.id);
             const activity = l.activityType || "Aralin";
             const difficulty = l.difficulty || "Any level";
             const searchable = `${l.title || ""} ${activity} ${difficulty} ${l.description || ""}`.toLowerCase();
@@ -69,7 +86,7 @@ export async function renderAddLessonPage(classId) {
                 </span>
               </label>
               <div class="lesson-picker__actions">
-                ${already ? `<span class="lesson-picker__assigned"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>In this class</span>` : ""}
+                ${assignedNote(l.id)}
                 <button type="button" class="lesson-picker__preview" data-view="${escapeHtml(l.id)}">Preview <span aria-hidden="true">↗</span></button>
               </div>
             </article>`;
@@ -78,6 +95,20 @@ export async function renderAddLessonPage(classId) {
           <p class="lesson-picker__no-results" id="lesson-no-results" hidden>No lessons match your search.</p>
         </div>
         <div class="lesson-picker__footer">
+          <fieldset class="lesson-mode">
+            <legend>Lesson type</legend>
+            <div class="lesson-mode__options">
+              <label class="lesson-mode__option">
+                <input type="radio" name="mode" value="assessment" checked />
+                <span><strong>Assessment</strong><small>Scores are saved and count in reports</small></span>
+              </label>
+              <label class="lesson-mode__option">
+                <input type="radio" name="mode" value="practice" />
+                <span><strong>Practice</strong><small>Students can retry anytime; nothing is saved</small></span>
+              </label>
+            </div>
+            <p class="lesson-schedule__hint">This can't be changed after the lesson is added. A lesson already in this class can be added again as the other type.</p>
+          </fieldset>
           <fieldset class="lesson-schedule">
             <legend>Schedule <span>optional</span></legend>
             <label>Opens on
@@ -138,9 +169,30 @@ export async function renderAddLessonPage(classId) {
       ? `Add ${selected} selected ${selected === 1 ? "lesson" : "lessons"}`
       : "Add selected lessons";
   };
+  // A lesson already in the class as the chosen type is shown ticked and can't be picked;
+  // switching the type keeps what the teacher picked for the other lessons.
+  const picked = new Set();
+  const selectedMode = () =>
+    document.querySelector('#link-form input[name="mode"]:checked')?.value === "practice" ? "practice" : "assessment";
+  const applyMode = () => {
+    const mode = selectedMode();
+    document.querySelectorAll('#link-form input[name="lesson"]').forEach((box) => {
+      const taken = inClass[mode].has(box.value);
+      box.disabled = taken;
+      box.checked = taken || picked.has(box.value);
+      box.closest("[data-lesson-row]").classList.toggle("is-assigned", taken);
+    });
+    updateSelection();
+  };
   $("#link-form")?.addEventListener("change", (event) => {
-    if (event.target.matches('input[name="lesson"]')) updateSelection();
+    if (event.target.matches('input[name="lesson"]')) {
+      if (event.target.checked) picked.add(event.target.value);
+      else picked.delete(event.target.value);
+      updateSelection();
+    }
+    if (event.target.matches('input[name="mode"]')) applyMode();
   });
+  if (state.allLessons.length) applyMode();
 
   // "Preview" per lesson row: the admin's read-only lesson viewer, without its Edit button.
   document.querySelectorAll("[data-view]").forEach((btn) =>
@@ -153,29 +205,42 @@ export async function renderAddLessonPage(classId) {
   $("#link-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
+    // Practice: students can redo it, nothing is saved, and reports leave it out.
+    const mode = selectedMode();
     const ids = new FormData(form)
       .getAll("lesson")
-      .filter((id) => !linkedIds.has(id));
+      .filter((id) => !inClass[mode].has(id));
     if (!ids.length) return toast("Select at least one new lesson.");
     const schedule = readSchedule(form);
     if (schedule.error) return toast(schedule.error);
 
     const submit = $("#add-selected-lessons");
     submit.disabled = true;
+    const linkIds = [];
     try {
-      // The link's id is the lesson id, so Firestore rules can look up its schedule.
+      // An Assessment link's id is the lesson id, so Firestore rules can look up its
+      // schedule; a Practice link is "{lessonId}__practice" so both can be in the class.
       const batch = writeBatch(db);
-      ids.forEach((lessonId, index) =>
-        batch.set(doc(db, "classes", classId, "classLessons", lessonId), {
+      ids.forEach((lessonId, index) => {
+        const linkId = mode === "practice" ? practiceLinkId(lessonId) : lessonId;
+        // A Practice link saved under the lesson id (before both could be added) moves aside.
+        const occupant = links.find((link) => link.id === lessonId && linkMode(link) === "practice");
+        if (mode === "assessment" && occupant) {
+          const { id, ...data } = occupant;
+          batch.set(doc(db, "classes", classId, "classLessons", practiceLinkId(lessonId)), { ...data, lessonId });
+        }
+        linkIds.push(linkId);
+        batch.set(doc(db, "classes", classId, "classLessons", linkId), {
           lessonId,
           teacherId: state.user.uid,
           order: links.length + index + 1,
           createdAt: serverTimestamp(),
           openAt: schedule.openAt,
           dueAt: schedule.dueAt,
+          mode,
           notifyPending: true,
-        }),
-      );
+        });
+      });
       await batch.commit();
     } catch (err) {
       submit.disabled = false;
@@ -184,7 +249,7 @@ export async function renderAddLessonPage(classId) {
 
     const added = `${ids.length} lesson${ids.length > 1 ? "s" : ""} added`;
     try {
-      await notifyStudents(classId, ids);
+      await notifyStudents(classId, linkIds);
       toast(`${added}. Students were notified.`);
     } catch (err) {
       console.error("notifyStudents failed —", err);

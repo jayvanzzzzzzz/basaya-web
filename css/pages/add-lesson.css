@@ -295,6 +295,71 @@
   font-size: 0.75rem;
 }
 
+/* Assessment / Practice */
+.lesson-mode {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.lesson-mode legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.lesson-mode__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 13rem));
+  gap: 0.5rem;
+}
+
+.lesson-mode__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.lesson-mode__option:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.lesson-mode__option input {
+  width: auto;
+  min-height: 0;
+  margin: 0.15rem 0 0;
+  accent-color: var(--primary);
+}
+
+.lesson-mode__option span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.lesson-mode__option strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.lesson-mode__option small {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 .lesson-picker__submit {
   display: flex;
   align-items: center;
@@ -333,6 +398,14 @@
 
   .lesson-schedule {
     width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lesson-mode {
+    width: 100%;
+  }
+
+  .lesson-mode__options {
     grid-template-columns: 1fr 1fr;
   }
 

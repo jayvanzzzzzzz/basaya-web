@@ -1,17 +1,14 @@
 import { adminAuth, db } from "../lib/firebase.js";
 import { ID_PATTERN, allowCors, requireAdmin, requireUser } from "../lib/http.js";
-import { passwordResetEmail } from "../lib/emails.js";
-import { sendMail } from "../lib/mailer.js";
+import { sendResetEmail } from "../lib/passwordReset.js";
 
 // POST /api/send-password-reset
 // Headers: Authorization: Bearer <admin's Firebase ID token>
 // Body:    { userId }   (a teacher or student; the older { teacherId } still works)
 //
-// Replaces Firebase's plain reset email with a BaSaya-branded one. Firebase still
-// makes the secure one-time code (valid 1 hour); the link opens our own page,
-// reset-password.html on the website, which finishes the reset with that code.
+// Replaces Firebase's plain reset email with a BaSaya-branded one
+// (lib/passwordReset.js). For someone resetting their own, see forgot-password.
 
-const SITE_URL = (process.env.SITE_URL || "https://basaya.onrender.com").replace(/\/$/, "");
 const RESETTABLE_ROLES = ["teacher", "student"];
 
 export default async function handler(req, res) {
@@ -37,14 +34,7 @@ export default async function handler(req, res) {
     const { email } = await adminAuth().getUser(userId);
     if (!email) return res.status(400).json({ error: "This account has no email on file." });
 
-    const firebaseLink = await adminAuth().generatePasswordResetLink(email);
-    const oobCode = new URL(firebaseLink).searchParams.get("oobCode");
-    const link = `${SITE_URL}/reset-password.html?oobCode=${encodeURIComponent(oobCode)}`;
-
-    await sendMail({
-      to: email,
-      ...passwordResetEmail({ name: profile.get("displayName") || "", email, link, role }),
-    });
+    await sendResetEmail({ email, name: profile.get("displayName") || "", role, requestedBy: "admin" });
     return res.status(200).json({ ok: true, email });
   } catch (error) {
     console.error("send-password-reset failed:", error);
