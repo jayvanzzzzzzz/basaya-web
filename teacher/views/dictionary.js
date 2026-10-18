@@ -9,6 +9,7 @@ import {
   hideWord,
   lookupWord,
   normalizeWord,
+  renameWord,
   saveWord,
   syllablesOf,
 } from "../../js/dictionary.js";
@@ -139,8 +140,8 @@ function openWordModal(entry = null, onSaved) {
          : "Write the meanings in Filipino so students can understand them."
      }</p>
      <form id="dict-word-form" class="dict-form" novalidate>
-       <label>Word
-         <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || "")}" ${editing ? "readonly" : ""} placeholder="bahay" />
+       <label>Word ${editing && isAdmin() ? "<small>(changing the spelling moves the word to the new spelling)</small>" : ""}
+         <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || "")}" ${editing && !isAdmin() ? "readonly" : ""} placeholder="bahay" />
        </label>
        <label>Spelling with accent marks <small>(optional)</small>
          <input name="accent" maxlength="${MAX_WORD}" value="${escapeHtml(entry?.accent || "")}" placeholder="báhay" />
@@ -234,11 +235,14 @@ function openWordModal(entry = null, onSaved) {
           return fail(`Each meaning or example must be ${MAX_TEXT} characters or fewer.`);
         if (synonyms.length > 10) return fail("Up to 10 synonyms.");
 
+        // Only admins can type a new spelling (the word box is read-only for teachers).
+        const renaming = editing && normalizeWord(word) !== entry.key;
         const save = $("#dict-save", backdrop);
         save.disabled = true;
         try {
-          if (!editing) {
+          if (!editing || renaming) {
             const existing = await lookupWord(word);
+            if (existing && renaming) return fail(`“${existing.word}” is already in the dictionary. Edit that word instead, or hide it first.`);
             if (existing) {
               close();
               toast(`“${existing.word}” is already in the dictionary. You can edit it here.`);
@@ -246,11 +250,20 @@ function openWordModal(entry = null, onSaved) {
               return;
             }
           }
+          if (
+            renaming &&
+            !confirm(
+              `Change “${entry.word}” to “${word}”? Students will only find it under the new spelling, and Bigkas lessons that still use “${entry.word}” won't show its meaning.`,
+            )
+          )
+            return;
           // The automatic split typed back in isn't a fix, so it isn't saved.
           const fixed = syllables && syllables !== syllabify(form.accent.value.trim() || word) ? syllables : "";
-          await saveWord({ word, accent: form.accent.value, syllables: fixed, senses, synonyms }, who());
+          const fields = { word, accent: form.accent.value, syllables: fixed, senses, synonyms };
+          if (renaming) await renameWord(entry, fields, who());
+          else await saveWord(fields, who());
           close();
-          toast(editing ? "Word updated." : "Word added. Students can look it up now.");
+          toast(renaming ? `Word moved to “${word}”.` : editing ? "Word updated." : "Word added. Students can look it up now.");
           onSaved?.(word);
         } catch (err) {
           console.error(err);

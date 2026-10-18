@@ -343,13 +343,15 @@ service cloud.firestore {
 
       allow read: if signedIn();
 
-      allow create: if (isTeacher() || isAdmin()) && validWord() &&
+      // Admins may also write someone else's createdBy/createdAt: renaming a word moves
+      // it to a new doc id and keeps who first added it.
+      allow create: if validWord() && (isAdmin() || (isTeacher() &&
         request.resource.data.createdBy == request.auth.uid &&
-        request.resource.data.createdAt == request.time;
+        request.resource.data.createdAt == request.time));
 
-      allow update: if (isTeacher() || isAdmin()) && validWord() &&
+      allow update: if validWord() && (isAdmin() || (isTeacher() &&
         request.resource.data.createdBy == resource.data.createdBy &&
-        request.resource.data.createdAt == resource.data.createdAt;
+        request.resource.data.createdAt == resource.data.createdAt));
 
       allow delete: if isAdmin() ||
         (isTeacher() && (resource.data.createdBy == request.auth.uid || resource.data.hidden == true));

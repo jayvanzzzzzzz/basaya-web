@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebase.js";
 import { guessRoots, normalizeWord } from "./dictionaryWords.js";
@@ -189,51 +190,66 @@ export async function allWords() {
   return [...found.values()].sort((a, b) => a.key.localeCompare(b.key, "fil"));
 }
 
-/**
- * Adds or replaces a teacher word, keeping who first added it. The spelling
- * can't change on edit (it's the doc id), so there's never an old doc to move.
- */
-export async function saveWord({ word, accent = "", syllables = "", senses, synonyms = [] }, { user, name }) {
-  const key = normalizeWord(word);
+// Who first added a word (kept on every save) and who changed it last.
+const stamp = (owner, { user, name }) => ({
+  createdBy: owner?.createdBy || user.uid,
+  createdByName: owner?.createdByName || name,
+  createdAt: owner?.createdAt || serverTimestamp(),
+  updatedBy: user.uid,
+  updatedByName: name,
+  updatedAt: serverTimestamp(),
+});
+
+const wordDoc = ({ word, accent = "", syllables = "", senses, synonyms = [] }) => ({
+  word: word.trim(),
+  key: normalizeWord(word),
+  accent: accent.trim(),
+  syllables: cleanSyllables(syllables),
+  senses,
+  synonyms,
+  hidden: false,
+});
+
+const hiddenDoc = (entry) => ({
+  word: entry.word,
+  key: entry.key,
+  accent: entry.accent || "",
+  syllables: entry.syllables || "",
+  senses: [],
+  synonyms: [],
+  hidden: true,
+});
+
+/** Adds or replaces a teacher word under its own spelling, keeping who first added it. */
+export async function saveWord(fields, who) {
+  const key = normalizeWord(fields.word);
   const existing = await getDoc(doc(words, key));
-  const owner = existing.exists() ? existing.data() : null;
-  await setDoc(doc(words, key), {
-    word: word.trim(),
-    key,
-    accent: accent.trim(),
-    syllables: cleanSyllables(syllables),
-    senses,
-    synonyms,
-    hidden: false,
-    createdBy: owner?.createdBy || user.uid,
-    createdByName: owner?.createdByName || name,
-    createdAt: owner?.createdAt || serverTimestamp(),
-    updatedBy: user.uid,
-    updatedByName: name,
-    updatedAt: serverTimestamp(),
-  });
+  await setDoc(doc(words, key), { ...wordDoc(fields), ...stamp(existing.exists() ? existing.data() : null, who) });
+  return key;
+}
+
+/**
+ * Admins only: moves a word to a new spelling (the doc id is the spelling). The moved
+ * word keeps who first added it. The old spelling is hidden when Wiktionary has it, so
+ * the seed word doesn't come back, and deleted when only a teacher added it. A hidden
+ * marker already at the new spelling is replaced. One batch, so it's never half moved.
+ */
+export async function renameWord(entry, fields, who) {
+  const key = normalizeWord(fields.word);
+  const old = await getDoc(doc(words, entry.key));
+  const owner = old.exists() ? old.data() : null;
+  const batch = writeBatch(db);
+  batch.set(doc(words, key), { ...wordDoc(fields), ...stamp(owner, who) });
+  if (entry.source === "wiktionary" || entry.replaces) batch.set(doc(words, entry.key), { ...hiddenDoc(entry), ...stamp(owner, who) });
+  else batch.delete(doc(words, entry.key));
+  await batch.commit();
   return key;
 }
 
 /** Takes a (seed) word out of the dictionary without deleting anything from the seed file. */
-export async function hideWord(entry, { user, name }) {
+export async function hideWord(entry, who) {
   const existing = await getDoc(doc(words, entry.key));
-  const owner = existing.exists() ? existing.data() : null;
-  await setDoc(doc(words, entry.key), {
-    word: entry.word,
-    key: entry.key,
-    accent: entry.accent || "",
-    syllables: entry.syllables || "",
-    senses: [],
-    synonyms: [],
-    hidden: true,
-    createdBy: owner?.createdBy || user.uid,
-    createdByName: owner?.createdByName || name,
-    createdAt: owner?.createdAt || serverTimestamp(),
-    updatedBy: user.uid,
-    updatedByName: name,
-    updatedAt: serverTimestamp(),
-  });
+  await setDoc(doc(words, entry.key), { ...hiddenDoc(entry), ...stamp(existing.exists() ? existing.data() : null, who) });
 }
 
 /** Deletes a teacher word; a seed word with the same key shows again. */
