@@ -373,9 +373,9 @@ function studioHtml(lesson = {}, sections = {}) {
       <div class="lesson-studio__tabs">
         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
         <button type="button" class="lesson-tab" data-step="lectures">2. Lecture</button>
-        <button type="button" class="lesson-tab" data-step="activity">3. Activity</button>
-        <button type="button" class="lesson-tab" data-step="pronunciation">4. Pronunciation</button>
-        <button type="button" class="lesson-tab" data-step="quiz">5. Quiz</button>
+        <button type="button" class="lesson-tab" data-step="quiz">3. Quiz</button>
+        <button type="button" class="lesson-tab" data-step="activity">4. Activity</button>
+        <button type="button" class="lesson-tab" data-step="pronunciation">5. Pronunciation</button>
         <button type="button" class="lesson-tab" data-step="game">6. Game</button>
       </div>
 
@@ -432,9 +432,27 @@ function studioHtml(lesson = {}, sections = {}) {
           <div class="lecture-pages" data-lecture-pages></div>
         </section>
 
-        <section class="lesson-step" data-panel="activity">
+        <section class="lesson-step" data-panel="quiz">
           <div class="lesson-section-intro">
             <span class="lesson-section-number">03</span>
+            <div>
+              <h3>Quiz</h3>
+              <p>Every quiz question has three choices.</p>
+            </div>
+          </div>
+
+          <label>Quiz title<input data-quiz-title value="${escapeHtml(sections.quiz?.title || "")}" placeholder="PANGGALAN - Pagsusulit" /></label>
+
+          <div class="lesson-subheading">
+            <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
+            <button type="button" class="button secondary small" data-add-question>+ Add question</button>
+          </div>
+          <div data-quiz-questions></div>
+        </section>
+
+        <section class="lesson-step" data-panel="activity">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">04</span>
             <div>
               <h3>Tap-the-word activity</h3>
               <p>Add a page, enter a sentence, then select the correct words.</p>
@@ -465,7 +483,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
         <section class="lesson-step" data-panel="pronunciation">
           <div class="lesson-section-intro">
-            <span class="lesson-section-number">04</span>
+            <span class="lesson-section-number">05</span>
             <div>
               <h3>Pronunciation practice</h3>
               <p>Add practice words. Each word can use packaged audio or generated cloud audio.</p>
@@ -480,24 +498,6 @@ function studioHtml(lesson = {}, sections = {}) {
             <button type="button" class="button secondary small" data-add-pronunciation-word>+ Add word</button>
           </div>
           <div data-pronunciation-words></div>
-        </section>
-
-        <section class="lesson-step" data-panel="quiz">
-          <div class="lesson-section-intro">
-            <span class="lesson-section-number">05</span>
-            <div>
-              <h3>Quiz</h3>
-              <p>Every quiz question has three choices.</p>
-            </div>
-          </div>
-
-          <label>Quiz title<input data-quiz-title value="${escapeHtml(sections.quiz?.title || "")}" placeholder="PANGGALAN - Pagsusulit" /></label>
-
-          <div class="lesson-subheading">
-            <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
-            <button type="button" class="button secondary small" data-add-question>+ Add question</button>
-          </div>
-          <div data-quiz-questions></div>
         </section>
 
         <section class="lesson-step" data-panel="game">
@@ -824,9 +824,9 @@ function validateQuiz(container) {
 const MISSING_GROUPS = {
   Basics: "basics",
   Lecture: "lectures",
+  Quiz: "quiz",
   Activity: "activity",
   Pronunciation: "pronunciation",
-  Quiz: "quiz",
   Game: "game",
 };
 
@@ -876,6 +876,20 @@ function missingFields(modal, { skipActivity, skipGame }) {
     });
   });
 
+  need("Quiz", "Quiz title", "[data-quiz-title]");
+  const questions = $$("[data-question]", modal);
+  if (!questions.length) add("Quiz", "Add at least one question", $("[data-add-question]", modal));
+  questions.forEach((question, index) => {
+    const name = `Question ${index + 1}`;
+    need("Quiz", `${name}: question`, "[data-question-text]", question);
+    $$("[data-choice-text]", question).forEach((choice, choiceIndex) => {
+      if (!choice.value.trim()) add("Quiz", `${name}: choice ${choiceIndex + 1}`, choice);
+    });
+    if (!$$("[data-answer-choice]", question).some((input) => input.checked)) {
+      add("Quiz", `${name}: correct answer`, $(".choice-grid", question));
+    }
+  });
+
   if (!skipActivity.checked) {
     need("Activity", "Activity title", "[data-activity-title]");
     need("Activity", "Instruction", "[data-activity-instruction]");
@@ -898,20 +912,6 @@ function missingFields(modal, { skipActivity, skipGame }) {
   if (!words.length) add("Pronunciation", "Add at least one word", $("[data-add-pronunciation-word]", modal));
   words.forEach((row, index) => need("Pronunciation", `Word ${index + 1}`, "[data-pronunciation-text]", row));
 
-  need("Quiz", "Quiz title", "[data-quiz-title]");
-  const questions = $$("[data-question]", modal);
-  if (!questions.length) add("Quiz", "Add at least one question", $("[data-add-question]", modal));
-  questions.forEach((question, index) => {
-    const name = `Question ${index + 1}`;
-    need("Quiz", `${name}: question`, "[data-question-text]", question);
-    $$("[data-choice-text]", question).forEach((choice, choiceIndex) => {
-      if (!choice.value.trim()) add("Quiz", `${name}: choice ${choiceIndex + 1}`, choice);
-    });
-    if (!$$("[data-answer-choice]", question).some((input) => input.checked)) {
-      add("Quiz", `${name}: correct answer`, $(".choice-grid", question));
-    }
-  });
-
   if (!skipGame.checked) {
     const levels = $$("[data-game-level]", modal);
     if (!levels.length) add("Game", "Add a level, or tick “Skip game”", $("[data-add-game-level]", modal));
@@ -925,6 +925,8 @@ function missingFields(modal, { skipActivity, skipGame }) {
 
 async function openLessonModal(existing = null) {
   const sections = existing ? await getLessonSections(existing.id) : {};
+  // Cancel and × ask before throwing away edits; set once the editor is built.
+  let mayLeave = async () => true;
 
   openModal(studioHtml(existing || {}, sections), (modal, close) => {
     if (existing) showLessonUsage($("[data-lesson-usage]", modal), existing.id);
@@ -1159,7 +1161,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-close]")) {
-        close();
+        if (await mayLeave()) close();
         return;
       }
 
@@ -1401,6 +1403,61 @@ async function openLessonModal(existing = null) {
         submit.textContent = existing ? "Save changes" : "Publish lesson";
       }
     });
+
+    const studioForm = $("#lesson-form", modal);
+    const initialSnapshot = editorSnapshot(studioForm);
+    mayLeave = () =>
+      editorSnapshot(studioForm) === initialSnapshot ? Promise.resolve(true) : confirmDiscard(!existing);
+  }, { closeOnBackdrop: false, beforeClose: () => mayLeave() });
+}
+
+/** Everything the author can change in the editor, to tell whether leaving loses work. */
+function editorSnapshot(form) {
+  return JSON.stringify([
+    $$("input, textarea, select", form).map((field) =>
+      field.type === "checkbox" || field.type === "radio" ? field.checked : field.value,
+    ),
+    $$("[data-activity-page]", form).map((page) => page.dataset.correctIndices || ""),
+    $$("[data-word-chip]", form).map((chip) => chip.dataset.wordChip),
+    $$("[data-lecture-sentence], [data-pronunciation-word]", form).map(
+      (row) => previews.get(row)?.generationCount || 0,
+    ),
+  ]);
+}
+
+/** Resolves true to close the editor and discard the edits, false to keep editing. */
+function confirmDiscard(isNew) {
+  return new Promise((resolve) => {
+    openModal(
+      `${isNew
+        ? `<h2>Discard this lesson?</h2>
+           <p>This lesson hasn't been published yet. Everything you've entered, including any generated audio, will be discarded.</p>`
+        : `<h2>Discard unsaved changes?</h2>
+           <p>Any changes you've made to this lesson will be discarded. This can't be undone.</p>`}
+       <div class="modal-actions">
+         <button type="button" class="button secondary" data-cancel>Keep editing</button>
+         <button type="button" class="button danger" data-confirm>${isNew ? "Discard lesson" : "Discard changes"}</button>
+       </div>`,
+      (backdrop, close) => {
+        let settled = false;
+        const finish = (choice) => {
+          if (settled) return;
+          settled = true;
+          watcher.disconnect();
+          close();
+          resolve(choice);
+        };
+        // Closing with × or the backdrop counts as "keep editing".
+        const watcher = new MutationObserver(() => {
+          if (!backdrop.isConnected) finish(false);
+        });
+        watcher.observe(document.body, { childList: true });
+
+        $("[data-cancel]", backdrop).addEventListener("click", () => finish(false));
+        $("[data-confirm]", backdrop).addEventListener("click", () => finish(true));
+        setTimeout(() => $("[data-cancel]", backdrop).focus(), 50);
+      },
+    );
   });
 }
 

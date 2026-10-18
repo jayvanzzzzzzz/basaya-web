@@ -1433,6 +1433,11 @@
   border-radius: 50%;
 }
 
+/* No empty error row between "Forgot password?" and the Sign in button */
+#login-error:empty {
+  display: none;
+}
+
 .login-submit[aria-busy="true"] {
   cursor: progress;
 }
@@ -1453,7 +1458,9 @@
 }
 
 .auth-register {
-  margin: 0;
+  margin: 0.4rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
   color: var(--ink-2);
   font-size: 0.88rem;
   text-align: center;

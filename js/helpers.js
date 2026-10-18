@@ -213,15 +213,24 @@ export function empty(title, description, button, id) {
   return `<div class="card empty"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p><button class="button primary" id="${escapeHtml(id)}">${escapeHtml(button)}</button></div>`;
 }
 
-export function openModal(html, onMount) {
+/**
+ * closeOnBackdrop: false keeps the modal open when the backdrop is clicked.
+ * beforeClose: asked when × is pressed; the modal closes only if it resolves true.
+ */
+export function openModal(html, onMount, { closeOnBackdrop = true, beforeClose } = {}) {
   const node = $("#modal-template").content.cloneNode(true);
   document.body.append(node);
   const backdrop = document.body.lastElementChild;
   backdrop.querySelector(".modal-content").innerHTML = html;
   const close = () => backdrop.remove();
-  backdrop.querySelector(".modal-close").addEventListener("click", close);
-  backdrop.addEventListener("click", (e) => {
-    if (e.target === backdrop) close();
-  });
+  const dismiss = async () => {
+    if (!beforeClose || (await beforeClose())) close();
+  };
+  backdrop.querySelector(".modal-close").addEventListener("click", dismiss);
+  if (closeOnBackdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) dismiss();
+    });
+  }
   onMount?.(backdrop, close);
 }

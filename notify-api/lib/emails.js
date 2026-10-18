@@ -85,7 +85,7 @@ function layout({ preheader, eyebrow, body, footerNote }) {
           <tr>
             <td align="center" style="padding:24px 24px 8px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.ink3};">
               ${footerNote ? `<p style="margin:0 0 10px;">${footerNote}</p>` : ""}
-              <p style="margin:0;"><strong style="color:${C.ink2};">BaSaya</strong> &middot; A Capstone Project, BS Information Technology</p>
+              <p style="margin:0;"><strong style="color:${C.ink2};">BaSaya</strong> &middot; A Capstone Project, BS in Information Technology</p>
               <p style="margin:0;">${SCHOOL}</p>
               <p style="margin:10px 0 0;"><a href="${SITE_URL}" style="color:${C.primary};text-decoration:none;font-weight:600;">${SITE_URL.replace(/^https?:\/\//, "")}</a></p>
             </td>
@@ -238,7 +238,7 @@ export function passwordResetEmail({ name, email, link, role = "teacher", reques
       "This link expires in 1 hour and can be used only once.",
       "Didn't expect this? You can ignore this email. Your current password keeps working.",
       "",
-      `BaSaya · A Capstone Project, BS Information Technology · ${SCHOOL}`,
+      `BaSaya · A Capstone Project, BS in Information Technology · ${SCHOOL}`,
     ].join("\n"),
   };
 }
@@ -312,7 +312,7 @@ export function adminPasswordChangeEmail({ name, email, approveLink, cancelLink,
       `Wasn't you? Cancel: ${cancelLink}`,
       "Or ignore this email: your current password keeps working. Whoever asked knew your current password, so change it soon.",
       "",
-      `BaSaya · A Capstone Project, BS Information Technology · ${SCHOOL}`,
+      `BaSaya · A Capstone Project, BS in Information Technology · ${SCHOOL}`,
     ].join("\n"),
   };
 }
