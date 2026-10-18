@@ -9,6 +9,7 @@ import { auth, db } from "../../js/firebase.js";
 import { state, getAllClasses } from "../../js/state.js";
 import { $, escapeHtml, notify, initials, page, openModal } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
+import { clearFieldError, fieldError } from "../../js/field-errors.js";
 import { sendStudentPasswordReset, setTemporaryPassword } from "../../js/api.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
 
@@ -289,7 +290,7 @@ function openTemporaryPasswordModal(student) {
      <p>For <strong>${escapeHtml(name)}</strong>${student.email ? ` (${escapeHtml(student.email)})` : ""}. Use this when the student can't get the reset email.</p>
      <form id="temp-password-form" class="form-card">
        <label>Temporary password
-         <input name="password" type="text" required minlength="${MIN_LENGTH}" maxlength="128" autocomplete="off" spellcheck="false" />
+         <input name="password" type="text" required data-missing="Type a temporary password, or press “Suggest another”." minlength="${MIN_LENGTH}" maxlength="128" autocomplete="off" spellcheck="false" />
        </label>
        <button type="button" class="button secondary small" data-suggest>Suggest another</button>
        <p class="muted">Tell the student this password in person. They can change it in Profile → Change password. They'll be signed out on their other devices.</p>
@@ -307,6 +308,7 @@ function openTemporaryPasswordModal(student) {
       input.value = suggestPassword();
       $("[data-suggest]", modal).addEventListener("click", () => {
         input.value = suggestPassword();
+        clearFieldError(input);
         input.focus();
       });
       $("[data-cancel]", modal).addEventListener("click", close);
@@ -317,7 +319,8 @@ function openTemporaryPasswordModal(student) {
         const password = input.value.trim();
         error.textContent = "";
         if (password.length < MIN_LENGTH) {
-          error.textContent = `The temporary password needs at least ${MIN_LENGTH} characters.`;
+          fieldError(input, `The temporary password needs at least ${MIN_LENGTH} characters.`);
+          input.focus();
           return;
         }
         submit.disabled = true;

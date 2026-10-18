@@ -43,7 +43,6 @@ function cardHtml(label, lesson, extra = "") {
   return `<article class="dup-card">
     <span class="dup-card__label">${escapeHtml(label)}</span>
     <div class="dup-card__body">
-      <span class="dup-card__order"><small>Lesson</small>${escapeHtml(String(lesson.order ?? "—").padStart(2, "0"))}</span>
       <div class="dup-card__text">
         <strong title="${escapeHtml(lesson.title)}">${escapeHtml(lesson.title)}</strong>
         <span class="admin-lesson-difficulty ${meta.className}"><span aria-hidden="true"></span>${meta.label}</span>
@@ -54,7 +53,7 @@ function cardHtml(label, lesson, extra = "") {
 }
 
 /**
- * @param {{ title: string, difficulty: string, order: number|string }} draft  what's being saved
+ * @param {{ title: string, difficulty: string }} draft  what's being saved
  * @param {object} match     the lesson that already has this title
  * @param {object[]} lessons every lesson, for finding a free name
  * @param {boolean} editing

@@ -8,6 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from "./firebase.js";
 import { passwordChecks, passwordProblem } from "./password-rules.js";
+import { fieldError, focusFirstError } from "./field-errors.js";
 const code = new URLSearchParams(location.search).get("oobCode");
 const form = document.getElementById("reset-form");
 const password = document.getElementById("new-password");
@@ -68,17 +69,16 @@ document.querySelectorAll("[data-reveal]").forEach((button) =>
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   error.textContent = "";
-  const problem = passwordProblem(password.value);
-  if (problem) {
-    error.textContent = problem;
-    password.focus();
-    return;
-  }
-  if (confirm.value !== password.value) {
-    error.textContent = "The two passwords don't match.";
-    confirm.focus();
-    return;
-  }
+  fieldError(password, password.value ? passwordProblem(password.value) : "Choose a new password.");
+  fieldError(
+    confirm,
+    !confirm.value
+      ? "Type the new password again to confirm it."
+      : confirm.value !== password.value
+        ? "This doesn't match the new password above."
+        : "",
+  );
+  if (focusFirstError(form)) return;
 
   submit.disabled = true;
   submit.textContent = "Saving…";
@@ -91,10 +91,13 @@ form.addEventListener("submit", async (event) => {
       showInvalid(failure);
       return;
     }
+    if (failure.code === "auth/weak-password") {
+      fieldError(password, "That password is too weak. Try a longer one.");
+      password.focus();
+      return;
+    }
     error.textContent =
-      failure.code === "auth/weak-password"
-        ? "That password is too weak. Try a longer one."
-        : failure.code === "auth/network-request-failed"
+      failure.code === "auth/network-request-failed"
           ? "Couldn't reach the server. Check your internet connection and try again."
           : "Something went wrong. Please try again.";
   } finally {

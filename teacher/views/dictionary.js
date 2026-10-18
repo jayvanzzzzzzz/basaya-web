@@ -14,6 +14,7 @@ import {
   syllablesOf,
 } from "../../js/dictionary.js";
 import { syllabify, withoutDots } from "../../js/syllables.js";
+import { fieldError } from "../../js/field-errors.js";
 
 // Dictionary: the Tagalog words students look up on the student side (#/diksiyonaryo).
 // Most come from Tagalog Wiktionary (data/dictionary/tl-seed.json); teachers and admins
@@ -129,7 +130,8 @@ function senseHtml(sense = { pos: "pangngalan", definitions: [], examples: [] },
     </fieldset>`;
 }
 
-function openWordModal(entry = null, onSaved) {
+/** Add or edit a word. `typed` prefills a new word (the admin lesson editor's "Add it now"). */
+export function openWordModal(entry = null, onSaved, typed = "") {
   const editing = !!entry;
   const senses = entry?.senses.length ? entry.senses : [undefined];
   openModal(
@@ -141,7 +143,7 @@ function openWordModal(entry = null, onSaved) {
      }</p>
      <form id="dict-word-form" class="dict-form" novalidate>
        <label>Word ${editing && isAdmin() ? "<small>(changing the spelling moves the word to the new spelling)</small>" : ""}
-         <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || "")}" ${editing && !isAdmin() ? "readonly" : ""} placeholder="bahay" />
+         <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || typed)}" ${editing && !isAdmin() ? "readonly" : ""} placeholder="bahay" />
        </label>
        <label>Spelling with accent marks <small>(optional)</small>
          <input name="accent" maxlength="${MAX_WORD}" value="${escapeHtml(entry?.accent || "")}" placeholder="báhay" />
@@ -200,7 +202,13 @@ function openWordModal(entry = null, onSaved) {
         syncAdd();
       });
 
-      const fail = (message) => {
+      // A problem with one box shows under it; anything else above the buttons.
+      const fail = (message, field) => {
+        if (field) {
+          fieldError(field, message);
+          field.focus();
+          return;
+        }
         error.textContent = message;
         error.hidden = false;
       };
@@ -222,18 +230,19 @@ function openWordModal(entry = null, onSaved) {
           .map((s) => s.trim())
           .filter(Boolean);
 
-        if (!word) return fail("Type the word.");
-        if (word.includes("/")) return fail("A word can't contain “/”.");
+        if (!word) return fail("Type the word you're adding, like bahay.", form.word);
+        if (word.includes("/")) return fail("A word can't contain “/”.", form.word);
         if (form.accent.value.trim() && normalizeWord(form.accent.value) !== normalizeWord(word))
-          return fail("The accented spelling must be the same word, only with accent marks (bahay → báhay).");
+          return fail("The accented spelling must be the same word, only with accent marks (bahay → báhay).", form.accent);
         if (syllables && normalizeWord(withoutDots(syllables)) !== normalizeWord(word))
-          return fail("The syllables must spell the same word, split with dots (bahay → ba·hay or ba.hay).");
-        if (!senses.length) return fail("Add at least one meaning.");
+          return fail("The syllables must spell the same word, split with dots (bahay → ba·hay or ba.hay).", form.syllables);
+        if (!senses.length)
+          return fail("Add at least one meaning in Filipino, one per line.", $("[name=definitions]", list));
         const tooMany = senses.find((s) => s.definitions.length > MAX_DEFINITIONS || s.examples.length > MAX_DEFINITIONS);
         if (tooMany) return fail(`Keep it to ${MAX_DEFINITIONS} meanings and ${MAX_DEFINITIONS} examples per group.`);
         if (senses.some((s) => [...s.definitions, ...s.examples].some((t) => t.length > MAX_TEXT)))
           return fail(`Each meaning or example must be ${MAX_TEXT} characters or fewer.`);
-        if (synonyms.length > 10) return fail("Up to 10 synonyms.");
+        if (synonyms.length > 10) return fail(`Keep it to 10 synonyms. You have ${synonyms.length}.`, form.synonyms);
 
         // Only admins can type a new spelling (the word box is read-only for teachers).
         const renaming = editing && normalizeWord(word) !== entry.key;
@@ -242,7 +251,8 @@ function openWordModal(entry = null, onSaved) {
         try {
           if (!editing || renaming) {
             const existing = await lookupWord(word);
-            if (existing && renaming) return fail(`“${existing.word}” is already in the dictionary. Edit that word instead, or hide it first.`);
+            if (existing && renaming)
+              return fail(`“${existing.word}” is already in the dictionary. Edit that word instead, or hide it first.`, form.word);
             if (existing) {
               close();
               toast(`“${existing.word}” is already in the dictionary. You can edit it here.`);
@@ -272,7 +282,7 @@ function openWordModal(entry = null, onSaved) {
           save.disabled = false;
         }
       });
-      form.querySelector(editing ? "textarea" : "input").focus();
+      form.querySelector(editing || typed ? "textarea" : "input").focus();
     },
   );
 }

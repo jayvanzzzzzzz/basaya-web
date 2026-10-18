@@ -5,6 +5,7 @@
 // can't be used to find out who is registered.
 
 import { sendResetLink } from "./api.js";
+import { clearFieldErrors, fieldError } from "./field-errors.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CLOSE_MS = 200;
@@ -26,6 +27,7 @@ function open(button) {
   opener = button;
   show("form");
   error.textContent = "";
+  clearFieldErrors(form);
   // Start from whatever they already typed in the sign-in form.
   input.value = document.getElementById("email")?.value.trim() || input.value;
   dialog.classList.remove("is-closing");
@@ -54,7 +56,12 @@ async function send(event) {
   const email = input.value.trim();
   error.textContent = "";
   if (!EMAIL_PATTERN.test(email)) {
-    error.textContent = email ? "That email doesn't look right." : "Type your email first.";
+    fieldError(
+      input,
+      email
+        ? "That doesn't look like an email address. Check it has an @ and a domain, like name@gmail.com."
+        : input.dataset.missing,
+    );
     input.focus();
     return;
   }
@@ -64,11 +71,14 @@ async function send(event) {
     await sendResetLink(email);
   } catch (failure) {
     // No account for this email: answer the same as a sent link.
+    if (failure.code === "auth/invalid-email") {
+      fieldError(input, "That doesn't look like an email address. Check it has an @ and a domain.");
+      input.focus();
+      return;
+    }
     if (failure.code !== "auth/user-not-found") {
       error.textContent =
-        failure.code === "auth/invalid-email"
-          ? "That email doesn't look right."
-          : failure.code === "auth/too-many-requests"
+        failure.code === "auth/too-many-requests"
             ? "Too many tries. Wait a few minutes, then try again."
             : failure.code === "auth/network-request-failed"
               ? "Couldn't reach the server. Check your internet connection and try again."

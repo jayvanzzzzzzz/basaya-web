@@ -151,10 +151,9 @@
   min-width: 16rem;
 }
 
-/* Avatar / mark / order tiles */
+/* Avatar / mark tiles */
 .teacher-table__avatar,
-.admin-class-table__mark,
-.admin-lesson-table__order {
+.admin-class-table__mark {
   display: grid;
   width: 2.6rem;
   height: 2.6rem;
@@ -180,15 +179,8 @@
   box-shadow: 0 3px 0 #2a6fa8;
 }
 
-.admin-lesson-table__order {
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-family: var(--font-mono);
-}
-
 tr:hover .teacher-table__avatar,
-tr:hover .admin-class-table__mark,
-tr:hover .admin-lesson-table__order {
+tr:hover .admin-class-table__mark {
   transform: rotate(-6deg) scale(1.06);
 }
 

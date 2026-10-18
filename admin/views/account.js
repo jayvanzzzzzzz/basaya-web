@@ -5,6 +5,7 @@ import {
 import { auth } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, page, toast } from "../../js/helpers.js";
+import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { requestAdminPasswordChange, sendResetLink } from "../../js/api.js";
 import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
 
@@ -45,16 +46,16 @@ export function renderAccount() {
           <form id="admin-password-form" class="account-settings__form">
             <label>
               Current password
-              <input name="currentPassword" type="password" required autocomplete="current-password" placeholder="Enter current password" />
+              <input name="currentPassword" type="password" required data-missing="Enter your current password to confirm it's you." autocomplete="current-password" placeholder="Enter current password" />
             </label>
             <label>
               New password
-              <input name="newPassword" type="password" required minlength="${MIN_LENGTH}" autocomplete="new-password" placeholder="Enter new password" />
+              <input name="newPassword" type="password" required data-missing="Choose a new password." minlength="${MIN_LENGTH}" autocomplete="new-password" placeholder="Enter new password" />
             </label>
             ${passwordRulesMarkup()}
             <label>
               Confirm new password
-              <input name="confirmPassword" type="password" required minlength="${MIN_LENGTH}" autocomplete="new-password" placeholder="Type it again" />
+              <input name="confirmPassword" type="password" required data-missing="Type the new password again to confirm it." autocomplete="new-password" placeholder="Type it again" />
             </label>
             <div class="account-settings__form-footer">
               <span>We'll email an Approve link to ${escapeHtml(email)}.</span>
@@ -103,10 +104,16 @@ export function renderAccount() {
     const currentPassword = values.get("currentPassword");
     const newPassword = values.get("newPassword");
 
-    const problem = passwordProblem(newPassword);
-    if (problem) return toast(problem);
-    if (newPassword !== values.get("confirmPassword")) return toast("Your new passwords do not match.");
-    if (newPassword === currentPassword) return toast("Choose a password different from your current one.");
+    fieldError(
+      form.elements.newPassword,
+      passwordProblem(newPassword) ||
+        (newPassword === currentPassword ? "Choose a password different from your current one." : ""),
+    );
+    fieldError(
+      form.elements.confirmPassword,
+      newPassword !== values.get("confirmPassword") ? "This doesn't match the new password above." : "",
+    );
+    if (focusFirstError(form)) return;
 
     const button = form.querySelector('[type="submit"]');
     button.disabled = true;
@@ -123,10 +130,13 @@ export function renderAccount() {
       form.hidden = true;
       sent.hidden = false;
     } catch (error) {
+      if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
+        fieldError(form.elements.currentPassword, "That isn't your current password. Check it and try again.");
+        form.elements.currentPassword.focus();
+        return;
+      }
       toast(
-        error.code === "auth/invalid-credential" || error.code === "auth/wrong-password"
-          ? "Your current password is incorrect."
-          : error.code === "auth/too-many-requests"
+        error.code === "auth/too-many-requests"
             ? "Too many tries. Wait a few minutes and try again."
             : error.message,
       );

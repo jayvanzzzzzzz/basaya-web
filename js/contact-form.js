@@ -3,6 +3,10 @@
 // through notify-api/api/contact.js. Photos are shrunk in the browser first
 // (the API accepts up to 3 MB; Vercel caps a request at 4.5 MB).
 
+import { fieldError, focusFirstError } from "./field-errors.js";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const CONTACT_EMAIL = "adminbasaya@gmail.com";
 
 const TOPICS = ["Question", "Report a problem", "Feedback", "Account help"];
@@ -223,18 +227,24 @@ export function wireContactForm(root) {
     const name = fields.name.value.trim();
     const email = fields.email.value.trim();
     const message = fields.message.value.trim();
-    const problem = !name
-      ? [fields.name, "Please enter your name."]
-      : !email || !fields.email.checkValidity()
-        ? [fields.email, "Please enter a valid email address."]
+    fieldError(fields.name, name ? "" : "Tell us your name so we know who's writing.");
+    fieldError(
+      fields.email,
+      !email
+        ? "Add the email we should reply to."
+        : EMAIL_PATTERN.test(email)
+          ? ""
+          : "That doesn't look like an email address. Check it has an @ and a domain, like name@gmail.com.",
+    );
+    fieldError(
+      fields.message,
+      !message
+        ? "Write your message. What happened, or what do you need?"
         : message.length < 10
-          ? [fields.message, "Please write a little more (at least 10 characters)."]
-          : null;
-    if (problem) {
-      error.textContent = problem[1];
-      problem[0].focus();
-      return;
-    }
+          ? `Add a little more detail, at least 10 characters. You have ${message.length} so far.`
+          : "",
+    );
+    if (focusFirstError(form)) return;
 
     send.disabled = true;
     form.classList.add("is-sending");

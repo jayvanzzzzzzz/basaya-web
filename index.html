@@ -80,61 +80,150 @@
             <img src="img/logo.png" alt="BaSaya" class="brand-logo" />
             BaSaya
           </a>
-          <section class="auth-carousel" aria-label="BaSaya features">
-            <div class="auth-carousel__slides">
-              <article class="auth-carousel__slide is-active" data-carousel-slide aria-roledescription="slide" aria-label="1 of 3">
-                <div class="auth-carousel__visual auth-carousel__visual--class" aria-hidden="true">
-                  <div class="auth-carousel__class-card">
-                    <span class="auth-carousel__visual-label">YOUR CLASSROOM</span>
-                    <strong>Grade 7 <span>·</span> Rizal</strong>
-                    <span class="auth-carousel__class-subtitle">Araling Tagalog · 2nd quarter</span>
-                    <span class="auth-carousel__class-code"><span>CLASS CODE</span><b>7F3K9Q</b></span>
+          <!-- Real BaSaya screens in one window that morphs between them (js/login.js) -->
+          <section class="auth-showcase" aria-roledescription="carousel" aria-label="What you can do in BaSaya" data-showcase>
+            <div class="auth-showcase__stage" aria-hidden="true">
+              <div class="auth-showcase__window" data-showcase-window>
+                <div class="auth-showcase__bar auth-showcase__bar--browser">
+                  <span class="auth-showcase__dots"><i></i><i></i><i></i></span>
+                  <span class="auth-showcase__address">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                    <span data-showcase-crumb>Classes / Grade 7 · Rizal</span>
+                  </span>
+                </div>
+                <div class="auth-showcase__bar auth-showcase__bar--phone">
+                  <span>9:41</span>
+                  <span class="auth-showcase__notch"></span>
+                  <span class="auth-showcase__signal"><i></i><i></i><i></i></span>
+                </div>
+
+                <!-- Teacher class page (teacher/views/classPage.js) -->
+                <div class="showcase-shot showcase-shot--class is-active" data-showcase-shot data-crumb="Classes / Grade 7 · Rizal">
+                  <div class="shot-overview shot-in" style="--d: 0">
+                    <div>
+                      <span class="shot-eyebrow">Classroom overview</span>
+                      <strong class="shot-title">Grade 7 · Rizal</strong>
+                    </div>
+                    <span class="shot-code">Class code<b>7F3K9Q</b></span>
                   </div>
-                  <span class="auth-carousel__orbit auth-carousel__orbit--one"></span>
-                  <span class="auth-carousel__orbit auth-carousel__orbit--two"></span>
-                  <span class="auth-carousel__spark auth-carousel__spark--one">✳</span>
-                  <span class="auth-carousel__spark auth-carousel__spark--two">✦</span>
-                </div>
-                <div class="auth-carousel__copy">
-                  <span class="auth-carousel__eyebrow">A place for every class</span>
-                  <h1>Bring your classroom together.</h1>
-                  <p>Keep class details, lesson plans, and student activity in one thoughtful space.</p>
-                </div>
-              </article>
-              <article class="auth-carousel__slide" data-carousel-slide aria-roledescription="slide" aria-label="2 of 3" aria-hidden="true">
-                <div class="auth-carousel__visual auth-carousel__visual--lesson" aria-hidden="true">
-                  <div class="auth-carousel__lesson-stack">
-                    <span class="auth-carousel__visual-label">TODAY'S LEARNING</span>
-                    <div class="auth-carousel__lesson-item"><b>01</b><span><strong>Pagkilala sa pangngalan</strong><small>Aralin <i></i> Beginner</small></span><span class="auth-carousel__lesson-check">✓</span></div>
-                    <div class="auth-carousel__lesson-item"><b>02</b><span><strong>Salita at kahulugan</strong><small>Pagsasanay <i></i> Practice</small></span><span class="auth-carousel__lesson-arrow">↗</span></div>
-                    <div class="auth-carousel__lesson-item auth-carousel__lesson-item--faded"><b>03</b><span><strong>Oras para magbasa</strong><small>Gawain <i></i> Next up</small></span></div>
+                  <div class="shot-stats">
+                    <div class="shot-stat shot-in" style="--d: 1"><b data-count="32">32</b><span>Students enrolled</span></div>
+                    <div class="shot-stat shot-in" style="--d: 2"><b data-count="6">6</b><span>Lessons assigned</span></div>
+                    <div class="shot-stat shot-in" style="--d: 3"><b data-count="78" data-suffix="%">78%</b><span>Average progress</span><span class="shot-track"><i style="--w: 78%"></i></span></div>
                   </div>
-                  <span class="auth-carousel__spark auth-carousel__spark--one">✦</span>
-                  <span class="auth-carousel__spark auth-carousel__spark--two">✳</span>
-                </div>
-                <div class="auth-carousel__copy">
-                  <span class="auth-carousel__eyebrow">Learning that keeps moving</span>
-                  <h1>Make room for the joy of learning.</h1>
-                  <p>Build a lesson flow that brings reading, practice, and play together.</p>
-                </div>
-              </article>
-              <article class="auth-carousel__slide" data-carousel-slide aria-roledescription="slide" aria-label="3 of 3" aria-hidden="true">
-                <div class="auth-carousel__visual auth-carousel__visual--progress" aria-hidden="true">
-                  <div class="auth-carousel__progress-card">
-                    <div class="auth-carousel__progress-heading"><span class="auth-carousel__visual-label">CLASS PROGRESS</span><span class="auth-carousel__live"><i></i> THIS WEEK</span></div>
-                    <strong>Little steps, <span>big growth.</span></strong>
-                    <div class="auth-carousel__progress-chart"><i style="--bar:32%"></i><i style="--bar:48%"></i><i style="--bar:42%"></i><i style="--bar:66%"></i><i style="--bar:59%"></i><i style="--bar:82%"></i><i style="--bar:96%"></i></div>
-                    <div class="auth-carousel__progress-footer"><span>Class activity</span><b>+24% <small>↗</small></b></div>
+                  <div class="shot-lesson shot-lesson--current shot-in" style="--d: 4">
+                    <span class="shot-lesson__number">01</span>
+                    <div>
+                      <span class="shot-lesson__label">Lesson 1</span>
+                      <strong>Ang Alamat ng Pinya</strong>
+                      <span class="shot-chips"><span class="shot-chip">Assessment</span><span class="shot-chip shot-chip--open">Open</span>Due Oct 24</span>
+                    </div>
                   </div>
-                  <span class="auth-carousel__spark auth-carousel__spark--one">✳</span>
-                  <span class="auth-carousel__spark auth-carousel__spark--two">✦</span>
+                  <div class="shot-lesson shot-optional shot-in" style="--d: 5">
+                    <span class="shot-lesson__number">02</span>
+                    <div>
+                      <span class="shot-lesson__label">Lesson 2</span>
+                      <strong>Pangngalan at Panghalip</strong>
+                      <span class="shot-chips"><span class="shot-chip shot-chip--practice">Practice</span><span class="shot-chip shot-chip--soon">Not open yet</span>Opens Oct 27</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="auth-carousel__copy">
-                  <span class="auth-carousel__eyebrow">Every learner has a story</span>
-                  <h1>See progress in every small win.</h1>
-                  <p>Stay close to your students' learning and celebrate each step forward.</p>
+
+                <!-- Class Report (teacher/views/classReport.js) -->
+                <div class="showcase-shot" data-showcase-shot data-crumb="Grade 7 · Rizal / Class Report">
+                  <div class="shot-kpis shot-in" style="--d: 0">
+                    <div class="shot-kpi"><span>Overall class score</span><b data-count="81" data-suffix="%">81%</b><span class="shot-remark">Good</span></div>
+                    <div class="shot-kpi"><span>Students</span><b data-count="32">32</b><small>29 active in lessons</small></div>
+                    <div class="shot-kpi"><span>Lessons finished</span><b data-count="74" data-suffix="%">74%</b><span class="shot-track"><i style="--w: 74%"></i></span></div>
+                    <div class="shot-kpi shot-kpi--alert"><span>Need help</span><b data-count="3">3</b><small>With a flagged skill</small></div>
+                  </div>
+                  <div class="shot-panel shot-in" style="--d: 1">
+                    <div class="shot-panel__head"><strong>What to re-teach</strong><small>Missed by 50% or more</small></div>
+                    <ol class="shot-items">
+                      <li class="shot-item shot-item--reteach shot-in" style="--d: 2"><span>Bakit nagalit ang ina kay Pina?</span><span class="shot-bar"><i style="--w: 63%"></i></span><b>63%</b><em>Re-teach</em></li>
+                      <li class="shot-item shot-item--reteach shot-in" style="--d: 3"><span>ka·la·ya·an <small>pronunciation word</small></span><span class="shot-bar"><i style="--w: 56%"></i></span><b>56%</b><em>Re-teach</em></li>
+                      <li class="shot-item shot-optional shot-in" style="--d: 4"><span>Saan naganap ang kuwento?</span><span class="shot-bar"><i style="--w: 34%"></i></span><b>34%</b></li>
+                    </ol>
+                  </div>
                 </div>
+
+                <!-- Student Bigkas with its Diksiyonaryo meaning (student/views/pronunciation.js) -->
+                <div class="showcase-shot showcase-shot--phone showcase-shot--bigkas" data-showcase-shot data-shape="phone">
+                  <div class="shot-focus shot-in" style="--d: 0">
+                    <span class="shot-focus__close">×</span>
+                    <span class="shot-track"><i style="--w: 40%"></i></span>
+                    <span class="shot-lives">♥ 3</span>
+                  </div>
+                  <p class="shot-instruction shot-in" style="--d: 1">Bigkasin ang salitang ito.</p>
+                  <div class="shot-word shot-in" style="--d: 2">
+                    <span class="shot-word__count">2/5</span>
+                    <strong>kalayaan</strong>
+                    <span class="shot-word__syllables">ka·la·ya·an</span>
+                    <span class="shot-word__speaker"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></svg></span>
+                  </div>
+                  <div class="shot-mic shot-in" style="--d: 3">
+                    <i></i><i></i>
+                    <span><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg></span>
+                  </div>
+                  <div class="shot-meaning">
+                    <span class="shot-meaning__label">Diksiyonaryo</span>
+                    <strong>kalayaan <em>pangngalan</em></strong>
+                    <p>Pagiging malaya; kasarinlan.</p>
+                  </div>
+                </div>
+
+                <!-- Class chat (teacher/views/messages.js) -->
+                <div class="showcase-shot showcase-shot--chat" data-showcase-shot data-crumb="Messages / Grade 7 · Rizal">
+                  <div class="shot-chat-head shot-in" style="--d: 0">
+                    <span class="shot-avatar">G7</span>
+                    <div><strong>Grade 7 · Rizal</strong><small>32 students</small></div>
+                    <span class="shot-switch"><i></i>Open</span>
+                  </div>
+                  <ol class="shot-messages">
+                    <li class="shot-day shot-optional shot-in" style="--d: 1">Today</li>
+                    <li class="shot-msg shot-in" style="--d: 2"><span class="shot-msg__avatar" style="--h: 205">LM</span><div><span class="shot-msg__name">Liza M.</span><p>Ma'am, tapos na po ako sa Lesson 1! 🙌</p></div></li>
+                    <li class="shot-msg shot-in" style="--d: 3"><span class="shot-msg__avatar" style="--h: 150">PR</span><div><span class="shot-msg__name">Paolo R.</span><p>Ako rin po. Ang saya ng laro!</p></div></li>
+                    <li class="shot-msg shot-msg--mine shot-in" style="--d: 4"><p>Ang galing ninyo! Sagutan na ang Gawain bago mag-Biyernes. 🎉</p></li>
+                    <li class="shot-typing shot-in" style="--d: 5"><span class="shot-msg__avatar" style="--h: 330">JC</span><span class="shot-typing__dots"><i></i><i></i><i></i></span></li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-showcase__copy">
+              <article class="auth-showcase__panel is-active" id="showcase-panel-class" role="tabpanel" aria-labelledby="showcase-tab-class" data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For teachers</span>
+                <h1>Every class in one clear view.</h1>
+                <p>Share a class code, assign lessons, and choose when each one opens and closes.</p>
               </article>
+              <article class="auth-showcase__panel" id="showcase-panel-report" role="tabpanel" aria-labelledby="showcase-tab-report" aria-hidden="true" inert data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For teachers</span>
+                <h1>Know exactly what to re-teach.</h1>
+                <p>See which questions and words most of the class missed, and who needs help.</p>
+              </article>
+              <article class="auth-showcase__panel" id="showcase-panel-bigkas" role="tabpanel" aria-labelledby="showcase-tab-bigkas" aria-hidden="true" inert data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For students</span>
+                <h1>Hear it, say it, understand it.</h1>
+                <p>Students practice saying each word and look up its meaning in the Diksiyonaryo.</p>
+              </article>
+              <article class="auth-showcase__panel" id="showcase-panel-chat" role="tabpanel" aria-labelledby="showcase-tab-chat" aria-hidden="true" inert data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For the whole class</span>
+                <h1>Keep the whole class talking.</h1>
+                <p>A chat for every class. Close it anytime, and students can read but not send.</p>
+              </article>
+            </div>
+
+            <div class="auth-showcase__nav">
+              <div class="auth-showcase__tabs" role="tablist" aria-label="BaSaya features">
+                <button class="auth-showcase__tab is-active" id="showcase-tab-class" type="button" role="tab" aria-selected="true" aria-controls="showcase-panel-class" data-showcase-tab><span>Class page</span><span class="auth-showcase__meter"><i></i></span></button>
+                <button class="auth-showcase__tab" id="showcase-tab-report" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-report" tabindex="-1" data-showcase-tab><span>Report</span><span class="auth-showcase__meter"><i></i></span></button>
+                <button class="auth-showcase__tab" id="showcase-tab-bigkas" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-bigkas" tabindex="-1" data-showcase-tab><span>Bigkas</span><span class="auth-showcase__meter"><i></i></span></button>
+                <button class="auth-showcase__tab" id="showcase-tab-chat" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-chat" tabindex="-1" data-showcase-tab><span>Class chat</span><span class="auth-showcase__meter"><i></i></span></button>
+              </div>
+              <button class="auth-showcase__pause" type="button" aria-label="Pause slideshow" aria-pressed="false" data-showcase-pause>
+                <svg class="auth-showcase__pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="3.5" height="14" rx="1" /><rect x="14" y="5" width="3.5" height="14" rx="1" /></svg>
+                <svg class="auth-showcase__play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
+              </button>
             </div>
           </section>
         </section>
@@ -147,6 +236,7 @@
                 type="email"
                 autocomplete="email"
                 required
+                data-missing="Enter the email you sign in with."
                 placeholder="you@email.com"
             /></label>
             <label
@@ -156,6 +246,7 @@
                   type="password"
                   autocomplete="current-password"
                   required
+                  data-missing="Enter your password."
                   placeholder="Your password"
                 /><button
                   type="button"
@@ -201,7 +292,7 @@
           <footer class="site-footer site-footer--auth">
             <p>© 2026 BaSaya · A Capstone Project, BS Information Technology</p>
             <p>Eastwoods Professional College of Science and Technology</p>
-            <p>Developed by <strong>Jayvanz Singca · Scean Dulatre · Ronniel Olegario</strong></p>
+            <p>Developed by <strong>Jay Vanz Singca · Scean Dulatre · Ronniel Olegario</strong></p>
             <nav class="site-footer__links" aria-label="Site information">
               <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
               <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
@@ -226,7 +317,7 @@
           </span>
           <h2 id="forgot-title">Forgot your password?</h2>
           <p>Type the email you sign in with. We'll send you a link to set a new password.</p>
-          <label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@email.com" /></label>
+          <label>Email<input name="email" type="email" autocomplete="email" required data-missing="Type the email you sign in with." placeholder="you@email.com" /></label>
           <p class="form-error" role="alert" data-forgot-error></p>
           <button class="button primary forgot__submit" type="submit">Send reset link</button>
         </form>

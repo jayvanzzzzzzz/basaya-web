@@ -14,6 +14,7 @@ import { auth, secondaryAuth, db } from "../../js/firebase.js";
 import { state, getAllTeachers } from "../../js/state.js";
 import { $, escapeHtml, toast, notify, initials, page, empty, openModal, currentRoute } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
+import { fieldError } from "../../js/field-errors.js";
 import { sendPasswordReset } from "../../js/api.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
 import { assignClasses, classIdsOf, teacherLabel, teacherOptions } from "./classTeacher.js";
@@ -192,9 +193,9 @@ function openAddTeacherModal() {
   openModal(
     `<h2>Add teacher</h2>
      <form id="add-teacher-form" class="form-card">
-       <label>Full name<input name="displayName" required placeholder="Juan Dela Cruz" /></label>
-       <label>Email<input name="email" type="email" required placeholder="teacher@school.edu" /></label>
-       <label>Temporary password<input name="password" type="password" required minlength="${MIN_LENGTH}" placeholder="At least ${MIN_LENGTH} characters" /></label>
+       <label>Full name<input name="displayName" required data-missing="Enter the teacher's full name, like Juan Dela Cruz." placeholder="Juan Dela Cruz" /></label>
+       <label>Email<input name="email" type="email" required data-missing="Enter the email the teacher will sign in with." placeholder="teacher@school.edu" /></label>
+       <label>Temporary password<input name="password" type="password" required data-missing="Set a temporary password for the teacher's first sign-in." minlength="${MIN_LENGTH}" placeholder="At least ${MIN_LENGTH} characters" /></label>
        <p id="add-teacher-error" class="form-error" role="alert"></p>
        <div class="modal-actions"><button class="button primary" type="submit">Create account</button></div>
      </form>`,
@@ -210,8 +211,10 @@ function openAddTeacherModal() {
           const errorEl = modal.querySelector("#add-teacher-error");
           errorEl.textContent = "";
           // Temporary password: length only, no small/capital/number rule.
+          const fields = e.currentTarget.elements;
           if (password.length < MIN_LENGTH) {
-            errorEl.textContent = `The temporary password needs at least ${MIN_LENGTH} characters.`;
+            fieldError(fields.password, `The temporary password needs at least ${MIN_LENGTH} characters.`);
+            fields.password.focus();
             return;
           }
           try {
@@ -233,10 +236,17 @@ function openAddTeacherModal() {
             close();
             await renderTeachers();
           } catch (error) {
-            errorEl.textContent =
-              error.code === "auth/email-already-in-use"
-                ? "An account with this email already exists."
-                : error.message;
+            const field = {
+              "auth/email-already-in-use": [fields.email, "An account with this email already exists."],
+              "auth/invalid-email": [fields.email, "That doesn't look like an email address. Check it has an @ and a domain."],
+              "auth/weak-password": [fields.password, "That password is too weak. Try a longer one."],
+            }[error.code];
+            if (field) {
+              fieldError(...field);
+              field[0].focus();
+            } else {
+              errorEl.textContent = error.message;
+            }
           }
         });
     },
@@ -247,7 +257,7 @@ function openEditTeacherModal(teacher) {
   openModal(
     `<h2>Edit teacher</h2>
      <form id="edit-teacher-form" class="form-card">
-       <label>Full name<input name="displayName" required value="${escapeHtml(teacher.displayName || "")}" /></label>
+       <label>Full name<input name="displayName" required data-missing="The teacher's name can't be blank. Enter their full name." value="${escapeHtml(teacher.displayName || "")}" /></label>
        <p class="muted">Email: ${escapeHtml(teacher.email || "—")}. Use "Reset password" to let them set a new password.</p>
        <div class="modal-actions"><button class="button primary" type="submit">Save changes</button></div>
      </form>`,

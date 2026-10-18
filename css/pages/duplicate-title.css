@@ -142,37 +142,6 @@
   min-width: 0;
 }
 
-.dup-card__order {
-  display: grid;
-  width: 2.9rem;
-  height: 2.9rem;
-  flex: 0 0 auto;
-  place-content: center;
-  border-radius: 0.85rem;
-  background: var(--surface-3);
-  color: var(--ink-2);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-}
-
-.dup-card:last-child .dup-card__order {
-  background: var(--brand-gradient);
-  color: #fff;
-  box-shadow: 0 3px 0 var(--primary-lip);
-}
-
-.dup-card__order small {
-  margin-bottom: 0.15rem;
-  font-family: var(--font-body);
-  font-size: 0.5rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
-
 .dup-card__text {
   display: grid;
   min-width: 0;

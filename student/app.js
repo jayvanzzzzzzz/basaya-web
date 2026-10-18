@@ -8,6 +8,8 @@ import { $, setLoading } from "../js/helpers.js";
 import { student, loadProfile, syncClock } from "./data.js";
 import { refreshTopbar } from "./session.js";
 import { renderRoute } from "./router.js";
+// Every form's required fields show their own message instead of the browser bubble.
+import "../js/field-errors.js";
 
 // The student side of BaSaya: the same lessons, progress and class as the Android app,
 // for students who can't install it (e.g. on an iPhone).

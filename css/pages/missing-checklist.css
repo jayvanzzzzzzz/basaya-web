@@ -1,0 +1,302 @@
+/* ============================================================
+   MISSING CHECKLIST — what's left to fill before a lesson can be published
+   (admin/views/missingChecklist.js). Lives in the lesson editor's backdrop.
+   ============================================================ */
+.missing-toast {
+  --tone: var(--danger);
+  --tone-soft: var(--danger-soft);
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 3;
+  display: grid;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: min(34rem, calc(100vh - 3rem));
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--tone) 28%, var(--border));
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    0 4px 0 var(--card-lip),
+    var(--shadow-lg);
+  animation: missingIn 520ms var(--ease-spring);
+}
+
+.missing-toast.is-done {
+  --tone: var(--success);
+  --tone-soft: var(--success-soft);
+}
+
+/* Tone bar along the top edge */
+.missing-toast::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: var(--tone);
+  content: "";
+  transition: background-color var(--dur) ease;
+}
+
+.missing-toast.is-leaving {
+  animation: missingOut 260ms var(--ease-in-out) forwards;
+}
+
+@keyframes missingIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.4rem, 0) scale(0.94);
+  }
+}
+
+@keyframes missingOut {
+  to {
+    opacity: 0;
+    transform: translate3d(1.5rem, 0, 0) scale(0.97);
+  }
+}
+
+.missing-toast svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.missing-toast__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0.75rem 0.85rem 0.95rem;
+}
+
+.missing-toast__icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tone-soft);
+  color: var(--tone);
+  transition:
+    background-color var(--dur) ease,
+    color var(--dur) ease;
+}
+
+.missing-toast.is-done .missing-toast__icon {
+  animation: checkPop 420ms var(--ease-spring);
+}
+
+.missing-toast__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.missing-toast__text strong {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.missing-toast__text span {
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.missing-toast__close {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-3);
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.missing-toast__close:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.missing-toast__close svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+/* ---------- Groups (one per part of the lesson) ---------- */
+.missing-toast__groups {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding: 0 0.95rem 1rem;
+  overscroll-behavior: contain;
+}
+
+.missing-toast__groups:empty {
+  display: none;
+}
+
+.missing-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.35rem;
+  color: var(--ink-3);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.missing-group h3 b {
+  display: grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--tone-soft);
+  color: var(--tone);
+  font-size: 0.66rem;
+  letter-spacing: 0;
+}
+
+.missing-group ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missing-group button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.missing-group button::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--tone);
+  content: "";
+}
+
+.missing-group button span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.missing-group button svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.missing-group button:hover {
+  border-color: color-mix(in srgb, var(--tone) 35%, var(--border));
+  background: var(--tone-soft);
+  color: var(--ink);
+}
+
+.missing-group button:hover svg {
+  transform: translateX(2px);
+  color: var(--tone);
+}
+
+.missing-group button:active {
+  transform: scale(0.98);
+}
+
+.missing-group button:focus-visible,
+.missing-toast__close:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---------- The fields themselves ---------- */
+.lesson-studio input.is-missing,
+.lesson-studio textarea.is-missing {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-soft);
+}
+
+.lesson-studio .is-missing:not(input, textarea) {
+  border-radius: var(--radius-sm);
+  outline: 2px dashed var(--danger);
+  outline-offset: 4px;
+}
+
+/* A short pulse on the field the checklist jumped to */
+.lesson-studio .is-jumped {
+  animation: missingPulse 900ms var(--ease-out);
+}
+
+@keyframes missingPulse {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+}
+
+@media (max-width: 640px) {
+  .missing-toast {
+    right: 1rem;
+    bottom: 1rem;
+    max-height: min(26rem, calc(100vh - 2rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .missing-toast,
+  .missing-toast.is-leaving,
+  .lesson-studio .is-jumped {
+    animation: none;
+  }
+}

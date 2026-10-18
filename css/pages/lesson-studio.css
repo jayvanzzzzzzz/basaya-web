@@ -243,8 +243,24 @@
   font-size: 1rem;
 }
 
+/* "(5)" after a list heading: how many pages / words / questions / levels there are */
+.lesson-subheading__count {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
 .lesson-subheading--spaced {
   margin-top: 1.8rem;
+}
+
+/* Keep "+ Add page / word / question / level" in reach while scrolling the list below it */
+.lesson-step .lesson-subheading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 /* Builder cards (activity pages, quiz questions, game levels) */
@@ -302,6 +318,24 @@
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+/* "“…” is not in the dictionary" under a Bigkas word, with a button to add it */
+.dict-missing {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  background: var(--warning-soft);
+  color: var(--ink-2);
+  font-size: 0.84rem;
+}
+
+.dict-missing[hidden] {
+  display: none;
 }
 
 .audio-actions {

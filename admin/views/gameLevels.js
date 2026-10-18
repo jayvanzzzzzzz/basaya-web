@@ -270,7 +270,7 @@ export function gameLevelHtml(level = {}) {
     <article class="builder-card game-builder" data-game-level>
       <header class="game-builder__header">
         <div class="game-builder__title">
-          <strong>Level <span data-level-number></span></strong>
+          <strong data-card-number>Level</strong>
           <span class="game-builder__status" data-level-status></span>
         </div>
         <button type="button" class="text-button danger" data-remove-game-level>Remove</button>

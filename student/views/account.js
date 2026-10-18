@@ -12,6 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "../../js/firebase.js";
 import { $, escapeHtml, openModal, toast } from "../../js/helpers.js";
+import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
 import { student, classId, fullName, loadProfile } from "../data.js";
 import { logout, refreshTopbar } from "../session.js";
@@ -243,10 +244,8 @@ function showEditDialog() {
     `<form class="st-dialog st-dialog--form" id="edit-form" novalidate>
       <h2>I-edit ang account</h2>
       <label>Pangalan (First name)<input name="firstName" value="${escapeHtml(profile.firstName || "")}" autocomplete="given-name" maxlength="60" /></label>
-      <span class="form-error" data-error="firstName"></span>
       <label>Gitnang pangalan (opsyonal)<input name="middleName" value="${escapeHtml(profile.middleName || "")}" autocomplete="additional-name" maxlength="60" /></label>
       <label>Apelyido<input name="lastName" value="${escapeHtml(profile.lastName || "")}" autocomplete="family-name" maxlength="60" /></label>
-      <span class="form-error" data-error="lastName"></span>
       <fieldset class="st-gender">
         <legend>Kasarian</legend>
         ${GENDERS.map(
@@ -274,9 +273,9 @@ function showEditDialog() {
           gender: data.gender || "",
           dob: data.dob || "",
         };
-        form.querySelector('[data-error="firstName"]').textContent = updated.firstName ? "" : "Ilagay ang iyong pangalan";
-        form.querySelector('[data-error="lastName"]').textContent = updated.lastName ? "" : "Ilagay ang iyong apelyido";
-        if (!updated.firstName || !updated.lastName) return;
+        fieldError(form.elements.firstName, updated.firstName ? "" : "Ilagay ang iyong pangalan.");
+        fieldError(form.elements.lastName, updated.lastName ? "" : "Ilagay ang iyong apelyido.");
+        if (focusFirstError(form)) return;
 
         const submit = form.querySelector('[type="submit"]');
         submit.disabled = true;
@@ -310,12 +309,9 @@ function showPasswordDialog() {
     `<form class="st-dialog st-dialog--form" id="password-form" novalidate>
       <h2>Palitan ang password</h2>
       <label>Kasalukuyang password<input name="current" type="password" autocomplete="current-password" /></label>
-      <span class="form-error" data-error="current"></span>
       <label>Bagong password<input name="next" type="password" autocomplete="new-password" /></label>
-      <span class="form-error" data-error="next"></span>
       ${passwordRulesMarkup("fil")}
       <label>Ulitin ang bagong password<input name="confirm" type="password" autocomplete="new-password" /></label>
-      <span class="form-error" data-error="confirm"></span>
       <div class="st-dialog__actions">
         <button class="button primary" type="submit">Palitan</button>
         <button class="button secondary" type="button" data-close>Kanselahin</button>
@@ -326,18 +322,22 @@ function showPasswordDialog() {
       backdrop.querySelector("[data-close]").addEventListener("click", close);
       const form = backdrop.querySelector("#password-form");
       watchPasswordRules(form.elements.next, form.querySelector(".password-rules"));
-      const setError = (field, message) => {
-        form.querySelector(`[data-error="${field}"]`).textContent = message || "";
-      };
+      const setError = (field, message) => fieldError(form.elements[field], message);
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const { current, next, confirm } = Object.fromEntries(new FormData(form));
-        setError("current", current ? "" : "Ilagay ang kasalukuyang password");
-        const nextProblem =
-          passwordProblem(next, "fil") || (next === current ? "Iba dapat sa kasalukuyang password" : "");
-        setError("next", nextProblem);
-        setError("confirm", confirm !== next ? "Hindi magkapareho ang password" : "");
-        if (!current || nextProblem || confirm !== next) return;
+        setError("current", current ? "" : "Ilagay ang kasalukuyang password mo.");
+        setError(
+          "next",
+          !next
+            ? "Gumawa ng bagong password."
+            : passwordProblem(next, "fil") || (next === current ? "Iba dapat sa kasalukuyang password." : ""),
+        );
+        setError(
+          "confirm",
+          !confirm ? "Ulitin ang bagong password para makasigurado." : confirm !== next ? "Hindi ito tugma sa bagong password." : "",
+        );
+        if (focusFirstError(form)) return;
 
         const submit = form.querySelector('[type="submit"]');
         submit.disabled = true;
@@ -352,13 +352,14 @@ function showPasswordDialog() {
           return;
         } catch (error) {
           if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential")
-            setError("current", "Mali ang kasalukuyang password");
-          else if (error.code === "auth/weak-password") setError("next", "Masyadong mahina ang password");
+            setError("current", "Mali ang kasalukuyang password.");
+          else if (error.code === "auth/weak-password") setError("next", "Masyadong mahina ang password.");
           else if (error.code === "auth/too-many-requests") toast("Masyadong maraming subok. Maghintay muna bago umulit.");
           else {
             console.error("Failed to change password", error);
             toast("Hindi napalitan ang password. Subukan muli.");
           }
+          focusFirstError(form);
         }
         submit.disabled = false;
         submit.textContent = "Palitan";

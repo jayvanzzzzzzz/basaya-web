@@ -335,7 +335,7 @@ function openEditClassModal(classroom) {
     `<h2>Edit class</h2>
      <p>Update the classroom details shown across the platform.</p>
      <form id="edit-class-form" class="form-card">
-       <label>Class name<input name="className" required maxlength="100" value="${escapeHtml(classroom.className || "")}" /></label>
+       <label>Class name<input name="className" required data-missing="Give the class a name so teachers and students can find it." maxlength="100" value="${escapeHtml(classroom.className || "")}" /></label>
        <label>Section<input name="section" maxlength="40" value="${escapeHtml(classroom.section || "")}" placeholder="e.g. Rizal" /></label>
        <label>Teacher
          <select name="teacherId">

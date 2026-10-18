@@ -11,6 +11,12 @@ import { $, $$, escapeHtml, toast, page, empty, openModal } from "../../js/helpe
 import { renderRoute } from "../router.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
+// Saved as the Filipino key (the apps read it); shown in English.
+const DIFFICULTY_LABELS = {
+  madali: "Beginner",
+  "masusing aralin": "Intermediate",
+  "malalim na aralin": "Advanced",
+};
 const MAX_PAGES = 10;
 const MAX_QUESTIONS = 20;
 const MAX_LEVELS = 10;
@@ -48,13 +54,24 @@ export async function renderLibrary() {
 function difficultyOptions(selected) {
   return DIFFICULTIES.map(
     (d) =>
-      `<option value="${d}" ${d === selected ? "selected" : ""}>${d}</option>`,
+      `<option value="${d}" ${d === selected ? "selected" : ""}>${DIFFICULTY_LABELS[d]}</option>`,
   ).join("");
 }
 
+// What each empty required field says (js/field-errors.js shows it under the field).
+const MISSING = {
+  title: "Give this lesson a title, like Pangngalan.",
+  difficulty: "Choose how hard this lesson is.",
+  description: "Add a short overview so students know what they'll learn.",
+  sentence: "Write a sentence here, or remove this line with ✕.",
+  question: "Type the question students will answer.",
+  choice: "Fill in this choice. Every question needs all 3.",
+  words: "List the words for this level, one per line.",
+};
+
 // ---------- simple edit form (base fields only) ----------
 function editForm(lesson) {
-  return `<h2>Edit lesson</h2><p>Update the basic details for this lesson.</p><form id="lesson-form"><label>Lesson title<input name="title" required maxlength="120" value="${escapeHtml(lesson.title)}" /></label><label>Difficulty<select name="difficulty" required>${difficultyOptions(lesson.difficulty)}</select></label><label>Overview<textarea name="description" required>${escapeHtml(lesson.description)}</textarea></label><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary">Save lesson</button></div></form>`;
+  return `<h2>Edit lesson</h2><p>Update the basic details for this lesson.</p><form id="lesson-form"><label>Lesson title<input name="title" required data-missing="${MISSING.title}" maxlength="120" value="${escapeHtml(lesson.title)}" /></label><label>Difficulty<select name="difficulty" required data-missing="${MISSING.difficulty}">${difficultyOptions(lesson.difficulty)}</select></label><label>Overview<textarea name="description" required data-missing="${MISSING.description}">${escapeHtml(lesson.description)}</textarea></label><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary">Save lesson</button></div></form>`;
 }
 
 // ---------- full create-lesson builder ----------
@@ -62,7 +79,7 @@ function pageBlock(index) {
   return `<div class="card lecture-page" data-page>
     <div class="section-title"><h4>Page ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger" data-remove-page>Remove page</button>` : ""}</div>
     <div class="sentence-list">
-      <div class="sentence-row" data-sentence><input type="text" required placeholder="Sentence" /><button type="button" class="link-button danger" data-remove-sentence>✕</button></div>
+      <div class="sentence-row" data-sentence><input type="text" required data-missing="${MISSING.sentence}" placeholder="Sentence" /><button type="button" class="link-button danger" data-remove-sentence>✕</button></div>
     </div>
     <button type="button" class="link-button" data-add-sentence>+ Add sentence</button>
   </div>`;
@@ -71,12 +88,12 @@ function pageBlock(index) {
 function questionBlock(index) {
   return `<div class="card quiz-question" data-question>
     <div class="section-title"><h4>Question ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger" data-remove-question>Remove question</button>` : ""}</div>
-    <label>Question<input type="text" required data-question-text placeholder="e.g. Ano ang pangngalan?" /></label>
+    <label>Question<input type="text" required data-missing="${MISSING.question}" data-question-text placeholder="e.g. Ano ang pangngalan?" /></label>
     <div class="choice-list">
       ${[0, 1, 2]
         .map(
           (i) =>
-            `<label class="choice-row"><input type="radio" name="q${index}-answer" value="${i}" ${i === 0 ? "checked" : ""} /><input type="text" required data-choice placeholder="Choice ${i + 1}" /></label>`,
+            `<label class="choice-row"><input type="radio" name="q${index}-answer" value="${i}" ${i === 0 ? "checked" : ""} /><input type="text" required data-missing="${MISSING.choice}" data-choice placeholder="Choice ${i + 1}" /></label>`,
         )
         .join("")}
     </div>
@@ -86,16 +103,16 @@ function questionBlock(index) {
 function levelBlock(index) {
   return `<div class="card game-level" data-level>
     <h4>Level ${index + 1}</h4>
-    <label>Words (one per line)<textarea required data-level-words rows="4" placeholder="LAMESA&#10;SALA&#10;LASA"></textarea></label>
+    <label>Words (one per line)<textarea required data-missing="${MISSING.words}" data-level-words rows="4" placeholder="LAMESA&#10;SALA&#10;LASA"></textarea></label>
   </div>`;
 }
 
 function createForm() {
   return `<h2>Create a lesson</h2><p>Keep the core activity structured. Rich game builders can sit on top of this model later.</p>
   <form id="lesson-form">
-    <label>Lesson title<input name="title" required maxlength="120" placeholder="e.g. Pangngalan" /></label>
-    <label>Difficulty<select name="difficulty" required>${difficultyOptions()}</select></label>
-    <label>Description<textarea name="description" required placeholder="What will students learn?"></textarea></label>
+    <label>Lesson title<input name="title" required data-missing="${MISSING.title}" maxlength="120" placeholder="e.g. Pangngalan" /></label>
+    <label>Difficulty<select name="difficulty" required data-missing="${MISSING.difficulty}">${difficultyOptions()}</select></label>
+    <label>Description<textarea name="description" required data-missing="${MISSING.description}" placeholder="What will students learn?"></textarea></label>
 
     <div class="section-title"><h3>Lecture pages</h3></div>
     <div id="lecture-pages">${pageBlock(0)}</div>
@@ -165,7 +182,7 @@ function wireCreateForm(modal, close, title) {
         .querySelector(".sentence-list")
         .insertAdjacentHTML(
           "beforeend",
-          `<div class="sentence-row" data-sentence><input type="text" required placeholder="Sentence" /><button type="button" class="link-button danger" data-remove-sentence>✕</button></div>`,
+          `<div class="sentence-row" data-sentence><input type="text" required data-missing="${MISSING.sentence}" placeholder="Sentence" /><button type="button" class="link-button danger" data-remove-sentence>✕</button></div>`,
         );
     }
     if (e.target.matches("[data-remove-sentence]")) {

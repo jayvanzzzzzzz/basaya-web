@@ -117,29 +117,6 @@
   clip-path: inset(0 50% 0 0);
 }
 
-.ld-ticket__order {
-  display: grid;
-  min-width: 3.4rem;
-  place-items: center;
-  padding: 0.45rem 0.4rem;
-  border-right: 1.5px dashed var(--border-strong);
-  padding-right: 0.9rem;
-  color: var(--primary);
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.ld-ticket__order small {
-  margin-bottom: 0.2rem;
-  color: var(--ink-3);
-  font-family: var(--font-body);
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .ld-ticket__text {
   display: grid;
   min-width: 0;

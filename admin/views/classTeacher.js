@@ -84,7 +84,7 @@ export function openAssignTeacherModal(classroom, onDone) {
       </div>
       <form id="assign-teacher-form" class="form-card">
         <label>Teacher
-          <select name="teacherId" required>
+          <select name="teacherId" required data-missing="Choose the teacher who will take over this class.">
             <option value="" disabled selected>Choose a teacher…</option>
             ${teacherOptions()}
           </select>

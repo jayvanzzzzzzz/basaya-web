@@ -10,6 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { $, escapeHtml, navigate } from "../../js/helpers.js";
+import { fieldError } from "../../js/field-errors.js";
 import { student, classId, fullName, loadClassLessons, loadProfile } from "../data.js";
 import { buddy, confetti, content, icon, setBuddyMood, shake } from "../ui.js";
 
@@ -52,8 +53,10 @@ export async function renderJoin() {
   const submit = $("#join-submit");
   const mascot = $(".st-join__buddy");
 
-  const fail = (message) => {
-    error.textContent = message;
+  // A problem with the code goes under the box; a connection problem below the form.
+  const fail = (message, aboutCode = true) => {
+    if (aboutCode) fieldError(input, message);
+    else error.textContent = message;
     setBuddyMood(mascot, "cheer");
     shake(input);
     input.focus();
@@ -68,7 +71,7 @@ export async function renderJoin() {
     event.preventDefault();
     const code = input.value.trim().toUpperCase();
     if (!code) {
-      fail("Ilagay ang class code");
+      fail("Ilagay ang class code na ibinigay ng iyong guro.");
       return;
     }
 
@@ -79,7 +82,7 @@ export async function renderJoin() {
       const profile = await loadProfile();
       const snap = await getDocs(query(collection(db, "classes"), where("classCode", "==", code), limit(1)));
       if (snap.empty) {
-        fail("Walang klaseng natagpuan sa code na ito");
+        fail("Walang klaseng natagpuan sa code na ito. Tingnan muli ang code mula sa iyong guro.");
         return;
       }
       const classDoc = snap.docs[0];
@@ -104,7 +107,10 @@ export async function renderJoin() {
       return;
     } catch (err) {
       console.error("Join class failed", err);
-      fail(err?.code === "permission-denied" ? "Hindi na-save. Subukan muli." : "May problema sa koneksyon. Subukan muli.");
+      fail(
+        err?.code === "permission-denied" ? "Hindi na-save. Subukan muli." : "May problema sa koneksyon. Subukan muli.",
+        false,
+      );
     } finally {
       if (!classId()) {
         submit.disabled = false;

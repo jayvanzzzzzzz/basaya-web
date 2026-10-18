@@ -220,7 +220,7 @@ export function openClassModal(existing) {
      <p>${existing ? "Update the class details students see." : "A unique class code is generated automatically."}</p>
      <form id="class-form">
        <label>Grade level
-         <select name="gradeLevel" required>
+         <select name="gradeLevel" required data-missing="Choose the grade level for this class.">
            <option value="" disabled ${!existing?.gradeLevel ? "selected" : ""}>Select grade</option>
            <option value="7" ${existing?.gradeLevel === "7" ? "selected" : ""}>Grade 7</option>
            <option value="8" ${existing?.gradeLevel === "8" ? "selected" : ""}>Grade 8</option>
@@ -229,7 +229,7 @@ export function openClassModal(existing) {
          </select>
        </label>
        <label>Section
-         <input name="section" required maxlength="40" value="${escapeHtml(existing?.section)}" placeholder="e.g. Rizal" />
+         <input name="section" required data-missing="Enter the section name, like Rizal." maxlength="40" value="${escapeHtml(existing?.section)}" placeholder="e.g. Rizal" />
        </label>
        <label>Description
          <textarea name="description" placeholder="A short note for your students">${escapeHtml(existing?.description)}</textarea>

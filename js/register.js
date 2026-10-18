@@ -2,6 +2,7 @@ import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebase
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "./firebase.js";
 import { $ } from "./helpers.js";
+import { fieldError, focusFirstError } from "./field-errors.js";
 import { passwordProblem, passwordRulesMarkup, watchPasswordRules } from "./password-rules.js";
 
 // Student sign-up (register.html), the same as the Android app's RegisterActivity:
@@ -13,20 +14,11 @@ const form = $("#register-form");
 const submit = $("#register-submit");
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const setError = (field, message = "") => {
-  form.querySelector(`[data-error="${field}"]`).textContent = message;
-};
+const setError = (field, message = "") => fieldError(form.elements[field], message);
 
 // Checklist under the password that ticks each rule as it's met.
 form.querySelector("[data-password-rules]").outerHTML = passwordRulesMarkup("fil");
 watchPasswordRules(form.elements.password, form.querySelector(".password-rules"));
-
-form.querySelectorAll("input").forEach((input) =>
-  input.addEventListener("input", () => {
-    const slot = form.querySelector(`[data-error="${input.name}"]`);
-    if (slot) slot.textContent = "";
-  }),
-);
 
 form.querySelectorAll("[data-reveal]").forEach((button) =>
   button.addEventListener("click", () => {
@@ -64,17 +56,17 @@ form.addEventListener("submit", async (event) => {
 
   // Show every problem at once, focus the first one.
   const errors = {
-    firstName: firstName ? "" : "Kailangan ang first name.",
-    lastName: lastName ? "" : "Kailangan ang last name.",
-    email: !email ? "Kailangan ang email." : EMAIL_PATTERN.test(email) ? "" : "Mukhang mali ang email.",
-    password: !password ? "Kailangan ang password." : passwordProblem(password, "fil"),
+    firstName: firstName ? "" : "Ilagay ang iyong first name.",
+    lastName: lastName ? "" : "Ilagay ang iyong last name.",
+    email: !email
+      ? "Ilagay ang email na gagamitin mo sa pag-login."
+      : EMAIL_PATTERN.test(email)
+        ? ""
+        : "Mukhang mali ang email. Tingnan kung may @ at domain, hal. pangalan@gmail.com.",
+    password: !password ? "Gumawa ng password para sa iyong account." : passwordProblem(password, "fil"),
   };
   Object.entries(errors).forEach(([field, message]) => setError(field, message));
-  const firstInvalid = Object.keys(errors).find((field) => errors[field]);
-  if (firstInvalid) {
-    form.elements[firstInvalid].focus();
-    return;
-  }
+  if (focusFirstError(form)) return;
 
   setBusy(true);
   let credential;
@@ -82,8 +74,17 @@ form.addEventListener("submit", async (event) => {
     credential = await createUserWithEmailAndPassword(auth, email, password);
   } catch (error) {
     console.error("Registration failed", error);
-    $("#register-error").textContent = authMessage(error.code);
     setBusy(false);
+    // Problems with what they typed go under that field.
+    const field = { "auth/email-already-in-use": "email", "auth/invalid-email": "email", "auth/weak-password": "password" }[
+      error.code
+    ];
+    if (field) {
+      setError(field, authMessage(error.code));
+      form.elements[field].focus();
+    } else {
+      $("#register-error").textContent = authMessage(error.code);
+    }
     return;
   }
 

@@ -18,7 +18,7 @@ const ICON_TRASH = '<path d="M4 7h16M10 11v6m4-6v6M5 7l1 13h12l1-13M9 7V4h6v3" /
 const ICON_INFO = '<circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" />';
 
 /** Tile labels say what the number counts. */
-const TILE_LABELS = { activity: "Activity", lectures: "Lektura", pronunciation: "Words", quiz: "Questions", game: "Levels" };
+const TILE_LABELS = { activity: "Activity", lectures: "Lecture", pronunciation: "Words", quiz: "Questions", game: "Levels" };
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
@@ -63,7 +63,6 @@ function dialogHtml(lesson) {
     </header>
 
     <article class="ld-ticket" aria-label="Lesson to delete">
-      <span class="ld-ticket__order"><small>Lesson</small>${escapeHtml(String(lesson.order ?? "—").padStart(2, "0"))}</span>
       <div class="ld-ticket__text">
         <strong>${escapeHtml(lesson.title || "Untitled lesson")}</strong>
         <span class="admin-lesson-difficulty ${meta.className}"><span aria-hidden="true"></span>${meta.label}</span>

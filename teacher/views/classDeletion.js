@@ -7,6 +7,7 @@ import {
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, displayName, escapeHtml, openModal, time, toast } from "../../js/helpers.js";
+import { fieldError } from "../../js/field-errors.js";
 
 // Teachers can't delete a class themselves: they send a request (with a reason) that an
 // admin approves or declines on the admin "All classes" page. Stored on the class:
@@ -92,7 +93,7 @@ export function openRequestDeletionModal(classroom, onChange) {
       </div>
       <form id="request-deletion-form">
         <label>Reason for deleting
-          <textarea name="reason" required minlength="5" maxlength="300" placeholder="e.g. The school year has ended and this section is closed."></textarea>
+          <textarea name="reason" required data-missing="Tell the admin why this class should be deleted." minlength="5" maxlength="300" placeholder="e.g. The school year has ended and this section is closed."></textarea>
         </label>
         <p class="form-error" role="alert"></p>
         <div class="modal-actions">
@@ -105,10 +106,12 @@ export function openRequestDeletionModal(classroom, onChange) {
       $("[data-cancel]", modal).addEventListener("click", close);
       $("#request-deletion-form", modal).addEventListener("submit", async (event) => {
         event.preventDefault();
-        const reason = new FormData(event.currentTarget).get("reason").trim();
+        const field = event.currentTarget.elements.reason;
+        const reason = field.value.trim();
         const error = $(".form-error", modal);
         if (reason.length < 5) {
-          error.textContent = "Please write a short reason (at least 5 characters).";
+          fieldError(field, "Write a short reason the admin can understand, at least 5 characters.");
+          field.focus();
           return;
         }
         const submit = event.submitter;

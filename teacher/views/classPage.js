@@ -13,6 +13,7 @@ import {
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, toast, notify, navigate, page, openModal } from "../../js/helpers.js";
+import { clearFieldError, fieldError } from "../../js/field-errors.js";
 import { removeClassLesson } from "../../js/api.js";
 import {
   formatWhen,
@@ -137,7 +138,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
              `<button class="button secondary small" type="button" data-extend-days="${preset.days}">${preset.label}</button>`,
          ).join("")}
        </div>
-       <label>New deadline <input type="datetime-local" name="dueAt" required /></label>
+       <label>New deadline <input type="datetime-local" name="dueAt" required data-missing="Pick the date and time of the new deadline, or press one of the buttons above." /></label>
        <label class="extend-deadline__notify">
          <input type="checkbox" name="notify" checked />
          <span>Notify students</span>
@@ -157,6 +158,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
       const input = form.elements.dueAt;
       const pick = (days) => {
         input.value = toInputValue({ toDate: () => new Date(base() + days * DAY) });
+        clearFieldError(input);
         backdrop.querySelectorAll("[data-extend-days]").forEach((b) =>
           b.classList.toggle("is-active", Number(b.dataset.extendDays) === days),
         );
@@ -172,9 +174,14 @@ function openExtendModal(classId, link, lesson, onSaved) {
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const due = fromInputValue(input.value);
-        if (!due) return toast("Pick the new deadline.");
-        if (due <= currentDue) return toast("The new deadline must be later than the current one.");
-        if (due <= new Date()) return toast("The new deadline has already passed. Pick a later date.");
+        const problem = !due
+          ? input.dataset.missing
+          : due <= currentDue
+            ? "The new deadline must be later than the current one."
+            : due <= new Date()
+              ? "That time has already passed. Pick a later date."
+              : "";
+        if (fieldError(input, problem)) return input.focus();
         const submit = form.querySelector('[type="submit"]');
         submit.disabled = true;
         try {

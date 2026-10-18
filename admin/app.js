@@ -8,6 +8,8 @@ import { auth, db } from "../js/firebase.js";
 import { state } from "../js/state.js";
 import { $, setLoading, shell, toast } from "../js/helpers.js";
 import { renderRoute } from "./router.js";
+// Every form's required fields show their own message instead of the browser bubble.
+import "../js/field-errors.js";
 
 $("#logout-button").addEventListener("click", async () => {
   sessionStorage.setItem("basayaSignedOut", "true");

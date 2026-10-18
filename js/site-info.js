@@ -7,7 +7,7 @@ import { contactPanel, wireContactForm } from "./contact-form.js";
 
 const SCHOOL = "Eastwoods Professional College of Science and Technology";
 const PROGRAM = "Bachelor of Science in Information Technology";
-const TEAM = ["Jayvanz Singca", "Scean Dulatre", "Ronniel Olegario"];
+const TEAM = ["Jay Vanz Singca", "Scean Dulatre", "Ronniel Olegario"];
 const CLOSE_MS = 200;
 
 const TABS = [

@@ -116,6 +116,43 @@ input[type="datetime-local"] {
   animation: fadeDown var(--dur) var(--ease-out);
 }
 
+/* A field that needs fixing: red outline + a message right under it (js/field-errors.js) */
+:is(input, select, textarea)[aria-invalid="true"],
+:is(input, select, textarea)[aria-invalid="true"]:hover:not(:focus):not(:disabled) {
+  border-color: var(--danger);
+  background-color: color-mix(in srgb, var(--danger-soft) 55%, var(--surface));
+}
+
+:is(input, select, textarea)[aria-invalid="true"]:focus {
+  border-color: var(--danger);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 18%, transparent);
+  outline-color: color-mix(in srgb, var(--danger) 28%, transparent);
+}
+
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--danger-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  animation: fadeDown var(--dur) var(--ease-out);
+}
+
+.field-error svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 /* Search fields share one look: icon + borderless input inside a soft pill */
 .admin-directory-search,
 .admin-lesson-search,

@@ -24,9 +24,11 @@ import {
   toast,
 } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
-import { syllablesFor } from "../../js/dictionary.js";
+import { lookupWord, syllablesFor } from "../../js/dictionary.js";
 import { syllabify } from "../../js/syllables.js";
+import { openWordModal } from "../../teacher/views/dictionary.js";
 import {
+  checkLevel,
   gameLevelHtml,
   readGameLevels,
   refreshLevel,
@@ -37,6 +39,7 @@ import {
 import { openLessonViewer, loadLessonSections as getLessonSections } from "./lessonViewer.js";
 import { openDeleteLesson } from "./lessonDeletion.js";
 import { confirmDuplicateTitle, findDuplicate, sameTitle } from "./duplicateTitle.js";
+import { missingChecklist } from "./missingChecklist.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
@@ -137,11 +140,7 @@ export async function renderLessons() {
               lessonDifficultyMeta(lesson.difficulty).label.toLowerCase() ===
               activeLessonFilter,
           );
-    const matchingLessons = visibleLessons.filter((lesson) =>
-      (lesson.title || "Untitled lesson")
-        .toLowerCase()
-        .includes(activeLessonSearch.trim().toLowerCase()),
-    );
+    const searchKey = (lesson) => (lesson.title || "Untitled lesson").toLowerCase();
 
     pageContent.innerHTML = `
       <section class="admin-lesson-directory" aria-label="Lesson library">
@@ -197,17 +196,14 @@ export async function renderLessons() {
               </tr>
             </thead>
             <tbody>
-              ${
-                matchingLessons.length
-                  ? matchingLessons
+              ${visibleLessons
                       .map((lesson) => {
                         const meta = lessonDifficultyMeta(lesson.difficulty);
                         const title = lesson.title || "Untitled lesson";
                         return `
-                          <tr>
+                          <tr data-lesson-row="${escapeHtml(searchKey(lesson))}">
                             <td>
                               <div class="admin-lesson-table__title">
-                                <span class="admin-lesson-table__order" aria-hidden="true">${escapeHtml(String(lesson.order || "—").padStart(2, "0"))}</span>
                                 <span>
                                   <strong>${escapeHtml(title)}</strong>
                                   <small>${escapeHtml(lesson.description || "No description yet.")}</small>
@@ -245,9 +241,8 @@ export async function renderLessons() {
                           </tr>
                         `;
                       })
-                      .join("")
-                  : `<tr><td class="admin-lesson-table__empty" colspan="3">${activeLessonSearch.trim() ? `No lessons match “${escapeHtml(activeLessonSearch.trim())}”.` : `No ${escapeHtml(activeLessonFilter)} lessons yet.`}</td></tr>`
-              }
+                      .join("")}
+              <tr data-lesson-empty hidden><td class="admin-lesson-table__empty" colspan="3"></td></tr>
             </tbody>
           </table>
         </div>
@@ -265,20 +260,31 @@ export async function renderLessons() {
         });
       });
 
-    pageContent
-      .querySelector("[data-lesson-search]")
-      .addEventListener("input", (event) => {
-        const input = event.currentTarget;
-        const cursor = input.selectionStart;
-        activeLessonSearch = input.value;
-        lessonPage = 1;
-        renderDirectory();
-        const replacement = pageContent.querySelector("[data-lesson-search]");
-        replacement.focus();
-        replacement.setSelectionRange(cursor, cursor);
+    // Searching only hides rows (pagination recounts them), so the page isn't rebuilt
+    // on every key and nothing flickers.
+    const applySearch = () => {
+      const query = activeLessonSearch.trim().toLowerCase();
+      let shown = 0;
+      $$("[data-lesson-row]", pageContent).forEach((row) => {
+        row.hidden = !row.dataset.lessonRow.includes(query);
+        if (!row.hidden) shown += 1;
       });
+      const emptyRow = $("[data-lesson-empty]", pageContent);
+      emptyRow.hidden = shown > 0;
+      emptyRow.firstElementChild.textContent = query
+        ? `No lessons match “${activeLessonSearch.trim()}”.`
+        : `No ${activeLessonFilter} lessons yet.`;
+    };
+    applySearch();
 
-    matchingLessons.forEach((lesson) => {
+    const searchInput = pageContent.querySelector("[data-lesson-search]");
+    searchInput.addEventListener("input", () => {
+      activeLessonSearch = searchInput.value;
+      closeLessonMenus();
+      applySearch();
+    });
+
+    visibleLessons.forEach((lesson) => {
       const viewButton = [
         ...pageContent.querySelectorAll("[data-view-lesson]"),
       ].find((button) => button.dataset.viewLesson === lesson.id);
@@ -313,11 +319,9 @@ export async function renderLessons() {
     });
 
     paginate({
-      rows: () =>
-        [...pageContent.querySelectorAll(".admin-lesson-table tbody tr")].filter(
-          (row) => !row.querySelector(".admin-lesson-table__empty"),
-        ),
+      rows: () => $$("[data-lesson-row]", pageContent),
       after: pageContent.querySelector(".admin-lesson-table-wrap"),
+      search: searchInput,
       label: ["lesson", "lessons"],
       page: lessonPage,
       pageSize: lessonPageSize,
@@ -343,11 +347,12 @@ export async function renderLessons() {
   $("#add-lesson-empty")?.addEventListener("click", () => openLessonModal());
 }
 
-function options(values, selected) {
-  return values
+// Saved as the Filipino key (the apps read it); shown in English.
+function difficultyOptions(selected) {
+  return DIFFICULTIES
     .map(
       (value) =>
-        `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>`,
+        `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(lessonDifficultyMeta(value).label)}</option>`,
     )
     .join("");
 }
@@ -367,15 +372,16 @@ function studioHtml(lesson = {}, sections = {}) {
 
       <div class="lesson-studio__tabs">
         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
-        <button type="button" class="lesson-tab" data-step="activity">2. Activity</button>
-        <button type="button" class="lesson-tab" data-step="lectures">3. Lektura</button>
+        <button type="button" class="lesson-tab" data-step="lectures">2. Lecture</button>
+        <button type="button" class="lesson-tab" data-step="activity">3. Activity</button>
         <button type="button" class="lesson-tab" data-step="pronunciation">4. Pronunciation</button>
-        <button type="button" class="lesson-tab" data-step="quiz">5. Quiz & game</button>
+        <button type="button" class="lesson-tab" data-step="quiz">5. Quiz</button>
+        <button type="button" class="lesson-tab" data-step="game">6. Game</button>
       </div>
 
       <div class="lecture-page-navigation" data-lecture-page-navigation hidden>
         <div class="lesson-subheading">
-          <h4>Lektura pages</h4>
+          <h4>Lecture Pages <span class="lesson-subheading__count" data-lecture-page-count></span></h4>
         </div>
         <div class="lecture-page-navigation__controls">
           <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
@@ -383,13 +389,13 @@ function studioHtml(lesson = {}, sections = {}) {
         </div>
       </div>
 
-      <form id="lesson-form">
+      <form id="lesson-form" novalidate>
         <section class="lesson-step active" data-panel="basics">
           <div class="lesson-section-intro">
             <span class="lesson-section-number">01</span>
             <div>
               <h3>Lesson basics</h3>
-              <p>These details appear in the lesson list and determine its order.</p>
+              <p>These details appear in the lesson list.</p>
             </div>
           </div>
 
@@ -401,26 +407,34 @@ function studioHtml(lesson = {}, sections = {}) {
             <label>
               Difficulty
               <select name="difficulty" required>
-                ${options(DIFFICULTIES, lesson.difficulty || "madali")}
+                ${difficultyOptions(lesson.difficulty || "madali")}
               </select>
             </label>
           </div>
 
-          <div class="form-grid">
-            <label>
-              Lesson order
-              <input name="order" type="number" min="1" required value="${escapeHtml(lesson.order || state.allLessons.length + 1)}" />
-            </label>
-            <label>
-              Description
-              <input name="description" required maxlength="300" value="${escapeHtml(lesson.description || "")}" placeholder="What will the learner study?" />
-            </label>
+          <label>
+            Description
+            <input name="description" required maxlength="300" value="${escapeHtml(lesson.description || "")}" placeholder="What will the learner study?" />
+          </label>
+        </section>
+
+        <section class="lesson-step" data-panel="lectures">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">02</span>
+            <div>
+              <h3>Lecture Pages</h3>
+              <p>Generate and listen to each sentence before publishing the lesson.</p>
+            </div>
           </div>
+
+          <label>Lecture title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || lesson.title || "")}" placeholder="PANGGALAN" /></label>
+
+          <div class="lecture-pages" data-lecture-pages></div>
         </section>
 
         <section class="lesson-step" data-panel="activity">
           <div class="lesson-section-intro">
-            <span class="lesson-section-number">02</span>
+            <span class="lesson-section-number">03</span>
             <div>
               <h3>Tap-the-word activity</h3>
               <p>Add a page, enter a sentence, then select the correct words.</p>
@@ -442,25 +456,11 @@ function studioHtml(lesson = {}, sections = {}) {
             <label>General explanation<textarea data-activity-explanation placeholder="Ipaliwanag ang konsepto.">${escapeHtml(sections.activity?.explanation || "")}</textarea></label>
 
             <div class="lesson-subheading">
-              <h4>Activity pages</h4>
+              <h4>Activity pages <span class="lesson-subheading__count" data-card-count></span></h4>
               <button type="button" class="button secondary small" data-add-activity-page>+ Add page</button>
             </div>
             <div data-activity-pages></div>
           </div>
-        </section>
-
-        <section class="lesson-step" data-panel="lectures">
-          <div class="lesson-section-intro">
-            <span class="lesson-section-number">03</span>
-            <div>
-              <h3>Lektura pages</h3>
-              <p>Generate and listen to each sentence before publishing the lesson.</p>
-            </div>
-          </div>
-
-          <label>Lektura title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || lesson.title || "")}" placeholder="PANGGALAN" /></label>
-
-          <div class="lecture-pages" data-lecture-pages></div>
         </section>
 
         <section class="lesson-step" data-panel="pronunciation">
@@ -476,7 +476,7 @@ function studioHtml(lesson = {}, sections = {}) {
           <label>Instruction<textarea data-pronunciation-instruction placeholder="Pindutin ang mikropono at bigkasin ang salita.">${escapeHtml(sections.pronunciation?.instruction || "")}</textarea></label>
 
           <div class="lesson-subheading">
-            <h4>Words</h4>
+            <h4>Words <span class="lesson-subheading__count" data-card-count></span></h4>
             <button type="button" class="button secondary small" data-add-pronunciation-word>+ Add word</button>
           </div>
           <div data-pronunciation-words></div>
@@ -486,18 +486,28 @@ function studioHtml(lesson = {}, sections = {}) {
           <div class="lesson-section-intro">
             <span class="lesson-section-number">05</span>
             <div>
-              <h3>Quiz and game</h3>
-              <p>Every quiz question has three choices. Game-level order is automatic.</p>
+              <h3>Quiz</h3>
+              <p>Every quiz question has three choices.</p>
             </div>
           </div>
 
           <label>Quiz title<input data-quiz-title value="${escapeHtml(sections.quiz?.title || "")}" placeholder="PANGGALAN - Pagsusulit" /></label>
 
           <div class="lesson-subheading">
-            <h4>Quiz questions</h4>
+            <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
             <button type="button" class="button secondary small" data-add-question>+ Add question</button>
           </div>
           <div data-quiz-questions></div>
+        </section>
+
+        <section class="lesson-step" data-panel="game">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">06</span>
+            <div>
+              <h3>Game</h3>
+              <p>Game-level order is automatic.</p>
+            </div>
+          </div>
 
           <label class="game-skip-option">
             <input
@@ -509,8 +519,8 @@ function studioHtml(lesson = {}, sections = {}) {
           </label>
           <p class="muted">When selected, game controls are disabled and no game levels are saved.</p>
           <div data-game-editor>
-            <div class="lesson-subheading lesson-subheading--spaced">
-              <h4>Game levels</h4>
+            <div class="lesson-subheading">
+              <h4>Game levels <span class="lesson-subheading__count" data-card-count></span></h4>
               <button type="button" class="button secondary small" data-add-game-level>+ Add level</button>
             </div>
             <div data-game-levels></div>
@@ -536,7 +546,7 @@ function activityPageHtml(page = {}) {
   return `
     <article class="builder-card" data-activity-page data-correct-indices="${correctIndices}">
       <div class="builder-card__header">
-        <strong>Activity page</strong>
+        <strong data-card-number>Activity page</strong>
         <button type="button" class="text-button danger" data-remove-activity-page>Remove</button>
       </div>
       <label>
@@ -600,7 +610,7 @@ function lecturePageHtml(page = {}) {
   return `
     <article class="builder-card" data-lecture-page>
       <div class="builder-card__header">
-        <strong data-lecture-page-title>Lektura page</strong>
+        <strong data-lecture-page-title>Lecture page</strong>
         <button type="button" class="text-button danger" data-remove-lecture-page>Remove</button>
       </div>
       <div class="sentence-builder" data-sentences>
@@ -644,18 +654,26 @@ const syllablePreviewText = (syllables, fixed = false) =>
 /**
  * The syllables Bigkas shows under a word: the automatic split right away, then a
  * teacher's fix from the Dictionary if there is one (fetched after typing stops).
+ * Also warns when the Dictionary doesn't have the word, since Bigkas then shows no meaning.
  */
 function refreshSyllablePreview(row, delay = 0) {
   const preview = $("[data-syllable-preview]", row);
+  const missing = $("[data-dict-missing]", row);
   const word = $("[data-pronunciation-text]", row).value.trim();
   const auto = syllabify(word);
   preview.innerHTML = syllablePreviewText(auto);
   clearTimeout(row.syllableTimer);
-  if (!word) return;
+  if (!word) {
+    missing.hidden = true;
+    return;
+  }
   row.syllableTimer = setTimeout(async () => {
-    const shown = await syllablesFor(word);
-    if ($("[data-pronunciation-text]", row).value.trim() === word)
-      preview.innerHTML = syllablePreviewText(shown, shown !== auto);
+    const [shown, entry] = await Promise.all([syllablesFor(word), lookupWord(word)]);
+    if ($("[data-pronunciation-text]", row).value.trim() !== word) return;
+    preview.innerHTML = syllablePreviewText(shown, shown !== auto);
+    $("[data-dict-missing-text]", missing).textContent =
+      `“${word}” is not in the dictionary, so students won't see its meaning.`;
+    missing.hidden = Boolean(entry);
   }, delay);
 }
 
@@ -663,11 +681,17 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
   const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
     <div class="pronunciation-editor" data-pronunciation-word data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}" data-audio-ref="${escapeHtml(audioRef)}">
-      <label>
-        Word
-        <input data-pronunciation-text value="${escapeHtml(word)}" placeholder="Arkipelago" />
-        <small class="muted syllable-preview" data-syllable-preview>${syllablePreviewText(syllabify(word))}</small>
-      </label>
+      <div>
+        <label>
+          <span data-card-number>Word</span>
+          <input data-pronunciation-text value="${escapeHtml(word)}" placeholder="Arkipelago" />
+          <small class="muted syllable-preview" data-syllable-preview>${syllablePreviewText(syllabify(word))}</small>
+        </label>
+        <div class="dict-missing" data-dict-missing role="status" hidden>
+          <span data-dict-missing-text></span>
+          <button type="button" class="button secondary small" data-add-to-dictionary>+ Add it to the dictionary now</button>
+        </div>
+      </div>
       <div class="audio-actions">
         <button type="button" class="button secondary small" data-generate-pronunciation-audio>Generate audio</button>
         <button type="button" class="text-button danger" data-remove-pronunciation-word>Remove</button>
@@ -705,7 +729,7 @@ function questionHtml(question = {}) {
   return `
     <article class="builder-card" data-question>
       <div class="builder-card__header">
-        <strong>Quiz question</strong>
+        <strong data-card-number>Quiz question</strong>
         <button type="button" class="text-button danger" data-remove-question>Remove</button>
       </div>
       <label>Question<textarea data-question-text placeholder="Write a question.">${escapeHtml(question.question || "")}</textarea></label>
@@ -796,6 +820,109 @@ function validateQuiz(container) {
   return firstInvalid;
 }
 
+// Checklist group → the editor tab it lives on.
+const MISSING_GROUPS = {
+  Basics: "basics",
+  Lecture: "lectures",
+  Activity: "activity",
+  Pronunciation: "pronunciation",
+  Quiz: "quiz",
+  Game: "game",
+};
+
+/** "" when a Lecture sentence has audio for the text it shows now, else what to do. */
+function lectureAudioProblem(row, text) {
+  const preview = previews.get(row);
+  if (preview?.blob) return preview.text === text ? "" : "generate audio again (sentence changed)";
+  // Saved cloud audio for this exact text, or a legacy bundled clip.
+  if (existingCloudAudio(row, text) || row.dataset.audioResName) return "";
+  let saved = null;
+  try {
+    saved = JSON.parse(row.dataset.cloudAudio || "null");
+  } catch {}
+  return saved?.audioUrl ? "generate audio again (sentence changed)" : "generate audio";
+}
+
+/**
+ * Everything a lesson still needs before it can be published: every field of every part
+ * (a skipped Gawain or game is left out), and audio for each Lecture sentence.
+ * Returns [{ group, step, label, target, lecturePage? }] in the order they appear.
+ */
+function missingFields(modal, { skipActivity, skipGame }) {
+  const missing = [];
+  const add = (group, label, target, extra = {}) =>
+    missing.push({ group, step: MISSING_GROUPS[group], label, target, ...extra });
+  const need = (group, label, selector, root = modal, extra) => {
+    const field = $(selector, root);
+    if (field && !field.value.trim()) add(group, label, field, extra);
+  };
+
+  need("Basics", "Lesson title", '[name="title"]');
+  need("Basics", "Description", '[name="description"]');
+
+  need("Lecture", "Lecture title", "[data-lecture-title]");
+  const lecturePages = $$("[data-lecture-page]", modal);
+  if (!lecturePages.length) add("Lecture", "Add at least one page", $("[data-add-lecture-page]", modal));
+  lecturePages.forEach((page, pageIndex) => {
+    const where = { lecturePage: pageIndex };
+    const rows = $$("[data-lecture-sentence]", page);
+    if (!rows.length) add("Lecture", `Page ${pageIndex + 1}: add a sentence`, $("[data-add-lecture-sentence]", page), where);
+    rows.forEach((row, index) => {
+      const name = `Page ${pageIndex + 1}, sentence ${index + 1}`;
+      const text = $("[data-sentence-text]", row).value.trim();
+      const audio = text && lectureAudioProblem(row, text);
+      if (!text) add("Lecture", name, $("[data-sentence-text]", row), where);
+      else if (audio) add("Lecture", `${name}: ${audio}`, $("[data-generate-sentence-audio]", row), where);
+    });
+  });
+
+  if (!skipActivity.checked) {
+    need("Activity", "Activity title", "[data-activity-title]");
+    need("Activity", "Instruction", "[data-activity-instruction]");
+    need("Activity", "General explanation", "[data-activity-explanation]");
+    const pages = $$("[data-activity-page]", modal);
+    if (!pages.length) add("Activity", "Add at least one page", $("[data-add-activity-page]", modal));
+    pages.forEach((page, index) => {
+      const words = activityWords(page);
+      if (!words.length) {
+        add("Activity", `Page ${index + 1}: sentence`, $("[data-activity-words]", page));
+      } else if (!activityCorrectIndices(page).some((answer) => answer < words.length)) {
+        add("Activity", `Page ${index + 1}: pick the correct word`, $("[data-activity-answer-picker]", page));
+      }
+    });
+  }
+
+  need("Pronunciation", "Pronunciation title", "[data-pronunciation-title]");
+  need("Pronunciation", "Instruction", "[data-pronunciation-instruction]");
+  const words = $$("[data-pronunciation-word]", modal);
+  if (!words.length) add("Pronunciation", "Add at least one word", $("[data-add-pronunciation-word]", modal));
+  words.forEach((row, index) => need("Pronunciation", `Word ${index + 1}`, "[data-pronunciation-text]", row));
+
+  need("Quiz", "Quiz title", "[data-quiz-title]");
+  const questions = $$("[data-question]", modal);
+  if (!questions.length) add("Quiz", "Add at least one question", $("[data-add-question]", modal));
+  questions.forEach((question, index) => {
+    const name = `Question ${index + 1}`;
+    need("Quiz", `${name}: question`, "[data-question-text]", question);
+    $$("[data-choice-text]", question).forEach((choice, choiceIndex) => {
+      if (!choice.value.trim()) add("Quiz", `${name}: choice ${choiceIndex + 1}`, choice);
+    });
+    if (!$$("[data-answer-choice]", question).some((input) => input.checked)) {
+      add("Quiz", `${name}: correct answer`, $(".choice-grid", question));
+    }
+  });
+
+  if (!skipGame.checked) {
+    const levels = $$("[data-game-level]", modal);
+    if (!levels.length) add("Game", "Add a level, or tick “Skip game”", $("[data-add-game-level]", modal));
+    levels.forEach((level, index) => {
+      if (!checkLevel(level).ok) add("Game", `Level ${index + 1}: fix the words`, level);
+    });
+  }
+
+  return missing;
+}
+
 async function openLessonModal(existing = null) {
   const sections = existing ? await getLessonSections(existing.id) : {};
 
@@ -860,7 +987,7 @@ async function openLessonModal(existing = null) {
     pronunciationWords.innerHTML = initialWords
       .map((item) => pronunciationWordHtml(item.word, item.audioRef, item.cloudAudio))
       .join("");
-    $("[data-pronunciation-word]", pronunciationWords).forEach((row) => refreshSyllablePreview(row));
+    $$("[data-pronunciation-word]", pronunciationWords).forEach((row) => refreshSyllablePreview(row));
     quizQuestions.innerHTML = initialQuestions.map(questionHtml).join("");
     gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
 
@@ -884,17 +1011,29 @@ async function openLessonModal(existing = null) {
 
       pages.forEach((page, index) => {
         page.hidden = index !== activeLecturePage;
-        $("[data-lecture-page-title]", page).textContent = `Page ${index + 1}`;
+        $("[data-lecture-page-title]", page).textContent = `Page ${index + 1} of ${pages.length}`;
       });
+      $("[data-lecture-page-count]", modal).textContent = `(${pages.length})`;
     };
 
     renderLecturePageRibbons();
 
-    const renumberLevels = () => {
-      $$("[data-game-level]", gameLevels).forEach((element, index) => {
-        $("[data-level-number]", element).textContent = index + 1;
-      });
+    // "Page 2 of 5" on each card and the total in its list's heading, redone as cards come and go.
+    const numberCards = (list, cardSelector, label) => {
+      const update = () => {
+        const cards = $$(cardSelector, list);
+        cards.forEach((card, index) => {
+          $("[data-card-number]", card).textContent = `${label} ${index + 1} of ${cards.length}`;
+        });
+        $("[data-card-count]", list.parentElement).textContent = `(${cards.length})`;
+      };
+      update();
+      new MutationObserver(update).observe(list, { childList: true });
     };
+    numberCards(activityPages, "[data-activity-page]", "Page");
+    numberCards(pronunciationWords, "[data-pronunciation-word]", "Word");
+    numberCards(quizQuestions, "[data-question]", "Question");
+    numberCards(gameLevels, "[data-game-level]", "Level");
 
     // A ticked "Skip …" box keeps its builder on screen but inactive.
     const updateSkipped = (editor, checkbox) => {
@@ -925,7 +1064,6 @@ async function openLessonModal(existing = null) {
         toast("The game is skipped for this lesson.");
       },
     });
-    renumberLevels();
     updateGameEditor();
     skipGame.addEventListener("change", updateGameEditor);
     updateActivityEditor();
@@ -944,6 +1082,55 @@ async function openLessonModal(existing = null) {
     $$(".lesson-tab", modal).forEach((button) => {
       button.addEventListener("click", () => showStep(button.dataset.step));
     });
+
+    // Once Publish/Save has been tried, empty fields stay outlined (and the checklist
+    // toast stays current) until they're filled.
+    const jumpTo = (item) => {
+      if (!item?.target?.isConnected) return;
+      showStep(item.step);
+      if (item.lecturePage != null) {
+        activeLecturePage = item.lecturePage;
+        renderLecturePageRibbons();
+      }
+      const { target } = item;
+      // Inside a card, a field before any button (a level's first button is "Remove").
+      const focusable = target.matches("input, textarea, select, button")
+        ? target
+        : $("input:not([type=hidden]), textarea", target) || $("button", target);
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      focusable?.focus({ preventScroll: true });
+      target.classList.remove("is-jumped");
+      void target.offsetWidth; // restart the pulse
+      target.classList.add("is-jumped");
+      target.addEventListener("animationend", () => target.classList.remove("is-jumped"), { once: true });
+    };
+    const checklist = missingChecklist(modal, {
+      verb: existing ? "save" : "publish",
+      onJump: jumpTo,
+    });
+    let triedToSave = false;
+    let checkTimer;
+    const markMissing = () => {
+      const missing = missingFields(modal, { skipActivity, skipGame });
+      $$(".is-missing", modal).forEach((field) => field.classList.remove("is-missing"));
+      missing.forEach((item) => item.target?.classList.add("is-missing"));
+      return missing;
+    };
+    const recheck = () => {
+      if (!triedToSave) return;
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(() => checklist.update(markMissing()), 150);
+    };
+    modal.addEventListener("input", recheck);
+    modal.addEventListener("change", recheck);
+    // Pages, sentences, game words, picked answers and generated audio change the markup.
+    new MutationObserver(recheck).observe($(".lesson-studio", modal), { childList: true, subtree: true });
+
+    // Scroll a newly added card into view and put the cursor in its first field.
+    const revealAdded = (card, fieldSelector) => {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      $(fieldSelector, card)?.focus({ preventScroll: true });
+    };
 
     modal.addEventListener("click", async (event) => {
       const button = event.target.closest("button");
@@ -978,6 +1165,7 @@ async function openLessonModal(existing = null) {
 
       if (button.matches("[data-add-activity-page]")) {
         activityPages.insertAdjacentHTML("beforeend", activityPageHtml({}));
+        revealAdded(activityPages.lastElementChild, "[data-activity-words]");
       }
 
       if (button.matches("[data-remove-activity-page]")) {
@@ -1016,7 +1204,7 @@ async function openLessonModal(existing = null) {
         const lecturePage = button.closest("[data-lecture-page]");
         const sentenceRows = $$("[data-lecture-sentence]", lecturePage);
         if (sentenceRows.length >= MAX_SENTENCES_PER_LECTURE_PAGE) {
-          toast(`A Lektura page can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+          toast(`A Lecture page can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
           return;
         }
 
@@ -1036,6 +1224,18 @@ async function openLessonModal(existing = null) {
 
       if (button.matches("[data-add-pronunciation-word]")) {
         pronunciationWords.insertAdjacentHTML("beforeend", pronunciationWordHtml());
+        revealAdded(pronunciationWords.lastElementChild, "[data-pronunciation-text]");
+      }
+
+      // Opens on top of the lesson editor, so nothing typed in the lesson is lost.
+      if (button.matches("[data-add-to-dictionary]")) {
+        const row = button.closest("[data-pronunciation-word]");
+        openWordModal(
+          null,
+          () => $$("[data-pronunciation-word]", pronunciationWords).forEach((word) => refreshSyllablePreview(word)),
+          $("[data-pronunciation-text]", row).value.trim(),
+        );
+        return;
       }
 
       if (button.matches("[data-remove-pronunciation-word]")) {
@@ -1044,6 +1244,7 @@ async function openLessonModal(existing = null) {
 
       if (button.matches("[data-add-question]")) {
         quizQuestions.insertAdjacentHTML("beforeend", questionHtml({}));
+        revealAdded(quizQuestions.lastElementChild, "[data-question-text]");
       }
 
       if (button.matches("[data-remove-question]")) {
@@ -1054,13 +1255,11 @@ async function openLessonModal(existing = null) {
         gameLevels.insertAdjacentHTML("beforeend", gameLevelHtml({}));
         const added = gameLevels.lastElementChild;
         refreshLevel(added);
-        renumberLevels();
-        $("[data-key-word]", added).focus();
+        revealAdded(added, "[data-key-word]");
       }
 
       if (button.matches("[data-remove-game-level]")) {
         button.closest("[data-game-level]").remove();
-        renumberLevels();
       }
 
       if (button.matches("[data-generate-sentence-audio]")) {
@@ -1115,32 +1314,20 @@ async function openLessonModal(existing = null) {
     $("#lesson-form", modal).addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      // Block saving a quiz question that has no correct answer selected.
-      const invalidQuestion = validateQuiz(quizQuestions);
-      if (invalidQuestion) {
-        const number = $$("[data-question]", quizQuestions).indexOf(invalidQuestion) + 1;
-        showStep("quiz");
-        invalidQuestion.scrollIntoView({ behavior: "smooth", block: "center" });
-        toast(`Pumili ng tamang sagot para sa Tanong ${number}.`);
+      // Nothing is saved until every part is filled in (a skipped Gawain or game aside).
+      // Game levels commit half-typed words and show their issues; questions without a
+      // correct answer show their own message.
+      if (!skipGame.checked) validateGameLevels(gameLevels);
+      validateQuiz(quizQuestions);
+      triedToSave = true;
+      clearTimeout(checkTimer);
+      const missing = markMissing();
+      if (missing.length) {
+        checklist.show(missing);
+        jumpTo(missing[0]);
         return;
       }
-
-      // Every game level must be a key word plus 1–4 words made from its letters.
-      if (!skipGame.checked) {
-        if (!$$("[data-game-level]", gameLevels).length) {
-          showStep("quiz");
-          toast("Add a game level, or tick “Skip game for this lesson”.");
-          return;
-        }
-        const invalidLevel = validateGameLevels(gameLevels);
-        if (invalidLevel) {
-          const number = $$("[data-game-level]", gameLevels).indexOf(invalidLevel) + 1;
-          showStep("quiz");
-          invalidLevel.scrollIntoView({ behavior: "smooth", block: "center" });
-          toast(`Game level ${number} needs fixing before saving.`);
-          return;
-        }
-      }
+      checklist.update([]);
 
       // Another lesson already has this title? Ask before saving (edits that keep their
       // own title aren't asked again).
@@ -1154,7 +1341,6 @@ async function openLessonModal(existing = null) {
           {
             title: titleInput.value.trim(),
             difficulty: form.elements.difficulty.value,
-            order: form.elements.order.value,
           },
           duplicate,
           state.allLessons,
@@ -1180,7 +1366,7 @@ async function openLessonModal(existing = null) {
         const confirmed = await confirmDeleteSkipped({ pages: savedPages, levels: savedLevels });
         submit.disabled = false;
         if (!confirmed) {
-          const [step, checkbox] = savedPages ? ["activity", skipActivity] : ["quiz", skipGame];
+          const [step, checkbox] = savedPages ? ["activity", skipActivity] : ["game", skipGame];
           showStep(step);
           checkbox.closest(".game-skip-option").scrollIntoView({ behavior: "smooth", block: "center" });
           return;
@@ -1329,7 +1515,6 @@ async function saveLesson(existing, values, elements) {
     title: values.title.trim(),
     description: values.description.trim(),
     difficulty: values.difficulty,
-    order: Number(values.order),
     updatedAt: serverTimestamp(),
   };
 
@@ -1416,7 +1601,7 @@ async function readLectures(container, lessonId) {
   for (const [pageIndex, page] of $$("[data-lecture-page]", container).entries()) {
     const sentenceRows = $$("[data-lecture-sentence]", page);
     if (sentenceRows.length > MAX_SENTENCES_PER_LECTURE_PAGE) {
-      throw new Error(`Lektura page ${pageIndex + 1} can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+      throw new Error(`Lecture page ${pageIndex + 1} can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
     }
     const sentences = [];
     const audioResNames = [];
