@@ -75,7 +75,11 @@ export async function renderStudents() {
   ];
   if (!ribbons.some((ribbon) => ribbon.id === selectedRibbon)) selectedRibbon = "all";
 
-  page("Student accounts", "Find a student and help them back into their account.");
+  const noClass = ribbons[ribbons.length - 1].count;
+  page(
+    "Student accounts",
+    [`${students.length} ${countLabel(students.length)}`, noClass && `${noClass} with no class yet`],
+  );
 
   $("#page-content").innerHTML = students.length
     ? `<section class="teacher-directory" aria-label="Student accounts">

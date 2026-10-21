@@ -46,9 +46,15 @@ export async function renderAddLessonPage(classId) {
   };
 
   page(
-    "Build your lesson plan",
-    `Choose lessons from your collection to shape learning in ${classroom.className}.`,
-    `<button class="button secondary" id="back-to-class">← Back to class</button>`,
+    "Add lessons",
+    `Pick lessons from your collection for ${classroom.className}`,
+    "",
+    {
+      crumbs: [
+        { label: "Classrooms", href: "#/dashboard" },
+        { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
+      ],
+    },
   );
   $("#page-header").classList.add("teacher-add-lesson-header");
   $("#page-content").classList.add("teacher-add-lesson-page");
@@ -133,9 +139,6 @@ export async function renderAddLessonPage(classId) {
         <button class="button primary" id="create-lesson-empty" type="button">Create a lesson</button>
       </section>`;
 
-  $("#back-to-class").addEventListener("click", () =>
-    navigate(`/classes/${encodeURIComponent(classId)}`),
-  );
   $("#create-lesson-empty")?.addEventListener("click", () =>
     openLessonModal(),
   );

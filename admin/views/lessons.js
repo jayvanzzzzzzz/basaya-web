@@ -114,7 +114,7 @@ export async function renderLessons() {
 
   page(
     "Lessons",
-    "Create and manage lesson content for every learner.",
+    [`${lessons.length} ${lessons.length === 1 ? "lesson" : "lessons"}`],
     '<button class="button primary" id="add-lesson">+ Add lesson</button>',
   );
 

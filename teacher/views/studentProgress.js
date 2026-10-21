@@ -218,12 +218,15 @@ export async function renderStudentProgress(classId, studentId) {
 
   page(
     student.name,
-    `${classroom.className}${joined ? ` · Joined ${joined}` : ""}`,
-    `<button class="button secondary" id="back-to-students">← All students</button>
-     <button class="button primary" id="open-class-report">Class Report</button>`,
-  );
-  $("#back-to-students").addEventListener("click", () =>
-    navigate(`/classes/${encodeURIComponent(classId)}/students`),
+    joined ? `Joined ${joined}` : "",
+    `<button class="button secondary" id="open-class-report">Class Report</button>`,
+    {
+      crumbs: [
+        { label: "Classrooms", href: "#/dashboard" },
+        { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
+        { label: "Students", href: `#/classes/${encodeURIComponent(classId)}/students` },
+      ],
+    },
   );
   $("#open-class-report").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}/report`),

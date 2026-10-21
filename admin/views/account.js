@@ -14,7 +14,7 @@ import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } 
 // (api/request-admin-password-change → confirm-password-change.html).
 
 export function renderAccount() {
-  page("Account settings", "Your admin sign-in details.");
+  page("Account settings", "");
 
   const email = state.user?.email || "";
 

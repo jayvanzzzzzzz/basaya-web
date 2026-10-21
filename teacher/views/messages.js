@@ -181,7 +181,7 @@ export async function renderMessages(classId) {
     return navigate(`/messages/${encodeURIComponent(state.classes[0].id)}`);
   }
 
-  page("Messages", "One group chat for each class: you and your students.");
+  page("Messages", "One group chat per class, with you and your students");
   $("#page-content").innerHTML = `
     <div class="inbox${classroom ? " has-chat" : ""}">
       <aside class="inbox-list" aria-label="Class chats">

@@ -49,7 +49,7 @@ export async function renderTeachers() {
 
   page(
     "Teacher accounts",
-    "Create, edit, and remove teacher accounts.",
+    [`${state.teachers.length} ${state.teachers.length === 1 ? "teacher" : "teachers"}`],
     `<button class="button primary" id="add-teacher">+ Add teacher</button>`,
   );
 

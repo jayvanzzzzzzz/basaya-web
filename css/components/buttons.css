@@ -181,13 +181,3 @@
   background: var(--danger-soft);
   color: var(--danger);
 }
-
-/* Header "back" button */
-.class-back-button svg {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1.8;
-}

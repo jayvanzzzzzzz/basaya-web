@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fil">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap" />
+<link rel="stylesheet" href="../css/base/tokens.css" />
+<link rel="stylesheet" href="../css/base/reset.css" />
+<link rel="stylesheet" href="../css/base/typography.css" />
+<link rel="stylesheet" href="../css/base/animations.css" />
+<link rel="stylesheet" href="../css/pages/student-lesson.css" />
+<style>body{background:var(--bg);padding:24px;max-width:520px}</style>
+</head>
+<body>
+<button id="go">Play</button> <button id="dark">Dark</button>
+<div class="st-lecture__sheet" style="margin-top:12px"><div class="st-lecture__sentences" id="s"></div></div>
+<script type="module">
+import { fillSentence, followAlong } from "./readAlong.js";
+function silentWav(seconds) {
+  const rate = 8000, n = rate * seconds, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+const s = document.getElementById("s");
+const old = document.createElement("p"); old.className = "st-sentence"; fillSentence(old, "Ang mga bata ay naglalaro sa parke tuwing hapon."); s.append(old);
+const line = document.createElement("p"); line.className = "st-sentence is-active";
+fillSentence(line, "Ang pusa, ay natutulog sa ilalim ng malaking mesa sa kusina!"); s.append(line);
+const player = new Audio(silentWav(6)); player.muted = true;
+let stop = () => {};
+player.addEventListener("ended", () => stop());
+document.getElementById("go").onclick = () => { stop(); player.currentTime = 0; player.play(); stop = followAlong(line, player, null); };
+document.getElementById("dark").onclick = () => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; };
+window.__seek = (t) => { player.pause(); player.currentTime = t; };
+</script>
+</body>
+</html>

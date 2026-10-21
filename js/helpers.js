@@ -194,8 +194,16 @@ export function shell(summaryId = "teacher-summary", fallbackName = "Teacher") {
   summary.title = summary.textContent;
 }
 
-export function page(title, subtitle, actions = "") {
-  $("#page-header").classList.remove(
+/**
+ * The page's title row. subtitle: a sentence, or a list of short facts shown as chips
+ * ("12 teachers", or { label, tone: "warning" } for something that needs attention).
+ * crumbs: the pages above this one, [{ label, href }].
+ * The admin portal (<body data-portal="admin">) shows an "Admin" label above the title.
+ * The icon tile reuses the active sidebar link's icon.
+ */
+export function page(title, subtitle, actions = "", { crumbs = [] } = {}) {
+  const header = $("#page-header");
+  header.classList.remove(
     "teacher-dashboard-header",
     "teacher-class-header",
     "teacher-add-lesson-header",
@@ -205,9 +213,97 @@ export function page(title, subtitle, actions = "") {
     "teacher-class-page",
     "teacher-add-lesson-page",
   );
-  $("#page-header").innerHTML =
-    `<div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div><div class="header-actions">${actions}</div>`;
+  const scope =
+    document.body.dataset.portal === "admin"
+      ? '<span class="page-header__scope">Admin</span>'
+      : "";
+  const trail = crumbs.length
+    ? `<nav class="page-header__crumbs" aria-label="Breadcrumb"><ol>${crumbs
+        .map((crumb) => `<li><a href="${escapeHtml(crumb.href)}">${escapeHtml(crumb.label)}</a></li>`)
+        .join("")}</ol></nav>`
+    : "";
+  const facts = (Array.isArray(subtitle) ? subtitle : [])
+    .filter(Boolean)
+    .map((fact) => (typeof fact === "string" ? { label: fact } : fact));
+  const below = Array.isArray(subtitle)
+    ? facts.length
+      ? `<ul class="page-header__meta">${facts
+          .map((fact) => `<li${fact.tone ? ` class="is-${escapeHtml(fact.tone)}"` : ""}>${escapeHtml(fact.label)}</li>`)
+          .join("")}</ul>`
+      : ""
+    : subtitle
+      ? `<p>${escapeHtml(subtitle)}</p>`
+      : "";
+  const navIcon = document.querySelector("[data-nav].active .nav-icon");
+  header.innerHTML = `<div class="page-header__art" aria-hidden="true"></div><div class="page-header__main">${
+    navIcon ? `<span class="page-header__icon" aria-hidden="true">${navIcon.outerHTML}</span>` : ""
+  }<div class="page-header__text">${
+    scope || trail ? `<div class="page-header__top">${scope}${trail}</div>` : ""
+  }<h1>${escapeHtml(title)}</h1>${below}</div></div><div class="header-actions">${actions}</div>`;
+  syncHeaderBar(title);
 }
+
+// Slim bar that slides in once the page header scrolls away: the title and the primary action.
+let headerBar;
+function syncHeaderBar(title) {
+  const header = $("#page-header");
+  if (!headerBar) {
+    headerBar = document.createElement("div");
+    headerBar.className = "page-header-bar";
+    headerBar.innerHTML = '<div class="page-header-bar__inner"><strong></strong></div>';
+    header.after(headerBar);
+    new IntersectionObserver(([entry]) => {
+      headerBar.classList.toggle(
+        "is-visible",
+        !entry.isIntersecting && entry.boundingClientRect.top < 0,
+      );
+    }).observe(header);
+  }
+  headerBar.querySelector("strong").textContent = title;
+  headerBar.querySelector(".page-header-bar__action")?.remove();
+  const primary = header.querySelector(".header-actions .button.primary");
+  if (!primary) return;
+  const proxy = document.createElement("button");
+  proxy.type = "button";
+  proxy.className = "button primary small page-header-bar__action";
+  proxy.textContent = primary.textContent.trim();
+  proxy.addEventListener("click", () => primary.click());
+  headerBar.firstElementChild.append(proxy);
+}
+
+/** A "⋯" button for the page header that opens a small menu of less-used actions. */
+export function headerMenu(label, itemsHtml) {
+  return `<div class="header-menu">
+    <button class="button secondary header-menu__toggle" type="button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="19" cy="12" r="1.4" /></svg>
+    </button>
+    <div class="header-menu__popup" hidden>${itemsHtml}</div>
+  </div>`;
+}
+
+function closeHeaderMenus() {
+  document.querySelectorAll(".header-menu__popup").forEach((menu) => {
+    menu.hidden = true;
+    menu.previousElementSibling?.setAttribute("aria-expanded", "false");
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const toggle = event.target.closest?.(".header-menu__toggle");
+  if (toggle) {
+    const menu = toggle.nextElementSibling;
+    const willOpen = menu.hidden;
+    closeHeaderMenus();
+    menu.hidden = !willOpen;
+    toggle.setAttribute("aria-expanded", String(willOpen));
+    return;
+  }
+  closeHeaderMenus();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeHeaderMenus();
+});
 
 export function empty(title, description, button, id) {
   return `<div class="card empty"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p><button class="button primary" id="${escapeHtml(id)}">${escapeHtml(button)}</button></div>`;

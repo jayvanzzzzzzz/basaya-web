@@ -1,78 +1,223 @@
 /* ============================================================
-   PAGE HEADER — gradient hero, shared by every page
+   PAGE HEADER — flat workspace header, shared by every page
+   (only the teacher dashboard keeps the gradient welcome strip)
    ============================================================ */
 .page-header {
   position: relative;
   isolation: isolate;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
-  min-height: 9rem;
+  gap: 1rem 1.5rem;
   margin-bottom: 1.6rem;
-  overflow: hidden;
-  padding: clamp(1.4rem, 3vw, 2.1rem) clamp(1.35rem, 3vw, 2.2rem);
-  border-radius: var(--radius-xl);
-  background: var(--hero-gradient);
-  color: #fff;
+  padding: 1.3rem 1.5rem 1.3rem 1.3rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   box-shadow:
-    0 5px 0 var(--primary-lip),
-    var(--shadow-brand);
+    var(--shadow-xs),
+    0 14px 34px -26px rgba(31, 37, 71, 0.4);
 }
 
-/* Soft dot grid + rings for texture */
-.page-header::before {
+/* Decoration layer (own overflow, so the ⋯ menu can still spill out of the card):
+   brand hairline on top, soft glow, and ᜊᜐᜌ — "Ba·Sa·Ya" in Baybayin */
+.page-header__art {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.4px);
-  background-size: 18px 18px;
-  mask-image: linear-gradient(110deg, transparent 35%, #000 85%);
-  -webkit-mask-image: linear-gradient(110deg, transparent 35%, #000 85%);
-  content: "";
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(38rem 11rem at 100% 0%, color-mix(in srgb, var(--brand-violet) 11%, transparent), transparent 70%),
+    radial-gradient(24rem 9rem at 62% 130%, color-mix(in srgb, var(--brand-sky) 8%, transparent), transparent 70%);
+  pointer-events: none;
 }
 
-.page-header::after {
+.page-header__art::before {
   position: absolute;
-  right: -4rem;
-  bottom: -9rem;
-  z-index: -1;
-  width: 20rem;
-  height: 20rem;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 2.4rem rgba(255, 255, 255, 0.05),
-    0 0 0 4.8rem rgba(255, 255, 255, 0.035);
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--brand-gradient);
   content: "";
-  animation: float 9s ease-in-out infinite;
 }
 
-/* Header children are re-rendered on every route, so they animate each time */
-.page-header > * {
-  position: relative;
-  z-index: 1;
-  animation: fadeUp var(--dur-slow) var(--ease-out) backwards;
+.page-header__art::after {
+  position: absolute;
+  right: 1.4rem;
+  bottom: -2.4rem;
+  color: var(--primary);
+  font-family: "Noto Sans Tagalog", "Segoe UI Historic", sans-serif;
+  font-size: 7.5rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  opacity: 0.07;
+  content: "ᜊᜐᜌ";
 }
 
-.page-header > .header-actions {
-  animation-delay: 90ms;
+.page-header__main {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 20rem;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-header__text {
+  min-width: 0;
+}
+
+/* The section's sidebar icon on a brand tile */
+.page-header__icon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.95rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 20px -10px rgba(91, 76, 244, 0.7);
+}
+
+.page-header__icon .nav-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+  stroke-width: 1.8;
+}
+
+.page-header__icon .nav-icon .duo {
+  fill: #fff;
+  fill-opacity: 0.28;
+}
+
+/* Facts as chips: "12 teachers", "3 need a teacher" */
+.page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-header__meta li {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.page-header__meta li.is-warning {
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+/* The dashboard has its own gradient strip */
+.teacher-dashboard-header .page-header__icon,
+.teacher-dashboard-header .page-header__art {
+  display: none;
+}
+
+/* "ADMIN" label and breadcrumbs above the title */
+.page-header__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.7rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.page-header__scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-2);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page-header__scope::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+  content: "";
+}
+
+.page-header__scope + .page-header__crumbs {
+  padding-left: 0.7rem;
+  border-left: 1px solid var(--border-strong);
+}
+
+.page-header__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-header__crumbs li {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.page-header__crumbs li + li::before {
+  color: var(--border-strong);
+  content: "/";
+}
+
+.page-header__crumbs a {
+  overflow: hidden;
+  max-width: 18rem;
+  color: var(--ink-3);
+  font-weight: 500;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--dur-fast) ease;
+}
+
+.page-header__crumbs a:hover {
+  color: var(--primary);
+}
+
+.page-header__crumbs a:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--primary-ring);
+  outline-offset: 2px;
 }
 
 .page-header h1 {
-  margin: 0 0 0.35rem;
-  color: #fff;
-  font-size: clamp(1.7rem, 3.2vw, 2.35rem);
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  text-shadow: 0 2px 12px rgba(30, 20, 110, 0.18);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
 }
 
 .page-header p {
-  max-width: 40rem;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 0.95rem;
+  max-width: 46rem;
+  margin: 0.4rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.93rem;
   line-height: 1.55;
 }
 
@@ -81,64 +226,194 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.6rem;
+  gap: 0.55rem;
 }
 
-/* On the hero, buttons turn into frosted glass / white candy */
-.page-header .button.secondary {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  box-shadow: 0 3px 0 rgba(30, 20, 110, 0.25);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+.header-actions:empty {
+  display: none;
 }
 
-.page-header .button.secondary:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.26);
-  color: #fff;
-  box-shadow: 0 4px 0 rgba(30, 20, 110, 0.25);
+/* ---------- "⋯" menu for less-used actions ---------- */
+.header-menu {
+  position: relative;
 }
 
-.page-header .button.primary {
-  background: #fff;
-  color: #4b3fd6;
-  text-shadow: none;
-  box-shadow:
-    0 3px 0 rgba(30, 20, 110, 0.35),
-    0 12px 26px -12px rgba(20, 10, 80, 0.5);
+.header-menu__toggle {
+  min-width: 0;
+  padding-inline: 0.75rem;
 }
 
-.page-header .button.primary:hover:not(:disabled) {
-  filter: none;
-  background: #fbfaff;
-  box-shadow:
-    0 4px 0 rgba(30, 20, 110, 0.35),
-    0 16px 30px -12px rgba(20, 10, 80, 0.55);
+.header-menu__toggle svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: currentColor;
 }
 
-.page-header .button.primary:active:not(:disabled) {
-  box-shadow: 0 0 0 rgba(30, 20, 110, 0.35);
+.header-menu__popup {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transform-origin: top right;
+  animation: menuIn var(--dur) var(--ease-out);
 }
 
-/* Dashboard: taller hero with the waving mascot */
+.header-menu__popup button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.62rem 0.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.header-menu__popup button:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.header-menu__popup button.danger {
+  position: relative;
+  margin-top: 0.35rem;
+  color: var(--danger);
+}
+
+.header-menu__popup button.danger::before {
+  position: absolute;
+  top: -0.2rem;
+  right: 0.4rem;
+  left: 0.4rem;
+  height: 1px;
+  background: var(--border);
+  content: "";
+}
+
+.header-menu__popup button.danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* ---------- Slim bar once the header scrolls away ---------- */
+.page-header-bar {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 15;
+  height: 0;
+}
+
+.page-header-bar__inner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.6rem 0.55rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-0.6rem);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  transition:
+    opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out),
+    visibility 0s linear var(--dur);
+}
+
+.page-header-bar.is-visible .page-header-bar__inner {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out);
+}
+
+.page-header-bar strong {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-header-bar__action {
+  flex: 0 0 auto;
+}
+
+/* ============================================================
+   TEACHER DASHBOARD — the one gradient welcome strip
+   ============================================================ */
 .teacher-dashboard-header {
-  min-height: 12rem;
-  padding-right: clamp(1.35rem, 14vw, 13rem);
+  position: relative;
+  isolation: isolate;
+  align-items: center;
+  min-height: 10.5rem;
+  overflow: hidden;
+  padding: clamp(1.4rem, 3vw, 2rem) clamp(1.35rem, 14vw, 13rem) clamp(1.4rem, 3vw, 2rem)
+    clamp(1.35rem, 3vw, 2.2rem);
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--hero-gradient);
+  color: #fff;
+  box-shadow: var(--shadow-brand);
 }
 
+/* Soft dot grid for texture */
+.teacher-dashboard-header::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(110deg, transparent 40%, #000 90%);
+  -webkit-mask-image: linear-gradient(110deg, transparent 40%, #000 90%);
+  content: "";
+}
+
+/* The waving mascot */
 .teacher-dashboard-header::after {
+  position: absolute;
   right: clamp(-1rem, 2vw, 2rem);
   bottom: -1.2rem;
-  width: clamp(7rem, 13vw, 10.5rem);
-  height: clamp(7rem, 13vw, 10.5rem);
-  border: 0;
-  border-radius: 0;
+  z-index: -1;
+  width: clamp(7rem, 13vw, 10rem);
+  height: clamp(7rem, 13vw, 10rem);
   background: url("../../img/logo.png") center / contain no-repeat;
-  box-shadow: none;
   filter: drop-shadow(0 14px 18px rgba(20, 10, 80, 0.3));
+  content: "";
   animation: float 5s ease-in-out infinite;
+}
+
+.teacher-dashboard-header h1 {
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(30, 20, 110, 0.18);
+}
+
+.teacher-dashboard-header p {
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .teacher-dashboard-header__eyebrow {
@@ -158,19 +433,57 @@
 
 .teacher-dashboard-header .header-actions {
   position: absolute;
-  top: clamp(1.4rem, 3vw, 2.1rem);
+  top: clamp(1.4rem, 3vw, 2rem);
   right: clamp(1.35rem, 3vw, 2.2rem);
 }
 
+.teacher-dashboard-header .button.primary {
+  background: #fff;
+  color: #4b3fd6;
+  text-shadow: none;
+  box-shadow:
+    0 3px 0 rgba(30, 20, 110, 0.35),
+    0 12px 26px -12px rgba(20, 10, 80, 0.5);
+}
+
+.teacher-dashboard-header .button.primary:hover:not(:disabled) {
+  filter: none;
+  background: #fbfaff;
+}
+
+:root[data-theme="dark"] .teacher-dashboard-header .button.primary {
+  background: #e6e6ec;
+  color: #3f3790;
+}
+
+/* ---------- Phones: actions drop under the title; no slim bar ---------- */
 @media (max-width: 860px) {
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
-    min-height: 0;
+    align-items: stretch;
+    padding: 1.1rem;
+  }
+
+  .page-header__main {
+    flex-basis: auto;
+  }
+
+  .page-header__icon {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .page-header__art::after {
+    font-size: 5rem;
+    bottom: -1.6rem;
   }
 
   .header-actions {
     justify-content: flex-start;
+  }
+
+  .page-header-bar {
+    display: none;
   }
 
   .teacher-dashboard-header {
@@ -186,14 +499,4 @@
     width: 6.5rem;
     height: 6.5rem;
   }
-}
-
-/* Dark: off-white instead of pure white so the hero buttons don't glare */
-:root[data-theme="dark"] .page-header .button.primary {
-  background: #e6e6ec;
-  color: #3f3790;
-}
-
-:root[data-theme="dark"] .page-header .button.primary:hover:not(:disabled) {
-  background: #f0f0f4;
 }

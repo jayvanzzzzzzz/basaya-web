@@ -30,8 +30,14 @@ export async function renderStudentsPage(classId) {
 
   page(
     "Students",
-    `${students.length} enrolled in ${classroom.className}.`,
-    `<button class="button secondary" id="back-to-class">← Back to class</button>`,
+    `${students.length} enrolled in ${classroom.className}`,
+    "",
+    {
+      crumbs: [
+        { label: "Classrooms", href: "#/dashboard" },
+        { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
+      ],
+    },
   );
 
   const rows = students
@@ -85,10 +91,6 @@ export async function renderStudentsPage(classId) {
       </section>`);
 
   wireLeaveRequests(classroom, students, () => renderStudentsPage(classId));
-
-  $("#back-to-class").addEventListener("click", () =>
-    navigate(`/classes/${encodeURIComponent(classId)}`),
-  );
 
   $("#student-search")?.addEventListener("input", (event) => {
     const term = event.currentTarget.value.trim().toLowerCase();

@@ -293,11 +293,14 @@ export async function renderClassReport(classId) {
 
   page(
     "Class Report",
-    `${classroom.className} · how the class is doing in every skill`,
-    `<button class="button secondary" id="back-to-class">← Back to class</button>`,
-  );
-  $("#back-to-class").addEventListener("click", () =>
-    navigate(`/classes/${encodeURIComponent(classId)}`),
+    `How ${classroom.className} is doing in every skill`,
+    "",
+    {
+      crumbs: [
+        { label: "Classrooms", href: "#/dashboard" },
+        { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
+      ],
+    },
   );
 
   if (!students.length) {

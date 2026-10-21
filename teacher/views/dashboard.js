@@ -29,13 +29,15 @@ export async function renderDashboard() {
   await getTeacherClasses();
   page(
     "Your classrooms",
-    "Everything you need to keep your learning spaces moving.",
+    state.classes.length
+      ? `You have ${state.classes.length} ${state.classes.length === 1 ? "class" : "classes"}. Open one to see its lessons and progress.`
+      : "Create your first class to start adding lessons.",
     `<button class="button primary" id="new-class">+ New class</button>`,
   );
   const pageHeader = $("#page-header");
   pageHeader.classList.add("teacher-dashboard-header");
   pageHeader
-    .querySelector("div")
+    .querySelector(".page-header__text")
     .insertAdjacentHTML(
       "afterbegin",
       '<span class="teacher-dashboard-header__eyebrow">Teacher dashboard</span>',

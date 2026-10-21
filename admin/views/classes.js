@@ -124,7 +124,23 @@ export async function renderClasses() {
     state.teachers.map((t) => [t.id, t.displayName || t.email || "Unnamed teacher"]),
   );
 
-  page("All classes", "Every class across the platform, with its teacher.");
+  const classCount = state.allClasses.length;
+  const needTeacher = state.allClasses.filter(isUnassigned).length;
+  const deletionRequests = state.allClasses.filter((c) => c.deletionRequest).length;
+  page(
+    "All classes",
+    [
+      `${classCount} ${classCount === 1 ? "class" : "classes"}`,
+      needTeacher && {
+        label: `${needTeacher} need${needTeacher === 1 ? "s" : ""} a teacher`,
+        tone: "warning",
+      },
+      deletionRequests && {
+        label: `${deletionRequests} deletion request${deletionRequests === 1 ? "" : "s"}`,
+        tone: "warning",
+      },
+    ],
+  );
 
   $("#page-content").innerHTML = state.allClasses.length
     ? `${requestsPanel(state.allClasses, teacherNameById)}

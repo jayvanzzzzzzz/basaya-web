@@ -340,7 +340,7 @@ function confirmDiscardWord(word) {
 export async function renderDictionary() {
   page(
     "Dictionary",
-    "Every Tagalog word students can look up, explained in Filipino. Add missing words and fix or hide wrong ones.",
+    "Tagalog words students can look up, explained in Filipino",
     `<button class="button primary" id="dict-add">+ Add word</button>`,
   );
   $("#page-content").innerHTML = `

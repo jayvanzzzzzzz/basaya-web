@@ -16,7 +16,7 @@ import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } 
 export function renderAccountSettings() {
   page(
     "Account settings",
-    "Keep your profile and sign-in details up to date.",
+    "",
   );
 
   const profile = state.profile || {};

@@ -49,6 +49,10 @@
   .sidebar,
   .site-footer,
   .header-actions,
+  .page-header__top,
+  .page-header__icon,
+  .page-header__art,
+  .page-header-bar,
   .pagination,
   .toast,
   .modal-backdrop,
@@ -67,11 +71,12 @@
     padding: 0;
   }
 
-  /* Plain title instead of the gradient hero */
+  /* Plain black title */
   .page-header {
     min-height: 0;
     margin-bottom: 0.8rem;
     padding: 0 0 0.5rem;
+    border: 0;
     border-bottom: 2px solid #000;
     border-radius: 0;
     background: none;
