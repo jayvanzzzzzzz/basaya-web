@@ -4,7 +4,11 @@ The Cloudflare Worker behind **Generate audio** (Admin → Add lesson → Lectur
 
 ## Why it changed
 
-`ALLOWED_ORIGIN` used to be compared as one exact address, so it could allow only one site. Now it can list several, separated by commas:
+**Word timings (latest change):** the Lecture now highlights each word as it is spoken. When the website sends `"timings": true` to `/generate`, the Worker asks ElevenLabs for the audio *with timestamps* and returns JSON (`audioBase64` + `alignment`: when each letter is spoken) instead of the bare MP3. Without `"timings": true` it answers exactly as before. Only `/generate` changed (the `wantTimings` part). The website works with both the old and the new Worker: until this code is deployed, new audio simply has no exact timings and the Lecture estimates them.
+
+**Voice model:** `MODEL_ID` (top of the code) is now `eleven_v4_turbo` instead of `eleven_multilingual_v2`. Opening the Worker address in a browser now also shows which model it uses (`"model"`). It costs half as much ($0.04 instead of $0.08 per 1,000 characters) and supports Filipino. Audio that was already saved is not touched; only newly generated audio uses v4 Turbo.
+
+**Earlier change:** `ALLOWED_ORIGIN` used to be compared as one exact address, so it could allow only one site. Now it can list several, separated by commas:
 
 ```
 ALLOWED_ORIGIN = http://localhost,https://basaya.onrender.com
@@ -33,6 +37,7 @@ Settings the Worker needs (**Settings → Variables and Secrets**, and **Binding
 
 ```js
 const DEFAULT_VOICE_ID = "HBvmy37rj1IsebuFhjqA";
+const MODEL_ID = "eleven_v4_turbo";
 const MAX_TEXT_LENGTH = 1500;
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 
@@ -50,6 +55,7 @@ export default {
           {
             status: "ok",
             message: "BaSaya TTS service is online.",
+            model: MODEL_ID,
           },
           200,
           request,
@@ -69,6 +75,8 @@ export default {
         const body = await request.json();
         const text = String(body.text || "").trim();
         const voiceId = String(body.voiceId || DEFAULT_VOICE_ID).trim();
+        // Lecture sentences ask for word timings so the student's screen can follow the voice.
+        const wantTimings = body.timings === true;
 
         if (!text) {
           return json({ error: "Text is required." }, 400, request, env);
@@ -88,17 +96,18 @@ export default {
         }
 
         const elevenLabsResponse = await fetch(
-          `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+          `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}` +
+            `${wantTimings ? "/with-timestamps" : ""}?output_format=mp3_44100_128`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Accept: "audio/mpeg",
+              Accept: wantTimings ? "application/json" : "audio/mpeg",
               "xi-api-key": env.ELEVENLABS_API_KEY,
             },
             body: JSON.stringify({
               text,
-              model_id: "eleven_multilingual_v2",
+              model_id: MODEL_ID,
             }),
           },
         );
@@ -114,6 +123,24 @@ export default {
             502,
             request,
             env,
+          );
+        }
+
+        if (wantTimings) {
+          // { audio_base64, alignment: { characters, character_start_times_seconds, ... } }
+          const result = await elevenLabsResponse.json();
+          return new Response(
+            JSON.stringify({
+              audioBase64: result.audio_base64,
+              alignment: result.alignment || null,
+            }),
+            {
+              headers: {
+                ...corsHeaders(request, env),
+                "Content-Type": "application/json; charset=utf-8",
+                "Cache-Control": "no-store",
+              },
+            },
           );
         }
 
@@ -316,7 +343,7 @@ function preflightResponse(request, env) {
 }
 
 function json(data, status, request, env) {
-  return new Response(JSON.stringify(data), {
+  return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: {
       ...corsHeaders(request, env),

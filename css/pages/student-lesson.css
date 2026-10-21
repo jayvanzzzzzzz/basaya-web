@@ -337,6 +337,64 @@
   color: var(--ink);
 }
 
+/* Read-along (student/readAlong.js): a soft pill glides behind each word as it is spoken,
+   and a faint trail grows under the words already read. The letters never move or change
+   color, so the sentence stays easy to read. */
+.st-sentence {
+  position: relative;
+}
+
+.st-word {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+}
+
+/* The trail reaches across the space after the word, so it reads as one line. */
+.st-word::after {
+  position: absolute;
+  right: -0.3em;
+  bottom: 0.1em;
+  left: 0;
+  z-index: -1;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms var(--ease-out);
+}
+
+.st-word.is-read::after {
+  transform: scaleX(1);
+}
+
+.st-word-bubble {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--primary) 22%, var(--surface)),
+    color-mix(in srgb, var(--info) 18%, var(--surface))
+  );
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--primary) 45%, var(--surface));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 220ms var(--ease-out),
+    width 220ms var(--ease-out),
+    height 220ms var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.st-word-bubble.is-on {
+  opacity: 1;
+}
+
 .st-lecture__hint {
   margin: 1rem 0 0;
   color: var(--ink-3);

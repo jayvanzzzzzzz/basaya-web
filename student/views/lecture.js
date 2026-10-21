@@ -10,12 +10,14 @@ import {
   saveResume,
 } from "../data.js";
 import { audioSource, downloadPageAudio, lecturePlayer } from "../lectureAudio.js";
+import { fillSentence, followAlong } from "../readAlong.js";
 import { onLeave } from "../router.js";
 import { content, icon, setTalking as moveMouth, showDialog, talkingBuddy } from "../ui.js";
 
 // The lecture (the app's LectureActivity): tap to reveal each sentence while the talking
-// book reads it aloud. The last page's button marks the lecture finished. Until then each
-// finished page saves the place (resume.lecture), so a closed lecture opens on the next page.
+// book reads it aloud, a bubble hopping onto each word as it is said (readAlong.js). The last
+// page's button marks the lecture finished. Until then each finished page saves the place
+// (resume.lecture), so a closed lecture opens on the next page.
 // The lesson path opens it only once the first page's audio is downloaded (prepareLecture).
 
 /** How long the lesson path waits for the audio before asking the student. */
@@ -133,6 +135,7 @@ export async function renderLecture(lessonId) {
   let pageIndex = 0;
   let sentenceIndex = 0;
   let saving = false;
+  let stopReadAlong = () => {};
 
   const setTalking = (talking) => {
     book.classList.toggle("is-talking", talking);
@@ -140,13 +143,24 @@ export async function renderLecture(lessonId) {
   };
   const { signal } = listeners;
   player.addEventListener("playing", () => setTalking(true), { signal });
-  player.addEventListener("ended", () => setTalking(false), { signal });
+  // Not on "pause": stopAudio() pauses before the next sentence starts, and that late event
+  // would stop the new sentence's read-along.
+  const endReadAlong = () => {
+    stopReadAlong();
+    stopReadAlong = () => {};
+  };
+  const done = () => {
+    setTalking(false);
+    endReadAlong();
+  };
+  player.addEventListener("ended", done, { signal });
   player.addEventListener("pause", () => setTalking(false), { signal });
-  player.addEventListener("error", () => setTalking(false), { signal });
+  player.addEventListener("error", done, { signal });
 
   const stopAudio = () => {
     player.pause();
     setTalking(false);
+    endReadAlong();
   };
   onLeave(() => {
     stopAudio();
@@ -157,10 +171,17 @@ export async function renderLecture(lessonId) {
 
   const play = (index) => {
     stopAudio();
-    const url = lecture.pages[pageIndex].audioUrls[index];
+    const page = lecture.pages[pageIndex];
+    const url = page.audioUrls[index];
     if (!speakerOn || !url) return;
     player.src = audioSource(url); // the downloaded copy when there is one
-    player.play().catch(() => setTalking(false));
+    const line = sentencesEl.children[index];
+    const stop = line ? followAlong(line, player, page.wordStarts[index]) : () => {};
+    stopReadAlong = stop;
+    player.play().catch(() => {
+      // A play() cut short by the next sentence must not stop that sentence's read-along.
+      if (stopReadAlong === stop) done();
+    });
   };
 
   const updateTrack = () => {
@@ -176,7 +197,7 @@ export async function renderLecture(lessonId) {
     sentencesEl.querySelector(".is-active")?.classList.remove("is-active");
     const line = document.createElement("p");
     line.className = "st-sentence is-active";
-    line.textContent = page.sentences[sentenceIndex];
+    fillSentence(line, page.sentences[sentenceIndex]);
     sentencesEl.append(line);
     play(sentenceIndex);
     sentenceIndex += 1;

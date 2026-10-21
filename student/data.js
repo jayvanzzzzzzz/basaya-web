@@ -235,7 +235,7 @@ async function contentDoc(lessonId, part, preferred = "content") {
 
 const httpsOnly = (value) => (typeof value === "string" && value.startsWith("https://") ? value : "");
 
-/** { title, pages: [{ pageNumber, sentences, audioUrls }] } or null. */
+/** { title, pages: [{ pageNumber, sentences, audioUrls, wordStarts }] } or null. */
 export async function loadLecture(lessonId) {
   const snap = await contentDoc(lessonId, "lectures");
   if (!snap) return null;
@@ -243,6 +243,10 @@ export async function loadLecture(lessonId) {
     pageNumber: Number(page.pageNumber) || 0,
     sentences: (page.sentences || []).filter((sentence) => typeof sentence === "string"),
     audioUrls: (page.cloudAudio || []).map((entry) => httpsOnly(entry?.audioUrl)),
+    // When each word is spoken (seconds), saved with audio generated since read-along; else null.
+    wordStarts: (page.cloudAudio || []).map((entry) =>
+      Array.isArray(entry?.wordStarts) && entry.wordStarts.every(Number.isFinite) ? entry.wordStarts : null,
+    ),
   }));
   return { title: snap.get("title") || "", pages: pages.filter((page) => page.sentences.length) };
 }

@@ -110,7 +110,7 @@ The same idea applies to "static" dictionary words. They come from a file built 
 | **notify-api** | Vercel (Node 22, serverless) | teacher/admin site, login page | Push notifications, delete/remove jobs, password emails, contact email | Firebase **service account**, Gmail **App Password**, `PASSWORD_CHANGE_SECRET` |
 | **basaya-tts** | Cloudflare Worker | admin site (Generate audio), app + site (play audio) | Text → MP3 via ElevenLabs, stores MP3 in **R2**, serves `/audio/…` | **ElevenLabs API key** |
 | **R2 bucket** | Cloudflare | basaya-tts only | Stores lesson MP3s (`lessons/{id}/…`) | — |
-| **ElevenLabs** | elevenlabs.io | basaya-tts only | The voice (model `eleven_multilingual_v2`) | — |
+| **ElevenLabs** | elevenlabs.io | basaya-tts only | The voice (model `eleven_v4_turbo`) | — |
 | **basaya-stt** | Cloudflare Worker + Workers AI | app + student site | Student's voice → text (Whisper large-v3-turbo, Tagalog) | `APP_KEY` (for the app) |
 | **Gmail SMTP** | Google | notify-api (nodemailer) | Sends reset, approval and contact emails | (App Password lives in Vercel) |
 | **Tagalog Wiktionary** | dumps.wikimedia.org | `tools/build-dictionary.mjs`, run by hand | Source of the dictionary words | — |
@@ -254,7 +254,7 @@ POST /generate  ───────────────▶ 1. Origin in AL
                                     role teacher/admin?          no → 403
                                  3. text not empty, ≤ 1,500 chars
                                  4. POST text-to-speech/{voiceId} ───────▶ voice
-                                    xi-api-key = secret                    eleven_multilingual_v2
+                                    xi-api-key = secret                    eleven_v4_turbo
                                     ◀──────────────────────────────────── MP3 (44.1 kHz, 128 kbps)
 play preview in the browser ◀── 5. stream MP3 back (not stored yet)
 ```
@@ -270,10 +270,10 @@ POST /save-audio (FormData: MP3, lessonId, section, page, sentence) ─▶ basay
    R2.put("lessons/{id}/{lectures|pronunciation}/page-N/sentence-N-<uuid>.mp3",
           cache: 1 year, immutable)
    ◀── { audioUrl: "https://basaya-tts…workers.dev/audio/lessons/…mp3", storageKey }
-website writes into Firestore:  cloudAudio[i] = { audioUrl, storageKey, text }
+website writes into Firestore:  cloudAudio[i] = { audioUrl, storageKey, text, wordStarts? }
 ```
 
-`text` remembers what the audio says. If the sentence is edited later, the old audio no longer matches and is dropped.
+`wordStarts` = when each word starts, in seconds (words = text split on spaces). `/generate` with `timings: true` calls ElevenLabs `/with-timestamps` and returns `{ audioBase64, alignment }`; js/tts.js turns the per-letter times into word starts. The Lecture (student/readAlong.js, app ReadAlongTextView) moves a bubble from word to word with them, or estimates them from word lengths for older audio. `text` remembers what the audio says. If the sentence is edited later, the old audio no longer matches and is dropped.
 
 ### C. Playback: the student hears it
 

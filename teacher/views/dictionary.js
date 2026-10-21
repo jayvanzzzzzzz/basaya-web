@@ -64,7 +64,7 @@ function actionsHtml(entry) {
 function rowHtml(entry) {
   const first = entry.hidden
     ? "Students don't see this word."
-    : `${entry.senses[0]?.pos || ""} · ${entry.senses[0]?.definitions[0] || ""}`;
+    : [entry.senses[0]?.pos, entry.senses[0]?.definitions[0]].filter(Boolean).join(" · ");
   return `
     <div class="lesson-row dict-row" data-key="${escapeHtml(entry.key)}">
       <button type="button" class="dict-row__text" data-act="open">
@@ -96,7 +96,7 @@ function entryHtml(entry) {
               .map(
                 (sense) => `
         <section class="dict-entry__sense">
-          <h3>${escapeHtml(sense.pos)}</h3>
+          ${sense.pos ? `<h3>${escapeHtml(sense.pos)}</h3>` : ""}
           <ol>${sense.definitions.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ol>
           ${sense.examples.length ? `<ul class="dict-entry__examples">${sense.examples.map((e) => `<li>“${escapeHtml(e)}”</li>`).join("")}</ul>` : ""}
         </section>`,
@@ -113,12 +113,13 @@ function entryHtml(entry) {
     </article>`;
 }
 
-function senseHtml(sense = { pos: "pangngalan", definitions: [], examples: [] }, index = 0) {
+// A new group starts with no part of speech; students then see the meanings without a heading.
+function senseHtml(sense = { pos: "", definitions: [], examples: [] }, index = 0) {
   return `
     <fieldset class="dict-sense" data-sense>
       <legend>Meaning group ${index + 1}</legend>
       <label>Part of speech
-        <select name="pos">${PARTS_OF_SPEECH.map((p) => `<option value="${p}" ${p === sense.pos ? "selected" : ""}>${p}</option>`).join("")}</select>
+        <select name="pos"><option value="">— Not specified —</option>${PARTS_OF_SPEECH.map((p) => `<option value="${p}" ${p === sense.pos ? "selected" : ""}>${p}</option>`).join("")}</select>
       </label>
       <label>Meanings in Filipino <small>(one per line)</small>
         <textarea name="definitions" rows="3" placeholder="Hal. Gusali na tirahan ng tao.">${escapeHtml(sense.definitions.join("\n"))}</textarea>
@@ -134,6 +135,7 @@ function senseHtml(sense = { pos: "pangngalan", definitions: [], examples: [] },
 export function openWordModal(entry = null, onSaved, typed = "") {
   const editing = !!entry;
   const senses = entry?.senses.length ? entry.senses : [undefined];
+  let mayLeave = () => Promise.resolve(true);
   openModal(
     `<h2>${editing ? `Edit “${escapeHtml(entry.word)}”` : "Add a word"}</h2>
      <p>${
@@ -189,7 +191,13 @@ export function openWordModal(entry = null, onSaved, typed = "") {
       form.word.addEventListener("input", syncSyllables);
       form.accent.addEventListener("input", syncSyllables);
 
-      $("[data-close]", backdrop).addEventListener("click", close);
+      // × and Cancel ask first when anything differs from how the modal opened.
+      const initialSnapshot = formSnapshot(form);
+      mayLeave = () =>
+        formSnapshot(form) === initialSnapshot ? Promise.resolve(true) : confirmDiscardWord(editing && entry.word);
+      $("[data-close]", backdrop).addEventListener("click", async () => {
+        if (await mayLeave()) close();
+      });
       addButton.addEventListener("click", () => {
         list.insertAdjacentHTML("beforeend", senseHtml(undefined, $$("[data-sense]", list).length));
         syncAdd();
@@ -284,7 +292,49 @@ export function openWordModal(entry = null, onSaved, typed = "") {
       });
       form.querySelector(editing || typed ? "textarea" : "input").focus();
     },
+    { closeOnBackdrop: false, beforeClose: () => mayLeave() },
   );
+}
+
+/** Every box in the word form, including added or removed meaning groups. */
+function formSnapshot(form) {
+  return JSON.stringify($$("input, textarea, select", form).map((field) => field.value));
+}
+
+/** Resolves true to close the word modal and lose the edits, false to keep editing. */
+function confirmDiscardWord(word) {
+  return new Promise((resolve) => {
+    openModal(
+      `${word
+        ? `<h2>Discard unsaved changes?</h2>
+           <p>Your changes to “${escapeHtml(word)}” will be lost.</p>`
+        : `<h2>Discard this word?</h2>
+           <p>The word you've entered won't be added.</p>`}
+       <div class="modal-actions">
+         <button type="button" class="button secondary" data-cancel>Keep editing</button>
+         <button type="button" class="button danger" data-confirm>${word ? "Discard changes" : "Discard word"}</button>
+       </div>`,
+      (backdrop, close) => {
+        let settled = false;
+        const finish = (choice) => {
+          if (settled) return;
+          settled = true;
+          watcher.disconnect();
+          close();
+          resolve(choice);
+        };
+        // Closing with × or the backdrop counts as "keep editing".
+        const watcher = new MutationObserver(() => {
+          if (!backdrop.isConnected) finish(false);
+        });
+        watcher.observe(document.body, { childList: true });
+
+        $("[data-cancel]", backdrop).addEventListener("click", () => finish(false));
+        $("[data-confirm]", backdrop).addEventListener("click", () => finish(true));
+        setTimeout(() => $("[data-cancel]", backdrop).focus(), 50);
+      },
+    );
+  });
 }
 
 export async function renderDictionary() {

@@ -28,17 +28,44 @@ async function workerFetch(path, options = {}) {
   return response;
 }
 
+/**
+ * Generates the audio for `text`: { blob, wordStarts }. wordStarts is when each word starts,
+ * in seconds (words = the text split on spaces, as the student's Lecture splits it), or null
+ * when the Worker doesn't send timings (an older Worker answers with the bare MP3).
+ */
 export async function generateSpeech(text, voiceId) {
   const response = await workerFetch("/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text,
+      timings: true,
       ...(voiceId ? { voiceId } : {}),
     }),
   });
 
-  return response.blob();
+  if (!(response.headers.get("Content-Type") || "").includes("application/json")) {
+    return { blob: await response.blob(), wordStarts: null };
+  }
+  const { audioBase64, alignment } = await response.json();
+  const bytes = Uint8Array.from(atob(audioBase64 || ""), (char) => char.charCodeAt(0));
+  return { blob: new Blob([bytes], { type: "audio/mpeg" }), wordStarts: wordStartsFrom(alignment, text) };
+}
+
+/** The start time of each word from ElevenLabs' per-letter timings, or null if they don't fit. */
+function wordStartsFrom(alignment, text) {
+  const chars = alignment?.characters;
+  const times = alignment?.character_start_times_seconds;
+  if (!Array.isArray(chars) || !Array.isArray(times) || chars.length !== times.length) return null;
+  const starts = [];
+  let afterSpace = true;
+  chars.forEach((char, i) => {
+    const space = /\s/.test(char);
+    if (!space && afterSpace) starts.push(Math.round(Number(times[i]) * 1000) / 1000);
+    afterSpace = space;
+  });
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  return starts.length === wordCount && starts.every(Number.isFinite) ? starts : null;
 }
 
 export async function saveSpeech({

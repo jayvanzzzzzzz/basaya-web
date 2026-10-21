@@ -29,7 +29,7 @@ function entryHtml(entry) {
         .map(
           (sense) => `
         <section class="st-dict-sense">
-          <h3>${escapeHtml(sense.pos)}</h3>
+          ${sense.pos ? `<h3>${escapeHtml(sense.pos)}</h3>` : ""}
           <ol>${sense.definitions.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ol>
           ${sense.examples.length ? `<ul class="st-dict-examples">${sense.examples.map((e) => `<li>“${escapeHtml(e)}”</li>`).join("")}</ul>` : ""}
         </section>`,
@@ -52,7 +52,7 @@ function listHtml(entries) {
       <li style="--i: ${i}">
         <button type="button" class="st-dict-row" data-key="${escapeHtml(entry.key)}">
           <strong>${escapeHtml(shown(entry))}</strong>
-          <span>${escapeHtml(entry.senses[0]?.pos || "")} · ${escapeHtml(entry.senses[0]?.definitions[0] || "")}</span>
+          <span>${escapeHtml([entry.senses[0]?.pos, entry.senses[0]?.definitions[0]].filter(Boolean).join(" · "))}</span>
           ${icon("chevron")}
         </button>
       </li>`,

@@ -172,7 +172,7 @@ Nothing is stored until you publish, so trying several versions is free of clutt
                                      over 1500 chars → 400
                                      │ ok
                                   7. Ask ElevenLabs ────────────────▶ 8. Makes the voice
-                                     (secret API key,                    (multilingual v2)
+                                     (secret API key,                    (v4 Turbo)
                                       never shown to you)
                                      ◀───────────────────────────────── MP3 audio
                                      │
@@ -181,6 +181,7 @@ Nothing is stored until you publish, so trying several versions is free of clutt
      (kept in the browser only)
 ```
 
+- The website also asks for **word timings** (`timings: true`): ElevenLabs then says when each letter is spoken, and the website turns that into when each word starts (`wordStarts`, saved with the sentence's audio). In the student's Lecture a bubble hops onto each word as it is said. Audio made before this has no timings, so the Lecture estimates them from the length of each word.
 - You can regenerate a sentence up to **5 times** before publishing.
 - If you change the sentence text after generating, the old audio no longer matches, so generate again.
 

@@ -357,6 +357,43 @@ function difficultyOptions(selected) {
     .join("");
 }
 
+// Section titles and instructions start from the lesson title; the teacher can still edit them.
+const TITLE_DEFAULTS = {
+  "[data-lecture-title]": (title) => `Ano ang ${title}?`,
+  "[data-quiz-title]": (title) => `PAGSUSULIT - ${title.toUpperCase()}`,
+  "[data-activity-title]": (title) => `PAGSASANAY: HANAPIN ANG ${title.toUpperCase()}`,
+  "[data-activity-instruction]": (title) => `Pindutin at piliin ang salitang ${title.toLowerCase()} sa pangungusap.`,
+  "[data-pronunciation-title]": (title) => `BIGKASIN ANG MGA ${title.toUpperCase()}`,
+  "[data-pronunciation-instruction]": () => "Pindutin ang mikropono at bigkasin nang malakas ang salita.",
+};
+
+/**
+ * Fills empty section titles/instructions from the lesson title, then keeps them in step
+ * while the title is typed. A field the teacher rewrote no longer matches its default and
+ * is left alone.
+ */
+function wireTitleDefaults(modal) {
+  const titleInput = $('[name="title"]', modal);
+  let lastTitle = titleInput.value.trim();
+  // Older lessons saved the bare lesson title as the lecture title; treat it as unset.
+  const lectureTitle = $("[data-lecture-title]", modal);
+  if (lastTitle && lectureTitle.value.trim() === lastTitle) lectureTitle.value = "";
+  const fill = (previous, next) => {
+    Object.entries(TITLE_DEFAULTS).forEach(([selector, make]) => {
+      const field = $(selector, modal);
+      const value = field.value.trim();
+      if (value && (!previous || value !== make(previous))) return;
+      field.value = next ? make(next) : "";
+    });
+  };
+  if (lastTitle) fill("", lastTitle);
+  titleInput.addEventListener("input", () => {
+    const title = titleInput.value.trim();
+    fill(lastTitle, title);
+    lastTitle = title;
+  });
+}
+
 function studioHtml(lesson = {}, sections = {}) {
   return `
     <div class="lesson-studio">
@@ -427,7 +464,7 @@ function studioHtml(lesson = {}, sections = {}) {
             </div>
           </div>
 
-          <label>Lecture title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || lesson.title || "")}" placeholder="PANGGALAN" /></label>
+          <label>Lecture title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || "")}" placeholder="Ano ang Pangngalan?" /></label>
 
           <div class="lecture-pages" data-lecture-pages></div>
         </section>
@@ -441,7 +478,7 @@ function studioHtml(lesson = {}, sections = {}) {
             </div>
           </div>
 
-          <label>Quiz title<input data-quiz-title value="${escapeHtml(sections.quiz?.title || "")}" placeholder="PANGGALAN - Pagsusulit" /></label>
+          <label>Quiz title<input data-quiz-title value="${escapeHtml(sections.quiz?.title || "")}" placeholder="PAGSUSULIT - PANGNGALAN" /></label>
 
           <div class="lesson-subheading">
             <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
@@ -470,7 +507,7 @@ function studioHtml(lesson = {}, sections = {}) {
           <p class="muted">When selected, the activity controls are disabled and no activity is saved.</p>
           <div data-activity-editor>
             <label>Activity title<input data-activity-title value="${escapeHtml(sections.activity?.title || "")}" placeholder="PAGSASANAY: HANAPIN ANG PANGNGALAN" /></label>
-            <label>Instruction<textarea data-activity-instruction placeholder="Pindutin at piliin ang mga salitang pangngalan sa pangungusap.">${escapeHtml(sections.activity?.instruction || "")}</textarea></label>
+            <label>Instruction<textarea data-activity-instruction placeholder="Pindutin at piliin ang salitang pangngalan sa pangungusap.">${escapeHtml(sections.activity?.instruction || "")}</textarea></label>
             <label>General explanation<textarea data-activity-explanation placeholder="Ipaliwanag ang konsepto.">${escapeHtml(sections.activity?.explanation || "")}</textarea></label>
 
             <div class="lesson-subheading">
@@ -491,7 +528,7 @@ function studioHtml(lesson = {}, sections = {}) {
           </div>
 
           <label>Pronunciation title<input data-pronunciation-title value="${escapeHtml(sections.pronunciation?.title || "")}" placeholder="BIGKASIN ANG MGA PANGNGALAN" /></label>
-          <label>Instruction<textarea data-pronunciation-instruction placeholder="Pindutin ang mikropono at bigkasin ang salita.">${escapeHtml(sections.pronunciation?.instruction || "")}</textarea></label>
+          <label>Instruction<textarea data-pronunciation-instruction placeholder="Pindutin ang mikropono at bigkasin nang malakas ang salita.">${escapeHtml(sections.pronunciation?.instruction || "")}</textarea></label>
 
           <div class="lesson-subheading">
             <h4>Words <span class="lesson-subheading__count" data-card-count></span></h4>
@@ -1404,6 +1441,8 @@ async function openLessonModal(existing = null) {
       }
     });
 
+    wireTitleDefaults(modal);
+
     const studioForm = $("#lesson-form", modal);
     const initialSnapshot = editorSnapshot(studioForm);
     mayLeave = () =>
@@ -1475,7 +1514,7 @@ async function createPreview(button, row, text) {
   button.textContent = "Generating…";
 
   try {
-    const blob = await generateSpeech(text);
+    const { blob, wordStarts } = await generateSpeech(text);
     const previous = previews.get(row);
 
     if (previous?.objectUrl) {
@@ -1488,6 +1527,7 @@ async function createPreview(button, row, text) {
       blob,
       objectUrl,
       text,
+      wordStarts,
       generationCount: nextGenerationCount,
     });
 
@@ -1598,7 +1638,7 @@ async function saveLesson(existing, values, elements) {
 
   await replaceActivity(lessonRef.id, activity);
   await setDoc(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
-    title: $("[data-lecture-title]", document.body).value.trim() || values.title.trim(),
+    title: $("[data-lecture-title]", document.body).value.trim() || TITLE_DEFAULTS["[data-lecture-title]"](values.title.trim()),
     pages: lectures,
   });
   await setDoc(
@@ -1685,6 +1725,8 @@ async function readLectures(container, lessonId) {
           audioUrl: uploaded.audioUrl,
           storageKey: uploaded.storageKey,
           text,
+          // When each word is spoken, for the student's read-along highlight.
+          ...(preview.wordStarts ? { wordStarts: preview.wordStarts } : {}),
         });
 
         URL.revokeObjectURL(preview.objectUrl);
