@@ -237,6 +237,70 @@
   outline: none;
 }
 
+/* Speaker beside the word: plays its saved audio (made on the first tap, js/tts.js).
+   Fetching: the button breathes with dim waves. Playing: filled, waves roll outward. */
+.st-dict-speak {
+  color: var(--st-pagbigkas);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.st-dict-speak path {
+  transition: opacity var(--dur-fast) ease;
+}
+
+.st-dict-speak[aria-busy="true"] {
+  cursor: progress;
+  animation: dictSpeakBreathe 1.1s ease-in-out infinite;
+}
+
+.st-dict-speak[aria-busy="true"] path:nth-child(n + 2) {
+  opacity: 0.25;
+}
+
+.st-dict-speak.is-playing {
+  border-color: var(--st-pagbigkas);
+  background: var(--st-pagbigkas);
+  color: #fff;
+}
+
+.st-dict-speak.is-playing path:nth-child(n + 2) {
+  animation: dictSpeakWave 0.9s ease-in-out infinite;
+}
+
+.st-dict-speak.is-playing path:nth-child(3) {
+  animation-delay: 0.18s;
+}
+
+@keyframes dictSpeakBreathe {
+  50% {
+    transform: scale(0.9);
+  }
+}
+
+@keyframes dictSpeakWave {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-dict-speak[aria-busy="true"],
+  .st-dict-speak.is-playing path {
+    animation: none;
+  }
+
+  .st-dict-speak[aria-busy="true"] {
+    opacity: 0.6;
+  }
+}
+
 .st-dict-tag {
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-pill);

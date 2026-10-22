@@ -1,5 +1,6 @@
 import { $, escapeHtml } from "../../js/helpers.js";
 import { loadSeed, lookupWord, searchWords, suggestRoots, syllablesOf } from "../../js/dictionary.js";
+import { speakWord } from "../../js/tts.js";
 import { onLeave } from "../router.js";
 import { buddy, content, icon } from "../ui.js";
 
@@ -23,6 +24,7 @@ function entryHtml(entry) {
           <h2 tabindex="-1">${escapeHtml(shown(entry))}</h2>
           <p class="st-dict-syllables" aria-label="Pantig: ${escapeHtml(syllablesOf(entry))}">${escapeHtml(syllablesOf(entry))}</p>
         </div>
+        <button class="st-icon-button st-dict-speak" type="button" data-speak aria-label="Pakinggan ang “${escapeHtml(shown(entry))}”">${icon("speaker")}</button>
         ${entry.source === "teacher" ? `<span class="st-dict-tag">Dinagdag ng guro</span>` : ""}
       </header>
       ${entry.senses
@@ -99,13 +101,16 @@ export async function renderDictionary() {
   const input = $("#dict-input");
   const results = $("#dict-results");
   let lastList = []; // to come back to from a word
+  let openEntry = null; // the word on screen, for its speaker button
 
   const showList = (entries, heading = "") => {
+    openEntry = null;
     lastList = entries;
     results.innerHTML = `${heading}${listHtml(entries)}`;
   };
 
   const showEntry = (entry) => {
+    openEntry = entry;
     results.innerHTML = entryHtml(entry);
     results.querySelector("h2").focus?.();
   };
@@ -189,6 +194,11 @@ export async function renderDictionary() {
     search(letter);
   });
   results.addEventListener("click", (event) => {
+    const speaker = event.target.closest("[data-speak]");
+    if (speaker && openEntry) {
+      speakWord(speaker, openEntry, "Hindi ma-play ang audio. Subukan muli.");
+      return;
+    }
     const row = event.target.closest("[data-key]");
     if (row) {
       const entry = lastList.find((e) => e.key === row.dataset.key);

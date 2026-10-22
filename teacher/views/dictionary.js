@@ -15,6 +15,7 @@ import {
 } from "../../js/dictionary.js";
 import { syllabify, withoutDots } from "../../js/syllables.js";
 import { fieldError } from "../../js/field-errors.js";
+import { speakWord } from "../../js/tts.js";
 
 // Dictionary: the Tagalog words students look up on the student side (#/diksiyonaryo).
 // Most come from Tagalog Wiktionary (data/dictionary/tl-seed.json); teachers and admins
@@ -29,6 +30,8 @@ const MAX_TEXT = 500;
 const MAX_SYLLABLES = 120;
 const PAGE_SIZE = 50;
 const SEARCH_DELAY = 200;
+const SPEAKER_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>';
 
 let timer = null;
 
@@ -83,7 +86,10 @@ function entryHtml(entry) {
       <button type="button" class="text-button dict-back" data-act="back">← Back to the list</button>
       <header class="dict-entry__head">
         <div>
-          <h2 tabindex="-1">${escapeHtml(entry.accent || entry.word)}</h2>
+          <div class="dict-entry__word">
+            <h2 tabindex="-1">${escapeHtml(entry.accent || entry.word)}</h2>
+            ${entry.hidden ? "" : `<button type="button" class="icon-button dict-speak" data-act="speak" aria-label="Play “${escapeHtml(entry.accent || entry.word)}”">${SPEAKER_ICON}</button>`}
+          </div>
           <p class="dict-entry__syllables">${escapeHtml(syllablesOf(entry))}</p>
           <div class="lesson-meta">${tagsHtml(entry)}</div>
         </div>
@@ -479,6 +485,10 @@ export async function renderDictionary() {
     if (!entry) return;
     if (act === "open") {
       showEntry(entry);
+      return;
+    }
+    if (act === "speak") {
+      speakWord(button, entry, "Audio not available, try again.");
       return;
     }
     if (act === "edit") {

@@ -4,7 +4,9 @@ The Cloudflare Worker behind **Generate audio** (Admin → Add lesson → Lectur
 
 ## Why it changed
 
-**Word timings (latest change):** the Lecture now highlights each word as it is spoken. When the website sends `"timings": true` to `/generate`, the Worker asks ElevenLabs for the audio *with timestamps* and returns JSON (`audioBase64` + `alignment`: when each letter is spoken) instead of the bare MP3. Without `"timings": true` it answers exactly as before. Only `/generate` changed (the `wantTimings` part). The website works with both the old and the new Worker: until this code is deployed, new audio simply has no exact timings and the Lecture estimates them.
+**Dictionary audio (latest change):** the speaker button in the Diksiyonaryo (admin, teacher, student website and the app) reads the word aloud. A new address, `/dictionary-audio`, takes a word's search key (`{ "key": "bahay" }`) from **anyone signed in, students too**. It checks that the word really is in the dictionary (a teacher's word in Firestore, else the Wiktionary file the website serves) and reads the spelling from there, never text sent by the caller. Then it makes the MP3 with ElevenLabs **once** and saves it in R2 as `dictionary/<key>/<16-letter fingerprint of the spelling>.mp3`. Every later tap, from anyone, plays that saved file through `/audio/` and never reaches ElevenLabs. So the most this can ever cost is about $0.45 for all 1,600 Wiktionary words, plus a little for each word teachers add. A changed accented spelling (aklat → aklát) gets a new fingerprint, so its audio is made again. Only `/dictionary-audio`, `requireSignedIn` (split out of `requireTeacherOrAdmin`, which still allows only teachers and admins) and the dictionary helpers at the bottom are new. The Wiktionary file is read from the website's GitHub repository, because the first tries against the Render site failed with "The dictionary file could not be loaded" (the free Render site sleeps, and GitHub is always awake). The file reaches GitHub when you push, so push `data/dictionary/tl-seed.json` changes before expecting new seed words to speak.
+
+**Word timings:** the Lecture now highlights each word as it is spoken. When the website sends `"timings": true` to `/generate`, the Worker asks ElevenLabs for the audio *with timestamps* and returns JSON (`audioBase64` + `alignment`: when each letter is spoken) instead of the bare MP3. Without `"timings": true` it answers exactly as before. Only `/generate` changed (the `wantTimings` part). The website works with both the old and the new Worker: until this code is deployed, new audio simply has no exact timings and the Lecture estimates them.
 
 **Voice model:** `MODEL_ID` (top of the code) is now `eleven_v4_turbo` instead of `eleven_multilingual_v2`. Opening the Worker address in a browser now also shows which model it uses (`"model"`). It costs half as much ($0.04 instead of $0.08 per 1,000 characters) and supports Filipino. Audio that was already saved is not touched; only newly generated audio uses v4 Turbo.
 
@@ -30,6 +32,7 @@ Settings the Worker needs (**Settings → Variables and Secrets**, and **Binding
 |---|---|---|
 | `ALLOWED_ORIGIN` | Variable | `http://localhost,https://basaya.onrender.com` |
 | `FIREBASE_PROJECT_ID` | Variable | `basaya` |
+| `DICTIONARY_SEED_URL` | Variable (optional) | Leave it out to use GitHub's copy (`raw.githubusercontent.com/jayvanzzzzzzz/basaya-web/main/data/dictionary/tl-seed.json`). Set it only to read the file from somewhere else. |
 | `ELEVENLABS_API_KEY` | Secret | Your ElevenLabs key (never put it in this file) |
 | `AUDIO_BUCKET` | R2 bucket binding | The bucket that stores lesson audio |
 
@@ -40,6 +43,12 @@ const DEFAULT_VOICE_ID = "HBvmy37rj1IsebuFhjqA";
 const MODEL_ID = "eleven_v4_turbo";
 const MAX_TEXT_LENGTH = 1500;
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
+const MAX_DICTIONARY_KEY = 60;
+// The website's Wiktionary file, from GitHub (always awake, unlike a sleeping Render site).
+const DEFAULT_DICTIONARY_SEED_URL =
+  "https://raw.githubusercontent.com/jayvanzzzzzzz/basaya-web/main/data/dictionary/tl-seed.json";
+// Wiktionary words (search key → spelling to say), kept while this copy of the Worker is warm.
+let dictionarySeed = null;
 
 export default {
   async fetch(request, env) {
@@ -153,6 +162,69 @@ export default {
         });
       }
 
+      // Anyone signed in (students too) asks for a dictionary word's audio by its search key.
+      // The spelling comes from the dictionary, not the caller, and is made only once.
+      if (request.method === "POST" && url.pathname === "/dictionary-audio") {
+        const { token } = await requireSignedIn(request, env);
+
+        const body = await request.json();
+        const key = String(body.key || "");
+
+        if (!key || key.length > MAX_DICTIONARY_KEY || key.includes("/") || key.includes("..")) {
+          return json({ error: "Invalid word." }, 400, request, env);
+        }
+
+        const text = await dictionaryText(key, token, env);
+        if (!text) {
+          return json({ error: "This word isn't in the dictionary." }, 404, request, env);
+        }
+
+        const storageKey = await dictionaryAudioKey(key, text);
+
+        if (!(await env.AUDIO_BUCKET.head(storageKey))) {
+          const elevenLabsResponse = await fetch(
+            `https://api.elevenlabs.io/v1/text-to-speech/${DEFAULT_VOICE_ID}?output_format=mp3_44100_128`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "audio/mpeg",
+                "xi-api-key": env.ELEVENLABS_API_KEY,
+              },
+              body: JSON.stringify({ text, model_id: MODEL_ID }),
+            },
+          );
+
+          if (!elevenLabsResponse.ok) {
+            console.error(
+              "ElevenLabs error:",
+              elevenLabsResponse.status,
+              await elevenLabsResponse.text(),
+            );
+            return json(
+              { error: "ElevenLabs could not generate the audio." },
+              502,
+              request,
+              env,
+            );
+          }
+
+          await env.AUDIO_BUCKET.put(storageKey, await elevenLabsResponse.arrayBuffer(), {
+            httpMetadata: {
+              contentType: "audio/mpeg",
+              cacheControl: "public, max-age=31536000, immutable",
+            },
+          });
+        }
+
+        return json(
+          { audioUrl: publicAudioUrl(request, storageKey) },
+          200,
+          request,
+          env,
+        );
+      }
+
       // Teacher/admin sends the already-previewed MP3 here when saving a lesson.
       if (request.method === "POST" && url.pathname === "/save-audio") {
         await requireTeacherOrAdmin(request, env);
@@ -225,6 +297,17 @@ export default {
 };
 
 async function requireTeacherOrAdmin(request, env) {
+  const caller = await requireSignedIn(request, env);
+
+  // This prevents students from using TTS credits on lesson audio.
+  if (caller.role !== "teacher" && caller.role !== "admin") {
+    throw httpError("Only teachers and admins can generate audio.", 403);
+  }
+
+  return caller;
+}
+
+async function requireSignedIn(request, env) {
   const authorization = request.headers.get("Authorization") || "";
   if (!authorization.startsWith("Bearer ")) {
     throw httpError("Please sign in first.", 401);
@@ -239,7 +322,7 @@ async function requireTeacherOrAdmin(request, env) {
   }
 
   // Firestore validates the Firebase sign-in token and lets us read only
-  // the caller's own profile. This prevents students from using TTS credits.
+  // the caller's own profile.
   const profileResponse = await fetch(
     `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${encodeURIComponent(uid)}`,
     {
@@ -256,11 +339,75 @@ async function requireTeacherOrAdmin(request, env) {
   const profile = await profileResponse.json();
   const role = profile.fields?.role?.stringValue;
 
-  if (role !== "teacher" && role !== "admin") {
-    throw httpError("Only teachers and admins can generate audio.", 403);
+  if (!["student", "teacher", "admin"].includes(role)) {
+    throw httpError("Your account could not be verified.", 403);
   }
 
-  return { uid, role };
+  return { uid, role, token };
+}
+
+/**
+ * The spelling to say for a dictionary word, the same one the pages show: a teacher's
+ * word (accented spelling first) from Firestore, else the Wiktionary file. "" when the
+ * word isn't in the dictionary or a teacher hid it.
+ */
+async function dictionaryText(key, token, env) {
+  const response = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/dictionary/${encodeURIComponent(key)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (response.ok) {
+    const fields = (await response.json()).fields || {};
+    if (fields.hidden?.booleanValue) return "";
+    return fields.accent?.stringValue || fields.word?.stringValue || "";
+  }
+
+  if (response.status !== 404) {
+    throw httpError("The dictionary could not be checked.", 502);
+  }
+
+  return (await loadDictionarySeed(env)).get(key) || "";
+}
+
+function loadDictionarySeed(env) {
+  const seedUrl = String(env.DICTIONARY_SEED_URL || DEFAULT_DICTIONARY_SEED_URL).trim();
+  dictionarySeed ??= fetch(seedUrl, {
+    cf: { cacheTtl: 86400, cacheEverything: true },
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error("Dictionary file:", response.status, seedUrl);
+        throw httpError(`The dictionary file could not be loaded (${response.status}).`, 502);
+      }
+      return response.json();
+    })
+    .then((list) => new Map(list.map((entry) => [entry.k, entry.a || entry.w])))
+    .catch((error) => {
+      dictionarySeed = null; // try again next time
+      throw error;
+    });
+  return dictionarySeed;
+}
+
+/**
+ * dictionary/<key>/<first 16 hex letters of SHA-256 of the spelling>.mp3. The website
+ * (js/tts.js) and the app (DictionaryAudio.kt) build the same name to play saved audio
+ * straight from /audio/ without asking here first.
+ */
+async function dictionaryAudioKey(key, text) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(text.normalize("NFC")),
+  );
+  const hex = [...new Uint8Array(digest).slice(0, 8)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return `dictionary/${key}/${hex}.mp3`;
 }
 
 function readJwtPayload(token) {

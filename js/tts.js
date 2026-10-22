@@ -1,4 +1,5 @@
 import { auth } from "./firebase.js";
+import { toast } from "./helpers.js";
 
 const WORKER_URL = "https://basaya-tts.jayvanzsingca5.workers.dev";
 
@@ -88,4 +89,65 @@ export async function saveSpeech({
   });
 
   return response.json();
+}
+
+// ---------- Diksiyonaryo ----------
+// A word's audio is made once, by the first person to tap its speaker, and saved for
+// everyone (basaya-tts-worker.md → /dictionary-audio). Later taps play the saved file
+// straight from /audio/, with no sign-in check and no ElevenLabs cost.
+
+let wordPlayer = null;
+
+/** The spelling a word is read in: the shown one, accented when there is one. */
+const spokenText = (entry) => entry.accent || entry.word;
+
+/** Where the Worker saves a word's audio: dictionary/<key>/<16 hex letters of SHA-256>.mp3. */
+async function savedWordUrl(entry) {
+  const bytes = new TextEncoder().encode(spokenText(entry).normalize("NFC"));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  const hex = [...digest.slice(0, 8)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${WORKER_URL}/audio/dictionary/${encodeURIComponent(entry.key)}/${hex}.mp3`;
+}
+
+async function playUrl(url) {
+  wordPlayer?.pause();
+  wordPlayer = new Audio(url);
+  await wordPlayer.play(); // rejects when the file isn't there (404) or can't play
+  return wordPlayer;
+}
+
+/** Plays a dictionary word, making its audio first if nobody has tapped it yet. */
+export async function playDictionaryWord(entry) {
+  try {
+    return await playUrl(await savedWordUrl(entry));
+  } catch (error) {
+    if (error.name === "NotAllowedError") throw error; // the browser blocked sound, not a missing file
+    const response = await workerFetch("/dictionary-audio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: entry.key }),
+    });
+    return playUrl((await response.json()).audioUrl);
+  }
+}
+
+/**
+ * The speaker button beside a dictionary word: busy while the audio loads, `is-playing`
+ * while it plays, and `failMessage` as a toast when it can't play.
+ */
+export async function speakWord(button, entry, failMessage) {
+  if (button.getAttribute("aria-busy") === "true") return;
+  button.setAttribute("aria-busy", "true");
+  try {
+    const audio = await playDictionaryWord(entry);
+    button.classList.add("is-playing");
+    const done = () => button.classList.remove("is-playing");
+    audio.addEventListener("ended", done, { once: true });
+    audio.addEventListener("pause", done, { once: true });
+  } catch (error) {
+    console.error(error);
+    toast(failMessage);
+  } finally {
+    button.removeAttribute("aria-busy");
+  }
 }
