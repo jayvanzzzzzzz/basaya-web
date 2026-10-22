@@ -15,9 +15,13 @@ import { onLeave } from "../router.js";
 import { buddy, confettiFrom, content, icon, setBuddyMood, shake } from "../ui.js";
 import { renderResults } from "./results.js";
 
-// Gawain (the app's PracticeActivity): tap the correct words, then check. A page counts as
-// right only on its first check; retries are counted separately. Saves the Pagkilala skill.
-// Every check saves the place (resume.activity), so a closed Gawain continues on that page.
+// Gawain (the app's PracticeActivity): tap the correct words, then check. Each page has 3
+// lives; a page is right if answered within them, and wrong once they run out (the answer is
+// then shown). Wrong checks are counted as retries. Saves the Pagkilala skill.
+// Every check saves the place and the lives left (resume.activity), so a closed Gawain
+// continues on that page without refilling its lives.
+
+const LIVES = 3;
 
 const sameSet = (a, b) => a.size === b.size && [...a].every((value) => b.has(value));
 
@@ -44,7 +48,12 @@ export async function renderActivity(lessonId) {
         </div>
       </header>
       <div class="st-activity__head">
-        <span class="st-activity__tag" id="activity-page"></span>
+        <div class="st-activity__meta">
+          <span class="st-activity__tag" id="activity-page"></span>
+          <span class="st-lives" id="activity-lives" role="img">
+            ${Array.from({ length: LIVES }, () => icon("heart")).join("")}
+          </span>
+        </div>
         ${activity.title ? `<h1>${escapeHtml(activity.title)}</h1>` : ""}
         ${activity.instruction ? `<p>${escapeHtml(activity.instruction)}</p>` : ""}
       </div>
@@ -71,22 +80,29 @@ export async function renderActivity(lessonId) {
   const resume = resumeOf(progress, "activity", total);
   let pageIndex = resume?.done ?? 0;
   let checked = false;
-  let score = Number(resume?.score) || 0; // pages right on their first check
+  let score = Number(resume?.score) || 0; // pages right within their lives
   let retries = Number(resume?.retries) || 0;
-  const checkedPages = new Set();
-  // A page already checked wrong before closing no longer counts as a first try.
-  if (resume?.tried) checkedPages.add(pageIndex);
+  // Lives left on the current page. Places saved before lives existed only know `tried`.
+  let lives = Math.min(LIVES, Math.max(1, Number(resume?.lives) || (resume?.tried ? LIVES - 1 : LIVES)));
   const selected = new Set();
   let saving = false;
   onLeave(() => {});
 
   const savePlace = (done) =>
-    saveResume(lessonId, "activity", { done, total, score, retries, tried: done === pageIndex });
+    saveResume(lessonId, "activity", { done, total, score, retries, lives: done === pageIndex ? lives : LIVES });
 
   const page = () => activity.pages[pageIndex];
   const correctSet = () => new Set(page().correctIndices);
   // A page saved without correct answers can't be answered, so it never blocks the student.
   const isCorrect = () => correctSet().size === 0 || sameSet(selected, correctSet());
+  // The page is over once it's right or its lives ran out.
+  const pageOver = () => checked && (isCorrect() || lives === 0);
+
+  const updateLives = () => {
+    const livesEl = $("#activity-lives");
+    $$("svg", livesEl).forEach((heart, i) => heart.classList.toggle("is-lost", i >= lives));
+    livesEl.setAttribute("aria-label", `${lives} sa ${LIVES} buhay`);
+  };
 
   const setAction = (label, kind) => {
     action.textContent = label;
@@ -95,9 +111,10 @@ export async function renderActivity(lessonId) {
 
   const updateTrack = () => {
     $$("#activity-track i").forEach((bar, i) => {
-      bar.classList.toggle("is-done", i < pageIndex || (i === pageIndex && checked && isCorrect()));
+      bar.classList.toggle("is-done", i < pageIndex || (i === pageIndex && pageOver()));
     });
     $("#activity-page").textContent = `Pahina ${pageIndex + 1} / ${activity.pages.length}`;
+    updateLives();
   };
 
   const showPage = () => {
@@ -143,6 +160,11 @@ export async function renderActivity(lessonId) {
     const right = isCorrect();
     const incomplete = !right && selected.size > 0 && [...selected].every((index) => correct.has(index));
     const explanation = page().explanation ?? activity.explanation;
+    if (!right) {
+      lives -= 1;
+      retries += 1;
+    }
+    const outOfLives = lives === 0;
 
     $$(".st-tile", tilesEl).forEach((tile) => {
       const index = Number(tile.dataset.index);
@@ -156,6 +178,8 @@ export async function renderActivity(lessonId) {
         tile.classList.add("is-wrong");
         tile.insertAdjacentHTML("afterbegin", icon("cross"));
         shake(tile);
+      } else if (outOfLives && correct.has(index)) {
+        tile.classList.add("is-right"); // the answer the student missed, shown without a check
       } else {
         tile.classList.add("is-faded");
       }
@@ -163,20 +187,22 @@ export async function renderActivity(lessonId) {
 
     checked = true;
     updateTrack();
-    const firstCheck = !checkedPages.has(pageIndex);
-    checkedPages.add(pageIndex);
-    if (!right) retries += 1;
-    if (right && firstCheck) score += 1;
-    savePlace(right ? pageIndex + 1 : pageIndex);
+    if (right) score += 1;
+    savePlace(pageOver() ? pageIndex + 1 : pageIndex);
+    const lastPage = pageIndex === activity.pages.length - 1;
 
-    if (right) {
+    if (outOfLives) {
+      shake($("#activity-lives"));
+      showFeedback(false, `Naubos ang iyong buhay. Ito ang tamang sagot. ${explanation}`.trim());
+      setAction(lastPage ? "Tapusin" : "Susunod", "next");
+    } else if (right) {
       showFeedback(
         true,
         correct.size === 0
           ? "Walang nakatakdang sagot ang pahinang ito. Tuloy tayo!"
           : `Mahusay! ${explanation}`.trim(),
       );
-      setAction(pageIndex === activity.pages.length - 1 ? "Tapusin" : "Susunod", "next");
+      setAction(lastPage ? "Tapusin" : "Susunod", "next");
       confettiFrom(tilesEl);
     } else if (incomplete) {
       showFeedback(false, `Tama ang napili mo, pero may kulang pa! Pumili ng ${correct.size} salita.`);
@@ -238,9 +264,10 @@ export async function renderActivity(lessonId) {
 
   action.addEventListener("click", () => {
     if (!checked) return check();
-    if (!isCorrect()) return showPage(); // try the same page again
+    if (!pageOver()) return showPage(); // try the same page again
     if (pageIndex < activity.pages.length - 1) {
       pageIndex += 1;
+      lives = LIVES;
       showPage();
     } else {
       finish();

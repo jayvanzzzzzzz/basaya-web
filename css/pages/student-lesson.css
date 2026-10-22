@@ -438,6 +438,32 @@
   font-weight: 800;
 }
 
+.st-activity__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.st-lives {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.st-lives svg {
+  width: 1.4rem;
+  height: 1.4rem;
+  fill: var(--st-wrong);
+  stroke: none;
+  transition: fill 240ms ease, opacity 240ms ease, transform 240ms var(--ease-spring);
+}
+
+.st-lives svg.is-lost {
+  fill: var(--ink-3);
+  opacity: 0.35;
+  transform: scale(0.8);
+}
+
 .st-activity__head h1 {
   margin: 0.2rem 0 0;
   font-size: 1.3rem;

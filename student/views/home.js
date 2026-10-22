@@ -16,12 +16,15 @@ import { refreshBell } from "./notifications.js";
 
 const DIFFICULTY = ["beginner", "intermediate", "advanced"];
 
-/** "Tapos na", "Nasa progreso" or "Hindi pa nasisimulan" (a skipped game or Gawain never counts). */
+/**
+ * "Tapos na", "Nasa progreso" or "Hindi pa nasisimulan" (a skipped game or Gawain never
+ * counts). A part left halfway already makes it Nasa progreso.
+ */
 function statusOf(lesson) {
   const game = lesson.gameFinished && !lesson.gameSkipped;
   const activity = lesson.activityFinished && !lesson.activitySkipped;
   if (isComplete(lesson)) return { key: "done", label: "Tapos na", icon: "check" };
-  if (lesson.lectureFinished || game || activity || lesson.quizFinished)
+  if (lesson.lectureFinished || game || activity || lesson.quizFinished || lesson.started)
     return { key: "progress", label: "Nasa progreso", icon: "refresh" };
   return { key: "new", label: "Hindi pa nasisimulan", icon: "lock" };
 }
@@ -106,6 +109,18 @@ let activeTab = "all";
 
 const tabOf = (lesson) => (availability(lesson) === "closed" ? "closed" : "open");
 
+// Status chips under the search, combined with the tabs above (e.g. Bukas + Hindi pa
+// nasisimulan). Practice lessons save no progress, so they're only under Lahat.
+const STATUSES = [
+  { key: "all", label: "Lahat" },
+  { key: "done", label: "Tapos na" },
+  { key: "progress", label: "Nasa progreso" },
+  { key: "new", label: "Hindi pa nasisimulan" },
+];
+let activeStatus = "all";
+
+const inStatus = (lesson, status) => status === "all" || (!lesson.practice && statusOf(lesson).key === status);
+
 /**
  * List order: open lessons by nearest deadline, then open ones with no deadline,
  * then not-yet-open (soonest to open first), then closed (most recently closed first).
@@ -149,6 +164,9 @@ function emptyState(kind, query = "") {
     "no-results": { title: `Walang lesson na nahanap para sa “${query}”.`, text: "" },
     "no-open": { title: "Walang bukas na aralin.", text: "" },
     "no-closed": { title: "Walang saradong aralin.", text: "" },
+    "no-done": { title: "Wala ka pang natapos na aralin.", text: "Tapusin ang bawat hakbang ng isang aralin para mapunta ito rito." },
+    "no-progress": { title: "Walang aralin na nasa progreso.", text: "Ang mga aralin na sinimulan mo na ay makikita rito." },
+    "no-new": { title: "Nasimulan mo na ang lahat ng aralin!", text: "Magaling! Tingnan ang Nasa progreso para ituloy ang mga ito." },
   };
   const state = states[kind];
   return `
@@ -175,6 +193,7 @@ export async function renderHome() {
         <input id="home-search" type="search" placeholder="Hanapin ang aralin" autocomplete="off" aria-label="Hanapin ang aralin" />
       </label>
       <div class="st-tabs" id="home-tabs" role="tablist" aria-label="Salain ang mga aralin" hidden></div>
+      <div class="st-status-filters" id="home-status" role="group" aria-label="Salain ayon sa progreso" hidden></div>
       <div id="home-list" aria-live="polite">
         <div class="st-loading"><span></span><span></span><span></span></div>
       </div>
@@ -183,6 +202,21 @@ export async function renderHome() {
   const list = $("#home-list");
   const search = $("#home-search");
   const tabs = $("#home-tabs");
+  const statuses = $("#home-status");
+
+  const inTab = (lesson) => activeTab === "all" || tabOf(lesson) === activeTab;
+
+  /** Counts follow the tab chosen above, so they match the list. */
+  const drawStatuses = () => {
+    const tabLessons = student.lessons.filter(inTab);
+    statuses.innerHTML = STATUSES.map(({ key, label }) => {
+      const count = tabLessons.filter((lesson) => inStatus(lesson, key)).length;
+      return `
+        <button class="st-status-filter st-status-filter--${key}${key === activeStatus ? " is-active" : ""}" type="button" data-status="${key}" aria-pressed="${key === activeStatus}">
+          ${label}<span class="st-tab__count">${count}</span>
+        </button>`;
+    }).join("");
+  };
 
   const drawTabs = () => {
     const closed = student.lessons.filter((lesson) => tabOf(lesson) === "closed").length;
@@ -198,6 +232,7 @@ export async function renderHome() {
   const draw = () => {
     const query = search.value.trim();
     tabs.hidden = !classId() || !student.lessons.length;
+    statuses.hidden = tabs.hidden;
     if (!classId()) {
       list.innerHTML = emptyState("no-class");
       return;
@@ -207,23 +242,31 @@ export async function renderHome() {
       return;
     }
     drawTabs();
-    const inTab = student.lessons
-      .filter((lesson) => activeTab === "all" || tabOf(lesson) === activeTab)
+    drawStatuses();
+    const filtered = student.lessons
+      .filter((lesson) => inTab(lesson) && inStatus(lesson, activeStatus))
       .sort(compareBySchedule);
     const shown = query
-      ? inTab.filter((lesson) => lesson.title.toLowerCase().includes(query.toLowerCase()))
-      : inTab;
+      ? filtered.filter((lesson) => lesson.title.toLowerCase().includes(query.toLowerCase()))
+      : filtered;
     list.innerHTML = shown.length
       ? `<ul class="st-lessons">${shown.map((lesson) => lessonCard(lesson, query)).join("")}</ul>`
       : query
         ? emptyState("no-results", query)
-        : emptyState(`no-${activeTab}`);
+        : emptyState(`no-${activeStatus === "all" ? activeTab : activeStatus}`);
   };
 
   tabs.addEventListener("click", (event) => {
     const tab = event.target.closest("[data-tab]");
     if (!tab || tab.dataset.tab === activeTab) return;
     activeTab = tab.dataset.tab;
+    draw();
+  });
+
+  statuses.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-status]");
+    if (!chip || chip.dataset.status === activeStatus) return;
+    activeStatus = chip.dataset.status;
     draw();
   });
 
@@ -248,9 +291,10 @@ export async function renderHome() {
       return;
     }
     if (!ids.length) return;
-    if (search.value || activeTab !== "all") {
+    if (search.value || activeTab !== "all" || activeStatus !== "all") {
       search.value = "";
       activeTab = "all";
+      activeStatus = "all";
       draw();
     }
     const cards = ids.map((id) => list.querySelector(`[data-lesson="${CSS.escape(id)}"]`)).filter(Boolean);

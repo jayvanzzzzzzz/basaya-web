@@ -106,6 +106,15 @@ function forgetFoundWords(lessonIds) {
   }
 }
 
+/**
+ * Something was done even if no part is finished yet: a part left halfway (a saved place),
+ * a game level, or Bigkas (the app's LessonResume.started).
+ */
+const hasStarted = (data) =>
+  Object.values(data.resume || {}).some((state) => Number(state?.done) > 0) ||
+  Number(data.gameScore) > 0 ||
+  data.pronunciationFinished === true;
+
 /** Lessons of the class, in the teacher's order, with schedule and progress flags. */
 export async function loadClassLessons() {
   const id = classId();
@@ -177,6 +186,7 @@ export async function loadClassLessons() {
         activityFinished: data.activityFinished === true,
         pronunciationFinished: data.pronunciationFinished === true,
         quizFinished: data.quizFinished === true,
+        started: hasStarted(data),
       };
     })
     .filter((lesson) => !lesson.closedBeforeJoining)
