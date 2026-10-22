@@ -12,7 +12,7 @@ import { renderRoute } from "../router.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 // Saved as the Filipino key (the apps read it); shown in English.
-const DIFFICULTY_LABELS = {
+export const DIFFICULTY_LABELS = {
   madali: "Beginner",
   "masusing aralin": "Intermediate",
   "malalim na aralin": "Advanced",

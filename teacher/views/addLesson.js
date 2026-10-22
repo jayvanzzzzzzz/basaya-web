@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state, getAllLessons } from "../../js/state.js";
-import { $, escapeHtml, toast, navigate, page } from "../../js/helpers.js";
+import { $, escapeHtml, toast, navigate, page, openModal } from "../../js/helpers.js";
 import {
   readSchedule,
   notifyStudents,
@@ -17,8 +17,14 @@ import {
   practiceLinkId,
 } from "../../js/schedule.js";
 import { paginate } from "../../js/pagination.js";
-import { openLessonModal } from "./lessons.js";
+import { openLessonModal, DIFFICULTY_LABELS } from "./lessons.js";
 import { openLessonViewer } from "../../admin/views/lessonViewer.js";
+
+const MODE_LABEL = { assessment: "Assessment", practice: "Practice" };
+const CHECK_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>';
+const EYE_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const lessonsLabel = (n) => `${n} ${n === 1 ? "lesson" : "lessons"}`;
 
 export async function renderAddLessonPage(classId) {
   if (!state.user) return navigate("/login");
@@ -36,14 +42,25 @@ export async function renderAddLessonPage(classId) {
   // A lesson can be in the class once as an Assessment and once as Practice.
   const inClass = { assessment: new Set(), practice: new Set() };
   links.forEach((link) => inClass[linkMode(link)].add(linkLessonId(link)));
-  const MODE_LABEL = { assessment: "Assessment", practice: "Practice" };
-  /** "In this class" note: which type(s) the lesson is already in. */
-  const assignedNote = (lessonId) => {
+  /** "In this class" chips under the title: which type(s) the lesson is already in. */
+  const assignedChips = (lessonId) => {
     const modes = ["assessment", "practice"].filter((mode) => inClass[mode].has(lessonId));
     if (!modes.length) return "";
-    const label = modes.length === 2 ? "as Assessment & Practice" : `as ${MODE_LABEL[modes[0]]}`;
-    return `<span class="lesson-picker__assigned"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>In this class ${label}</span>`;
+    return `<span class="lesson-picker__in-class" aria-label="Already in this class as ${modes.map((m) => MODE_LABEL[m]).join(" and ")}">${modes
+      .map((mode) => `<span class="lesson-picker__assigned">${CHECK_ICON}${MODE_LABEL[mode]}</span>`)
+      .join("")}</span>`;
   };
+
+  // Level ribbons: All, then each level (lessons with no level only show under All).
+  const levels = [
+    { id: "all", label: "All", count: state.allLessons.length },
+    ...Object.entries(DIFFICULTY_LABELS).map(([key, label]) => ({
+      id: key,
+      label,
+      count: state.allLessons.filter((l) => l.difficulty === key).length,
+    })),
+  ];
+  let selectedLevel = "all";
 
   page(
     "Add lessons",
@@ -74,61 +91,47 @@ export async function renderAddLessonPage(classId) {
           <span class="sr-only">Search lessons</span>
           <input type="search" id="lesson-search" placeholder="Search by lesson, activity, or level..." autocomplete="off" />
         </label>
-        <div class="lesson-picker__list">${state.allLessons
+        <div class="lesson-picker__ribbons" role="group" aria-label="Show lessons by level">
+          ${levels
+            .map(
+              (level) => `<button type="button" class="lesson-picker__ribbon" data-level="${escapeHtml(level.id)}" aria-pressed="${level.id === selectedLevel}">
+                <span>${escapeHtml(level.label)}</span>
+                <span class="lesson-picker__ribbon-count" aria-label="${lessonsLabel(level.count)}">${level.count}</span>
+              </button>`,
+            )
+            .join("")}
+        </div>
+        <div class="lesson-picker__list">${[...state.allLessons]
+          // A–Z by title ("aralin 2" before "aralin 10"); a copy, so the shared list keeps its order.
+          .sort((a, b) =>
+            (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base", numeric: true }),
+          )
           .map((l) => {
-            // Both types already in: nothing left to add. Otherwise applyMode() sets the checkbox.
+            // Both types already in: nothing left to add.
             const already = inClass.assessment.has(l.id) && inClass.practice.has(l.id);
             const activity = l.activityType || "Aralin";
-            const difficulty = l.difficulty || "Any level";
+            const difficulty = DIFFICULTY_LABELS[l.difficulty] || l.difficulty || "Any level";
             const searchable = `${l.title || ""} ${activity} ${difficulty} ${l.description || ""}`.toLowerCase();
-            return `<article class="lesson-picker__row${already ? " is-assigned" : ""}" data-lesson-row data-search="${escapeHtml(searchable)}">
+            return `<article class="lesson-picker__row${already ? " is-assigned" : ""}" data-lesson-row data-level="${escapeHtml(l.difficulty || "")}" data-search="${escapeHtml(searchable)}">
               <label class="lesson-picker__choice">
                 <input type="checkbox" name="lesson" value="${escapeHtml(l.id)}" ${already ? "checked disabled" : ""} />
-                <span class="lesson-picker__check" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>
+                <span class="lesson-picker__check" aria-hidden="true">${CHECK_ICON}</span>
                 <span class="lesson-picker__details">
                   <strong>${escapeHtml(l.title)}</strong>
                   <span class="lesson-picker__meta">${escapeHtml(activity)} <i></i> ${escapeHtml(difficulty)}</span>
                   ${l.description ? `<span class="lesson-picker__description">${escapeHtml(l.description)}</span>` : ""}
+                  ${assignedChips(l.id)}
                 </span>
               </label>
-              <div class="lesson-picker__actions">
-                ${assignedNote(l.id)}
-                <button type="button" class="lesson-picker__preview" data-view="${escapeHtml(l.id)}">Preview <span aria-hidden="true">↗</span></button>
-              </div>
+              <button type="button" class="lesson-picker__preview" data-view="${escapeHtml(l.id)}" aria-label="Preview ${escapeHtml(l.title)}">${EYE_ICON}Preview</button>
             </article>`;
           })
           .join("")}
           <p class="lesson-picker__no-results" id="lesson-no-results" hidden>No lessons match your search.</p>
         </div>
         <div class="lesson-picker__footer">
-          <fieldset class="lesson-mode">
-            <legend>Lesson type</legend>
-            <div class="lesson-mode__options">
-              <label class="lesson-mode__option">
-                <input type="radio" name="mode" value="assessment" checked />
-                <span><strong>Assessment</strong><small>Scores are saved and count in reports</small></span>
-              </label>
-              <label class="lesson-mode__option">
-                <input type="radio" name="mode" value="practice" />
-                <span><strong>Practice</strong><small>Students can retry anytime; nothing is saved</small></span>
-              </label>
-            </div>
-            <p class="lesson-schedule__hint">This can't be changed after the lesson is added. A lesson already in this class can be added again as the other type.</p>
-          </fieldset>
-          <fieldset class="lesson-schedule">
-            <legend>Schedule <span>optional</span></legend>
-            <label>Opens on
-              <input type="datetime-local" name="openAt" />
-            </label>
-            <label>Due on
-              <input type="datetime-local" name="dueAt" />
-            </label>
-            <p class="lesson-schedule__hint">Leave empty to open right away with no deadline. Students are notified when you add the lesson.</p>
-          </fieldset>
-          <div class="lesson-picker__submit">
-            <span><strong id="lesson-selected-count">0</strong> selected</span>
-            <button class="button primary" type="submit" id="add-selected-lessons" disabled>Add selected lessons</button>
-          </div>
+          <span class="lesson-picker__selected"><strong id="lesson-selected-count">0</strong> selected</span>
+          <button class="button primary" type="submit" id="add-selected-lessons" disabled>Add selected lessons</button>
         </div>
       </form>`
     : `<section class="lesson-picker__empty">
@@ -142,60 +145,62 @@ export async function renderAddLessonPage(classId) {
   $("#create-lesson-empty")?.addEventListener("click", () =>
     openLessonModal(),
   );
+  if (!state.allLessons.length) return;
 
-  $("#lesson-search")?.addEventListener("input", (event) => {
-    const term = event.currentTarget.value.trim().toLowerCase();
-    const rows = [...document.querySelectorAll("[data-lesson-row]")];
+  // Rows show when they're in the selected level and match the search.
+  const applyFilters = () => {
+    const term = $("#lesson-search").value.trim().toLowerCase();
     let visible = 0;
-    rows.forEach((row) => {
-      const matches = row.dataset.search.includes(term);
+    document.querySelectorAll("[data-lesson-row]").forEach((row) => {
+      const matches =
+        row.dataset.search.includes(term) &&
+        (selectedLevel === "all" || row.dataset.level === selectedLevel);
       row.hidden = !matches;
       if (matches) visible += 1;
     });
-    $("#lesson-no-results").hidden = visible !== 0;
+    const noResults = $("#lesson-no-results");
+    noResults.hidden = visible !== 0;
+    noResults.textContent = term
+      ? "No lessons match your search."
+      : `No ${levels.find((level) => level.id === selectedLevel).label} lessons in your collection yet.`;
+  };
+  // Registered before paginate(), so rows are already hidden when it counts.
+  $("#lesson-search").addEventListener("input", applyFilters);
+
+  const pager = paginate({
+    rows: () => [...document.querySelectorAll("[data-lesson-row]")],
+    after: $(".lesson-picker__list"),
+    search: $("#lesson-search"),
+    label: ["lesson", "lessons"],
   });
 
-  if (state.allLessons.length) {
-    paginate({
-      rows: () => [...document.querySelectorAll("[data-lesson-row]")],
-      after: $(".lesson-picker__list"),
-      search: $("#lesson-search"),
-      label: ["lesson", "lessons"],
-    });
-  }
+  // Picking a level keeps the search text and goes back to page 1.
+  $(".lesson-picker__ribbons").addEventListener("click", (event) => {
+    const button = event.target.closest(".lesson-picker__ribbon");
+    if (!button || button.dataset.level === selectedLevel) return;
+    selectedLevel = button.dataset.level;
+    document.querySelectorAll(".lesson-picker__ribbon").forEach((ribbon) =>
+      ribbon.setAttribute("aria-pressed", String(ribbon.dataset.level === selectedLevel)),
+    );
+    applyFilters();
+    pager.reset();
+  });
 
+  /** Lessons the teacher ticked (not the ones already in the class as both types). */
+  const pickedIds = () =>
+    [...document.querySelectorAll('#link-form input[name="lesson"]:checked:not(:disabled)')].map((box) => box.value);
   const updateSelection = () => {
-    const selected = [...document.querySelectorAll('#link-form input[name="lesson"]:checked:not(:disabled)')].length;
+    const selected = pickedIds().length;
     $("#lesson-selected-count").textContent = selected;
     $("#add-selected-lessons").disabled = selected === 0;
     $("#add-selected-lessons").textContent = selected
-      ? `Add ${selected} selected ${selected === 1 ? "lesson" : "lessons"}`
+      ? `Add ${selected} selected ${selected === 1 ? "lesson" : "lessons"}…`
       : "Add selected lessons";
   };
-  // A lesson already in the class as the chosen type is shown ticked and can't be picked;
-  // switching the type keeps what the teacher picked for the other lessons.
-  const picked = new Set();
-  const selectedMode = () =>
-    document.querySelector('#link-form input[name="mode"]:checked')?.value === "practice" ? "practice" : "assessment";
-  const applyMode = () => {
-    const mode = selectedMode();
-    document.querySelectorAll('#link-form input[name="lesson"]').forEach((box) => {
-      const taken = inClass[mode].has(box.value);
-      box.disabled = taken;
-      box.checked = taken || picked.has(box.value);
-      box.closest("[data-lesson-row]").classList.toggle("is-assigned", taken);
-    });
-    updateSelection();
-  };
-  $("#link-form")?.addEventListener("change", (event) => {
-    if (event.target.matches('input[name="lesson"]')) {
-      if (event.target.checked) picked.add(event.target.value);
-      else picked.delete(event.target.value);
-      updateSelection();
-    }
-    if (event.target.matches('input[name="mode"]')) applyMode();
+  $("#link-form").addEventListener("change", (event) => {
+    if (event.target.matches('input[name="lesson"]')) updateSelection();
   });
-  if (state.allLessons.length) applyMode();
+  updateSelection();
 
   // "Preview" per lesson row: the admin's read-only lesson viewer, without its Edit button.
   document.querySelectorAll("[data-view]").forEach((btn) =>
@@ -205,59 +210,156 @@ export async function renderAddLessonPage(classId) {
     }),
   );
 
-  $("#link-form")?.addEventListener("submit", async (e) => {
+  // Lesson type and schedule are picked in a pop-up after "Add selected lessons…".
+  // What was picked there is kept for the next time it opens.
+  const settings = { mode: "assessment", openAt: "", dueAt: "" };
+  $("#link-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    // Practice: students can redo it, nothing is saved, and reports leave it out.
-    const mode = selectedMode();
-    const ids = new FormData(form)
-      .getAll("lesson")
-      .filter((id) => !inClass[mode].has(id));
+    const ids = pickedIds();
     if (!ids.length) return toast("Select at least one new lesson.");
-    const schedule = readSchedule(form);
-    if (schedule.error) return toast(schedule.error);
-
-    const submit = $("#add-selected-lessons");
-    submit.disabled = true;
-    const linkIds = [];
-    try {
-      // An Assessment link's id is the lesson id, so Firestore rules can look up its
-      // schedule; a Practice link is "{lessonId}__practice" so both can be in the class.
-      const batch = writeBatch(db);
-      ids.forEach((lessonId, index) => {
-        const linkId = mode === "practice" ? practiceLinkId(lessonId) : lessonId;
-        // A Practice link saved under the lesson id (before both could be added) moves aside.
-        const occupant = links.find((link) => link.id === lessonId && linkMode(link) === "practice");
-        if (mode === "assessment" && occupant) {
-          const { id, ...data } = occupant;
-          batch.set(doc(db, "classes", classId, "classLessons", practiceLinkId(lessonId)), { ...data, lessonId });
-        }
-        linkIds.push(linkId);
-        batch.set(doc(db, "classes", classId, "classLessons", linkId), {
-          lessonId,
-          teacherId: state.user.uid,
-          order: links.length + index + 1,
-          createdAt: serverTimestamp(),
-          openAt: schedule.openAt,
-          dueAt: schedule.dueAt,
-          mode,
-          notifyPending: true,
-        });
-      });
-      await batch.commit();
-    } catch (err) {
-      submit.disabled = false;
-      return toast(err.message);
-    }
-
-    const added = `${ids.length} lesson${ids.length > 1 ? "s" : ""} added`;
-    try {
-      await notifyStudents(classId, linkIds);
-      toast(`${added}. Students were notified.`);
-    } catch (err) {
-      console.error("notifyStudents failed —", err);
-      toast(`${added}, but students were not notified (${err.message}).`);
-    }
-    navigate(`/classes/${encodeURIComponent(classId)}`);
+    openAddModal(ids);
   });
+
+  function openAddModal(ids) {
+    const toAdd = (mode) => ids.filter((id) => !inClass[mode].has(id));
+    // If every picked lesson is already in as the remembered type, start on the other one.
+    if (!toAdd(settings.mode).length) settings.mode = settings.mode === "practice" ? "assessment" : "practice";
+
+    openModal(
+      `<h2>Add ${lessonsLabel(ids.length)}</h2>
+       <p>Choose how ${ids.length === 1 ? "it counts" : "they count"} and when students can open ${ids.length === 1 ? "it" : "them"}.</p>
+       <form id="add-lessons-form" class="lesson-add-form">
+         <fieldset class="lesson-mode">
+           <legend>Lesson type</legend>
+           <div class="lesson-mode__options">
+             ${["assessment", "practice"]
+               .map(
+                 (mode) => `<label class="lesson-mode__option">
+                   <input type="radio" name="mode" value="${mode}" ${mode === settings.mode ? "checked" : ""} />
+                   <span><strong>${MODE_LABEL[mode]}</strong><small>${
+                     mode === "assessment"
+                       ? "Scores are saved and count in reports"
+                       : "Students can retry anytime; nothing is saved"
+                   }</small></span>
+                 </label>`,
+               )
+               .join("")}
+           </div>
+           <p class="lesson-schedule__hint">This can't be changed after the lesson is added. A lesson already in this class can be added again as the other type.</p>
+           <p class="lesson-add-form__skipped" id="add-lessons-skipped" hidden></p>
+         </fieldset>
+         <fieldset class="lesson-schedule">
+           <legend>Schedule <span>optional</span></legend>
+           <label>Opens on
+             <input type="datetime-local" name="openAt" value="${escapeHtml(settings.openAt)}" />
+           </label>
+           <label>Due on
+             <input type="datetime-local" name="dueAt" value="${escapeHtml(settings.dueAt)}" />
+           </label>
+           <p class="lesson-schedule__hint">Leave empty to open right away with no deadline. Students are notified when you add the lesson.</p>
+         </fieldset>
+         <div class="modal-actions">
+           <button class="button secondary" type="button" data-cancel>Cancel</button>
+           <button class="button primary" type="submit" data-confirm>Add</button>
+         </div>
+       </form>`,
+      (backdrop, close) => {
+        const form = backdrop.querySelector("#add-lessons-form");
+        const submit = form.querySelector("[data-confirm]");
+        const selectedMode = () => (form.elements.mode.value === "practice" ? "practice" : "assessment");
+
+        // Lessons already in the class as the chosen type are skipped; say which.
+        const sync = () => {
+          const mode = selectedMode();
+          settings.mode = mode;
+          settings.openAt = form.elements.openAt.value;
+          settings.dueAt = form.elements.dueAt.value;
+          const adding = toAdd(mode).length;
+          const skipped = ids.filter((id) => inClass[mode].has(id));
+          const note = form.querySelector("#add-lessons-skipped");
+          note.hidden = !skipped.length;
+          if (skipped.length) {
+            const titles = skipped
+              .map((id) => `“${escapeHtml(state.allLessons.find((l) => l.id === id)?.title || "Untitled")}”`)
+              .join(", ");
+            note.innerHTML = `${titles} ${skipped.length === 1 ? "is" : "are"} already in this class as ${MODE_LABEL[mode]} and will be skipped.`;
+          }
+          submit.disabled = adding === 0;
+          submit.textContent = adding ? `Add ${lessonsLabel(adding)}` : "Nothing to add";
+        };
+        form.addEventListener("change", sync);
+        form.addEventListener("input", sync);
+        sync();
+        backdrop.querySelector("[data-cancel]").addEventListener("click", close);
+
+        // While saving: the Add button spins with what it's doing, and nothing else can be
+        // changed or closed. setBusy(null) puts the form back after a failed save.
+        const setBusy = (label) => {
+          const busy = Boolean(label);
+          submit.setAttribute("aria-busy", String(busy));
+          form.querySelectorAll("input, button").forEach((field) => (field.disabled = busy));
+          backdrop.querySelector(".modal-close").disabled = busy;
+          if (busy) submit.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(label)}`;
+          else sync();
+        };
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          // Practice: students can redo it, nothing is saved, and reports leave it out.
+          const mode = selectedMode();
+          const adding = toAdd(mode);
+          if (!adding.length) return;
+          const schedule = readSchedule(form);
+          if (schedule.error) return toast(schedule.error);
+
+          setBusy(`Adding ${lessonsLabel(adding.length)}…`);
+          const linkIds = [];
+          try {
+            // An Assessment link's id is the lesson id, so Firestore rules can look up its
+            // schedule; a Practice link is "{lessonId}__practice" so both can be in the class.
+            const batch = writeBatch(db);
+            adding.forEach((lessonId, index) => {
+              const linkId = mode === "practice" ? practiceLinkId(lessonId) : lessonId;
+              // A Practice link saved under the lesson id (before both could be added) moves aside.
+              const occupant = links.find((link) => link.id === lessonId && linkMode(link) === "practice");
+              if (mode === "assessment" && occupant) {
+                const { id, ...data } = occupant;
+                batch.set(doc(db, "classes", classId, "classLessons", practiceLinkId(lessonId)), { ...data, lessonId });
+              }
+              linkIds.push(linkId);
+              batch.set(doc(db, "classes", classId, "classLessons", linkId), {
+                lessonId,
+                teacherId: state.user.uid,
+                order: links.length + index + 1,
+                createdAt: serverTimestamp(),
+                openAt: schedule.openAt,
+                dueAt: schedule.dueAt,
+                mode,
+                notifyPending: true,
+              });
+            });
+            await batch.commit();
+          } catch (err) {
+            setBusy(null);
+            return toast(err.message);
+          }
+
+          // Saved; the button keeps spinning until the students are notified.
+          const added = `${adding.length} lesson${adding.length > 1 ? "s" : ""} added`;
+          setBusy("Notifying students…");
+          try {
+            await notifyStudents(classId, linkIds);
+            toast(`${added}. Students were notified.`);
+          } catch (err) {
+            console.error("notifyStudents failed —", err);
+            toast(`${added}, but students were not notified (${err.message}).`);
+          }
+          close();
+          navigate(`/classes/${encodeURIComponent(classId)}`);
+        });
+      },
+      // The picks stay on the page and the settings are remembered, so closing loses nothing.
+      { closeOnBackdrop: false },
+    );
+  }
 }
