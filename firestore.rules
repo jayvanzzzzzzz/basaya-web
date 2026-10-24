@@ -318,10 +318,10 @@ service cloud.firestore {
     }
 
     // Diksiyonaryo: words teachers add or fix (js/dictionary.js). The doc id is the
-    // search key; `hidden: true` takes a Wiktionary seed word out, and `syllables` ("ba·hay")
+    // search key; `hidden: true` marks a Wiktionary seed word deleted, and `syllables` ("ba·hay")
     // fixes the automatic syllable split (js/syllables.js). Everyone signed in
     // reads, any teacher or admin adds/edits, and only whoever added a word (or an
-    // admin) deletes it. Any teacher may delete a "hidden" marker (shows the word again).
+    // admin) deletes it. Only admins write or remove a "hidden" (deleted) marker.
     match /dictionary/{key} {
       function validWord() {
         let d = request.resource.data;
@@ -334,7 +334,7 @@ service cloud.firestore {
           d.senses is list && d.senses.size() <= 5 &&
           (d.hidden || d.senses.size() > 0) &&
           d.synonyms is list && d.synonyms.size() <= 10 &&
-          d.hidden is bool &&
+          d.hidden is bool && (!d.hidden || isAdmin()) &&
           d.createdByName is string && d.createdByName.size() <= 120 &&
           d.updatedBy == request.auth.uid &&
           d.updatedByName is string && d.updatedByName.size() <= 120 &&
@@ -354,7 +354,7 @@ service cloud.firestore {
         request.resource.data.createdAt == resource.data.createdAt));
 
       allow delete: if isAdmin() ||
-        (isTeacher() && (resource.data.createdBy == request.auth.uid || resource.data.hidden == true));
+        (isTeacher() && resource.data.createdBy == request.auth.uid && resource.data.hidden == false);
     }
 
     // adminPasswordChanges (admin password changes waiting for email approval) has

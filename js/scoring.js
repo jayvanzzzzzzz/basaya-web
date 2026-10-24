@@ -2,7 +2,8 @@
 // (C:\Projects\BaSaya, see its README "Paano kinukwenta ang progreso"), so teachers on
 // the web and students in the app see the same numbers. Keep the two in sync.
 //
-// - One score per skill per lesson: first-try accuracy = correct ÷ attempts × 100.
+// - One score per skill per lesson: first-try accuracy = correct ÷ attempts × 100. The
+//   crossword has no wrong answers: each word found counts once (attempts = items).
 // - Lessons combine in a recency-weighted average (weight = items × 0.85^age).
 // - Skills are never mixed into one student grade.
 
@@ -145,6 +146,9 @@ export function resultsFrom(progressDocs) {
       const parsed =
         parseRecord(doc.id, doc.skills?.[key]) ||
         (key === "pagsusulit" ? legacyQuiz(doc.id, doc) : null);
+      // Crossword: every word found counts once. Older records also counted wrong swipes
+      // in attempts; those no longer lower the score.
+      if (parsed && key === "talasalitaan") parsed.attempts = parsed.items;
       if (parsed) results[key].push(parsed);
     });
   });
@@ -154,10 +158,11 @@ export function resultsFrom(progressDocs) {
 /**
  * Scored parts that are scored anyway when left unfinished at the deadline (Pag-unawa has no
  * score). `resume`/`correct`: where the part keeps its first-try right answers so far
- * (resume.{part}.{field}); the crossword keeps its played levels in its skill record instead.
+ * (resume.{part}.{field}); the crossword keeps its played levels in its skill record and the
+ * words found on the level being played in resume.game.done.
  */
 export const MISSABLE_PARTS = [
-  { skill: "talasalitaan", finished: "gameFinished", skipped: "gameSkipped" },
+  { skill: "talasalitaan", finished: "gameFinished", skipped: "gameSkipped", resume: "game", correct: "done" },
   { skill: "pagkilala", finished: "activityFinished", skipped: "activitySkipped", resume: "activity", correct: "score" },
   { skill: "pagbigkas", finished: "pronunciationFinished", resume: "pronunciation", correct: "firstTryCorrect" },
   { skill: "pagsusulit", finished: "quizFinished", resume: "quiz", correct: "score" },
@@ -170,8 +175,8 @@ export const MISSABLE_PARTS = [
  * - lessons: the lessons the student is held to (not ones that closed before they joined),
  *   as [{ id, dueAt, gameSkipped, activitySkipped, items: { skillKey: count } }].
  * - Applies when the deadline passed, the part isn't finished (or skipped) and the lesson has
- *   items for it. Correct answers come from the saved place (resume), or for the crossword
- *   from the levels played; the result counts all the part's items and is dated at the deadline.
+ *   items for it. Correct answers come from the saved place (resume), plus for the crossword
+ *   the levels played; the result counts all the part's items and is dated at the deadline.
  * Returns new results; each changed or added one has `missed: true`.
  */
 export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now()) {
@@ -190,20 +195,21 @@ export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now
 
       const list = results[part.skill];
       const at = list.findIndex((result) => result.lessonId === lesson.id);
+      const saved = part.resume ? Math.max(Math.floor(Number(doc.resume?.[part.resume]?.[part.correct])) || 0, 0) : 0;
       if (at >= 0) {
-        // Only a half-played crossword has a record before it's finished: the words of the
-        // levels not played are added as wrong.
+        // Only a half-played crossword has a record before it's finished: the words found on
+        // the level being played count, and the rest of the words are added as wrong.
         const result = list[at];
         const rest = items - result.items;
         if (rest > 0) {
-          list[at] = { ...result, attempts: result.attempts + rest, items, missed: true };
+          const found = Math.min(saved, rest);
+          list[at] = { ...result, correct: result.correct + found, attempts: result.attempts + rest, items, missed: true };
         }
         return;
       }
-      const saved = part.resume ? Number(doc.resume?.[part.resume]?.[part.correct]) : 0;
       list.push({
         lessonId: lesson.id,
-        correct: Math.min(Math.max(Math.floor(saved) || 0, 0), items),
+        correct: Math.min(saved, items),
         attempts: items,
         items,
         completedAtMillis: lesson.dueAt,

@@ -12,6 +12,8 @@ import { state } from "../../js/state.js";
 import { $, escapeHtml, page, toast } from "../../js/helpers.js";
 import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
+import { teacherName } from "../../js/chat.js?v=teacher-title";
+import { titleChipsMarkup } from "../../js/teacherTitle.js";
 
 export function renderAccountSettings() {
   page(
@@ -22,6 +24,7 @@ export function renderAccountSettings() {
   const profile = state.profile || {};
   const email = state.user?.email || "";
   const displayName = profile.displayName || "";
+  const title = profile.title || "";
 
   $("#page-content").innerHTML = `
     <section class="account-settings" aria-label="Account settings">
@@ -61,6 +64,8 @@ export function renderAccountSettings() {
                 placeholder="Your full name"
               />
             </label>
+            ${titleChipsMarkup(title, "How should students address you?")}
+            <p class="title-chips__preview" data-title-preview></p>
             <label>
               Contact email
               <input type="email" value="${escapeHtml(email)}" readonly />
@@ -111,19 +116,33 @@ export function renderAccountSettings() {
     </section>
   `;
 
-  $("#account-profile-form").addEventListener("submit", async (event) => {
+  // "Students will see: Ma'am Reyes", kept in step with the name and the chosen title.
+  const profileForm = $("#account-profile-form");
+  const preview = $("[data-title-preview]", profileForm);
+  const showPreview = () => {
+    const name = teacherName(profileForm.elements.displayName.value, profileForm.elements.title.value);
+    preview.hidden = !name;
+    preview.innerHTML = `Students will see: <strong>${escapeHtml(name)}</strong>`;
+  };
+  profileForm.addEventListener("input", showPreview);
+  showPreview();
+
+  profileForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
     const displayName = values.get("displayName").trim();
+    const title = values.get("title") || "";
 
     try {
       await updateDoc(doc(db, "users", state.user.uid), {
         displayName,
+        title,
       });
       state.profile = {
         ...state.profile,
         displayName,
+        title,
       };
       toast("Profile details saved.");
       renderAccountSettings();

@@ -6,21 +6,22 @@ import {
   PARTS_OF_SPEECH,
   allWords,
   deleteWord,
-  hideWord,
   lookupWord,
   normalizeWord,
   renameWord,
+  restoreWord,
   saveWord,
   syllablesOf,
 } from "../../js/dictionary.js";
 import { syllabify, withoutDots } from "../../js/syllables.js";
 import { fieldError } from "../../js/field-errors.js";
 import { speakWord } from "../../js/tts.js";
+import { paginate } from "../../js/pagination.js";
 
 // Dictionary: the Tagalog words students look up on the student side (#/diksiyonaryo).
 // Most come from Tagalog Wiktionary (data/dictionary/tl-seed.json); teachers and admins
 // add missing words, fix wrong ones (an edited copy replaces the original), fix the
-// syllable split and hide bad ones. Every word is listed A to Z, and opening one shows
+// syllable split, and delete words they added (admins delete any word). Every word is listed A to Z, and opening one shows
 // its meanings and examples like the student page. Definitions are typed in Filipino;
 // the page itself is in English. Admins reach it at admin #/dictionary.
 
@@ -28,10 +29,16 @@ const LETTERS = "a b k d e g h i l m n ng o p r s t u w y".split(" ");
 const MAX_DEFINITIONS = 8;
 const MAX_TEXT = 500;
 const MAX_SYLLABLES = 120;
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
 const SEARCH_DELAY = 200;
 const SPEAKER_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>';
+const ACTION_ICONS = {
+  edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></svg>',
+  restore: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v5h5" /><path d="M5.1 15a7.5 7.5 0 1 0 1.2-7.6L4 9" /></svg>',
+  delete:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13" /><path d="M9 7V4h6v3" /></svg>',
+};
 
 let timer = null;
 
@@ -50,24 +57,25 @@ function tagsHtml(entry) {
       ? `<span class="tag">${entry.replaces ? "Edited" : "Added"} by ${escapeHtml(mine ? "you" : entry.updatedByName || entry.createdByName || "a teacher")}</span>`
       : `<span class="tag tag--muted">Wiktionary</span>`,
     entry.syllables ? `<span class="tag tag--muted">Syllables fixed</span>` : "",
-    entry.hidden ? `<span class="tag tag--danger">Hidden from students</span>` : "",
   ].join("");
 }
 
+// Icon-only; the label shows as a tooltip on hover/focus.
+const actionButton = (act, label, word) =>
+  `<button type="button" class="dict-action${act === "delete" ? " dict-action--danger" : ""}" data-act="${act}" aria-label="${escapeHtml(`${label}: ${word}`)}">${ACTION_ICONS[act]}<span aria-hidden="true">${label}</span></button>`;
+
+// Admins delete any word. Teachers delete or restore only words they added or changed.
 function actionsHtml(entry) {
-  const canDelete = isAdmin() || entry.createdBy === state.user.uid;
-  if (entry.hidden) return `<button class="button secondary small" data-act="unhide">Show again</button>`;
-  let actions = `<button class="button secondary small" data-act="edit">Edit</button>`;
-  if (entry.source === "wiktionary") actions += `<button class="button secondary small" data-act="hide">Hide</button>`;
-  else if (entry.replaces && canDelete) actions += `<button class="button secondary small" data-act="delete">Restore original</button>`;
-  else if (canDelete) actions += `<button class="button secondary small danger-text" data-act="delete">Delete</button>`;
+  const mine = entry.createdBy === state.user.uid;
+  const word = entry.accent || entry.word;
+  let actions = actionButton("edit", "Edit", word);
+  if (entry.replaces && (isAdmin() || mine)) actions += actionButton("restore", "Restore original", word);
+  if (isAdmin() || (mine && entry.source === "teacher" && !entry.replaces)) actions += actionButton("delete", "Delete", word);
   return actions;
 }
 
 function rowHtml(entry) {
-  const first = entry.hidden
-    ? "Students don't see this word."
-    : [entry.senses[0]?.pos, entry.senses[0]?.definitions[0]].filter(Boolean).join(" · ");
+  const first = [entry.senses[0]?.pos, entry.senses[0]?.definitions[0]].filter(Boolean).join(" · ");
   return `
     <div class="lesson-row dict-row" data-key="${escapeHtml(entry.key)}">
       <button type="button" class="dict-row__text" data-act="open">
@@ -88,29 +96,25 @@ function entryHtml(entry) {
         <div>
           <div class="dict-entry__word">
             <h2 tabindex="-1">${escapeHtml(entry.accent || entry.word)}</h2>
-            ${entry.hidden ? "" : `<button type="button" class="icon-button dict-speak" data-act="speak" aria-label="Play “${escapeHtml(entry.accent || entry.word)}”">${SPEAKER_ICON}</button>`}
+            <button type="button" class="icon-button dict-speak" data-act="speak" aria-label="Play “${escapeHtml(entry.accent || entry.word)}”">${SPEAKER_ICON}</button>
           </div>
           <p class="dict-entry__syllables">${escapeHtml(syllablesOf(entry))}</p>
           <div class="lesson-meta">${tagsHtml(entry)}</div>
         </div>
         <div class="dict-row__actions">${actionsHtml(entry)}</div>
       </header>
-      ${
-        entry.hidden
-          ? `<p class="dict-empty">Students don't see this word. Show it again to edit it.</p>`
-          : entry.senses
-              .map(
-                (sense) => `
+      ${entry.senses
+        .map(
+          (sense) => `
         <section class="dict-entry__sense">
           ${sense.pos ? `<h3>${escapeHtml(sense.pos)}</h3>` : ""}
           <ol>${sense.definitions.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ol>
           ${sense.examples.length ? `<ul class="dict-entry__examples">${sense.examples.map((e) => `<li>“${escapeHtml(e)}”</li>`).join("")}</ul>` : ""}
         </section>`,
-              )
-              .join("")
-      }
+        )
+        .join("")}
       ${
-        entry.synonyms.length && !entry.hidden
+        entry.synonyms.length
           ? `<p class="dict-entry__syn"><strong>Synonyms:</strong> ${entry.synonyms
               .map((s) => `<button type="button" class="tag dict-entry__chip" data-word="${escapeHtml(s)}">${escapeHtml(s)}</button>`)
               .join(" ")}</p>`
@@ -200,7 +204,13 @@ export function openWordModal(entry = null, onSaved, typed = "") {
       // × and Cancel ask first when anything differs from how the modal opened.
       const initialSnapshot = formSnapshot(form);
       mayLeave = () =>
-        formSnapshot(form) === initialSnapshot ? Promise.resolve(true) : confirmDiscardWord(editing && entry.word);
+        formSnapshot(form) === initialSnapshot
+          ? Promise.resolve(true)
+          : askFirst(
+              editing
+                ? { title: "Discard unsaved changes?", text: `Your changes to “${entry.word}” will be lost.`, yes: "Discard changes" }
+                : { title: "Discard this word?", text: "The word you've entered won't be added.", yes: "Discard word" },
+            );
       $("[data-close]", backdrop).addEventListener("click", async () => {
         if (await mayLeave()) close();
       });
@@ -266,7 +276,7 @@ export function openWordModal(entry = null, onSaved, typed = "") {
           if (!editing || renaming) {
             const existing = await lookupWord(word);
             if (existing && renaming)
-              return fail(`“${existing.word}” is already in the dictionary. Edit that word instead, or hide it first.`, form.word);
+              return fail(`“${existing.word}” is already in the dictionary. Edit that word instead, or delete it first.`, form.word);
             if (existing) {
               close();
               toast(`“${existing.word}” is already in the dictionary. You can edit it here.`);
@@ -307,18 +317,15 @@ function formSnapshot(form) {
   return JSON.stringify($$("input, textarea, select", form).map((field) => field.value));
 }
 
-/** Resolves true to close the word modal and lose the edits, false to keep editing. */
-function confirmDiscardWord(word) {
+/** A yes/no pop-up: resolves true for `yes`, false for `no` (or closing it). */
+function askFirst({ title, text, yes, no = "Keep editing" }) {
   return new Promise((resolve) => {
     openModal(
-      `${word
-        ? `<h2>Discard unsaved changes?</h2>
-           <p>Your changes to “${escapeHtml(word)}” will be lost.</p>`
-        : `<h2>Discard this word?</h2>
-           <p>The word you've entered won't be added.</p>`}
+      `<h2>${escapeHtml(title)}</h2>
+       <p>${escapeHtml(text)}</p>
        <div class="modal-actions">
-         <button type="button" class="button secondary" data-cancel>Keep editing</button>
-         <button type="button" class="button danger" data-confirm>${word ? "Discard changes" : "Discard word"}</button>
+         <button type="button" class="button secondary" data-cancel>${escapeHtml(no)}</button>
+         <button type="button" class="button danger" data-confirm>${escapeHtml(yes)}</button>
        </div>`,
       (backdrop, close) => {
         let settled = false;
@@ -329,7 +336,7 @@ function confirmDiscardWord(word) {
           close();
           resolve(choice);
         };
-        // Closing with × or the backdrop counts as "keep editing".
+        // Closing with × or the backdrop counts as `no`.
         const watcher = new MutationObserver(() => {
           if (!backdrop.isConnected) finish(false);
         });
@@ -362,7 +369,6 @@ export async function renderDictionary() {
           <select id="dict-filter">
             <option value="all">All words</option>
             <option value="teacher">Added or changed by teachers</option>
-            <option value="hidden">Hidden from students</option>
           </select>
         </label>
       </div>
@@ -379,14 +385,15 @@ export async function renderDictionary() {
   const results = $("#dict-results");
   let everything = [];
   let matches = [];
-  let showing = PAGE_SIZE;
+  let listPage = 1; // kept while a word is open, so Back returns to the same page
+  let pageSize = PAGE_SIZE;
   let open = null; // key of the word being viewed, or null for the list
 
   const filtered = () => {
     const prefix = normalizeWord(input.value);
     const kind = filter.value;
     return everything
-      .filter((e) => (kind === "teacher" ? e.source === "teacher" : kind === "hidden" ? e.hidden : true))
+      .filter((e) => kind !== "teacher" || e.source === "teacher")
       .filter((e) => !prefix || e.key.startsWith(prefix))
       .sort((a, b) => (b.key === prefix) - (a.key === prefix));
   };
@@ -404,8 +411,15 @@ export async function renderDictionary() {
     const heading = text ? `Words starting with “${text}”` : filter.value === "all" ? "All words, A to Z" : filter.selectedOptions[0].textContent;
     results.innerHTML = `
       <h2 class="dict-heading">${escapeHtml(heading)} · ${matches.length.toLocaleString()}</h2>
-      <div class="list">${matches.slice(0, showing).map(rowHtml).join("")}</div>
-      ${matches.length > showing ? `<button type="button" class="button secondary dict-more" data-more>Show more (${(matches.length - showing).toLocaleString()} left)</button>` : ""}`;
+      <div class="list">${matches.map(rowHtml).join("")}</div>`;
+    paginate({
+      rows: () => $$(".dict-row", results),
+      after: results.querySelector(".list"),
+      label: ["word", "words"],
+      page: listPage,
+      pageSize,
+      onChange: (state) => ({ page: listPage, pageSize } = state),
+    });
   };
 
   const showEntry = (entry) => {
@@ -437,20 +451,20 @@ export async function renderDictionary() {
   input.addEventListener("input", () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      showing = PAGE_SIZE;
+      listPage = 1;
       setLetter(LETTERS.includes(normalizeWord(input.value)) ? normalizeWord(input.value) : input.value.trim() ? null : "");
       showList();
     }, SEARCH_DELAY);
   });
   filter.addEventListener("change", () => {
-    showing = PAGE_SIZE;
+    listPage = 1;
     showList();
   });
   $(".dict-letters").addEventListener("click", (event) => {
     const button = event.target.closest("[data-letter]");
     if (!button) return;
     input.value = button.dataset.letter;
-    showing = PAGE_SIZE;
+    listPage = 1;
     setLetter(button.dataset.letter);
     showList();
   });
@@ -460,11 +474,6 @@ export async function renderDictionary() {
       openWordModal(null, afterSave);
       $("#dict-word-form [name=word]").value = input.value.trim();
       $("#dict-word-form [name=word]").dispatchEvent(new Event("input"));
-      return;
-    }
-    if (event.target.closest("[data-more]")) {
-      showing += PAGE_SIZE;
-      showList();
       return;
     }
     const chip = event.target.closest("[data-word]");
@@ -495,19 +504,28 @@ export async function renderDictionary() {
       openWordModal(entry, afterSave);
       return;
     }
-    const confirmText = {
-      hide: `Hide “${entry.word}” from students?`,
-      unhide: `Show “${entry.word}” to students again?`,
-      delete: entry.replaces
-        ? `Remove the changes to “${entry.word}”? Students will see the original Wiktionary meaning again.`
-        : `Delete “${entry.word}” from the dictionary?`,
-    }[act];
-    if (!confirm(confirmText)) return;
+    const word = entry.accent || entry.word;
+    const sure = await askFirst(
+      act === "delete"
+        ? {
+            title: "Delete this word?",
+            text: `Are you sure you want to delete “${word}”? Students and teachers won't find it in the dictionary anymore.`,
+            yes: "Delete",
+            no: "Cancel",
+          }
+        : {
+            title: "Restore the original?",
+            text: `Remove the changes to “${word}”? Students will see the original Wiktionary meaning again.`,
+            yes: "Restore original",
+            no: "Cancel",
+          },
+    );
+    if (!sure) return;
     button.disabled = true;
     try {
-      if (act === "hide") await hideWord(entry, who());
-      else await deleteWord(entry.key); // unhide and delete both remove the teacher doc
-      toast({ hide: "Word hidden.", unhide: "Word shown again.", delete: "Done." }[act]);
+      if (act === "delete") await deleteWord(entry, who());
+      else await restoreWord(entry.key);
+      toast(act === "delete" ? `“${word}” deleted.` : "Original meaning restored.");
       // Stay on the word if it's still there; a deleted one goes back to the list.
       await load(open && act !== "delete" ? entry.word : "");
     } catch (error) {

@@ -352,3 +352,68 @@ textarea:not(:disabled),
 [contenteditable="true"] {
   cursor: var(--cursor-text);
 }
+
+/* "How should students address you?" chips: Ma'am / Sir / Name only (js/teacherTitle.js) */
+.title-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.title-chips legend {
+  margin-bottom: 0.45rem;
+  padding: 0;
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.title-chips__chip {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.title-chips__chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-chips__chip span {
+  padding: 0.45rem 0.95rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  font-weight: 650;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.title-chips__chip:hover span {
+  border-color: var(--primary);
+}
+
+.title-chips__chip input:checked + span {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.title-chips__chip input:focus-visible + span {
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+.title-chips__preview {
+  margin: -0.4rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+}
+
+.title-chips__preview strong {
+  color: var(--ink);
+}

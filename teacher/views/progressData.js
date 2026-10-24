@@ -42,7 +42,7 @@ export async function loadClassContext(classId) {
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
   // A skipped game or Gawain counts as done (js/skippedParts.js). Item counts weigh a
-  // missed part's 0; the quiz questions and Bigkas words feed the item analysis.
+  // missed part's 0.
   const ids = links.map((link) => link.lessonId || link.id);
   const noItems = { items: {}, questions: [], words: [] };
   const [skipped, contents] = await Promise.all([
@@ -62,8 +62,6 @@ export async function loadClassContext(classId) {
       gameSkipped: skipped[index].game,
       activitySkipped: skipped[index].activity,
       items: contents[index].items,
-      questions: contents[index].questions,
-      words: contents[index].words,
     };
   });
 
@@ -120,7 +118,6 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
         return [key, score];
       }),
     );
-    const quizRecord = data.skills?.pagsusulit;
     const speechRecord = data.skills?.pagbigkas;
     (data.skills?.pagbigkas?.hardWords || []).forEach((word) =>
       hardWordCounts.set(word, (hardWordCounts.get(word) || 0) + 1),
@@ -148,13 +145,7 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
       lectureDone: parts.parts.lecture,
       // Parts counted as 0 because the deadline passed.
       missed,
-      // Item analysis: null when there's nothing to count (not taken, or taken before tracking).
-      missedQuestions: Array.isArray(quizRecord?.missedQuestions) ? quizRecord.missedQuestions : null,
-      quizTakenUntracked: data.quizFinished === true && !Array.isArray(quizRecord?.missedQuestions),
       hardWords: speechRecord ? (Array.isArray(speechRecord.hardWords) ? speechRecord.hardWords : []) : null,
-      // How far the student got in an unfinished quiz / Bigkas (student/views/quiz.js, pronunciation.js).
-      quizResume: data.resume?.quiz || null,
-      speechResume: data.resume?.pronunciation || null,
     };
   });
 
@@ -411,116 +402,4 @@ export function classRemarks(report, entries, lessons) {
     });
   }
   return notes;
-}
-
-// ---------- Item analysis ("What to re-teach") ----------
-
-/** Share of the class that has to miss an item before it's flagged "Re-teach". */
-export const RETEACH_THRESHOLD = 50;
-
-const itemKey = (text) => String(text ?? "").trim().toLowerCase();
-
-/**
- * Counts how many students missed each item, ranked hardest first. `known` are the lesson's
- * current items; saved ones that are no longer in the lesson (it was edited) are kept too.
- * `answers` is one list of missed items per student who counts.
- */
-function rankItems(known, answers) {
-  const items = new Map();
-  const add = (text) => {
-    const key = itemKey(text);
-    if (key && !items.has(key)) items.set(key, { text: String(text).trim(), missed: 0, current: known.includes(text) });
-  };
-  known.forEach(add);
-  answers.forEach((missed) => missed.forEach(add));
-  answers.forEach((missed) => {
-    new Set(missed.map(itemKey)).forEach((key) => {
-      if (items.has(key)) items.get(key).missed += 1;
-    });
-  });
-  const students = answers.length;
-  return [...items.values()]
-    .map((item, order) => ({
-      ...item,
-      order,
-      percent: students ? Math.round((item.missed * 100) / students) : null,
-      reteach: students > 0 && (item.missed * 100) / students >= RETEACH_THRESHOLD,
-    }))
-    .filter((item) => item.current || item.missed)
-    .sort((a, b) => b.missed - a.missed || a.order - b.order);
-}
-
-/** A saved place only fits the lesson when it was made for the same number of items. */
-const fits = (resume, total) => resume && Number(resume.total) === total;
-const textsOf = (list) => (Array.isArray(list) ? list.filter((item) => typeof item === "string") : []);
-
-/** Unfinished at the deadline: the questions answered wrong, plus every one not answered. */
-function unfinishedQuiz(questions, resume) {
-  if (!fits(resume, questions.length)) return questions;
-  const answered = new Set((Array.isArray(resume.answered) ? resume.answered : []).map(Number));
-  return [...textsOf(resume.missed), ...questions.filter((_, position) => !answered.has(position))];
-}
-
-/** Unfinished at the deadline: the words missed so far, plus every word not reached (in order). */
-function unfinishedWords(words, resume) {
-  if (!fits(resume, words.length)) return words;
-  const done = Math.min(Math.max(Number(resume.done) || 0, 0), words.length);
-  return [...textsOf(resume.hardWords), ...words.slice(done)];
-}
-
-/**
- * Per lesson: which quiz questions and Bigkas words the class missed, so the teacher can
- * decide what to re-teach.
- * - Quiz: students whose quiz saved its missed questions. A student who didn't finish by the
- *   deadline counts with the answers they gave, and as wrong on every question they didn't
- *   reach. Quizzes taken before question tracking began are only counted in `untracked`.
- * - Words: students who finished Bigkas (their hardWords: words not right on the first try).
- *   A student who didn't finish by the deadline counts with the words they said, and as
- *   missing every word they didn't reach.
- * Students who moved, or whose lesson closed before they joined, are left out.
- */
-export function itemAnalysis(entries, lessons) {
-  return lessons.map((lesson) => {
-    const rows = entries
-      .filter((entry) => !entry.progress.error)
-      .map((entry) => entry.progress.perLesson.find((row) => row.lesson.id === lesson.id))
-      .filter((row) => row && row.status !== "before-joining");
-
-    const quizAnswers = [];
-    let untracked = 0;
-    let quizMissedDeadline = 0;
-    const wordAnswers = [];
-    let wordsMissedDeadline = 0;
-    rows.forEach((row) => {
-      if (row.missed.includes("pagsusulit")) {
-        quizMissedDeadline += 1;
-        quizAnswers.push(unfinishedQuiz(lesson.questions, row.quizResume));
-      } else if (row.missedQuestions) {
-        quizAnswers.push(row.missedQuestions);
-      } else if (row.quizTakenUntracked) {
-        untracked += 1;
-      }
-      if (row.missed.includes("pagbigkas")) {
-        wordsMissedDeadline += 1;
-        wordAnswers.push(unfinishedWords(lesson.words, row.speechResume));
-      } else if (row.hardWords) {
-        wordAnswers.push(row.hardWords);
-      }
-    });
-
-    return {
-      lesson,
-      quiz: {
-        students: quizAnswers.length,
-        missedDeadline: quizMissedDeadline,
-        untracked,
-        items: rankItems(lesson.questions, quizAnswers),
-      },
-      words: {
-        students: wordAnswers.length,
-        missedDeadline: wordsMissedDeadline,
-        items: rankItems(lesson.words, wordAnswers),
-      },
-    };
-  });
 }

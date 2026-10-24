@@ -1,78 +1,129 @@
 /* ============================================================
-   TEACHER DASHBOARD — class cards
+   TEACHER DASHBOARD — at a glance, class cards, "Due this week"
    ============================================================ */
 .teacher-dashboard {
   display: grid;
   gap: 1.25rem;
 }
 
+/* ---------- At a glance ---------- */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+}
+
+.dash-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.dash-stat__icon {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius);
+}
+
+.dash-stat__icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.dash-stat--classes .dash-stat__icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.dash-stat--students .dash-stat__icon {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.dash-stat--due .dash-stat__icon {
+  background: var(--gold-soft);
+  color: var(--warning);
+}
+
+.dash-stat--chats .dash-stat__icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.dash-stat__text {
+  display: grid;
+  min-width: 0;
+}
+
+.dash-stat__text strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-stat__text span {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+/* ---------- Classes beside "Due this week" ---------- */
+.dash-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .dash-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .classes-grid {
-  grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
-  gap: 1.15rem;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
 }
 
 .class-card {
   position: relative;
-  isolation: isolate;
   display: flex;
-  min-height: 17.5rem;
+  min-height: 15rem;
   flex-direction: column;
-  gap: 0.9rem;
-  overflow: hidden;
-  padding: 1.3rem 1.3rem 1.1rem;
+  gap: 0.85rem;
+  padding: 1.1rem 1.15rem 1rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   color: inherit;
-  box-shadow: var(--lip), var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
   transition:
-    transform 320ms var(--ease-out),
-    box-shadow 320ms var(--ease-out),
-    border-color 320ms var(--ease-out);
-}
-
-/* Gradient cap that grows on hover */
-.class-card::before {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: -1;
-  height: 4.6rem;
-  background: var(--hero-gradient);
-  opacity: 0.95;
-  content: "";
-  transition: height 420ms var(--ease-out);
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
 }
 
 .class-card__glow {
-  position: absolute;
-  top: -3.4rem;
-  right: -2.2rem;
-  z-index: -1;
-  width: 7.5rem;
-  height: 7.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1.2rem rgba(255, 255, 255, 0.07);
-  pointer-events: none;
-  transition: transform 600ms var(--ease-out);
+  display: none;
 }
 
 .class-card:hover {
-  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
-  box-shadow: var(--lip-hover), var(--shadow);
-  transform: translateY(-5px);
-}
-
-.class-card:hover::before {
-  height: 5rem;
-}
-
-.class-card:hover .class-card__glow {
-  transform: scale(1.25) rotate(20deg);
-}
-
-.class-card:active {
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: var(--shadow);
 }
 
 .class-card:focus-visible {
@@ -82,61 +133,90 @@
 
 .class-card__heading {
   display: flex;
-  min-height: 2.2rem;
+  min-height: 2.6rem;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.5rem;
   padding-right: 2.8rem;
 }
 
-.class-card__eyebrow {
-  padding: 0.28rem 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  backdrop-filter: blur(6px);
-}
-
-.class-card .icon-button--menu {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-
-.class-card .icon-button--menu:hover,
-.class-card .icon-button--menu[aria-expanded="true"] {
-  border-color: #fff;
-  background: #fff;
+/* Colour tile per class: "4R" */
+.class-card__badge {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
   color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.class-card__badge[data-tint="1"] {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.class-card__badge[data-tint="2"] {
+  background: var(--gold-soft);
+  color: var(--warning);
+}
+
+.class-card__badge[data-tint="3"] {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.class-card .chat-dot {
+  background: var(--primary-soft);
+  box-shadow: none;
 }
 
 .class-card__body {
   flex: 1;
-  padding-top: 1.1rem;
 }
 
 .class-card__body h3 {
-  max-width: 17rem;
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
 .class-card__body p {
   display: -webkit-box;
-  max-width: 24rem;
-  margin: 0.45rem 0 0;
+  margin: 0.35rem 0 0;
   overflow: hidden;
   color: var(--ink-3);
-  font-size: 0.84rem;
-  line-height: 1.55;
+  font-size: 0.83rem;
+  line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+/* "28 students · Next due Mon, Oct 27" */
+.class-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.6rem;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.class-card__meta:empty {
+  display: none;
+}
+
+.class-card__meta span + span::before {
+  margin-right: 0.5rem;
+  color: var(--border-strong);
+  content: "·";
 }
 
 .class-card__code {
@@ -153,7 +233,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.7rem;
-  padding-top: 0.85rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--border);
   color: var(--primary);
   font-size: 0.82rem;
@@ -161,30 +241,112 @@
 }
 
 .class-card__open svg {
-  display: grid;
-  width: 1.9rem;
-  height: 1.9rem;
-  padding: 0.42rem;
-  border-radius: 50%;
-  background: var(--primary-soft);
+  width: 1.1rem;
+  height: 1.1rem;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
-  transition:
-    transform 320ms var(--ease-spring),
-    background-color 320ms var(--ease-out),
-    color 320ms var(--ease-out);
+  transition: transform var(--dur) var(--ease-out);
 }
 
 .class-card:hover .class-card__open svg {
-  background: var(--brand-gradient);
-  color: #fff;
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 #class-grid-container > .muted {
   padding: 2rem 0;
+  text-align: center;
+}
+
+/* ---------- Due this week ---------- */
+.dash-due {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.dash-due h2 {
+  margin: 0;
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dash-due__list {
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+}
+
+.dash-due__item {
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.dash-due__item:hover {
+  background: var(--surface-2);
+}
+
+/* Little calendar page, gold on top */
+.dash-due__date {
+  display: grid;
+  width: 2.8rem;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.dash-due__date span {
+  padding: 0.1rem 0;
+  background: var(--gold);
+  color: var(--gold-ink);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dash-due__date strong {
+  padding: 0.15rem 0 0.25rem;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.dash-due__text {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.dash-due__text strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-due__text span,
+.dash-due__text small {
+  color: var(--ink-3);
+  font-size: 0.76rem;
+}
+
+.dash-due__empty {
+  padding: 1.1rem 0.75rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
   text-align: center;
 }

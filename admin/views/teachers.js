@@ -17,6 +17,7 @@ import { paginate } from "../../js/pagination.js";
 import { fieldError } from "../../js/field-errors.js";
 import { sendPasswordReset } from "../../js/api.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
+import { titleChipsMarkup, titleLabel } from "../../js/teacherTitle.js";
 import { assignClasses, classIdsOf, teacherLabel, teacherOptions } from "./classTeacher.js";
 
 let pager = null;
@@ -84,6 +85,7 @@ export async function renderTeachers() {
                     <div class="teacher-table__person">
                       <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml(initials(t.displayName || t.email || "T"))}</span>
                       <span class="teacher-table__name">${escapeHtml(t.displayName || "Unnamed teacher")}</span>
+                      ${titleLabel(t.title) ? `<span class="teacher-table__title">${escapeHtml(titleLabel(t.title))}</span>` : ""}
                     </div>
                   </td>
                   <td class="teacher-table__email">${escapeHtml(t.email || "No email on file")}</td>
@@ -194,6 +196,7 @@ function openAddTeacherModal() {
     `<h2>Add teacher</h2>
      <form id="add-teacher-form" class="form-card">
        <label>Full name<input name="displayName" required data-missing="Enter the teacher's full name, like Juan Dela Cruz." placeholder="Juan Dela Cruz" /></label>
+       ${titleChipsMarkup()}
        <label>Email<input name="email" type="email" required data-missing="Enter the email the teacher will sign in with." placeholder="teacher@school.edu" /></label>
        <label>Temporary password<input name="password" type="password" required data-missing="Set a temporary password for the teacher's first sign-in." minlength="${MIN_LENGTH}" placeholder="At least ${MIN_LENGTH} characters" /></label>
        <p id="add-teacher-error" class="form-error" role="alert"></p>
@@ -206,6 +209,7 @@ function openAddTeacherModal() {
           e.preventDefault();
           const form = new FormData(e.currentTarget);
           const displayName = form.get("displayName").trim();
+          const title = form.get("title") || "";
           const email = form.get("email").trim();
           const password = form.get("password");
           const errorEl = modal.querySelector("#add-teacher-error");
@@ -228,6 +232,7 @@ function openAddTeacherModal() {
             await setDoc(doc(db, "users", cred.user.uid), {
               role: "teacher",
               displayName,
+              title,
               email,
               createdAt: serverTimestamp(),
             });
@@ -258,6 +263,7 @@ function openEditTeacherModal(teacher) {
     `<h2>Edit teacher</h2>
      <form id="edit-teacher-form" class="form-card">
        <label>Full name<input name="displayName" required data-missing="The teacher's name can't be blank. Enter their full name." value="${escapeHtml(teacher.displayName || "")}" /></label>
+       ${titleChipsMarkup(teacher.title)}
        <p class="muted">Email: ${escapeHtml(teacher.email || "—")}. Use "Reset password" to let them set a new password.</p>
        <div class="modal-actions"><button class="button primary" type="submit">Save changes</button></div>
      </form>`,
@@ -266,11 +272,11 @@ function openEditTeacherModal(teacher) {
         .querySelector("#edit-teacher-form")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          const displayName = new FormData(e.currentTarget)
-            .get("displayName")
-            .trim();
+          const values = new FormData(e.currentTarget);
+          const displayName = values.get("displayName").trim();
+          const title = values.get("title") || "";
           try {
-            await updateDoc(doc(db, "users", teacher.id), { displayName });
+            await updateDoc(doc(db, "users", teacher.id), { displayName, title });
             toast("Teacher account updated.");
             close();
             await renderTeachers();

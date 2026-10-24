@@ -4,15 +4,16 @@ import {
   canDeleteOwn,
   STUDENT_COOLDOWN_MS,
   deleteOwnMessage,
-  lastFirst,
   lastRead,
+  loadClassTeacher,
   loadOlder,
   markRead,
   rosterName,
   sendStudentMessage,
+  teacherName,
   watchRecent,
   watchState,
-} from "../../js/chat.js?v=student-chat-2"; // ?v: skip an older cached copy without the student functions
+} from "../../js/chat.js?v=teacher-title"; // ?v: skip an older cached copy without teacherName
 import { student, classId } from "../data.js";
 import { onLeave } from "../router.js";
 import { content, icon, showDialog } from "../ui.js";
@@ -28,6 +29,8 @@ import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.j
 let stopBadge = null;
 let badgeClassId = null;
 let myRosterName = "";
+// The class's teacher ({ id, title }), so their messages read "Ma'am Reyes" / "Sir Cruz".
+let classTeacher = null;
 
 /** Something new from someone else since the student last looked (ClassChat.isUnread). */
 const isUnread = (state) =>
@@ -92,7 +95,8 @@ function messageHtml(message, previous) {
   const grouped =
     !newDay && previous && previous.senderId === message.senderId && message.sentAt - previous.sentAt < 5 * 60 * 1000;
   const teacher = message.role === "teacher";
-  const name = (teacher ? lastFirst(message.senderName) : message.senderName) || (teacher ? "Guro" : "Kaklase");
+  const title = classTeacher?.id === message.senderId ? classTeacher.title : "";
+  const name = (teacher ? teacherName(message.senderName, title) : message.senderName) || (teacher ? "Guro" : "Kaklase");
   const day = newDay ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
 
   if (message.deleted) {
@@ -130,8 +134,9 @@ export async function renderChat() {
   }
 
   setBadge(false);
-  const name = await rosterName(id, student.uid);
+  const [name, teacher] = await Promise.all([rosterName(id, student.uid), loadClassTeacher(id)]);
   myRosterName = name;
+  classTeacher = teacher;
   const className = student.profile.className || "Klase";
 
   content().innerHTML = `

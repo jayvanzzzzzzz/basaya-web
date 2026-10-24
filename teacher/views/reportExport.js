@@ -1,6 +1,7 @@
 import { $, escapeHtml, toast } from "../../js/helpers.js";
 import { state } from "../../js/state.js";
 import { LEVELS, remarkFor } from "../../js/scoring.js";
+import { titledFullName } from "../../js/chat.js?v=teacher-title";
 
 // Print (and "Save as PDF") and Excel export for the Class Report and student progress
 // pages. Print styles: css/layout/print.css.
@@ -21,7 +22,9 @@ const ICON_PRINT =
 const ICON_SHEET =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2" /><path d="M3.5 9h17M3.5 14.5h17M9.5 9v11.5" /></svg>';
 
-export const teacherName = () => state.profile?.displayName || state.user?.email || "";
+// "Ma'am Ana Reyes" when the teacher picked a title (Account settings).
+export const teacherName = () =>
+  titledFullName(state.profile?.displayName || "", state.profile?.title) || state.user?.email || "";
 
 export const today = () =>
   new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });

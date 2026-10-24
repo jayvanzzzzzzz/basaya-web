@@ -7,6 +7,19 @@
 const ICON_PREV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>';
 const ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>';
 
+// The words on the controls; the student side passes its own in Filipino.
+const ENGLISH = {
+  summary: (from, to, total, noun) => `Showing <strong>${from}–${to}</strong> of <strong>${total}</strong> ${noun}`,
+  pages: (plural) => `${plural} pages`,
+  page: (number) => `Page ${number}`,
+  prev: "Prev",
+  prevLabel: "Previous page",
+  next: "Next",
+  nextLabel: "Next page",
+  rows: "Rows",
+  rowsLabel: "Rows per page",
+};
+
 /** Page numbers to show, with "gap" where pages are skipped: 1 … 4 5 6 … 12 */
 function pageList(current, pages) {
   if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
@@ -31,6 +44,7 @@ function pageList(current, pages) {
  * @param {number} [options.pageSize]      Starting page size.
  * @param {(state: {page: number, pageSize: number}) => void} [options.onChange]
  *        Lets a view remember the page when it re-renders the whole list.
+ * @param {Partial<typeof ENGLISH>} [options.text]  Other words for the controls.
  * @returns {{ refresh: () => void, reset: () => void }}
  */
 export function paginate({
@@ -42,9 +56,11 @@ export function paginate({
   page = 1,
   pageSize = pageSizes[0],
   onChange,
+  text,
 }) {
   if (!after) return { refresh() {}, reset() {} };
 
+  const t = { ...ENGLISH, ...text };
   let current = page;
   let size = pageSizes.includes(pageSize) ? pageSize : pageSizes[0];
 
@@ -54,7 +70,7 @@ export function paginate({
   const nav = document.createElement("nav");
   nav.className = "pagination";
   nav.dataset.for = "list";
-  nav.setAttribute("aria-label", `${label[1]} pages`);
+  nav.setAttribute("aria-label", t.pages(label[1]));
   after.after(nav);
 
   const notify = () => onChange?.({ page: current, pageSize: size });
@@ -90,22 +106,22 @@ export function paginate({
       .map((item) =>
         item === "gap"
           ? '<li><span class="pagination__gap" aria-hidden="true">…</span></li>'
-          : `<li><button type="button" class="pagination__button" data-page="${item}" aria-label="Page ${item}"${item === current ? ' aria-current="page"' : ""}>${item}</button></li>`,
+          : `<li><button type="button" class="pagination__button" data-page="${item}" aria-label="${t.page(item)}"${item === current ? ' aria-current="page"' : ""}>${item}</button></li>`,
       )
       .join("");
 
     nav.innerHTML = `
       <p class="pagination__summary" aria-live="polite">
-        Showing <strong>${start + 1}–${end}</strong> of <strong>${total}</strong> ${noun}
+        ${t.summary(start + 1, end, total.toLocaleString(), noun)}
       </p>
       <ul class="pagination__pages">
-        <li><button type="button" class="pagination__button pagination__button--nav" data-page="prev" aria-label="Previous page" ${current === 1 ? "disabled" : ""}>${ICON_PREV}<span>Prev</span></button></li>
+        <li><button type="button" class="pagination__button pagination__button--nav" data-page="prev" aria-label="${t.prevLabel}" ${current === 1 ? "disabled" : ""}>${ICON_PREV}<span>${t.prev}</span></button></li>
         ${pageButtons}
-        <li><button type="button" class="pagination__button pagination__button--nav" data-page="next" aria-label="Next page" ${current === pages ? "disabled" : ""}><span>Next</span>${ICON_NEXT}</button></li>
+        <li><button type="button" class="pagination__button pagination__button--nav" data-page="next" aria-label="${t.nextLabel}" ${current === pages ? "disabled" : ""}><span>${t.next}</span>${ICON_NEXT}</button></li>
       </ul>
       <label class="pagination__size">
-        Rows
-        <select aria-label="Rows per page">
+        ${t.rows}
+        <select aria-label="${t.rowsLabel}">
           ${pageSizes.map((value) => `<option value="${value}"${value === size ? " selected" : ""}>${value}</option>`).join("")}
         </select>
       </label>`;

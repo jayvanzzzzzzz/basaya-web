@@ -480,171 +480,6 @@
   font-weight: 500;
 }
 
-/* ---------- What to re-teach (item analysis) ---------- */
-.ia-filter {
-  display: grid;
-  gap: 0.3rem;
-  min-width: min(100%, 16rem);
-  color: var(--ink-3);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.ia-filter select {
-  font-size: 0.88rem;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-.ia-scope {
-  display: none;
-  margin: 0;
-  color: var(--ink-3);
-  font-size: 0.82rem;
-}
-
-.ia-summary {
-  padding: 0.85rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--success) 7%, var(--surface));
-}
-
-.ia-summary--reteach {
-  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
-  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
-}
-
-.ia-summary strong {
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-.ia-summary p {
-  margin: 0.2rem 0 0;
-  color: var(--ink-2);
-  font-size: 0.84rem;
-}
-
-#ia-body {
-  display: grid;
-  gap: 1rem;
-}
-
-.ia-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 1.25rem 2rem;
-}
-
-.ia-column {
-  display: grid;
-  min-width: 0;
-  gap: 0.6rem;
-}
-
-.ia-column h3 {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 1rem;
-  margin: 0;
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-.ia-column h3 small {
-  color: var(--ink-3);
-  font-size: 0.78rem;
-  font-weight: 400;
-}
-
-.ia-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.ia-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 4.6rem;
-  align-items: center;
-  gap: 0.4rem 1rem;
-  padding: 0.6rem 0;
-  border-top: 1px solid var(--border);
-}
-
-.ia-item:first-child {
-  border-top: 0;
-}
-
-.ia-item__text {
-  display: grid;
-  min-width: 0;
-  gap: 0.1rem;
-  font-size: 0.88rem;
-  overflow-wrap: anywhere;
-}
-
-.ia-item__text small {
-  color: var(--ink-3);
-  font-size: 0.75rem;
-}
-
-.ia-item__stat {
-  display: grid;
-  grid-template-columns: 5rem 2.6rem;
-  align-items: center;
-  gap: 0.1rem 0.5rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.ia-item__stat b {
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-.ia-item__stat small {
-  grid-column: 1 / -1;
-  color: var(--ink-3);
-  font-size: 0.74rem;
-}
-
-.ia-bar {
-  display: block;
-  height: 0.45rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--surface-3);
-}
-
-.ia-bar i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--warning);
-}
-
-.ia-item--reteach .ia-bar i {
-  background: var(--danger);
-}
-
-.ia-item .rp-tag {
-  justify-self: end;
-}
-
-.ia-note {
-  margin: 0;
-  color: var(--ink-3);
-  font-size: 0.8rem;
-}
-
 /* No playful motion on a report: just a soft fade in */
 .report-page .dist-bar__part {
   animation: none;
@@ -656,8 +491,7 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
-  .rp-columns,
-  .ia-columns {
+  .rp-columns {
     grid-template-columns: 1fr;
   }
 }
@@ -687,13 +521,5 @@
 
   .rp-kpi__value {
     font-size: 1.6rem;
-  }
-
-  .ia-item {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .ia-item__stat {
-    grid-column: 1;
   }
 }

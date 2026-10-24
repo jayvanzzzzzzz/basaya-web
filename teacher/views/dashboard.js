@@ -2,11 +2,14 @@ import {
   collection,
   addDoc,
   doc,
+  getCountFromServer,
+  getDocs,
   updateDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
-import { state, getTeacherClasses } from "../../js/state.js";
+import { state, getTeacherClasses, getAllLessons } from "../../js/state.js";
+import { linkLessonId, linkMode } from "../../js/schedule.js";
 import {
   $,
   escapeHtml,
@@ -23,7 +26,99 @@ import {
   deletionChip,
   openRequestDeletionModal,
 } from "./classDeletion.js";
-import { chatDot, onChatSummaries } from "./messages.js";
+import { chatDot, hasUnreadChat, onChatSummaries } from "./messages.js";
+import { greeting } from "../../js/teacherTitle.js";
+
+// ---------- At a glance + "Due this week" ----------
+// Cheap reads only: a student count per class and its lesson links (for deadlines).
+// Scores stay on the Class Report, which loads each student's progress.
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const TINTS = 4;
+
+/** A steady colour (0–3) per class, so its tile looks the same every visit. */
+const tintOf = (id) => [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % TINTS;
+
+/** "4R" for Grade 4 – Rizal. */
+const badgeOf = (classroom) =>
+  `${classroom.gradeLevel || ""}${(classroom.section || classroom.className || "?").trim().charAt(0)}`.toUpperCase();
+
+const dueDay = (millis) => new Date(millis).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+const dueTime = (millis) => new Date(millis).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+async function loadOverview(classes) {
+  if (!state.allLessons.length) await getAllLessons().catch(() => {});
+  const titleOf = (id) => state.allLessons.find((lesson) => lesson.id === id)?.title || "Untitled lesson";
+  const now = Date.now();
+  return Promise.all(
+    classes.map(async (classroom) => {
+      const [students, links] = await Promise.all([
+        getCountFromServer(collection(db, "classes", classroom.id, "students"))
+          .then((snap) => snap.data().count)
+          .catch(() => null),
+        getDocs(collection(db, "classes", classroom.id, "classLessons"))
+          .then((snap) => snap.docs.map((link) => ({ id: link.id, ...link.data() })))
+          .catch(() => []),
+      ]);
+      // Upcoming deadlines (practice lessons have none that count)
+      const upcoming = links
+        .filter((link) => linkMode(link) === "assessment" && link.dueAt?.toMillis)
+        .map((link) => ({ classroom, title: titleOf(linkLessonId(link)), dueAt: link.dueAt.toMillis() }))
+        .filter((item) => item.dueAt > now)
+        .sort((a, b) => a.dueAt - b.dueAt);
+      return { classroom, students, upcoming };
+    }),
+  );
+}
+
+function fillOverview(overview) {
+  const set = (key, value) => {
+    const el = document.querySelector(`[data-stat="${key}"]`);
+    if (el) el.textContent = value;
+  };
+  const counted = overview.filter((row) => row.students !== null);
+  set("students", counted.length ? counted.reduce((sum, row) => sum + row.students, 0) : "—");
+
+  const weekEnd = Date.now() + WEEK_MS;
+  const thisWeek = overview
+    .flatMap((row) => row.upcoming.filter((item) => item.dueAt <= weekEnd))
+    .sort((a, b) => a.dueAt - b.dueAt);
+  set("due", thisWeek.length);
+
+  const list = document.querySelector("[data-due-list]");
+  if (list) {
+    list.innerHTML = thisWeek.length
+      ? thisWeek
+          .map(
+            (item) => `<li>
+              <a class="dash-due__item" href="#/classes/${encodeURIComponent(item.classroom.id)}">
+                <span class="dash-due__date" aria-hidden="true">
+                  <span>${escapeHtml(new Date(item.dueAt).toLocaleDateString(undefined, { month: "short" }))}</span>
+                  <strong>${new Date(item.dueAt).getDate()}</strong>
+                </span>
+                <span class="dash-due__text">
+                  <strong>${escapeHtml(item.title)}</strong>
+                  <span>${escapeHtml(item.classroom.className || "Untitled class")}</span>
+                  <small>Due ${escapeHtml(dueDay(item.dueAt))}, ${escapeHtml(dueTime(item.dueAt))}</small>
+                </span>
+              </a>
+            </li>`,
+          )
+          .join("")
+      : `<li class="dash-due__empty">Nothing due in the next 7 days.</li>`;
+  }
+
+  // Each card: how many students, and its next deadline
+  overview.forEach(({ classroom, students, upcoming }) => {
+    const meta = [...document.querySelectorAll("[data-class-meta]")].find((el) => el.dataset.classMeta === classroom.id);
+    if (!meta) return;
+    const next = upcoming[0];
+    meta.innerHTML = `${students === null ? "" : `<span>${students} ${students === 1 ? "student" : "students"}</span>`}
+      <span>${next ? `Next due ${escapeHtml(dueDay(next.dueAt))}` : "No upcoming deadline"}</span>`;
+  });
+}
+
+const countUnreadChats = () => state.classes.filter((classroom) => hasUnreadChat(classroom.id)).length;
 
 export async function renderDashboard() {
   await getTeacherClasses();
@@ -40,7 +135,7 @@ export async function renderDashboard() {
     .querySelector(".page-header__text")
     .insertAdjacentHTML(
       "afterbegin",
-      '<span class="teacher-dashboard-header__eyebrow">Teacher dashboard</span>',
+      `<span class="teacher-dashboard-header__eyebrow">${escapeHtml(greeting(state.profile || {}))}</span>`,
     );
 
   const renderClassGrid = (classes) =>
@@ -61,13 +156,14 @@ export async function renderDashboard() {
                   </div>
                 </div>
                 <div class="class-card__heading">
-                  <span class="class-card__eyebrow">Your classroom</span>
+                  <span class="class-card__badge" data-tint="${tintOf(c.id)}" aria-hidden="true">${escapeHtml(badgeOf(c))}</span>
                   ${deletionChip(c)}
                   <span data-chat-dot="${escapeHtml(c.id)}">${chatDot(c.id)}</span>
                 </div>
                 <div class="class-card__body">
                   <h3>${escapeHtml(className)}</h3>
                   <p>${escapeHtml(c.description || "A space for lessons, progress, and classroom learning.")}</p>
+                  <div class="class-card__meta" data-class-meta="${escapeHtml(c.id)}"></div>
                 </div>
                 <div class="class-card__code code-stub code-stub--on-paper" title="Tap to copy">
                   <span class="code-stub__label">Class code</span>
@@ -148,7 +244,19 @@ export async function renderDashboard() {
   };
 
   $("#page-content").classList.add("teacher-dashboard");
+  const statTile = (key, label, value, icon) => `<div class="dash-stat dash-stat--${key}">
+      <span class="dash-stat__icon" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></span>
+      <span class="dash-stat__text"><strong data-stat="${key}">${value}</strong><span>${label}</span></span>
+    </div>`;
+
   $("#page-content").innerHTML = `
+    <section class="dash-stats" aria-label="At a glance">
+      ${statTile("classes", state.classes.length === 1 ? "Class" : "Classes", state.classes.length, '<rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 20V9" />')}
+      ${statTile("students", "Students enrolled", "—", '<circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6" />')}
+      ${statTile("due", "Lessons due this week", "—", '<rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" />')}
+      ${statTile("chats", "Chats with new messages", countUnreadChats(), '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />')}
+    </section>
+    <div class="dash-columns">
     <section class="class-directory" aria-label="Your classrooms">
       <div class="class-directory__toolbar">
         <div class="class-directory__heading">
@@ -180,9 +288,23 @@ export async function renderDashboard() {
             </div>`
       }
     </section>
+    <section class="dash-due" aria-labelledby="dash-due-title">
+      <h2 id="dash-due-title">Due this week</h2>
+      <ul class="dash-due__list" data-due-list>
+        <li class="dash-due__empty">Loading deadlines…</li>
+      </ul>
+    </section>
+    </div>
   `;
 
   wireCardMenus();
+  let overview = null;
+  if (state.classes.length)
+    loadOverview(state.classes).then((rows) => {
+      overview = rows;
+      fillOverview(rows);
+    });
+  else fillOverview([]);
 
   $("#new-class")?.addEventListener("click", () => openClassModal());
   $("#new-class-empty")?.addEventListener("click", () => openClassModal());
@@ -196,14 +318,17 @@ export async function renderDashboard() {
     );
     $("#class-grid-container").innerHTML = renderClassGrid(filtered);
     wireCardMenus();
+    if (overview) fillOverview(overview);
   });
 
   // "New messages" dots follow the class chats live.
-  onChatSummaries(() =>
+  onChatSummaries(() => {
     document.querySelectorAll("[data-chat-dot]").forEach((dot) => {
       dot.innerHTML = chatDot(dot.dataset.chatDot);
-    }),
-  );
+    });
+    const chats = document.querySelector('[data-stat="chats"]');
+    if (chats) chats.textContent = countUnreadChats();
+  });
 
   if (state.classes.length) {
     paginate({

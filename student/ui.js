@@ -13,6 +13,8 @@ export const ICONS = {
   plus: '<path d="M12 5v14M5 12h14" />',
   speaker: '<path d="M4 10v4h4l5 4V6L8 10H4Z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" />',
   mute: '<path d="M4 10v4h4l5 4V6L8 10H4Z" /><path d="m17 10 4 4m0-4-4 4" />',
+  play: '<path d="M8 5.5v13l10.5-6.5L8 5.5Z" />',
+  pause: '<path d="M9 5.5v13M15 5.5v13" />',
   book: '<path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5v-15Z" /><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5" />',
   puzzle: '<path d="M9 4h6v3a2 2 0 1 0 4 0V4h1v6h-3a2 2 0 1 0 0 4h3v6h-6v-3a2 2 0 1 0-4 0v3H4v-6h3a2 2 0 1 0 0-4H4V4h5Z" />',
   pencil: '<path d="m15 5 4 4L8 20H4v-4L15 5Z" /><path d="m13 7 4 4" />',

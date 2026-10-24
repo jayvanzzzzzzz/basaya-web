@@ -6,7 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebase.js";
 import { escapeHtml, initials, openModal } from "./helpers.js";
-import { lastFirst } from "./chat.js";
+import { teacherName } from "./chat.js?v=teacher-title"; // ?v: every import uses the same ?v so they share one copy
 
 // "Class members": the info (i) button in the class chat header, on the teacher side
 // (teacher/views/messages.js) and the student side (student/views/chat.js); the Android app
@@ -93,7 +93,7 @@ export async function loadClassMembers(classId) {
     try {
       const teacherSnap = await getDoc(doc(db, "users", teacherId));
       if (teacherSnap.exists() && teacherSnap.get("role") === "teacher") {
-        teacher = { id: teacherId, name: lastFirst(teacherSnap.get("displayName") || "") || "Teacher" };
+        teacher = { id: teacherId, name: teacherName(teacherSnap.get("displayName") || "", teacherSnap.get("title")) || "Teacher" };
       }
     } catch (error) {
       console.warn("Couldn't read the class's teacher", error);

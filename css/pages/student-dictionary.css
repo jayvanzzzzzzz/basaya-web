@@ -69,7 +69,7 @@
   outline: 3px solid var(--primary-ring);
 }
 
-/* A–Y letters (Abakada order), scrolls sideways on a phone */
+/* "Lahat" + A–Y letters (Abakada order), scrolls sideways on a phone */
 .st-dict-letters {
   display: flex;
   gap: 0.4rem;
@@ -89,6 +89,12 @@
   color: var(--ink-2);
   font-family: var(--font-display);
   font-weight: 700;
+}
+
+.st-dict-letters button.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
 }
 
 .st-dict-letters button:active {
@@ -123,6 +129,17 @@
   animation-delay: calc(min(var(--i), 10) * 35ms);
 }
 
+/* A new page's words rise in again (js/pagination.js) */
+.st-dict-list > li[data-page-enter] {
+  animation: fadeUp 280ms var(--ease-out) backwards;
+  animation-delay: calc(min(var(--enter-index, 0), 10) * 35ms);
+}
+
+/* Page nav under the list, like the lesson list (css/components/pagination.css) */
+.st-dict .pagination {
+  margin: 0.5rem 0 0;
+}
+
 .st-dict-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -145,18 +162,15 @@
   overflow-wrap: anywhere;
 }
 
-/* The first meaning: up to 2 lines, then … */
+/* The first meaning: one line, then … */
 .st-dict-row span {
-  display: -webkit-box;
   grid-column: 1;
   min-width: 0;
   overflow: hidden;
   color: var(--ink-2);
   font-size: 0.88rem;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .st-dict-row svg {
@@ -379,6 +393,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .st-dict-list > li,
+  .st-dict-list > li[data-page-enter],
   .st-dict-entry {
     animation: none;
   }

@@ -1,0 +1,402 @@
+/* ============================================================
+   WORKSPACE — the teacher and admin look (loaded only by teacher/ and admin/,
+   after every other stylesheet except print.css; the student side keeps its candy look)
+   Clean but still BaSaya: deep-navy sidebar with the mascot, gold for "you are here",
+   flat white cards with thin borders, violet only for actions.
+   ============================================================ */
+
+/* ---------- Tokens ---------- */
+:root {
+  --nav-bg: #1b2150;
+  --nav-ink: #c9cde6;
+  --nav-ink-muted: #9aa0c4;
+  --nav-hover: rgba(255, 255, 255, 0.07);
+  --nav-active: rgba(255, 255, 255, 0.11);
+  --nav-line: rgba(255, 255, 255, 0.1);
+  --gold-ink: #3a2a00;
+  --gold-soft: #fff4d6;
+
+  /* Flat surfaces: no candy lip, no glass, no gradient washes */
+  --bg: #f5f6fa;
+  --bg-tint: #eef0f6;
+  --surface-2: #f9fafc;
+  --surface-3: #f1f2f7;
+  --surface-glass: var(--surface);
+  --border: #e5e7f0;
+  --border-strong: #d6d9e6;
+  --card-lip: transparent;
+  --primary-lip: transparent;
+  --lip: 0 0 0 transparent;
+  --lip-hover: 0 0 0 transparent;
+  --brand-gradient: linear-gradient(var(--primary), var(--primary));
+  --brand-gradient-deep: linear-gradient(var(--primary-strong), var(--primary-strong));
+  --hero-gradient: linear-gradient(var(--nav-bg), var(--nav-bg));
+
+  /* Tighter corners */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
+
+  /* Quiet depth */
+  --shadow-sm: 0 1px 2px rgba(31, 37, 71, 0.05);
+  --shadow: 0 10px 28px -18px rgba(31, 37, 71, 0.28);
+  --shadow-brand: 0 1px 2px rgba(31, 37, 71, 0.05);
+}
+
+:root[data-theme="dark"] {
+  --nav-bg: #13152a;
+  --gold-soft: rgba(232, 187, 74, 0.12);
+  --card-lip: transparent;
+  --primary-lip: transparent;
+  /* Dark --primary is a light violet; buttons need a deeper one under white text */
+  --brand-gradient: linear-gradient(#6556d6, #6556d6);
+  --brand-gradient-deep: linear-gradient(#5446c4, #5446c4);
+  --hero-gradient: linear-gradient(var(--nav-bg), var(--nav-bg));
+  --shadow-brand: none;
+}
+
+.app-shell,
+:root[data-theme="dark"] .app-shell {
+  background: var(--bg);
+}
+
+/* ---------- Sidebar: deep navy, gold marks the current page ---------- */
+.sidebar {
+  border-right: 0;
+  background: var(--nav-bg);
+  color: var(--nav-ink);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.sidebar .brand {
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.sidebar .brand-logo {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.15rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  filter: none;
+}
+
+/* "Teacher" / "Admin" tag beside the name */
+.sidebar .brand::after {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--gold);
+  color: var(--gold-ink);
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  content: "Teacher";
+}
+
+[data-portal="admin"] .sidebar .brand::after {
+  content: "Admin";
+}
+
+.main-nav::before {
+  color: var(--nav-ink-muted);
+}
+
+.main-nav a {
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  color: var(--nav-ink);
+}
+
+.main-nav a > span:first-child {
+  width: 1.9rem;
+  height: 1.9rem;
+  background: transparent;
+  color: inherit;
+}
+
+.nav-item-text small {
+  color: var(--nav-ink-muted);
+}
+
+.main-nav a:hover {
+  background: var(--nav-hover);
+  color: #fff;
+}
+
+.main-nav a:hover > span:first-child {
+  transform: none;
+}
+
+.main-nav a.active {
+  background: var(--nav-active);
+  color: #fff;
+  box-shadow: none;
+}
+
+.main-nav a.active > span:first-child {
+  background: transparent;
+  color: var(--gold);
+  box-shadow: none;
+}
+
+.main-nav a.active .nav-item-text small {
+  color: var(--nav-ink-muted);
+}
+
+.sidebar .nav-badge,
+.sidebar .nav-badge--chat {
+  background: var(--gold);
+  color: var(--gold-ink);
+}
+
+/* "At a glance" */
+.sidebar .code-stub--sidebar {
+  border-color: var(--nav-line);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar .code-stub--sidebar .code-stub__label {
+  color: var(--nav-ink-muted);
+}
+
+.sidebar #teacher-stats-text,
+.sidebar #admin-stats-text {
+  color: #fff;
+}
+
+/* Account + theme toggle */
+.sidebar-bottom {
+  border-top-color: var(--nav-line);
+}
+
+.sidebar .account-menu__toggle,
+.sidebar .theme-toggle {
+  border-color: var(--nav-line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--nav-ink);
+  box-shadow: none;
+}
+
+.sidebar .account-menu__toggle:hover,
+.sidebar .account-menu__toggle[aria-expanded="true"],
+.sidebar .theme-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+
+.sidebar .teacher-summary {
+  color: #fff;
+}
+
+.sidebar .account-menu__icon {
+  background: rgba(239, 128, 121, 0.16);
+  color: #ffb3ad;
+}
+
+@media (max-width: 860px) {
+  .sidebar {
+    border-bottom: 0;
+  }
+
+  .sidebar .brand::after {
+    display: none;
+  }
+}
+
+/* ---------- Buttons: flat, no lip ---------- */
+.button.primary {
+  text-shadow: none;
+  box-shadow: none;
+}
+
+.button.primary:hover:not(:disabled),
+.button.primary:active:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow: none;
+  transform: none;
+}
+
+.button.secondary,
+.button.secondary:hover:not(:disabled),
+.button.secondary:active:not(:disabled) {
+  box-shadow: none;
+  transform: none;
+}
+
+.button.danger {
+  background: var(--danger-strong);
+  box-shadow: none;
+}
+
+.button.danger:hover:not(:disabled),
+.button.danger:active:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow: none;
+  transform: none;
+}
+
+/* ---------- Page header: plain card, Baybayin watermark kept ---------- */
+.page-header {
+  box-shadow: var(--shadow-sm);
+}
+
+.page-header__art {
+  background: none;
+}
+
+.page-header__art::before {
+  display: none;
+}
+
+.page-header__art::after {
+  opacity: 0.05;
+}
+
+.page-header__icon {
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  color: var(--primary);
+  box-shadow: none;
+}
+
+.page-header__icon .nav-icon .duo {
+  fill: currentColor;
+  fill-opacity: 0.2;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Teacher dashboard: white welcome band with the mascot ---------- */
+.teacher-dashboard-header {
+  min-height: 9.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Gold sun behind the mascot */
+.teacher-dashboard-header::before {
+  inset: -4.5rem -3rem auto auto;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.teacher-dashboard-header::after {
+  bottom: -1rem;
+  filter: drop-shadow(0 10px 14px rgba(27, 33, 80, 0.18));
+}
+
+.teacher-dashboard-header h1 {
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.teacher-dashboard-header p {
+  color: var(--ink-3);
+}
+
+.teacher-dashboard-header__eyebrow {
+  margin-bottom: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+  backdrop-filter: none;
+}
+
+.teacher-dashboard-header .header-actions {
+  position: static;
+}
+
+.teacher-dashboard-header .button.primary,
+:root[data-theme="dark"] .teacher-dashboard-header .button.primary {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ---------- Cards: thin border, no lift ---------- */
+.card {
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Directory panels and tables ---------- */
+.teacher-directory__intro,
+.admin-class-directory__intro,
+.admin-lesson-directory__intro,
+.class-directory__toolbar,
+.lesson-picker__toolbar,
+.student-directory__toolbar,
+.class-lessons__header {
+  background: none;
+}
+
+.teacher-directory__count strong,
+.admin-class-directory__count strong,
+.admin-lesson-directory__total strong,
+.class-directory__count strong,
+.lesson-picker__count strong {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.teacher-directory__count:hover,
+.admin-class-directory__count:hover,
+.admin-lesson-directory__total:hover,
+.class-directory__count:hover,
+.lesson-picker__count:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.teacher-table tbody tr:hover td,
+.admin-class-table tbody tr:hover td,
+.admin-lesson-table tbody tr:hover td {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.teacher-table tbody tr td:first-child::before,
+.admin-class-table tbody tr td:first-child::before,
+.admin-lesson-table tbody tr td:first-child::before {
+  display: none;
+}
+
+.teacher-table__avatar,
+.admin-class-table__mark {
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+.teacher-table__avatar {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.admin-class-table__mark {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+tr:hover .teacher-table__avatar,
+tr:hover .admin-class-table__mark {
+  transform: none;
+}

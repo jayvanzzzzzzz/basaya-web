@@ -11,7 +11,7 @@ import {
   setChatOpen,
   watchRecent,
   watchState,
-} from "../../js/chat.js";
+} from "../../js/chat.js?v=teacher-title";
 import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.js";
 
 // Messages: one group chat per class with its students (#/messages/<classId>).

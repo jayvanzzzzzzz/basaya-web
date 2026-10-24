@@ -1,14 +1,28 @@
 import { $, escapeHtml } from "../../js/helpers.js";
-import { loadSeed, lookupWord, searchWords, suggestRoots, syllablesOf } from "../../js/dictionary.js";
+import { allWords, lookupWord, searchWords, suggestRoots, syllablesOf } from "../../js/dictionary.js";
+import { paginate } from "../../js/pagination.js";
 import { speakWord } from "../../js/tts.js";
 import { onLeave } from "../router.js";
 import { buddy, content, icon } from "../ui.js";
 
 // Diksiyonaryo: Tagalog words explained in Filipino (js/dictionary.js). Search as you
-// type, tap a word for its full meaning, tap a synonym or root to jump to it.
+// type, tap a word for its full meaning, tap a synonym or root to jump to it. It opens on
+// "Lahat" (every word, A to Z); the letter buttons narrow it to one letter.
 
 const LETTERS = "a b k d e g h i l m n ng o p r s t u w y".split(" ");
 const SEARCH_DELAY = 250;
+const MAX_RESULTS = 2000; // every match; the page nav splits them
+const PAGE_TEXT = {
+  summary: (from, to, total) => `Ipinapakita ang <strong>${from}–${to}</strong> sa <strong>${total}</strong> salita`,
+  pages: () => "Mga pahina ng salita",
+  page: (number) => `Pahina ${number}`,
+  prev: "Nakaraan",
+  prevLabel: "Nakaraang pahina",
+  next: "Susunod",
+  nextLabel: "Susunod na pahina",
+  rows: "Bawat pahina",
+  rowsLabel: "Ilang salita bawat pahina",
+};
 
 let timer = null;
 let lastSearch = 0; // drops answers to older searches typed past
@@ -87,7 +101,8 @@ export async function renderDictionary() {
           autocapitalize="none" spellcheck="false" maxlength="60" aria-label="Hanapin ang salita" />
       </form>
       <nav class="st-dict-letters" aria-label="Mga titik">
-        ${LETTERS.map((l) => `<button type="button" data-letter="${l}">${l.toUpperCase()}</button>`).join("")}
+        <button type="button" data-letter="" class="is-active" aria-pressed="true">Lahat</button>
+        ${LETTERS.map((l) => `<button type="button" data-letter="${l}" aria-pressed="false">${l.toUpperCase()}</button>`).join("")}
       </nav>
       <div id="dict-results" aria-live="polite"></div>
       <p class="st-dict-credit">
@@ -102,11 +117,35 @@ export async function renderDictionary() {
   const results = $("#dict-results");
   let lastList = []; // to come back to from a word
   let openEntry = null; // the word on screen, for its speaker button
+  let paged = false; // word lists get the page nav; root suggestions don't
+  let page = 1; // kept while a word is open, so Back returns to the same page
+  let pageSize = 10;
 
-  const showList = (entries, heading = "") => {
+  // The chip matching the search box: "Lahat" when it's empty, a letter when it's one letter.
+  const markLetter = () => {
+    const typed = input.value.trim().toLowerCase();
+    results.closest(".st-dict").querySelectorAll(".st-dict-letters [data-letter]").forEach((button) => {
+      const on = button.dataset.letter === typed;
+      button.classList.toggle("is-active", on);
+      button.setAttribute("aria-pressed", String(on));
+    });
+  };
+
+  const showList = (entries, heading = "", withPages = paged) => {
     openEntry = null;
     lastList = entries;
+    paged = withPages;
     results.innerHTML = `${heading}${listHtml(entries)}`;
+    if (!paged) return;
+    paginate({
+      rows: () => [...results.querySelectorAll(".st-dict-list > li")],
+      after: results.querySelector(".st-dict-list"),
+      label: ["salita", "salita"],
+      page,
+      pageSize,
+      onChange: (state) => ({ page, pageSize } = state),
+      text: PAGE_TEXT,
+    });
   };
 
   const showEntry = (entry) => {
@@ -116,23 +155,26 @@ export async function renderDictionary() {
   };
 
   const search = async (text) => {
-    const id = ++lastSearch;
+    markLetter();
     const query = text.trim();
     if (!query) {
-      showIntro();
+      showAll();
       return;
     }
+    const id = ++lastSearch;
     results.innerHTML = loading();
+    page = 1;
     try {
-      const found = await searchWords(query);
+      const found = await searchWords(query, { max: MAX_RESULTS });
       if (id !== lastSearch) return;
       if (found.length) {
-        showList(found);
+        showList(found, "", true);
         return;
       }
       const roots = await suggestRoots(query);
       if (id !== lastSearch) return;
       lastList = roots;
+      paged = false;
       results.innerHTML = roots.length
         ? `<p class="st-dict-hint">Wala ang “${escapeHtml(query)}”. Baka ang salitang-ugat ang hinahanap mo:</p>${listHtml(roots)}`
         : `<div class="st-empty">
@@ -146,15 +188,15 @@ export async function renderDictionary() {
     }
   };
 
-  // Before typing: a few words to try.
-  const showIntro = async () => {
+  // Before typing (and on "Lahat"): every word, A to Z, teacher words included.
+  const showAll = async () => {
     const id = ++lastSearch;
     results.innerHTML = loading();
+    page = 1;
     try {
-      const all = await loadSeed();
+      const all = await allWords();
       if (id !== lastSearch) return;
-      const picks = Array.from({ length: 6 }, () => all[Math.floor(Math.random() * all.length)]);
-      showList([...new Map(picks.map((e) => [e.key, e])).values()], `<h2 class="st-dict-heading">Subukan ang mga salitang ito</h2>`);
+      showList(all, `<h2 class="st-dict-heading">Lahat ng salita, A hanggang Z</h2>`, true);
     } catch (error) {
       console.error(error);
       if (id === lastSearch) results.innerHTML = errorHtml();
@@ -163,6 +205,7 @@ export async function renderDictionary() {
 
   const openWord = async (word) => {
     input.value = word;
+    markLetter();
     const id = ++lastSearch;
     results.innerHTML = loading();
     try {
@@ -188,7 +231,7 @@ export async function renderDictionary() {
   });
   $(".st-dict-letters").addEventListener("click", (event) => {
     const letter = event.target.closest("[data-letter]")?.dataset.letter;
-    if (!letter) return;
+    if (letter == null) return;
     input.value = letter;
     clearTimeout(timer);
     search(letter);
@@ -216,5 +259,5 @@ export async function renderDictionary() {
     }
   });
 
-  showIntro();
+  showAll();
 }

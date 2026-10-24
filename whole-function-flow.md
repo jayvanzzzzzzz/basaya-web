@@ -658,7 +658,7 @@ Templates are in `notify-api/lib/emails.js`. Sending uses Gmail SMTP with an App
 ```
 Firestore
 ├── users/{uid}                        role, names, gender, birthdate, classId, className,
-│   │                                  skillSummary, notifReadAt
+│   │                                  skillSummary, notifReadAt; teachers: title (maam | sir | "")
 │   └── assignedLessons/{lessonId}     one student's results + resume for one lesson
 ├── lessons/{lessonId}                 title, difficulty, order, description
 │   ├── activity/content | status      Gawain (or skipped)

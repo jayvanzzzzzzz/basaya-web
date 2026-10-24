@@ -4,19 +4,22 @@ import { buildCrossword } from "../../admin/views/gameLevels.js";
 import {
   student,
   availability,
+  clearResume,
   findLesson,
   loadGameLevels,
   loadLessonProgress,
   refreshSummary,
   saveProgress,
+  saveResume,
 } from "../data.js";
 import { onLeave } from "../router.js";
 import { buddy, confetti, content, icon } from "../ui.js";
 
 // Laro (the app's CrosswordActivity): swipe across the letter wheel to spell the words
 // that fill the crossword. One level at a time; each finished level is saved like the app:
-// gameScore/gameTotal/gameFinished, and the Talasalitaan skill counts words found against
-// wrong swipes. The layout is the app's (CrosswordGridBuilder, ported in gameLevels.js).
+// gameScore/gameTotal/gameFinished, and the Talasalitaan skill counts each word found once
+// (wrong swipes don't count). The words found on the level being played are also saved online
+// (resume.game.done), so they count if the deadline passes mid-level. The layout is the app's (CrosswordGridBuilder, ported in gameLevels.js).
 
 /** One color per found word (the app's CandyTile.PALETTE). */
 const PALETTE = ["#f25c54", "#4f7cec", "#14a396", "#8e5cf0", "#e46f0e", "#e8508f", "#2fa84f"];
@@ -90,7 +93,6 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
   const words = level.words.map(normalize);
   const grid = buildCrossword(words);
   const found = new Set(loadFound(lessonId, level.level).map(normalize).filter((word) => words.includes(word)));
-  let wrongTries = 0;
   let completed = false;
 
   content().innerHTML = `
@@ -288,7 +290,6 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
       // A single tapped letter is just a cancel, not a wrong answer.
       showPreview("");
     } else if (wordIndex === -1) {
-      wrongTries += 1;
       showPreview(word, "error");
       setTimeout(() => showPreview(""), 600);
     } else if (found.has(word)) {
@@ -334,6 +335,8 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
   const onWordFound = async (word, wordIndex) => {
     found.add(word);
     saveFound(lessonId, level.level, [...found]);
+    if (found.size < words.length)
+      saveResume(lessonId, "game", { done: found.size, total: words.length, level: level.level });
     showPreview(word, "success");
     setTimeout(() => showPreview(""), 700);
     const box = preview.getBoundingClientRect();
@@ -355,13 +358,13 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
         gameTotal: total,
         gameFinished: level.level >= total,
         gameCompletedAt: serverTimestamp(),
+        ...clearResume("game"),
         // Talasalitaan: levels add up (the app's SkillProgressRepository.addCrosswordLevel).
         skills: {
           talasalitaan: {
             correct: increment(words.length),
-            attempts: increment(words.length + wrongTries),
+            attempts: increment(words.length),
             items: increment(words.length),
-            wrongTries: increment(wrongTries),
             levels: increment(1),
             completedAt: serverTimestamp(),
           },

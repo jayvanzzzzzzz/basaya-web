@@ -245,7 +245,7 @@ Change a color or font once in `css/base/tokens.css` and it applies everywhere, 
 
 ## Teacher account settings
 
-The teacher portal's Account settings page lets teachers update their display name and change their password. Teachers sign in with their email address. Deploy the Firestore rules after setup so a teacher can update only their own display name; password changes are handled by Firebase Authentication.
+The teacher portal's Account settings page lets teachers update their display name, choose how students address them (Ma'am / Sir / Name only, saved as `title` and shown as "Ma'am Reyes" in the class chat, class members, dashboard greeting and reports), and change their password. Teachers sign in with their email address. Deploy the Firestore rules after setup so a teacher can update only their own display name; password changes are handled by Firebase Authentication.
 
 ## Data written by this portal
 

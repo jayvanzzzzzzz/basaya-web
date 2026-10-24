@@ -208,24 +208,6 @@
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   }
 
-  /* What to re-teach: the lesson picker becomes a "Showing: …" line */
-  .ia-filter {
-    display: none;
-  }
-
-  .ia-scope {
-    display: block;
-  }
-
-  .ia-columns {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ia-item,
-  .ia-summary {
-    break-inside: avoid;
-  }
-
   .rp-table-wrap {
     overflow: visible;
     margin: 0;

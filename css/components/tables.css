@@ -193,6 +193,18 @@ tr:hover .admin-class-table__mark {
   font-weight: 650;
 }
 
+/* "Ma'am" / "Sir": how students address the teacher */
+.teacher-table__title {
+  flex: 0 0 auto;
+  margin-left: -0.45rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
 .admin-class-table__identity small,
 .admin-lesson-table__title small {
   display: block;

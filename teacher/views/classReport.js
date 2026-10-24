@@ -10,8 +10,6 @@ import {
   lecturesOf,
   classReport,
   classRemarks,
-  itemAnalysis,
-  RETEACH_THRESHOLD,
 } from "./progressData.js";
 import {
   remarkChip,
@@ -43,28 +41,8 @@ const DISTRIBUTION = [
 // The student app saves gender in Filipino; reports are in English.
 const SEX = { Lalaki: "Male", Babae: "Female", "Ayokong sabihin": "Prefer not to say" };
 
-/** Item analysis rows for Excel: every lesson's quiz questions and pronunciation words, hardest first. */
-function itemAnalysisRows(analysis) {
-  const rows = (lesson, kind, part) =>
-    part.students
-      ? part.items.map((item) => [
-          `${lesson.number}. ${lesson.title}`,
-          kind,
-          item.text,
-          item.missed,
-          part.students,
-          item.percent,
-          item.reteach ? "Re-teach" : "",
-        ])
-      : [];
-  return analysis.flatMap(({ lesson, quiz, words }) => [
-    ...rows(lesson, "Quiz question", quiz),
-    ...rows(lesson, "Pronunciation word", words),
-  ]);
-}
-
 /** Workbook: every student's scores (alphabetical, for class records), then the class averages. */
-async function exportClassExcel(classroom, entries, report, analysis) {
+async function exportClassExcel(classroom, entries, report) {
   // Gender lives on the student's profile; only read it when an export is asked for.
   const profiles = await Promise.all(
     entries.map(({ student }) =>
@@ -163,126 +141,7 @@ async function exportClassExcel(classroom, entries, report, analysis) {
         },
       ],
     },
-    {
-      name: "Item analysis",
-      title: "What to re-teach",
-      meta: [
-        ["Class", classroom.className],
-        ["Re-teach", `Missed by ${RETEACH_THRESHOLD}% of students or more`],
-      ],
-      tables: [
-        {
-          freeze: 1,
-          filter: true,
-          columns: [
-            { header: "Lesson", width: 26, wrap: true },
-            { header: "Item", width: 14 },
-            { header: "Question / word", width: 50, wrap: true, bold: true },
-            { header: "Students who missed", type: "number", width: 12 },
-            { header: "Students counted", type: "number", width: 12 },
-            { header: "Missed", type: "percent", width: 10 },
-            { header: "Flag", type: "center", width: 11 },
-          ],
-          rows: itemAnalysisRows(analysis),
-        },
-      ],
-    },
   ]);
-}
-
-// ---------- What to re-teach ----------
-
-const ALL_LESSONS_LIMIT = 10;
-
-/** One ranked list (quiz questions or words). In "All lessons" each item names its lesson. */
-function itemList(items, showLesson) {
-  return `<ol class="ia-list">${items
-    .map(
-      (item) => `<li class="ia-item${item.reteach ? " ia-item--reteach" : ""}">
-        <div class="ia-item__text">
-          <span>${escapeHtml(item.text)}</span>
-          ${showLesson ? `<small>Lesson ${item.lesson.number} · ${escapeHtml(item.lesson.title)}</small>` : ""}
-          ${item.current ? "" : "<small>No longer in the lesson</small>"}
-        </div>
-        <div class="ia-item__stat" title="${item.missed} of ${item.students} students missed this">
-          <span class="ia-bar" aria-hidden="true"><i style="width:${item.percent}%"></i></span>
-          <b>${item.percent}%</b>
-          <small>${item.missed} of ${item.students}</small>
-        </div>
-        ${item.reteach ? '<span class="rp-tag">Re-teach</span>' : '<span aria-hidden="true"></span>'}
-      </li>`,
-    )
-    .join("")}</ol>`;
-}
-
-const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
-
-/** The quiz and word columns for one lesson, or the hardest items of every lesson. */
-function itemAnalysisBody(analysis, lessonId, scopeLabel) {
-  const all = !lessonId;
-  const selected = all ? analysis : analysis.filter((entry) => entry.lesson.id === lessonId);
-  const collect = (part) =>
-    selected
-      .filter((entry) => entry[part].students > 0)
-      .flatMap((entry) =>
-        entry[part].items.map((item) => ({ ...item, lesson: entry.lesson, students: entry[part].students })),
-      )
-      .sort((a, b) => b.percent - a.percent || b.missed - a.missed);
-  const sum = (part, field) => selected.reduce((total, entry) => total + entry[part][field], 0);
-  const quizItems = collect("quiz");
-  const wordItems = collect("words");
-
-  const notes = (part, noun) => {
-    const lines = [];
-    const missed = sum(part, "missedDeadline");
-    if (missed && !all) {
-      lines.push(`${plural(missed, "student", "students")} didn't finish by the deadline: every ${noun} they didn't reach counts as wrong.`);
-    }
-    const untracked = part === "quiz" ? sum("quiz", "untracked") : 0;
-    if (untracked) {
-      lines.push(`${plural(untracked, "quiz was", "quizzes were")} taken before question tracking began and ${untracked === 1 ? "isn't" : "aren't"} counted here.`);
-    }
-    return lines.map((line) => `<p class="ia-note">${escapeHtml(line)}</p>`).join("");
-  };
-
-  const column = (title, items, part, noun, empty) => {
-    const shown = all ? items.slice(0, ALL_LESSONS_LIMIT) : items;
-    const counted = all ? 0 : selected[0]?.[part].students || 0;
-    return `<div class="ia-column">
-      <h3>${title}${counted ? `<small>${plural(counted, "student", "students")} counted</small>` : ""}</h3>
-      ${shown.length ? itemList(shown, all) : `<p class="rp-empty">${empty}</p>`}
-      ${all && items.length > shown.length ? `<p class="ia-note">The ${shown.length} hardest of ${items.length}. Pick a lesson to see all of its items.</p>` : ""}
-      ${notes(part, noun)}
-    </div>`;
-  };
-
-  const flaggedQuiz = quizItems.filter((item) => item.reteach);
-  const flaggedWords = wordItems.filter((item) => item.reteach);
-  const counts = [
-    flaggedQuiz.length && plural(flaggedQuiz.length, "quiz question", "quiz questions"),
-    flaggedWords.length && plural(flaggedWords.length, "word", "words"),
-  ].filter(Boolean);
-  const hardest = [...flaggedQuiz, ...flaggedWords].sort((a, b) => b.percent - a.percent)[0];
-  const summary =
-    !quizItems.length && !wordItems.length
-      ? ""
-      : counts.length
-        ? `<div class="ia-summary ia-summary--reteach">
-            <strong>Re-teach first: ${counts.join(" and ")}</strong>
-            <p>${escapeHtml(`Missed by ${RETEACH_THRESHOLD}% of the class or more. The hardest is “${hardest.text}” (${hardest.missed} of ${hardest.students} students).`)}</p>
-          </div>`
-        : `<div class="ia-summary">
-            <strong>Nothing needs re-teaching</strong>
-            <p>No question or word was missed by ${RETEACH_THRESHOLD}% of the class or more. The lists still show which were hardest.</p>
-          </div>`;
-
-  return `
-    <p class="ia-scope">Showing: ${escapeHtml(scopeLabel)}</p>
-    ${summary}
-    <div class="ia-columns">
-      ${column("Quiz questions", quizItems, "quiz", "question", "No quiz answers to analyse yet. Missed questions are saved for quizzes taken from now on.")}
-      ${column("Pronunciation words", wordItems, "words", "word", "No pronunciation results yet.")}
-    </div>`;
 }
 
 /** #/classes/{classId}/report — the whole class at a glance. */
@@ -320,22 +179,7 @@ export async function renderClassReport(classId) {
   );
   const report = classReport(entries);
   const remarks = classRemarks(report, entries, lessons);
-  const analysis = itemAnalysis(entries, lessons);
-
-  const flaggedCount = analysis.reduce(
-    (sum, { quiz, words }) =>
-      sum + [...quiz.items, ...words.items].filter((item) => item.reteach).length,
-    0,
-  );
-  if (flaggedCount) {
-    remarks.splice(Math.min(1, remarks.length), 0, {
-      tone: "warn",
-      title: `${flaggedCount} ${flaggedCount === 1 ? "item" : "items"} to re-teach`,
-      text: `Quiz questions or pronunciation words that ${RETEACH_THRESHOLD}% or more of the class missed. See "What to re-teach" below.`,
-    });
-  }
-
-  addExportActions({ excel: () => exportClassExcel(classroom, entries, report, analysis) });
+  addExportActions({ excel: () => exportClassExcel(classroom, entries, report) });
 
   const pct = (value) => (value == null ? "—" : `${value}%`);
   const studentHref = (student) =>
@@ -515,25 +359,6 @@ export async function renderClassReport(classId) {
         </section>
       </div>
 
-      <section class="rp-panel ia-panel" aria-labelledby="ia-title">
-        <header class="rp-panel__head">
-          <div>
-            <h2 id="ia-title">What to re-teach</h2>
-            <p>The quiz questions and pronunciation words the class missed most, to help you choose what to go over again. Anything missed by ${RETEACH_THRESHOLD}% of students or more is flagged.</p>
-          </div>
-          <label class="ia-filter">
-            <span>Lesson</span>
-            <select id="ia-lesson">
-              <option value="">All lessons</option>
-              ${lessons
-                .map((lesson) => `<option value="${escapeHtml(lesson.id)}">${lesson.number}. ${escapeHtml(lesson.title)}</option>`)
-                .join("")}
-            </select>
-          </label>
-        </header>
-        <div id="ia-body"></div>
-      </section>
-
       <section class="rp-panel">
         <header class="rp-panel__head">
           <div><h2>Students</h2><p>Scores are first-try accuracy. Students who need help are listed first.</p></div>
@@ -550,16 +375,6 @@ export async function renderClassReport(classId) {
       </section>
       ${printSignature()}
     </div>`;
-
-  const select = $("#ia-lesson");
-  // Start on the latest lesson that has results; "All lessons" when none has.
-  const latest = [...analysis].reverse().find(({ quiz, words }) => quiz.students || words.students);
-  if (latest) select.value = latest.lesson.id;
-  const showItems = () => {
-    $("#ia-body").innerHTML = itemAnalysisBody(analysis, select.value, select.selectedOptions[0]?.textContent || "");
-  };
-  select.addEventListener("change", showItems);
-  showItems();
 
   paginate({
     rows: () => [...document.querySelectorAll("[data-report-row]")],

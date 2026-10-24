@@ -19,9 +19,18 @@ import { content, icon, setTalking as moveMouth, showDialog, talkingBuddy } from
 // page's button marks the lecture finished. Until then each finished page saves the place
 // (resume.lecture), so a closed lecture opens on the next page.
 // The lesson path opens it only once the first page's audio is downloaded (prepareLecture).
+// The play button reads on by itself: each sentence after the last one ends, turning pages,
+// until the last page, where the student still taps TAPUSIN.
 
 /** How long the lesson path waits for the audio before asking the student. */
 const AUDIO_WAIT_MS = 10_000;
+
+/** Auto-play's breath after a sentence, and before turning the page. */
+const AUTO_SENTENCE_GAP_MS = 700;
+const AUTO_PAGE_GAP_MS = 1000;
+
+/** How long auto-play shows a sentence that has no audio (or whose audio failed). */
+const readingTime = (sentence) => 1200 + sentence.split(" ").length * 350;
 
 /** What prepareLecture() loaded, for renderLecture(): { lessonId, data, muted }. */
 let prepared = null;
@@ -103,6 +112,7 @@ export async function renderLecture(lessonId) {
         <div class="st-track" id="lecture-track">
           ${lecture.pages.map(() => "<i></i>").join("")}
         </div>
+        <button class="st-icon-button" type="button" id="lecture-auto" aria-label="Kusang basahin ang aralin" aria-pressed="false">${icon("play")}</button>
         <button class="st-icon-button" type="button" id="lecture-speaker" aria-label="I-on o i-off ang tunog" aria-pressed="${!muted}">${icon(muted ? "mute" : "speaker")}</button>
       </header>
       <div class="st-lecture__head">
@@ -127,6 +137,7 @@ export async function renderLecture(lessonId) {
   const nextButton = $("#lecture-next");
   const book = $("#lecture-book");
   const speaker = $("#lecture-speaker");
+  const autoButton = $("#lecture-auto");
   // One element for every sentence and every visit: the lesson path unlocked it on the card
   // tap, and iPhones then let it keep playing.
   const player = lecturePlayer();
@@ -136,6 +147,14 @@ export async function renderLecture(lessonId) {
   let sentenceIndex = 0;
   let saving = false;
   let stopReadAlong = () => {};
+  let autoPlay = false;
+  let autoTimer = 0;
+
+  /** While auto-play is on, reads the next sentence (or turns the page) after `delay`. */
+  const autoNext = (delay) => {
+    clearTimeout(autoTimer);
+    if (autoPlay) autoTimer = setTimeout(advance, delay);
+  };
 
   const setTalking = (talking) => {
     book.classList.toggle("is-talking", talking);
@@ -153,9 +172,21 @@ export async function renderLecture(lessonId) {
     setTalking(false);
     endReadAlong();
   };
-  player.addEventListener("ended", done, { signal });
+  /** A sentence's audio failed: auto-play still gives the student time to read it. */
+  const failed = () => {
+    done();
+    autoNext(readingTime(lecture.pages[pageIndex].sentences[sentenceIndex - 1] || ""));
+  };
+  player.addEventListener(
+    "ended",
+    () => {
+      done();
+      autoNext(AUTO_SENTENCE_GAP_MS);
+    },
+    { signal },
+  );
   player.addEventListener("pause", () => setTalking(false), { signal });
-  player.addEventListener("error", done, { signal });
+  player.addEventListener("error", failed, { signal });
 
   const stopAudio = () => {
     player.pause();
@@ -163,6 +194,7 @@ export async function renderLecture(lessonId) {
     endReadAlong();
   };
   onLeave(() => {
+    clearTimeout(autoTimer);
     stopAudio();
     listeners.abort();
     player.removeAttribute("src");
@@ -170,17 +202,18 @@ export async function renderLecture(lessonId) {
   });
 
   const play = (index) => {
+    clearTimeout(autoTimer);
     stopAudio();
     const page = lecture.pages[pageIndex];
     const url = page.audioUrls[index];
-    if (!speakerOn || !url) return;
+    if (!speakerOn || !url) return autoNext(readingTime(page.sentences[index]));
     player.src = audioSource(url); // the downloaded copy when there is one
     const line = sentencesEl.children[index];
     const stop = line ? followAlong(line, player, page.wordStarts[index]) : () => {};
     stopReadAlong = stop;
     player.play().catch(() => {
       // A play() cut short by the next sentence must not stop that sentence's read-along.
-      if (stopReadAlong === stop) done();
+      if (stopReadAlong === stop) failed();
     });
   };
 
@@ -224,6 +257,32 @@ export async function renderLecture(lessonId) {
     reveal();
   };
 
+  const nextPage = () => {
+    if (pageIndex < lecture.pages.length - 1) {
+      if (tracking && availability(lesson) === "open")
+        saveResume(lessonId, "lecture", { done: pageIndex + 1, total: lecture.pages.length });
+      showPage(pageIndex + 1);
+    } else {
+      finish();
+    }
+  };
+
+  const setAutoPlay = (on) => {
+    autoPlay = on;
+    if (!on) clearTimeout(autoTimer);
+    autoButton.innerHTML = icon(on ? "pause" : "play");
+    autoButton.setAttribute("aria-pressed", String(on));
+    autoButton.setAttribute("aria-label", on ? "Ihinto ang kusang pagbasa" : "Kusang basahin ang aralin");
+  };
+
+  /** Auto-play's next step: the next sentence, else the next page. The last page waits for TAPUSIN. */
+  function advance() {
+    if (!autoPlay) return;
+    if (sentenceIndex < lecture.pages[pageIndex].sentences.length) reveal();
+    else if (pageIndex < lecture.pages.length - 1) autoTimer = setTimeout(nextPage, AUTO_PAGE_GAP_MS);
+    else setAutoPlay(false);
+  }
+
   const finish = async () => {
     if (saving) return;
     saving = true;
@@ -243,6 +302,7 @@ export async function renderLecture(lessonId) {
   };
 
   const confirmClose = async () => {
+    setAutoPlay(false); // no page turns behind the dialog
     const answer = await showDialog({
       iconName: "door",
       tone: "locked",
@@ -266,14 +326,13 @@ export async function renderLecture(lessonId) {
 
   sheet.addEventListener("click", reveal);
   document.addEventListener("keydown", onKey);
-  nextButton.addEventListener("click", () => {
-    if (pageIndex < lecture.pages.length - 1) {
-      if (tracking && availability(lesson) === "open")
-        saveResume(lessonId, "lecture", { done: pageIndex + 1, total: lecture.pages.length });
-      showPage(pageIndex + 1);
-    } else {
-      finish();
-    }
+  nextButton.addEventListener("click", nextPage);
+  // Turning auto-play on turns the sound on; a sentence still being read finishes first.
+  autoButton.addEventListener("click", () => {
+    if (autoPlay) return setAutoPlay(false);
+    if (!speakerOn) speaker.click();
+    setAutoPlay(true);
+    if (player.paused || player.ended) advance();
   });
   // Tapping the book replays the sentence just read (and turns sound back on if muted).
   book.addEventListener("click", () => {
@@ -283,7 +342,10 @@ export async function renderLecture(lessonId) {
   });
   speaker.addEventListener("click", () => {
     speakerOn = !speakerOn;
-    if (!speakerOn) stopAudio();
+    if (!speakerOn) {
+      setAutoPlay(false); // muting stops auto-play
+      stopAudio();
+    }
     speaker.innerHTML = icon(speakerOn ? "speaker" : "mute");
     speaker.setAttribute("aria-pressed", String(speakerOn));
   });

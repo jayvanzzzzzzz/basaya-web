@@ -23,7 +23,7 @@ export { normalizeWord } from "./dictionaryWords.js";
 //     site, so looking them up costs no Firestore reads. Rebuilt by tools/build-dictionary.mjs.
 //   - dictionary/{key}: words teachers add or fix. The doc id is the search key
 //     (normalizeWord), so a teacher's word replaces the seed word with the same key,
-//     and `hidden: true` takes a bad seed word out.
+//     and `hidden: true` marks a seed word deleted (admins only).
 // Every entry is shaped { word, key, accent, syllables, senses: [{ pos, definitions, examples }],
 // synonyms, source: "wiktionary" | "teacher", hidden, ... }. `syllables` ("ba·hay") is a
 // teacher's fix for the automatic split (js/syllables.js); empty means "split it automatically".
@@ -177,14 +177,19 @@ export async function syllablesFor(text) {
 // ---------- teacher side ----------
 
 /**
- * Every word, A to Z, for the teacher/admin Dictionary page: the seed with all
- * teacher words laid over it (hidden ones kept, marked). Reads every teacher doc once.
+ * Every word, A to Z, for the teacher/admin Dictionary page and the student "Lahat" list:
+ * the seed with all teacher words laid over it. Deleted words (hidden markers) are left
+ * out. Reads every teacher doc once.
  */
 export async function allWords() {
   const [all, snap] = await Promise.all([loadSeed(), getDocs(words)]);
   const found = new Map(all.map((entry) => [entry.key, entry]));
   for (const d of snap.docs) {
     const entry = fromDoc(d);
+    if (entry.hidden) {
+      found.delete(entry.key);
+      continue;
+    }
     found.set(entry.key, { ...entry, replaces: found.get(entry.key)?.source === "wiktionary" ? found.get(entry.key) : null });
   }
   return [...found.values()].sort((a, b) => a.key.localeCompare(b.key, "fil"));
@@ -246,11 +251,15 @@ export async function renameWord(entry, fields, who) {
   return key;
 }
 
-/** Takes a (seed) word out of the dictionary without deleting anything from the seed file. */
-export async function hideWord(entry, who) {
+/**
+ * Deletes a word for everyone. A word Wiktionary has gets a hidden marker, since the
+ * seed file can't change; a word only a teacher added is just removed.
+ */
+export async function deleteWord(entry, who) {
+  if (entry.source !== "wiktionary" && !entry.replaces) return deleteDoc(doc(words, entry.key));
   const existing = await getDoc(doc(words, entry.key));
   await setDoc(doc(words, entry.key), { ...hiddenDoc(entry), ...stamp(existing.exists() ? existing.data() : null, who) });
 }
 
-/** Deletes a teacher word; a seed word with the same key shows again. */
-export const deleteWord = (key) => deleteDoc(doc(words, key));
+/** Removes a teacher's changes to a Wiktionary word; the original shows again. */
+export const restoreWord = (key) => deleteDoc(doc(words, key));

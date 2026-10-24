@@ -40,19 +40,9 @@
   color: var(--ink-2);
 }
 
-/* On the class card's gradient cap */
+/* On a class card, beside its colour tile */
 .class-card__heading .deletion-chip {
   margin-left: 0;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 2px 0 rgba(30, 20, 110, 0.2);
-}
-
-.class-card__heading .deletion-chip--pending {
-  color: #a1560a;
-}
-
-.class-card__heading .deletion-chip--declined {
-  color: #4a5275;
 }
 
 .class-card__heading {

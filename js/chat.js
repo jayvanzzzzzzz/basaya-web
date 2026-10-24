@@ -171,6 +171,42 @@ export function lastFirst(name = "") {
   return `${words.slice(start).join(" ")}, ${first}`;
 }
 
+// How a teacher wants students to address them (users/{uid}.title); "" = name only.
+export const TEACHER_TITLES = { maam: "Ma'am", sir: "Sir" };
+const titleOf = (title) => TEACHER_TITLES[title] || "";
+const startsWithTitle = (name) => NAME_TITLES.has(name.split(" ")[0].toLowerCase().replace(/\./g, ""));
+
+/**
+ * The teacher as students see them: "Ma'am Reyes" / "Sir Dela Cruz" when a title is picked,
+ * else "Reyes, Ana" (lastFirst). A name that already starts with a title stays as written.
+ * Same as ClassChat.teacherName() in the app.
+ */
+export function teacherName(name = "", title = "") {
+  const clean = name.trim().replace(/\s+/g, " ");
+  if (!titleOf(title) || !clean || startsWithTitle(clean)) return lastFirst(clean);
+  const surname = lastFirst(clean).split(",")[0].trim();
+  return `${titleOf(title)} ${surname}`;
+}
+
+/** The full name with the title in front, for reports: "Ma'am Ana Reyes". */
+export function titledFullName(name = "", title = "") {
+  const clean = name.trim().replace(/\s+/g, " ");
+  return titleOf(title) && clean && !startsWithTitle(clean) ? `${titleOf(title)} ${clean}` : clean;
+}
+
+/** The class's teacher (id and title), so their chat messages can show "Ma'am Reyes". */
+export async function loadClassTeacher(classId) {
+  try {
+    const teacherId = (await getDoc(doc(db, "classes", classId))).get("teacherId");
+    if (!teacherId) return null;
+    const snap = await getDoc(doc(db, "users", teacherId));
+    return snap.exists() ? { id: teacherId, title: snap.get("title") || "" } : null;
+  } catch (error) {
+    console.warn("Couldn't read the class's teacher", error);
+    return null;
+  }
+}
+
 /** A student can delete their own message within 5 minutes; it stays in place as "deleted". */
 export const canDeleteOwn = (message, uid, now = Date.now()) =>
   !message.deleted && !message.pending && message.senderId === uid && now - message.sentAt < DELETE_WINDOW_MS;
