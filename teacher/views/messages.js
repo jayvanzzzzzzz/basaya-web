@@ -2,8 +2,11 @@ import { $, displayName, escapeHtml, initials, navigate, page, toast } from "../
 import { state, getTeacherClasses } from "../../js/state.js";
 import {
   STUDENT_MAX,
+  TEACHER_COOLDOWN_MS,
   TEACHER_MAX,
+  chatDelivery,
   isUnread,
+  joinText,
   loadOlder,
   markRead,
   removeMessage,
@@ -11,7 +14,7 @@ import {
   setChatOpen,
   watchRecent,
   watchState,
-} from "../../js/chat.js?v=teacher-title";
+} from "../../js/chat.js?v=removed-preview";
 import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.js";
 
 // Messages: one group chat per class with its students (#/messages/<classId>).
@@ -118,6 +121,7 @@ const ICONS = {
   send: '<path d="M4.5 12 20 4.5 13.5 20l-2.2-6.3L4.5 12Z" /><path d="m11.3 13.7 4-4" />',
   back: '<path d="m15 18-6-6 6-6" />',
   trash: '<path d="M4 7h16M10 11v6m4-6v6M5 7l1 13h12l1-13M9 7V4h6v3" />',
+  join: '<path d="M15 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1" /><circle cx="8.5" cy="8" r="3.5" /><path d="M19 8v6m3-3h-6" />',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />',
   chat: '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />',
   up: '<path d="m6 15 6-6 6 6" />',
@@ -147,9 +151,12 @@ function classListHtml(activeId) {
     .map((classroom) => {
       const summary = summaries.get(classroom.id);
       const unread = unreadIn(classroom.id) && classroom.id !== activeId;
-      const preview = summary?.lastAt
-        ? `${summary.lastRole === "teacher" && summary.lastSenderName === myName() ? "You" : summary.lastSenderName}: ${summary.lastText}`
-        : "No messages yet";
+      const preview = !summary?.lastAt
+        ? "No messages yet"
+        : summary.lastRole === "join"
+          ? joinText(summary.lastSenderName, false)
+          : // Empty text: the newest message was removed (a real message always has text).
+            `${summary.lastRole === "teacher" && summary.lastSenderName === myName() ? "You" : summary.lastSenderName}: ${summary.lastText || "Message removed"}`;
       const name = classroom.className || "Untitled class";
       return `<a class="inbox-class${classroom.id === activeId ? " is-active" : ""}${unread ? " is-unread" : ""}"
           href="#/messages/${encodeURIComponent(classroom.id)}" ${classroom.id === activeId ? 'aria-current="page"' : ""}>
@@ -243,28 +250,36 @@ function chatShellHtml(classroom) {
     <p class="chat-hint">Enter to send · Shift + Enter for a new line · Students can send up to ${STUDENT_MAX} characters, one message every 5 seconds.</p>`;
 }
 
-function messageHtml(message, previous) {
+function messageHtml(message, previous, delivery) {
   const mine = message.senderId === state.user.uid;
   const newDay = !previous || dayLabel(previous.sentAt) !== dayLabel(message.sentAt);
   // Messages from the same person within 5 minutes stack under one name.
   const grouped =
-    !newDay && previous && previous.senderId === message.senderId && message.sentAt - previous.sentAt < 5 * 60 * 1000;
+    !newDay && previous && !previous.join && previous.senderId === message.senderId && message.sentAt - previous.sentAt < 5 * 60 * 1000;
   const name = message.senderName || (message.role === "teacher" ? "Teacher" : "Student");
   const day = newDay ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
 
+  if (message.join) {
+    return `${day}<li class="chat-notice">${icon("join")}<span>${escapeHtml(joinText(name, false))}</span>
+      <time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time></li>`;
+  }
+
+  const isNew = delivery.isNew(message.id) ? " is-new" : "";
   if (message.deleted) {
-    return `${day}<li class="chat-msg is-removed${mine ? " is-mine" : ""}${grouped ? " is-grouped" : ""}">
+    return `${day}<li class="chat-msg is-removed${mine ? " is-mine" : ""}${grouped ? " is-grouped" : ""}${isNew}">
       <p class="chat-msg__removed">${icon("trash")}${message.deletedBy === "teacher" ? "Message removed by teacher" : `${escapeHtml(name)} deleted a message`}</p>
     </li>`;
   }
-  return `${day}<li class="chat-msg${mine ? " is-mine" : ""}${message.role === "teacher" ? " is-teacher" : ""}${grouped ? " is-grouped" : ""}${message.pending ? " is-pending" : ""}" data-id="${escapeHtml(message.id)}">
+  const status = mine ? delivery.status(message) : "";
+  return `${day}<li class="chat-msg${mine ? " is-mine" : ""}${message.role === "teacher" ? " is-teacher" : ""}${grouped ? " is-grouped" : ""}${isNew}" data-id="${escapeHtml(message.id)}">
     ${mine ? "" : `<span class="chat-msg__avatar" style="--h:${hueOf(name)}" aria-hidden="true">${grouped ? "" : escapeHtml(initials(name))}</span>`}
     <div class="chat-msg__body">
       ${grouped || mine ? "" : `<span class="chat-msg__name">${escapeHtml(name)}${message.role === "teacher" ? '<b class="chat-msg__role">Teacher</b>' : ""}</span>`}
       <div class="chat-msg__bubble">
         <p>${escapeHtml(message.text)}</p>
-        <time datetime="${new Date(message.sentAt).toISOString()}">${message.pending ? "Sending…" : timeOf(message.sentAt)}</time>
+        ${message.pending ? "" : `<time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time>`}
       </div>
+      ${status ? `<span class="chat-msg__status">${status === "sending" ? "Sending…" : "Sent"}</span>` : ""}
     </div>
     <button type="button" class="chat-msg__remove" data-remove="${escapeHtml(message.id)}" aria-label="Remove this message" title="Remove for everyone">${icon("trash")}</button>
   </li>`;
@@ -286,6 +301,10 @@ function openChat(classroom) {
   let moreOlder = false;
   let recentFull = false;
   let firstLoad = true;
+  let cooldownUntil = 0;
+  let cooldownTimer = null;
+  let summary = null; // chat/state, to tell if a removed message is the newest
+  const delivery = chatDelivery((id) => list.querySelector(`[data-id="${CSS.escape(id)}"] .chat-msg__status`)?.remove());
 
   const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120;
 
@@ -293,9 +312,11 @@ function openChat(classroom) {
     const stick = firstLoad || nearBottom();
     const fromBottom = scroller.scrollHeight - scroller.scrollTop;
     const messages = [...older, ...recent.filter((message) => !older.some((item) => item.id === message.id))];
+    delivery.note(messages);
     list.innerHTML = messages.length
-      ? messages.map((message, index) => messageHtml(message, messages[index - 1])).join("")
+      ? messages.map((message, index) => messageHtml(message, messages[index - 1], delivery)).join("")
       : `<li class="chat-empty">${icon("chat")}<strong>No messages yet</strong><span>Say hello to ${escapeHtml(classroom.className || "your class")}. Students see it in the BaSaya app.</span></li>`;
+    delivery.drawn(messages);
     $("[data-older]", root).hidden = !(older.length ? moreOlder : recentFull);
     if (keepOffset) scroller.scrollTop = scroller.scrollHeight - fromBottom;
     else if (stick) scroller.scrollTop = scroller.scrollHeight;
@@ -343,7 +364,8 @@ function openChat(classroom) {
     },
   );
 
-  const stopState = watchState(classId, (summary) => {
+  const stopState = watchState(classId, (latest) => {
+    summary = latest;
     openToggle.checked = summary.open;
     $("[data-chat-open-label]", root).textContent = summary.open ? "Open" : "Closed";
     $("[data-chat-closed]", root).hidden = summary.open;
@@ -364,6 +386,8 @@ function openChat(classroom) {
   stopChat = () => {
     stopRecent();
     stopState();
+    clearInterval(cooldownTimer);
+    delivery.stop();
     document.removeEventListener("visibilitychange", onVisible);
   };
 
@@ -402,7 +426,8 @@ function openChat(classroom) {
     }
     button.disabled = true;
     try {
-      await removeMessage(classId, button.dataset.remove);
+      const message = [...older, ...recent].find((item) => item.id === button.dataset.remove);
+      await removeMessage(classId, message, summary);
       older = older.map((item) =>
         item.id === button.dataset.remove ? { ...item, text: "", deleted: true, deletedBy: "teacher" } : item,
       );
@@ -445,12 +470,37 @@ function openChat(classroom) {
     input.style.height = "auto";
     input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
   };
+  // After each message the send button waits 3 seconds and shows the countdown; typing still works.
   const update = () => {
     resize();
     const length = input.value.trim().length;
-    send.disabled = !length;
+    const left = Math.ceil((cooldownUntil - Date.now()) / 1000);
+    send.disabled = !length || left > 0;
+    // Redraw the button only when the number changes, so it doesn't flicker every tick.
+    if (send.dataset.left !== String(Math.max(left, 0))) {
+      send.dataset.left = String(Math.max(left, 0));
+      send.innerHTML = left > 0 ? `<span class="chat-composer__wait">${left}</span>` : icon("send");
+      send.setAttribute("aria-label", left > 0 ? `Send in ${left} seconds` : "Send");
+    }
     count.hidden = input.value.length < TEACHER_MAX - 200;
     count.textContent = `${input.value.length}/${TEACHER_MAX}`;
+  };
+  const startCooldown = () => {
+    cooldownUntil = Date.now() + TEACHER_COOLDOWN_MS;
+    clearInterval(cooldownTimer);
+    cooldownTimer = setInterval(() => {
+      update();
+      if (Date.now() >= cooldownUntil) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+      }
+    }, 250);
+    update();
+  };
+  const stopCooldown = () => {
+    cooldownUntil = 0;
+    clearInterval(cooldownTimer);
+    cooldownTimer = null;
   };
   input.addEventListener("input", update);
   input.addEventListener("keydown", (event) => {
@@ -462,15 +512,17 @@ function openChat(classroom) {
   $("[data-composer]", root).addEventListener("submit", async (event) => {
     event.preventDefault();
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || Date.now() < cooldownUntil) return;
     input.value = "";
-    update();
+    startCooldown();
     scroller.scrollTop = scroller.scrollHeight;
     updateJump();
     try {
       await sendTeacherMessage(classId, text, state.user.uid, myName());
     } catch (error) {
       console.error(error);
+      // Not sent, so no wait before trying again.
+      stopCooldown();
       input.value = text;
       update();
       toast("Couldn't send. Check your connection and try again.");

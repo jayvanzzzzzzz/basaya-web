@@ -10,7 +10,6 @@ import {
   serverTimestamp,
   setDoc,
   startAfter,
-  updateDoc,
   writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebase.js";
@@ -23,6 +22,8 @@ import { postToApi } from "./api.js";
 
 export const PAGE = 30;
 export const TEACHER_MAX = 2000;
+// Teachers wait 3 seconds between messages (composer only; the rules don't check it).
+export const TEACHER_COOLDOWN_MS = 3_000;
 export const STUDENT_MAX = 300;
 
 const messagesOf = (classId) => collection(db, "classes", classId, "messages");
@@ -34,6 +35,7 @@ function toMessage(snap) {
   return {
     id: snap.id,
     text: data.text || "",
+    join: data.kind === "join",
     senderId: data.senderId || "",
     senderName: data.senderName || "",
     role: data.role || "student",
@@ -53,6 +55,48 @@ export function watchRecent(classId, onChange, onError) {
     (snapshot) => onChange(snapshot.docs.map(toMessage).reverse(), snapshot.size === PAGE),
     onError,
   );
+}
+
+export const SENT_SHOW_MS = 2_000;
+
+/**
+ * What the chat list needs across redraws (it is redrawn on every snapshot): which messages
+ * are new, so only those fade in, and the label under a message: "sending" until the server
+ * has it, then "sent" for 2 seconds. onSentGone(id) runs when a "sent" label should go.
+ */
+export function chatDelivery(onSentGone) {
+  const shown = new Set();
+  const waiting = new Set();
+  const sentUntil = new Map();
+  const timers = new Set();
+  return {
+    /** Call with the messages about to be drawn. */
+    note(messages) {
+      for (const message of messages) {
+        if (message.deleted) continue;
+        if (message.pending) waiting.add(message.id);
+        else if (waiting.delete(message.id)) {
+          sentUntil.set(message.id, Date.now() + SENT_SHOW_MS);
+          const timer = setTimeout(() => {
+            timers.delete(timer);
+            sentUntil.delete(message.id);
+            onSentGone(message.id);
+          }, SENT_SHOW_MS);
+          timers.add(timer);
+        }
+      }
+    },
+    isNew: (id) => !shown.has(id),
+    status: (message) => (message.pending ? "sending" : sentUntil.has(message.id) ? "sent" : ""),
+    /** Call after drawing. */
+    drawn(messages) {
+      for (const message of messages) shown.add(message.id);
+    },
+    stop() {
+      timers.forEach(clearTimeout);
+      timers.clear();
+    },
+  };
 }
 
 /** The PAGE messages before `oldest` (a message from watchRecent/loadOlder), oldest first. */
@@ -146,6 +190,38 @@ export async function sendStudentMessage(classId, uid, name, text) {
   await batch.commit();
 }
 
+/**
+ * Adds the "… joined the class" notice to the student's join batch (the one that writes
+ * their roster entry with joinedAt; the rules check both are in the same request). It
+ * lights the unread dot but sends no push. Same as ClassChat.addJoinNotice() in the app.
+ */
+export function addJoinNotice(batch, classId, uid, name) {
+  batch.set(doc(messagesOf(classId)), {
+    kind: "join",
+    text: "",
+    senderId: uid,
+    senderName: name,
+    role: "student",
+    sentAt: serverTimestamp(),
+  });
+  batch.set(
+    stateOf(classId),
+    { lastAt: serverTimestamp(), lastText: "", lastSenderName: name, lastRole: "join" },
+    { merge: true },
+  );
+}
+
+/** A roster name the way people say it: "Dela Cruz, Juan" → "Juan Dela Cruz". */
+export function firstLast(name = "") {
+  const [last, ...rest] = name.split(",");
+  const first = rest.join(",").trim();
+  return first ? `${first} ${last.trim()}` : name.trim();
+}
+
+/** The join notice's line: English for the teacher, Filipino for students. */
+export const joinText = (name, filipino) =>
+  filipino ? `Si ${firstLast(name)} ay sumali sa klase` : `${firstLast(name)} joined the class`;
+
 // Filipino surname prefixes that belong to the surname: "Juan Dela Cruz" → "Dela Cruz, Juan".
 const SURNAME_PARTICLES = new Set(["de", "del", "dela", "delos", "la", "las", "los", "san", "santa", "sta", "sto", "santo", "di", "da", "dos", "van", "von"]);
 const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv"]);
@@ -209,14 +285,35 @@ export async function loadClassTeacher(classId) {
 
 /** A student can delete their own message within 5 minutes; it stays in place as "deleted". */
 export const canDeleteOwn = (message, uid, now = Date.now()) =>
+  !message.join &&
   !message.deleted && !message.pending && message.senderId === uid && now - message.sentAt < DELETE_WINDOW_MS;
 
-export const deleteOwnMessage = (classId, messageId) =>
-  updateDoc(doc(messagesOf(classId), messageId), { text: "", deleted: true, deletedBy: "sender" });
+export const deleteOwnMessage = (classId, message, summary) =>
+  removing(classId, message.id, "sender", isNewest(message, summary) && { lastText: "" });
 
 /** The teacher removes any message; it stays in place as "removed". */
-export const removeMessage = (classId, messageId) =>
-  updateDoc(doc(messagesOf(classId), messageId), { text: "", deleted: true, deletedBy: "teacher" });
+export const removeMessage = (classId, message, summary) =>
+  removing(
+    classId,
+    message.id,
+    "teacher",
+    // A removed join notice reads "Name: Message removed" too.
+    isNewest(message, summary) && (summary.lastRole === "join" ? { lastText: "", lastRole: "student" } : { lastText: "" }),
+  );
+
+/** The class's newest message: chat/state lastAt is stamped by the same request as its sentAt. */
+const isNewest = (message, summary) => !!summary?.lastAt && message.sentAt === summary.lastAt;
+
+/**
+ * Removing the newest message also blanks the summary's text in the same batch, so the
+ * teacher's Class chats list says "Message removed" instead of showing what was removed.
+ */
+function removing(classId, messageId, deletedBy, summaryFields) {
+  const batch = writeBatch(db);
+  batch.update(doc(messagesOf(classId), messageId), { text: "", deleted: true, deletedBy });
+  if (summaryFields) batch.update(stateOf(classId), summaryFields);
+  return batch.commit();
+}
 
 /** Open or close the chat for students (they can still read). */
 export const setChatOpen = (classId, open) => setDoc(stateOf(classId), { open }, { merge: true });

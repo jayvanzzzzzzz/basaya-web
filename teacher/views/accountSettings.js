@@ -12,7 +12,7 @@ import { state } from "../../js/state.js";
 import { $, escapeHtml, page, toast } from "../../js/helpers.js";
 import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
-import { teacherName } from "../../js/chat.js?v=teacher-title";
+import { teacherName } from "../../js/chat.js?v=removed-preview";
 import { titleChipsMarkup } from "../../js/teacherTitle.js";
 
 export function renderAccountSettings() {

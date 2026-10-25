@@ -2,8 +2,10 @@ import { $, escapeHtml, initials, toast } from "../../js/helpers.js";
 import {
   STUDENT_MAX,
   canDeleteOwn,
+  chatDelivery,
   STUDENT_COOLDOWN_MS,
   deleteOwnMessage,
+  joinText,
   lastRead,
   loadClassTeacher,
   loadOlder,
@@ -13,7 +15,7 @@ import {
   teacherName,
   watchRecent,
   watchState,
-} from "../../js/chat.js?v=teacher-title"; // ?v: skip an older cached copy without teacherName
+} from "../../js/chat.js?v=removed-preview"; // ?v: skip an older cached copy (same ?v everywhere)
 import { student, classId } from "../data.js";
 import { onLeave } from "../router.js";
 import { content, icon, showDialog } from "../ui.js";
@@ -81,6 +83,7 @@ const hueOf = (text) => [...text].reduce((hash, char) => (hash * 31 + char.charC
 const ICONS = {
   send: '<path d="M4.5 12 20 4.5 13.5 20l-2.2-6.3L4.5 12Z" /><path d="m11.3 13.7 4-4" />',
   trash: '<path d="M4 7h16M10 11v6m4-6v6M5 7l1 13h12l1-13M9 7V4h6v3" />',
+  join: '<path d="M15 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1" /><circle cx="8.5" cy="8" r="3.5" /><path d="M19 8v6m3-3h-6" />',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />',
   chat: '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />',
   up: '<path d="m6 15 6-6 6 6" />',
@@ -88,31 +91,39 @@ const ICONS = {
 };
 const chatIcon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
-function messageHtml(message, previous) {
+function messageHtml(message, previous, delivery) {
   const mine = message.senderId === student.uid;
   const newDay = !previous || dayLabel(previous.sentAt) !== dayLabel(message.sentAt);
   // Messages from the same person within 5 minutes stack under one name.
   const grouped =
-    !newDay && previous && previous.senderId === message.senderId && message.sentAt - previous.sentAt < 5 * 60 * 1000;
+    !newDay && previous && !previous.join && previous.senderId === message.senderId && message.sentAt - previous.sentAt < 5 * 60 * 1000;
   const teacher = message.role === "teacher";
   const title = classTeacher?.id === message.senderId ? classTeacher.title : "";
   const name = (teacher ? teacherName(message.senderName, title) : message.senderName) || (teacher ? "Guro" : "Kaklase");
   const day = newDay ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
 
+  if (message.join) {
+    return `${day}<li class="chat-notice">${chatIcon("join")}<span>${escapeHtml(joinText(name, true))}</span>
+      <time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time></li>`;
+  }
+
+  const isNew = delivery.isNew(message.id) ? " is-new" : "";
   if (message.deleted) {
-    return `${day}<li class="chat-msg is-removed${mine ? " is-mine" : ""}${grouped ? " is-grouped" : ""}">
+    return `${day}<li class="chat-msg is-removed${mine ? " is-mine" : ""}${grouped ? " is-grouped" : ""}${isNew}">
       <p class="chat-msg__removed">${chatIcon("trash")}${message.deletedBy === "teacher" ? "Tinanggal ng guro ang mensaheng ito" : "Binura ang mensaheng ito"}</p>
     </li>`;
   }
   const deletable = canDeleteOwn(message, student.uid);
-  return `${day}<li class="chat-msg${mine ? " is-mine" : ""}${message.role === "teacher" ? " is-teacher" : ""}${grouped ? " is-grouped" : ""}${message.pending ? " is-pending" : ""}">
+  const status = mine ? delivery.status(message) : "";
+  return `${day}<li class="chat-msg${mine ? " is-mine" : ""}${message.role === "teacher" ? " is-teacher" : ""}${grouped ? " is-grouped" : ""}${isNew}" data-id="${escapeHtml(message.id)}">
     ${mine ? "" : `<span class="chat-msg__avatar" style="--h:${hueOf(name)}" aria-hidden="true">${grouped ? "" : escapeHtml(initials(name))}</span>`}
     <div class="chat-msg__body">
       ${grouped || mine ? "" : `<span class="chat-msg__name">${escapeHtml(name)}${teacher ? '<span class="st-chat__role">· GURO</span>' : ""}</span>`}
       <div class="chat-msg__bubble">
         <p>${escapeHtml(message.text)}</p>
-        <time datetime="${new Date(message.sentAt).toISOString()}">${message.pending ? "Ipinapadala…" : timeOf(message.sentAt)}</time>
+        ${message.pending ? "" : `<time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time>`}
       </div>
+      ${status ? `<span class="chat-msg__status">${status === "sending" ? "Ipinapadala…" : "Naipadala"}</span>` : ""}
     </div>
     ${deletable ? `<button type="button" class="chat-msg__remove" data-delete="${escapeHtml(message.id)}" aria-label="Burahin ang mensahe">${chatIcon("trash")}</button>` : ""}
   </li>`;
@@ -194,6 +205,8 @@ export async function renderChat() {
   let firstLoad = true;
   let open = true;
   let sending = false;
+  let summary = null; // chat/state, to tell if a deleted message is the newest
+  const delivery = chatDelivery((id) => list.querySelector(`[data-id="${CSS.escape(id)}"] .chat-msg__status`)?.remove());
 
   const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120;
 
@@ -201,9 +214,11 @@ export async function renderChat() {
     const stick = firstLoad || nearBottom();
     const fromBottom = scroller.scrollHeight - scroller.scrollTop;
     const messages = [...older, ...recent.filter((message) => !older.some((item) => item.id === message.id))];
+    delivery.note(messages);
     list.innerHTML = messages.length
-      ? messages.map((message, index) => messageHtml(message, messages[index - 1])).join("")
+      ? messages.map((message, index) => messageHtml(message, messages[index - 1], delivery)).join("")
       : `<li class="chat-empty">${chatIcon("chat")}<strong>Wala pang mensahe</strong><span>Bumati sa iyong guro at mga kaklase! 👋</span></li>`;
+    delivery.drawn(messages);
     $("[data-older]", root).hidden = !(older.length ? moreOlder : recentFull);
     if (keepOffset) scroller.scrollTop = scroller.scrollHeight - fromBottom;
     else if (stick) scroller.scrollTop = scroller.scrollHeight;
@@ -291,6 +306,7 @@ export async function renderChat() {
   };
 
   const stopState = watchState(id, (state) => {
+    summary = state;
     open = state.open;
     $("[data-chat-closed]", root).hidden = open;
     $("[data-chat-status]", root).textContent = open
@@ -312,6 +328,7 @@ export async function renderChat() {
     stopState();
     clearInterval(refresh);
     clearInterval(cooldownTimer);
+    delivery.stop();
     document.removeEventListener("visibilitychange", onVisible);
   });
 
@@ -348,7 +365,8 @@ export async function renderChat() {
     });
     if (answer !== "primary") return;
     try {
-      await deleteOwnMessage(id, button.dataset.delete);
+      const message = [...older, ...recent].find((item) => item.id === button.dataset.delete);
+      await deleteOwnMessage(id, message, summary);
       older = older.map((item) =>
         item.id === button.dataset.delete ? { ...item, text: "", deleted: true, deletedBy: "sender" } : item,
       );

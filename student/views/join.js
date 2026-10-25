@@ -9,17 +9,29 @@ import {
   writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
+import { addJoinNotice } from "../../js/chat.js?v=removed-preview";
 import { $, escapeHtml, navigate } from "../../js/helpers.js";
 import { fieldError } from "../../js/field-errors.js";
 import { student, classId, fullName, loadClassLessons, loadProfile } from "../data.js";
 import { buddy, confetti, content, icon, setBuddyMood, shake } from "../ui.js";
 
-// "Sumali sa Klase" (the app's JoinClassActivity): the roster entry and the student's
-// class link are written together, so it's both or nothing.
+// "Sumali sa Klase" (the app's JoinClassActivity): the roster entry, the student's class
+// link and the chat's "… joined the class" notice are written together, so it's all or nothing.
+
+// Where the close button and a finished join go: Home, or Account when opened from there.
+let returnTo = "/home";
+
+/** Opens the join page; `from` is where to come back to. */
+export function openJoin(from = "/home") {
+  returnTo = from;
+  navigate("/join");
+}
 
 export async function renderJoin() {
+  const back = returnTo;
+  returnTo = "/home";
   if (classId()) {
-    navigate("/home");
+    navigate(back);
     return;
   }
 
@@ -27,7 +39,7 @@ export async function renderJoin() {
   content().innerHTML = `
     <section class="st-join">
       <header class="st-join__header">
-        <a class="st-icon-button st-icon-button--light" href="#/home" aria-label="Isara">${icon("close")}</a>
+        <a class="st-icon-button st-icon-button--light" href="#${back}" aria-label="Isara">${icon("close")}</a>
         ${buddy("happy", "st-join__buddy")}
         <h1>Sumali sa Klase</h1>
         <p>Hingin sa iyong guro ang class code at ilagay ito rito.</p>
@@ -88,12 +100,14 @@ export async function renderJoin() {
       const classDoc = snap.docs[0];
       const className = classDoc.get("className") || "";
 
+      const rosterName = `${profile.lastName || ""}, ${profile.firstName || ""}`;
       const batch = writeBatch(db);
       batch.set(doc(db, "classes", classDoc.id, "students", student.uid), {
-        fullName: `${profile.lastName || ""}, ${profile.firstName || ""}`,
+        fullName: rosterName,
         joinedAt: serverTimestamp(),
       });
       batch.update(doc(db, "users", student.uid), { classId: classDoc.id, className });
+      addJoinNotice(batch, classDoc.id, student.uid, rosterName);
       await batch.commit();
 
       student.profile.classId = classDoc.id;
@@ -103,7 +117,7 @@ export async function renderJoin() {
       submit.textContent = `Yehey! Kasali ka na sa ${className}`;
       setBuddyMood(mascot, "happy");
       confetti({ count: 120 });
-      setTimeout(() => navigate("/home"), 1600);
+      setTimeout(() => navigate(back), 1600);
       return;
     } catch (err) {
       console.error("Join class failed", err);

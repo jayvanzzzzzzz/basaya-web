@@ -17,6 +17,7 @@ import { passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../
 import { student, classId, fullName, loadProfile } from "../data.js";
 import { logout, refreshTopbar } from "../session.js";
 import { buddy, content, icon, showDialog } from "../ui.js";
+import { openJoin } from "./join.js";
 
 // "Account" (the app's ProfileFragment): name, gender and birthday (email is read-only),
 // the class with the leave-request flow, password change and logout.
@@ -59,9 +60,13 @@ function classSection({ state, note }) {
     return `
       <div class="st-row">
         <span class="st-row__icon">${icon("home")}</span>
-        <span class="st-row__text"><strong>Wala ka pang klase</strong><small>Sumali gamit ang class code sa Home.</small></span>
-        <a class="button secondary" href="#/join">Sumali</a>
-      </div>`;
+        <span class="st-row__text"><small>Kasalukuyang klase</small><strong>Wala ka pang klase</strong></span>
+      </div>
+      <button class="st-row st-row--button" type="button" data-join>
+        <span class="st-row__icon">${icon("plus")}</span>
+        <span class="st-row__text"><strong>Sumali sa klase</strong><small>Gamitin ang class code ng iyong guro</small></span>
+        ${icon("chevron", "st-row__chevron")}
+      </button>`;
   }
   const status =
     state === "pending"
@@ -149,6 +154,7 @@ export async function renderAccount() {
     classBox.innerHTML = classSection(await leaveState());
   };
   classBox.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-join]")) return openJoin("/account");
     const action = event.target.closest("[data-leave]")?.dataset.leave;
     if (action === "ask") showLeaveDialog(false, drawClass);
     else if (action === "cancel") showLeaveDialog(true, drawClass);

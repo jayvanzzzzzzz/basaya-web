@@ -1,5 +1,5 @@
 import { escapeHtml } from "./helpers.js";
-import { TEACHER_TITLES, teacherName } from "./chat.js?v=teacher-title";
+import { TEACHER_TITLES, teacherName } from "./chat.js?v=removed-preview";
 
 // The "How should students address you?" chips (Ma'am / Sir / Name only), used by the
 // teacher's Account settings and the admin's teacher forms. Saved as users/{uid}.title.

@@ -31,12 +31,15 @@ All chat data lives under the class, so deleting a class also deletes its chat (
 | Path | Fields | Purpose |
 |---|---|---|
 | `classes/{classId}/messages/{id}` | `text`, `senderId`, `senderName`, `role` (`"teacher"` / `"student"`), `sentAt` (server time) | One message |
-| ↳ after removal | `text: ""`, `deleted: true`, `deletedBy` (`"teacher"` / `"sender"`) | A removed message keeps its place in the chat |
+| ↳ after removal | `text: ""`, `deleted: true`, `deletedBy` (`"teacher"` / `"sender"`) | A removed message keeps its place in the chat. If it was the newest (its `sentAt` equals `chat/state.lastAt`), the same batch sets `chat/state.lastText` to `""`, and the teacher's Class chats list shows "Name: Message removed" (a removed join notice also gets `lastRole: "student"`). The rules let a student blank it only when the summary is their own message from the last 5 minutes |
 | ↳ after push | `pushedAt` | Set by notify-chat, so a message is pushed only once |
-| `classes/{classId}/chat/state` | `open` (missing = open), `lastAt`, `lastText`, `lastSenderName`, `lastRole` | Open/closed switch, plus a summary of the last message for unread dots and the class list |
+| ↳ join notice | `kind: "join"`, `text: ""`, `role: "student"` | "Juan Dela Cruz joined the class" (teacher) / "Si Juan Dela Cruz ay sumali sa klase" (students), a centered line |
+| `classes/{classId}/chat/state` | `open` (missing = open), `lastAt`, `lastText`, `lastSenderName`, `lastRole` (`"join"` after a join notice) | Open/closed switch, plus a summary of the last message for unread dots and the class list |
 | `classes/{classId}/chatSenders/{uid}` | `lastSentAt` | A student's last send time, for the 5-second limit |
 
 Messages are never hard-deleted. The rules don't allow it. "Removing" a message empties its text and marks it deleted.
+
+**Join notices.** When a student joins (`student/views/join.js`, `JoinClassActivity.kt`), the same batch that creates their roster entry also writes the notice and the summary (`addJoinNotice` in `js/chat.js` / `ClassChat.kt`). The rules accept it only when the roster entry is created in that same request with `joinedAt` = server time, so it can't be repeated and is allowed even while the chat is closed. It lights the unread dot and shows in the teacher's class list, but sends no push. The student can't delete it. Only joins after this feature shipped have a notice.
 
 ---
 
@@ -88,7 +91,9 @@ The rules use `getAfter()` to check that `chatSenders/{uid}.lastSentAt` is stamp
 2. After the batch commits, it calls `POST /api/notify-chat { classId, messageId }` via `postToApi` (with the teacher's Firebase ID token).
 3. If the push fails, the message is still saved. The failure is only logged.
 
-**Composer:** Enter sends and Shift+Enter adds a new line.
+**Composer:** Enter sends and Shift+Enter adds a new line. After each message the send button waits **3 seconds** (`TEACHER_COOLDOWN_MS`) and shows the countdown in place of the icon. The teacher can keep typing during the wait, and a failed send clears it. This limit is only in the composer: the rules don't check teacher sends (students still have the 5-second limit, which the rules do check).
+
+**Message list (teacher and student web):** the list is redrawn on every snapshot, and `chatDelivery()` in `js/chat.js` keeps that steady. Only messages that weren't on screen before fade in (`.is-new`). Under your own message, a small "Sending…" / "Ipinapadala…" shows until the server has it, then "Sent" / "Naipadala" for 2 seconds, then it goes away. The time inside the bubble shows only once the message is saved.
 
 **Teacher controls:**
 - Removing a message takes two clicks: Remove, then confirm.

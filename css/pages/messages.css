@@ -515,6 +515,40 @@
   margin: 0.9rem 0 0.5rem;
 }
 
+/* "… joined the class": a quiet centered line, not a bubble. */
+.chat-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.7rem auto 0.3rem;
+  max-width: 100%;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.chat-notice svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chat-notice time {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.chat-notice time::before {
+  content: "· ";
+}
+
 .chat-day span {
   padding: 0.2rem 0.7rem;
   border-radius: var(--radius-pill);
@@ -532,6 +566,10 @@
   gap: 0.5rem;
   max-width: min(78%, 36rem);
   margin-top: 0.55rem;
+}
+
+/* The list is redrawn on every update; only messages not on screen before fade in. */
+.chat-msg.is-new {
   animation: chatIn 260ms var(--ease-out);
 }
 
@@ -648,8 +686,13 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
-.chat-msg.is-pending .chat-msg__bubble {
-  opacity: 0.7;
+/* Under my own message: "Sending…" until the server has it, then "Sent" for 2 seconds. */
+.chat-msg__status {
+  justify-self: end;
+  padding-right: 0.35rem;
+  color: var(--ink-3);
+  font-size: 0.66rem;
+  font-weight: 600;
 }
 
 .chat-msg__remove {
@@ -845,6 +888,13 @@
   stroke: currentColor;
   stroke-linejoin: round;
   stroke-width: 2.2;
+}
+
+/* Teacher cooldown: seconds left in place of the icon. */
+.chat-composer__wait {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .chat-composer__send:hover:not(:disabled) {

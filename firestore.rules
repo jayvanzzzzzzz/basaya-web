@@ -185,8 +185,11 @@ service cloud.firestore {
       // ---------- Class chat: one group chat for the teacher and the class's students ----------
       // messages/{id}   text, senderId, senderName, role ("teacher" | "student"), sentAt;
       //                 a removed message keeps its place: text "", deleted true, deletedBy.
+      //                 A join notice ("… joined the class") has kind "join" and text "",
+      //                 written by the student in the same batch that adds them to the roster.
       // chat/state      open (missing = open) and a summary of the last message (lastAt,
       //                 lastText, lastSenderName, lastRole), so unread badges cost one read.
+      //                 lastRole "join" (text "") after a join notice.
       // chatSenders/{uid}  lastSentAt: a student's last send, for the 5-second limit.
       // A student sends with one batch: the message, chatSenders/{uid} and chat/state.
 
@@ -205,8 +208,32 @@ service cloud.firestore {
           .data.lastSentAt == request.time;
       }
 
+      // The student's roster entry is created, stamped with this request's time, in the same
+      // batch (joining). Leaving deletes the entry, so a rejoin is a new one; a member can't
+      // re-post the notice by re-stamping joinedAt.
+      function joiningNow(classId) {
+        let roster = /databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid);
+        return !exists(roster) && getAfter(roster).data.joinedAt == request.time;
+      }
+
+      function rosterNameAfter(classId) {
+        return getAfter(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid))
+          .data.get('fullName', '');
+      }
+
       match /messages/{messageId} {
         allow read: if signedIn() && (teachesClass(classId) || isChatMember(classId));
+
+        // Join notice: only alongside the join itself, even while the chat is closed.
+        allow create: if signedIn() &&
+          request.resource.data.keys().hasOnly(['kind', 'text', 'senderId', 'senderName', 'role', 'sentAt']) &&
+          request.resource.data.kind == "join" &&
+          request.resource.data.text == "" &&
+          request.resource.data.role == "student" &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.sentAt == request.time &&
+          joiningNow(classId) &&
+          request.resource.data.senderName == rosterNameAfter(classId);
 
         allow create: if signedIn() &&
           request.resource.data.keys().hasOnly(['text', 'senderId', 'senderName', 'role', 'sentAt']) &&
@@ -238,6 +265,7 @@ service cloud.firestore {
           (
             (teachesClass(classId) && request.resource.data.deletedBy == "teacher") ||
             (resource.data.senderId == request.auth.uid &&
+              resource.data.get('kind', '') != "join" &&
               request.resource.data.deletedBy == "sender" &&
               request.time < resource.data.sentAt + duration.value(5, 'm'))
           );
@@ -264,7 +292,25 @@ service cloud.firestore {
             request.resource.data.lastText is string &&
             request.resource.data.lastText.size() <= 300 &&
             chatOpen(classId) &&
-            sentNow(classId))
+            sentNow(classId)) ||
+          // A joining student updates the summary alongside their join notice.
+          ((resource == null
+              ? request.resource.data.keys().hasOnly(['lastAt', 'lastText', 'lastSenderName', 'lastRole'])
+              : request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['lastAt', 'lastText', 'lastSenderName', 'lastRole'])) &&
+            request.resource.data.lastAt == request.time &&
+            request.resource.data.lastRole == "join" &&
+            request.resource.data.lastText == "" &&
+            joiningNow(classId) &&
+            request.resource.data.lastSenderName == rosterNameAfter(classId)) ||
+          // A student deleting their own newest message (within the 5 minutes they can) blanks
+          // its text, so the teacher's class list says "Message removed".
+          (isChatMember(classId) && resource != null &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText']) &&
+            request.resource.data.lastText == "" &&
+            resource.data.lastRole == "student" &&
+            resource.data.lastSenderName == rosterNameAfter(classId) &&
+            request.time < resource.data.lastAt + duration.value(5, 'm'))
         );
         allow delete: if false;
       }

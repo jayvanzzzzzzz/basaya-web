@@ -1,7 +1,7 @@
 import { $, escapeHtml, toast } from "../../js/helpers.js";
 import { state } from "../../js/state.js";
 import { LEVELS, remarkFor } from "../../js/scoring.js";
-import { titledFullName } from "../../js/chat.js?v=teacher-title";
+import { titledFullName } from "../../js/chat.js?v=removed-preview";
 
 // Print (and "Save as PDF") and Excel export for the Class Report and student progress
 // pages. Print styles: css/layout/print.css.
