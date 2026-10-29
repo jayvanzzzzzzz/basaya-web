@@ -77,6 +77,12 @@
   animation: wave 700ms var(--ease-out);
 }
 
+@media (min-width: 901px) {
+  .auth-copy {
+    padding-bottom: calc(clamp(2rem, 5vw, 4.5rem) + 12rem);
+  }
+}
+
 /* Drifting books + pen, only over the brand side */
 .auth-book-drift {
   position: absolute;
