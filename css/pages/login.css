@@ -1471,6 +1471,23 @@
   font-weight: 700;
 }
 
+.auth-google-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.1rem 0 -0.25rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+
+.auth-google-divider::before,
+.auth-google-divider::after {
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+  content: "";
+}
+
 .auth-google {
   width: 100%;
   margin-top: 0.75rem;
