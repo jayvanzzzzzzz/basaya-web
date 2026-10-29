@@ -53,13 +53,14 @@ export async function renderStudentsPage(classId) {
               <h3>${escapeHtml(name)}${leaveChip(student)}</h3>
             </div>
           </div>
-          <div class="student-directory__actions" aria-label="Student actions">
-            <button class="button secondary small" type="button" data-view-progress="${escapeHtml(student.id)}">
-              View progress
+          <div class="student-directory__actions">
+            <button class="icon-button--menu" type="button" data-student-menu-toggle aria-label="Actions for ${escapeHtml(name)}" aria-haspopup="true" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>
             </button>
-            <button class="icon-button icon-button--danger" type="button" data-remove-student="${escapeHtml(student.id)}" title="Remove from class" aria-label="Remove ${escapeHtml(name)} from class">
-              <span aria-hidden="true">×</span>
-            </button>
+            <div class="class-card-menu-popup" data-student-menu hidden>
+              <button type="button" data-view-progress="${escapeHtml(student.id)}">View progress</button>
+              <button class="danger" type="button" data-remove-student="${escapeHtml(student.id)}">Remove from class</button>
+            </div>
           </div>
         </article>`;
     })
@@ -113,6 +114,20 @@ export async function renderStudentsPage(classId) {
       label: ["student", "students"],
     });
   }
+
+  document.querySelectorAll("[data-student-menu-toggle]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const popup = button.nextElementSibling;
+      document.querySelectorAll("[data-student-menu]").forEach((menu) => {
+        if (menu !== popup) {
+          menu.hidden = true;
+          menu.previousElementSibling.setAttribute("aria-expanded", "false");
+        }
+      });
+      popup.hidden = !popup.hidden;
+      button.setAttribute("aria-expanded", String(!popup.hidden));
+    }),
+  );
 
   document.querySelectorAll("[data-view-progress]").forEach((button) =>
     button.addEventListener("click", () =>

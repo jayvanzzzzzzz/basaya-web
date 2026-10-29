@@ -6,6 +6,10 @@
   gap: 1.25rem;
 }
 
+.teacher-class-header {
+  z-index: 1;
+}
+
 .class-overview {
   display: grid;
   gap: 1rem;

@@ -333,6 +333,12 @@
   box-shadow: none;
 }
 
+.teacher-dashboard-header .button.primary:hover:not(:disabled) {
+  background: var(--brand-gradient);
+  color: #fff;
+  filter: brightness(1.06);
+}
+
 /* ---------- Cards: thin border, no lift ---------- */
 .card {
   box-shadow: var(--shadow-sm);
