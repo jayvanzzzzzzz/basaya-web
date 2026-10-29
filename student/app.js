@@ -32,6 +32,10 @@ onAuthStateChanged(auth, async (user) => {
     student.uid = user.uid;
     student.email = user.email || "";
     const profile = await loadProfile();
+    if (!profile.role) {
+      window.location.replace("../complete-profile.html");
+      return;
+    }
     if (profile.role !== "student") {
       // Teachers and admins have their own portals; the login page sends them there.
       window.location.replace("../index.html");

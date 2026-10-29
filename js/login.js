@@ -1,6 +1,8 @@
 import {
+  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -13,6 +15,7 @@ const loginView = document.getElementById("login-view");
 const loginForm = $("#login-form");
 const loginButton = loginForm.querySelector('[type="submit"]');
 const loginButtonLabel = loginButton.querySelector(".login-submit__label");
+const googleLoginButton = $("#google-login");
 let signingIn = false;
 // Showcase: real BaSaya screens in one window that morphs between them. Each
 // tab's meter fills over --showcase-time; when it ends, the next screen shows.
@@ -205,6 +208,36 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+googleLoginButton.addEventListener("click", async () => {
+  if (signingIn) return;
+  const error = $("#login-error");
+  error.textContent = "";
+  googleLoginButton.disabled = true;
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, provider);
+  } catch (signInError) {
+    console.error("Google sign-in failed", signInError);
+    if (signInError.code !== "auth/popup-closed-by-user") {
+      error.textContent =
+        signInError.code === "auth/operation-not-allowed"
+          ? "Google sign-in is disabled for this Firebase project. Enable the Google provider in Firebase Authentication settings, then try again."
+          : signInError.code === "auth/popup-blocked"
+          ? "Allow pop-up windows to continue with Google."
+          : signInError.code === "auth/unauthorized-domain"
+            ? "This domain is not authorized for Firebase Authentication yet."
+            : signInError.code === "auth/account-exists-with-different-credential"
+              ? "An account already uses this email. Sign in with your existing method."
+              : signInError.code === "auth/network-request-failed"
+                ? "Connection problem. Please try again."
+                : "Could not verify your Google account. Please try again.";
+    }
+  } finally {
+    googleLoginButton.disabled = false;
+  }
+});
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     revealLogin();
@@ -214,6 +247,11 @@ onAuthStateChanged(auth, async (user) => {
     const profileSnap = await getDoc(doc(db, "users", user.uid));
     const role = profileSnap.data()?.role;
     const destination = ROLE_DESTINATIONS[role];
+
+    if (!profileSnap.exists() && user.providerData.some(({ providerId }) => providerId === "google.com")) {
+      window.location.replace("complete-profile.html");
+      return;
+    }
 
     if (!profileSnap.exists() || !destination) {
       await signOut(auth);

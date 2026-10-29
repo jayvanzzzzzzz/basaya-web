@@ -1471,6 +1471,17 @@
   font-weight: 700;
 }
 
+.auth-google {
+  width: 100%;
+  margin-top: 0.75rem;
+  justify-content: center;
+}
+
+.auth-google svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .auth-shell {

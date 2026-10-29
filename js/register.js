@@ -1,4 +1,6 @@
-import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  createUserWithEmailAndPassword,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "./firebase.js";
 import { $ } from "./helpers.js";
@@ -32,7 +34,7 @@ form.querySelectorAll("[data-reveal]").forEach((button) =>
 
 function setBusy(busy) {
   submit.disabled = busy;
-  submit.textContent = busy ? "Ginagawa ang account…" : "Gumawa ng account";
+  submit.textContent = busy ? "Ginagawa ang account…" : "Gumawa ng account ngayon";
 }
 
 const authMessage = (code) =>

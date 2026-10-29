@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fil">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Kumpletuhin ang iyong BaSaya student account" />
+    <title>BaSaya — Kumpletuhin ang account</title>
+    <link rel="icon" type="image/png" href="img/favicon.png?v=1" sizes="128x128" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light")
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="css/base/tokens.css" />
+    <link rel="stylesheet" href="css/base/reset.css" />
+    <link rel="stylesheet" href="css/base/typography.css" />
+    <link rel="stylesheet" href="css/base/animations.css" />
+    <link rel="stylesheet" href="css/components/buttons.css" />
+    <link rel="stylesheet" href="css/components/forms.css" />
+    <link rel="stylesheet" href="css/components/theme-toggle.css" />
+    <link rel="stylesheet" href="css/components/site-footer.css" />
+    <link rel="stylesheet" href="css/components/contact-form.css" />
+    <link rel="stylesheet" href="css/pages/reset-password.css" />
+    <link rel="stylesheet" href="css/pages/register.css" />
+  </head>
+  <body>
+    <main class="reset-page">
+      <button class="theme-toggle theme-toggle--floating" type="button" data-theme-toggle aria-label="Palitan ang tema">
+        <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+        <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
+      </button>
+
+      <a class="reset-brand" href="index.html">
+        <img src="img/logo.png" alt="" />
+        BaSaya
+      </a>
+
+      <section class="reset-card register-card">
+        <div class="reset-heading">
+          <h1>Kumpletuhin ang iyong account</h1>
+          <p>Ilagay ang iyong pangalan para masimulan ang paggamit ng BaSaya.</p>
+        </div>
+
+        <p class="form-error" id="profile-error" role="alert"></p>
+        <p class="profile-status" id="profile-status" role="status">Sinusuri ang iyong Google account…</p>
+        <button class="button secondary profile-retry" id="profile-retry" type="button" hidden>Subukan muli</button>
+
+        <form id="profile-form" class="register-form" novalidate hidden>
+          <fieldset class="register-step">
+            <legend><span>1</span> Ang iyong pangalan</legend>
+            <label>First name
+              <input id="first-name" name="firstName" autocomplete="given-name" maxlength="60" required />
+            </label>
+            <label>Middle name <small>Opsyonal</small>
+              <input id="middle-name" name="middleName" autocomplete="additional-name" maxlength="60" />
+            </label>
+            <label>Last name
+              <input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required />
+            </label>
+            <label>Email
+              <input id="profile-email" name="email" type="email" autocomplete="email" readonly />
+            </label>
+          </fieldset>
+
+          <button class="button primary reset-submit" type="submit" id="profile-submit">Tapusin ang account setup</button>
+          <button class="text-button profile-back" type="button" id="profile-back">Mag-sign out at bumalik</button>
+        </form>
+      </section>
+
+      <footer class="site-footer site-footer--auth reset-footer">
+        <p>© 2026 BaSaya · A Capstone Project, BS in Information Technology</p>
+        <p>Eastwoods Professional College of Science and Technology</p>
+        <nav class="site-footer__links" aria-label="Site information">
+          <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
+          <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
+          <button type="button" data-site-info="contact" aria-haspopup="dialog">Contact</button>
+        </nav>
+      </footer>
+    </main>
+
+    <script type="module" src="js/complete-profile.js"></script>
+    <script type="module" src="js/theme.js"></script>
+    <script type="module" src="js/site-info.js"></script>
+  </body>
+</html>
