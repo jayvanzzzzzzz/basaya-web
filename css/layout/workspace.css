@@ -377,7 +377,7 @@
 .admin-class-table tbody tr:hover td,
 .admin-lesson-table tbody tr:hover td {
   border-color: var(--border);
-  background: var(--surface-2);
+  background: var(--table-row-hover);
 }
 
 .teacher-table tbody tr td:first-child::before,

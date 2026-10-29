@@ -98,12 +98,19 @@
   border-radius: 0 var(--radius) var(--radius) 0;
 }
 
+/* Subtle alternating rows keep larger admin lists easy to scan. */
+.teacher-table tbody tr:nth-child(even) td,
+.admin-class-table tbody tr:nth-child(even) td,
+.admin-lesson-table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt);
+}
+
 /* Hover: tint + a gradient accent bar on the left edge */
 .teacher-table tbody tr:hover td,
 .admin-class-table tbody tr:hover td,
 .admin-lesson-table tbody tr:hover td {
   border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-  background: var(--primary-softer);
+  background: var(--table-row-hover);
 }
 
 .teacher-table tbody tr td:first-child::before,

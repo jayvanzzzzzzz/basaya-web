@@ -29,6 +29,8 @@
   --border: #e4e7f3;
   --border-strong: #d2d7ea;
   --card-lip: #e3e6f4;
+  --table-row-alt: #f6f6f8;
+  --table-row-hover: #efeff5;
 
   /* Text */
   --ink: #1f2547;
@@ -111,6 +113,8 @@
   --border: rgba(255, 255, 255, 0.07);
   --border-strong: rgba(255, 255, 255, 0.12);
   --card-lip: #101114;
+  --table-row-alt: rgba(255, 255, 255, 0.035);
+  --table-row-hover: rgba(164, 156, 242, 0.12);
 
   --ink: #e4e4e8;
   --ink-2: #b3b4bc;

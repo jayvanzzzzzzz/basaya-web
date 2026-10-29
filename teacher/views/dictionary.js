@@ -65,18 +65,20 @@ const actionButton = (act, label, word) =>
   `<button type="button" class="dict-action${act === "delete" ? " dict-action--danger" : ""}" data-act="${act}" aria-label="${escapeHtml(`${label}: ${word}`)}">${ACTION_ICONS[act]}<span aria-hidden="true">${label}</span></button>`;
 
 // Admins delete any word. Teachers delete or restore only words they added or changed.
-function actionsHtml(entry, includeEdit = true) {
+function actionsHtml(entry, includeEdit = true, includeDelete = true) {
   const mine = entry.createdBy === state.user.uid;
   const word = entry.accent || entry.word;
   let actions = includeEdit ? actionButton("edit", "Edit", word) : "";
   if (entry.replaces && (isAdmin() || mine)) actions += actionButton("restore", "Restore original", word);
-  if (isAdmin() || (mine && entry.source === "teacher" && !entry.replaces)) actions += actionButton("delete", "Delete", word);
+  if (includeDelete && (isAdmin() || (mine && entry.source === "teacher" && !entry.replaces))) {
+    actions += actionButton("delete", "Delete", word);
+  }
   return actions;
 }
 
 function rowHtml(entry) {
   const first = [entry.senses[0]?.pos, entry.senses[0]?.definitions[0]].filter(Boolean).join(" · ");
-  const actions = actionsHtml(entry, false);
+  const actions = actionsHtml(entry, false, !isAdmin());
   return `
     <div class="lesson-row dict-row" data-key="${escapeHtml(entry.key)}">
       <button type="button" class="dict-row__text" data-act="open">

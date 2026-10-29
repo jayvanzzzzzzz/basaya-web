@@ -784,6 +784,7 @@
   background: var(--surface);
   font-size: 0.86rem;
   vertical-align: middle;
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
 .progress-table td:first-child {
@@ -796,12 +797,16 @@
   border-radius: 0 var(--radius) var(--radius) 0;
 }
 
+.progress-table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt);
+}
+
 .progress-table tbody tr {
   transition: transform var(--dur) var(--ease-out);
 }
 
 .progress-table tbody tr:hover td {
-  background: var(--surface-2);
+  background: var(--table-row-hover);
 }
 
 .lesson-index {

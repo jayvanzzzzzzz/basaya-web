@@ -173,6 +173,11 @@
   border-bottom: 1px solid var(--border);
   font-weight: 400;
   vertical-align: middle;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.rp-table tbody tr:nth-child(even) > * {
+  background: var(--table-row-alt);
 }
 
 .rp-table tbody tr:last-child > * {
@@ -180,7 +185,7 @@
 }
 
 .rp-table tbody tr:hover > * {
-  background: var(--surface-2);
+  background: var(--table-row-hover);
 }
 
 .rp-table .rp-num {
@@ -319,19 +324,11 @@
 }
 
 .report-table td.score-cell {
-  background: none;
   font-weight: 600;
 }
 
-.report-table td.score-cell--very-good,
-.report-table td.score-cell--good,
-.report-table td.score-cell--fair,
-.report-table td.score-cell--poor {
-  background: none;
-}
-
 .report-table tbody tr:hover td.score-cell {
-  background: var(--surface-2);
+  background: var(--table-row-hover);
 }
 
 .report-table td.score-cell--very-good { color: var(--success); }
