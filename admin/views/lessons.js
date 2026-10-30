@@ -23,6 +23,7 @@ import {
   safeHttpUrl,
   toast,
 } from "../../js/helpers.js";
+import { clearFieldError, fieldError } from "../../js/field-errors.js";
 import { paginate } from "../../js/pagination.js";
 import { lookupWord, syllablesFor } from "../../js/dictionary.js";
 import { syllabify } from "../../js/syllables.js";
@@ -880,6 +881,82 @@ function lectureAudioProblem(row, text) {
   return saved?.audioUrl ? "generate audio again (sentence changed)" : "generate audio";
 }
 
+const duplicateWordMessage = "This word already exists in this lesson.";
+const lessonWordKey = (word) => String(word ?? "").trim().toUpperCase();
+const duplicateWordFields = new WeakMap();
+
+function duplicateLessonWords(modal, skipGame) {
+  const entries = $$("[data-pronunciation-word]", modal).flatMap((row, index) => {
+    const field = $("[data-pronunciation-text]", row);
+    return [{ word: field.value, field, kind: "pronunciation", index }];
+  });
+
+  if (!skipGame) {
+    $$("[data-game-level]", modal).forEach((level, index) => {
+      entries.push({
+        word: $("[data-key-word]", level).value,
+        field: $("[data-key-word]", level),
+        kind: "game-key",
+        level,
+        index,
+      });
+      $$("[data-word-chip]", level).forEach((chip) => {
+        entries.push({
+          word: chip.dataset.wordChip,
+          field: $("[data-word-input]", level),
+          chip,
+          kind: "game-word",
+          level,
+          index,
+        });
+      });
+      const input = $("[data-word-input]", level);
+      if (input.value.trim()) {
+        entries.push({
+          word: input.value,
+          field: input,
+          kind: "game-word",
+          level,
+          index,
+        });
+      }
+    });
+  }
+
+  const byWord = new Map();
+  entries.forEach((entry) => {
+    const key = lessonWordKey(entry.word);
+    if (!key) return;
+    if (!byWord.has(key)) byWord.set(key, []);
+    byWord.get(key).push(entry);
+  });
+  return [...byWord.values()].filter((matches) => matches.length > 1).flat();
+}
+
+function updateLessonWordDuplicates(modal, skipGame) {
+  $$("[data-word-chip]", modal).forEach((chip) => {
+    chip.classList.remove("is-duplicate");
+  });
+
+  const duplicates = duplicateLessonWords(modal, skipGame.checked);
+  const fields = new Set();
+  duplicates.forEach((entry) => {
+    fields.add(entry.field);
+    if (entry.chip) {
+      entry.chip.classList.add("is-duplicate");
+    }
+  });
+  const previous = duplicateWordFields.get(modal) || new Set();
+  previous.forEach((field) => {
+    if (!fields.has(field)) clearFieldError(field);
+  });
+  fields.forEach((field) => {
+    if (field.getAttribute("aria-invalid") !== "true") fieldError(field, duplicateWordMessage);
+  });
+  duplicateWordFields.set(modal, fields);
+  return duplicates;
+}
+
 /**
  * Everything a lesson still needs before it can be published: every field of every part
  * (a skipped Gawain or game is left out), and audio for each Lecture sentence.
@@ -956,6 +1033,14 @@ function missingFields(modal, { skipActivity, skipGame }) {
       if (!checkLevel(level).ok) add("Game", `Level ${index + 1}: fix the words`, level);
     });
   }
+
+  duplicateLessonWords(modal, skipGame.checked).forEach((entry) => {
+    if (entry.kind === "pronunciation") {
+      add("Pronunciation", `Word ${entry.index + 1}: already exists in this lesson`, entry.field);
+    } else {
+      add("Game", `Level ${entry.index + 1}: word already exists in this lesson`, entry.level);
+    }
+  });
 
   return missing;
 }
@@ -1104,6 +1189,7 @@ async function openLessonModal(existing = null) {
       },
     });
     updateGameEditor();
+    updateLessonWordDuplicates(modal, skipGame);
     skipGame.addEventListener("change", updateGameEditor);
     updateActivityEditor();
     skipActivity.addEventListener("change", updateActivityEditor);
@@ -1156,6 +1242,7 @@ async function openLessonModal(existing = null) {
       return missing;
     };
     const recheck = () => {
+      updateLessonWordDuplicates(modal, skipGame);
       if (!triedToSave) return;
       clearTimeout(checkTimer);
       checkTimer = setTimeout(() => checklist.update(markMissing()), 150);
@@ -1357,6 +1444,7 @@ async function openLessonModal(existing = null) {
       // Game levels commit half-typed words and show their issues; questions without a
       // correct answer show their own message.
       if (!skipGame.checked) validateGameLevels(gameLevels);
+      updateLessonWordDuplicates(modal, skipGame);
       validateQuiz(quizQuestions);
       triedToSave = true;
       clearTimeout(checkTimer);
