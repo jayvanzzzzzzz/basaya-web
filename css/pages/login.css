@@ -688,59 +688,46 @@
   list-style: none;
 }
 
-.shot-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 3.4rem 1.7rem auto;
+.shot-finding {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.38rem 0;
   border-top: 1px solid var(--border);
 }
 
-.shot-item:first-child {
+.shot-finding:first-child {
   border-top: 0;
 }
 
-.shot-item > span:first-child {
-  overflow: hidden;
-  font-size: 0.6rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.shot-finding > span:last-child {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
 }
 
-.shot-item small {
+.shot-finding strong {
+  font-size: 0.6rem;
+}
+
+.shot-finding small {
   color: var(--ink-3);
   font-size: 0.5rem;
 }
 
-.shot-item .shot-bar {
-  height: 0.3rem;
+.shot-finding__icon {
+  display: grid;
+  flex: 0 0 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
-.shot-item .shot-bar > i {
-  background: var(--warning);
-}
-
-.shot-item--reteach .shot-bar > i {
-  background: var(--danger);
-}
-
-.shot-item b {
-  font-size: 0.62rem;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.shot-item em {
-  justify-self: end;
-  padding: 0.08rem 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
-  border-radius: 0.3rem;
-  color: var(--danger);
-  font-size: 0.48rem;
-  font-style: normal;
-  white-space: nowrap;
-}
+.shot-finding__icon--warn { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
+.shot-finding__icon--alert { color: var(--danger); background: color-mix(in srgb, var(--danger) 15%, transparent); }
+.shot-finding__icon--good { color: var(--success); background: color-mix(in srgb, var(--success) 15%, transparent); }
 
 /* Bigkas + Diksiyonaryo (phone) */
 .showcase-shot--bigkas {
@@ -1141,9 +1128,6 @@
     display: none;
   }
 
-  .shot-item {
-    grid-template-columns: minmax(0, 1fr) 2.6rem 1.7rem auto;
-  }
 }
 
 /* Copy: the headline blurs in word by word */
