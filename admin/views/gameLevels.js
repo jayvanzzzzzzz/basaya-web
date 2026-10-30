@@ -84,6 +84,19 @@ export function suggestKeyWords(typed, lessonWords) {
     .slice(0, SUGGESTIONS_MAX);
 }
 
+/** 5–7 letter words from this lesson that can serve as crossword root words. */
+export function suggestRootWords(lessonWords, currentKey = "") {
+  const current = normalize(currentKey);
+  return lessonWords
+    .filter((word) => word.length >= 5 && word.length <= KEY_MAX && word !== current)
+    .map((word) => ({
+      word,
+      makes: lessonWords.filter((other) => other !== word && !wordIssue(other, word)).length,
+    }))
+    .sort((a, b) => b.makes - a.makes || b.word.length - a.word.length || a.word.localeCompare(b.word))
+    .slice(0, SUGGESTIONS_MAX);
+}
+
 /** Hidden words that fit `key`, from the lesson, not yet added. Longest first. */
 export function suggestWords(key, lessonWords, added = []) {
   return lessonWords
@@ -454,6 +467,20 @@ function renderSuggestions(level, key, words, typing) {
           </button>`,
       ),
       "Try a shorter word. One part of a compound word often works, like SILID from SILID-AKLATAN.",
+    );
+  } else if (!key) {
+    const picks = suggestRootWords(lessonWords, key);
+    keyHtml = suggestBoxHtml(
+      "Root word suggestions from this lesson",
+      "Choose a 5–7 letter word for the crossword:",
+      picks.map(
+        ({ word, makes }) =>
+          `<button type="button" class="suggest-chip" data-use-key="${escapeHtml(word)}">
+            <strong>${escapeHtml(word)}</strong>
+            <small>${makes ? `makes ${makes} game word${makes === 1 ? "" : "s"}` : `${word.length} letters`}</small>
+          </button>`,
+      ),
+      "Add a 5–7 letter word to the lesson content to get root word suggestions.",
     );
   }
   setSuggestBox($("[data-key-suggest]", level), keyHtml);

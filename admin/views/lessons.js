@@ -3,7 +3,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getCountFromServer,
   getDocs,
   serverTimestamp,
   setDoc,
@@ -12,7 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { generateSpeech, saveSpeech } from "../../js/tts.js";
-import { state, getAllClasses, getAllLessons } from "../../js/state.js";
+import { state, getAllLessons } from "../../js/state.js";
 import {
   $,
   $$,
@@ -45,6 +44,8 @@ import { missingChecklist } from "./missingChecklist.js";
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
 const MAX_AUDIO_GENERATIONS_PER_SENTENCE = 5;
+const LESSON_WORD_FIELDS =
+  "[data-pronunciation-text], [data-activity-words], [data-sentence-text], [data-question-text], [data-choice-text]";
 const previews = new WeakMap();
 
 function lessonDifficultyMeta(level = "") {
@@ -402,12 +403,9 @@ function studioHtml(lesson = {}, sections = {}) {
         <div>
           <p class="eyebrow">BaSaya lesson studio</p>
           <h2>${lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
-          <p>Build each learning section, preview audio, then publish everything together.</p>
         </div>
         <span class="lesson-studio__badge">Admin only</span>
       </div>
-      ${lesson.id ? '<p class="lesson-usage" data-lesson-usage role="status" hidden></p>' : ""}
-
       <div class="lesson-studio__tabs">
         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
         <button type="button" class="lesson-tab" data-step="lectures">2. Lecture</button>
@@ -418,12 +416,18 @@ function studioHtml(lesson = {}, sections = {}) {
       </div>
 
       <div class="lecture-page-navigation" data-lecture-page-navigation hidden>
-        <div class="lesson-subheading">
-          <h4>Lecture Pages <span class="lesson-subheading__count" data-lecture-page-count></span></h4>
-        </div>
         <div class="lecture-page-navigation__controls">
+          <h4 class="lecture-page-navigation__title">Lecture Pages <span class="lesson-subheading__count" data-lecture-page-count></span></h4>
           <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
           <button type="button" class="button secondary small" data-add-lecture-page>+ Add page</button>
+        </div>
+      </div>
+
+      <div class="lecture-page-navigation" data-game-level-navigation hidden>
+        <div class="lecture-page-navigation__controls">
+          <h4 class="lecture-page-navigation__title">Game Levels <span class="lesson-subheading__count" data-game-level-count></span></h4>
+          <div class="lecture-page-ribbons" data-game-level-ribbons aria-label="Game levels"></div>
+          <button type="button" class="button secondary small" data-add-game-level>+ Add level</button>
         </div>
       </div>
 
@@ -557,10 +561,6 @@ function studioHtml(lesson = {}, sections = {}) {
           </label>
           <p class="muted">When selected, game controls are disabled and no game levels are saved.</p>
           <div data-game-editor>
-            <div class="lesson-subheading">
-              <h4>Game levels <span class="lesson-subheading__count" data-card-count></span></h4>
-              <button type="button" class="button secondary small" data-add-game-level>+ Add level</button>
-            </div>
             <div data-game-levels></div>
           </div>
         </section>
@@ -1051,11 +1051,13 @@ async function openLessonModal(existing = null) {
   let mayLeave = async () => true;
 
   openModal(studioHtml(existing || {}, sections), (modal, close) => {
-    if (existing) showLessonUsage($("[data-lesson-usage]", modal), existing.id);
     const activityPages = $("[data-activity-pages]", modal);
     const lecturePages = $("[data-lecture-pages]", modal);
     const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
     const lecturePageNavigation = $("[data-lecture-page-navigation]", modal);
+    const gameLevelRibbons = $("[data-game-level-ribbons]", modal);
+    const gameLevelNavigation = $("[data-game-level-navigation]", modal);
+    const addGameLevelButton = $("[data-add-game-level]", modal);
 
     // One clip at a time: replaying (or starting another clip) stops the one already
     // playing, so the same audio never overlaps itself and sounds like an echo.
@@ -1116,6 +1118,7 @@ async function openLessonModal(existing = null) {
     gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
 
     let activeLecturePage = 0;
+    let activeGameLevel = 0;
     const renderLecturePageRibbons = () => {
       const pages = $$("[data-lecture-page]", lecturePages);
       activeLecturePage = Math.min(activeLecturePage, Math.max(pages.length - 1, 0));
@@ -1140,16 +1143,43 @@ async function openLessonModal(existing = null) {
       $("[data-lecture-page-count]", modal).textContent = `(${pages.length})`;
     };
 
+    const renderGameLevelRibbons = () => {
+      const levels = $$("[data-game-level]", gameLevels);
+      activeGameLevel = Math.min(activeGameLevel, Math.max(levels.length - 1, 0));
+
+      gameLevelRibbons.innerHTML = levels
+        .map(
+          (_, index) => `
+            <button
+              type="button"
+              class="lecture-page-ribbon ${index === activeGameLevel ? "active" : ""}"
+              data-game-level-ribbon="${index}"
+              aria-current="${index === activeGameLevel ? "page" : "false"}"
+            >Level ${index + 1}</button>
+          `,
+        )
+        .join("");
+
+      levels.forEach((level, index) => {
+        level.hidden = index !== activeGameLevel;
+      });
+      $("[data-game-level-count]", modal).textContent = `(${levels.length})`;
+    };
+
     renderLecturePageRibbons();
+    renderGameLevelRibbons();
 
     // "Page 2 of 5" on each card and the total in its list's heading, redone as cards come and go.
-    const numberCards = (list, cardSelector, label) => {
+    const numberCards = (list, cardSelector, label, countSelector) => {
       const update = () => {
         const cards = $$(cardSelector, list);
         cards.forEach((card, index) => {
           $("[data-card-number]", card).textContent = `${label} ${index + 1} of ${cards.length}`;
         });
-        $("[data-card-count]", list.parentElement).textContent = `(${cards.length})`;
+        const count = countSelector
+          ? $(countSelector, modal)
+          : $("[data-card-count]", list.parentElement);
+        if (count) count.textContent = `(${cards.length})`;
       };
       update();
       new MutationObserver(update).observe(list, { childList: true });
@@ -1157,7 +1187,7 @@ async function openLessonModal(existing = null) {
     numberCards(activityPages, "[data-activity-page]", "Page");
     numberCards(pronunciationWords, "[data-pronunciation-word]", "Word");
     numberCards(quizQuestions, "[data-question]", "Question");
-    numberCards(gameLevels, "[data-game-level]", "Level");
+    numberCards(gameLevels, "[data-game-level]", "Level", "[data-game-level-count]");
 
     // A ticked "Skip …" box keeps its builder on screen but inactive.
     const updateSkipped = (editor, checkbox) => {
@@ -1168,18 +1198,18 @@ async function openLessonModal(existing = null) {
           control.disabled = checkbox.checked;
         });
     };
-    const updateGameEditor = () => updateSkipped(gameEditor, skipGame);
+    const updateGameEditor = () => {
+      updateSkipped(gameEditor, skipGame);
+      addGameLevelButton.disabled = skipGame.checked;
+    };
     const updateActivityEditor = () => updateSkipped(activityEditor, skipActivity);
 
     $$("[data-game-level]", gameLevels).forEach(refreshLevel);
     wireGameLevels(gameLevels, {
-      // Suggestions for over-long game words come from what this lesson already teaches.
+      // Root-word and over-long-word suggestions come from this lesson's content.
       lessonWords: () =>
         wordsFromText(
-          $$(
-            "[data-pronunciation-text], [data-activity-words], [data-sentence-text]",
-            modal,
-          ).map((field) => field.value),
+          $$(LESSON_WORD_FIELDS, modal).map((field) => field.value),
         ),
       onSkipGame: () => {
         skipGame.checked = true;
@@ -1188,6 +1218,7 @@ async function openLessonModal(existing = null) {
         toast("The game is skipped for this lesson.");
       },
     });
+    $$("[data-game-level]", gameLevels).forEach(refreshLevel);
     updateGameEditor();
     updateLessonWordDuplicates(modal, skipGame);
     skipGame.addEventListener("change", updateGameEditor);
@@ -1202,6 +1233,7 @@ async function openLessonModal(existing = null) {
         panel.classList.toggle("active", panel.dataset.panel === step),
       );
       lecturePageNavigation.hidden = step !== "lectures";
+      gameLevelNavigation.hidden = step !== "game";
     };
 
     $$(".lesson-tab", modal).forEach((button) => {
@@ -1218,6 +1250,11 @@ async function openLessonModal(existing = null) {
         renderLecturePageRibbons();
       }
       const { target } = item;
+      const targetLevel = target.closest("[data-game-level]");
+      if (targetLevel) {
+        activeGameLevel = $$("[data-game-level]", gameLevels).indexOf(targetLevel);
+        renderGameLevelRibbons();
+      }
       // Inside a card, a field before any button (a level's first button is "Remove").
       const focusable = target.matches("input, textarea, select, button")
         ? target
@@ -1380,12 +1417,23 @@ async function openLessonModal(existing = null) {
       if (button.matches("[data-add-game-level]")) {
         gameLevels.insertAdjacentHTML("beforeend", gameLevelHtml({}));
         const added = gameLevels.lastElementChild;
+        activeGameLevel = $$("[data-game-level]", gameLevels).length - 1;
+        renderGameLevelRibbons();
         refreshLevel(added);
         revealAdded(added, "[data-key-word]");
       }
 
       if (button.matches("[data-remove-game-level]")) {
-        button.closest("[data-game-level]").remove();
+        const level = button.closest("[data-game-level]");
+        const removedIndex = $$("[data-game-level]", gameLevels).indexOf(level);
+        level.remove();
+        if (removedIndex < activeGameLevel) activeGameLevel -= 1;
+        renderGameLevelRibbons();
+      }
+
+      if (button.matches("[data-game-level-ribbon]")) {
+        activeGameLevel = Number(button.dataset.gameLevelRibbon);
+        renderGameLevelRibbons();
       }
 
       if (button.matches("[data-generate-sentence-audio]")) {
@@ -1414,6 +1462,9 @@ async function openLessonModal(existing = null) {
     });
 
     modal.addEventListener("input", (event) => {
+      if (event.target.matches(LESSON_WORD_FIELDS)) {
+        $$("[data-game-level]", gameLevels).forEach(refreshLevel);
+      }
       if (event.target.matches("[data-pronunciation-text]")) {
         refreshSyllablePreview(event.target.closest("[data-pronunciation-word]"), 500);
         return;
@@ -1641,58 +1692,6 @@ async function createPreview(button, row, text) {
   } finally {
     button.disabled = (previews.get(row)?.generationCount || 0) >= MAX_AUDIO_GENERATIONS_PER_SENTENCE;
   }
-}
-
-/** Classes whose lesson plan has this lesson, each with how many students it has. */
-async function lessonUsage(lessonId) {
-  if (!state.allClasses.length) await getAllClasses();
-  const using = (
-    await Promise.all(
-      state.allClasses.map(async (classroom) => {
-        const links = await getDocs(collection(db, "classes", classroom.id, "classLessons"));
-        // Older links have auto-generated ids and keep the lesson id in a field.
-        const hasLesson = links.docs.some((link) => (link.get("lessonId")?.trim() || link.id) === lessonId);
-        return hasLesson ? classroom : null;
-      }),
-    )
-  ).filter(Boolean);
-  const students = await Promise.all(
-    using.map((classroom) =>
-      getCountFromServer(collection(db, "classes", classroom.id, "students"))
-        .then((snap) => snap.data().count)
-        .catch(() => 0),
-    ),
-  );
-  return using.map((classroom, index) => ({
-    name: [classroom.className, classroom.section].filter(Boolean).join(" · ") || "Untitled class",
-    students: students[index],
-  }));
-}
-
-/**
- * Edits reach every class using the lesson right away (classes only link to it), so the
- * editor says which ones. Stays hidden when no class uses it or the classes can't be read.
- */
-async function showLessonUsage(banner, lessonId) {
-  let usage;
-  try {
-    usage = await lessonUsage(lessonId);
-  } catch (error) {
-    console.warn("Could not read which classes use this lesson", error);
-    return;
-  }
-  if (!banner?.isConnected || !usage.length) return;
-
-  const plural = (count, word, words = `${word}s`) => `${count} ${count === 1 ? word : words}`;
-  const students = usage.reduce((sum, item) => sum + item.students, 0);
-  banner.innerHTML = `
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>
-    <span>
-      <strong>Used by ${plural(usage.length, "class", "classes")} · ${plural(students, "student")}.</strong>
-      Changes reach them right away.
-      <small>${usage.map((item) => escapeHtml(item.name)).join(", ")}</small>
-    </span>`;
-  banner.hidden = false;
 }
 
 async function saveLesson(existing, values, elements) {
