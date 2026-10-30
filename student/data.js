@@ -136,7 +136,7 @@ export async function loadClassLessons() {
     return [];
   }
 
-  // "in" queries take at most 30 ids.
+  
   const chunks = [];
   for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
   const lessonDocs = new Map(
