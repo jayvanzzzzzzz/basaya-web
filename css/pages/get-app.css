@@ -53,6 +53,24 @@
   transform: translateY(-2px);
 }
 
+.get-app-trigger--web {
+  text-decoration: none;
+}
+
+.pwa-help {
+  width: min(90vw, 30rem);
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.pwa-help::backdrop { background: rgba(20, 15, 45, 0.65); }
+.pwa-help h2 { margin-top: 0; }
+.pwa-help p { color: var(--ink-2); line-height: 1.6; }
+
 .get-app-trigger:active {
   box-shadow: 0 1px 0 var(--card-lip);
   transform: translateY(2px);
@@ -128,6 +146,11 @@
 .get-app-trigger__qr svg {
   fill: currentColor;
   stroke: none;
+}
+
+.get-app-trigger--web .get-app-trigger__qr svg {
+  fill: none;
+  stroke: currentColor;
 }
 
 .get-app-trigger:hover .get-app-trigger__qr {

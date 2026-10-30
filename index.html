@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="BaSaya sign in" />
+    <meta name="theme-color" content="#5b4cf4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="BaSaya" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="img/pwa-icon-192.png" />
+    <script src="js/pwa-install.js" defer></script>
     <title>BaSaya — Sign in</title>
     <link rel="icon" type="image/png" href="img/favicon.png?v=1" sizes="128x128" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -285,14 +291,26 @@
           </form>
           <button class="get-app-trigger" type="button" data-get-app-open aria-haspopup="dialog">
             <span class="get-app-trigger__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></svg>
+              <svg viewBox="0 0 24 24"><path d="m7.5 3 1.4 2.4M16.5 3l-1.4 2.4M5 10a7 7 0 0 1 14 0H5Zm0 0v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6M8 18v3m8-3v3M2.5 11v5m19-5v5" /><path d="M9 7.5h.01M15 7.5h.01" /></svg>
             </span>
             <span class="get-app-trigger__text">
-              <strong>Get the app</strong>
-              <small>BaSaya for Android · scan or download</small>
+              <strong>Get the Android app</strong>
+              <small>Scan or download</small>
             </span>
             <span class="get-app-trigger__qr" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z" /></svg>
+            </span>
+          </button>
+          <button class="get-app-trigger get-app-trigger--web" type="button" id="pwa-install-button" aria-haspopup="dialog">
+            <span class="get-app-trigger__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
+            </span>
+            <span class="get-app-trigger__text">
+              <strong>Get the web app</strong>
+              <small>For iPhone, laptop, and desktop</small>
+            </span>
+            <span class="get-app-trigger__qr" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" /></svg>
             </span>
           </button>
           <p class="auth-note-inline">
@@ -342,6 +360,13 @@
           <button class="button primary" type="button" data-forgot-close>Back to sign in</button>
         </div>
       </div>
+    </dialog>
+
+    <dialog id="pwa-install-help" class="pwa-help" aria-labelledby="pwa-help-title">
+      <h2 id="pwa-help-title">Install the BaSaya web app</h2>
+      <p>On iPhone, open this page in Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+      <p>On a computer or another device, use your browser's <strong>Install app</strong> or <strong>Add to Home screen</strong> option. If it isn't available, your browser may not support installation or the app may already be installed.</p>
+      <form method="dialog"><button class="button primary" type="submit">Close</button></form>
     </dialog>
 
     <!-- "Get the app": QR to download the Android app (js/get-app.js) -->

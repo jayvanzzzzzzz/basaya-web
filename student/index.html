@@ -7,9 +7,11 @@
     <meta name="theme-color" content="#5b4cf4" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="BaSaya" />
+    <link rel="manifest" href="../manifest.webmanifest" />
     <title>BaSaya — Mag-aaral</title>
     <link rel="icon" type="image/png" href="../img/favicon.png?v=1" sizes="128x128" />
-    <link rel="apple-touch-icon" href="../img/logo.png" />
+    <link rel="apple-touch-icon" href="../img/pwa-icon-192.png" />
+    <script src="./pwa.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -106,6 +108,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
                 <span>Aking account</span>
               </a>
+              <button class="st-menu__item" id="st-install-app" type="button" role="menuitem">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
+                <span>Install BaSaya</span>
+              </button>
               <button class="st-menu__item st-menu__item--danger" id="st-menu-logout" type="button" role="menuitem">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" /></svg>
                 <span>Mag-sign out</span>
