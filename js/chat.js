@@ -15,10 +15,7 @@ import {
 import { db } from "./firebase.js";
 import { postToApi } from "./api.js";
 
-// Class chat: one group chat per class (classes/{classId}/messages), shared by the
-// teacher (teacher/) and the class's students (student/ and the Android app). Rules: firestore.rules
-// ("Class chat"). Reads are kept low: only the latest PAGE messages are live, older ones
-// load on request, and unread badges come from chat/state (one small doc per class).
+// Shared class chat: live updates for recent messages, older messages on request, and unread counts in chat/state.
 
 export const PAGE = 30;
 export const TEACHER_MAX = 2000;
@@ -149,13 +146,13 @@ export async function sendTeacherMessage(classId, text, senderId, senderName) {
     { merge: true },
   );
   await batch.commit();
-  // The push is a bonus: the message is already saved if this fails.
+  // The message is saved even if the push notification fails.
   postToApi("notify-chat", { classId, messageId: messageRef.id }).catch((error) =>
     console.warn("Chat push not sent", error),
   );
 }
 
-// ---------- Students (student/ on this site, ClassChat.kt in the app) ----------
+// Students (student/ on this site, ClassChat.kt in the app)
 
 export const STUDENT_COOLDOWN_MS = 5_000;
 export const DELETE_WINDOW_MS = 5 * 60_000;
@@ -166,10 +163,7 @@ export async function rosterName(classId, uid) {
   return snap.get("fullName") || "";
 }
 
-/**
- * A student sends with one batch: the message, their last-send time (for the 5-second
- * limit) and the class's summary. Throws if the rules refuse it (too fast, chat closed).
- */
+/** A student sends with one batch: the message, their last-send time (for the 5-second limit) and the class's summary. Throws if the rules refuse it (too fast, chat closed). */
 export async function sendStudentMessage(classId, uid, name, text) {
   const body = text.trim();
   if (!body || body.length > STUDENT_MAX) return;
@@ -318,7 +312,7 @@ function removing(classId, messageId, deletedBy, summaryFields) {
 /** Open or close the chat for students (they can still read). */
 export const setChatOpen = (classId, open) => setDoc(stateOf(classId), { open }, { merge: true });
 
-// ---------- Read state: kept on this device (free, no Firestore reads) ----------
+// Read state: kept on this device (free, no Firestore reads)
 
 const readKey = (uid, classId) => `basaya.chatRead.${uid}.${classId}`;
 
@@ -334,7 +328,7 @@ export function markRead(uid, classId, at) {
   try {
     if (at > lastRead(uid, classId)) localStorage.setItem(readKey(uid, classId), String(at));
   } catch {
-    // Private mode: badges just won't remember.
+    // Storage may be unavailable in private mode; badges will reset.
   }
 }
 

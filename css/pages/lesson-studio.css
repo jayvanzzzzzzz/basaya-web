@@ -1,6 +1,4 @@
-/* ============================================================
-   LESSON STUDIO (admin) + LESSON EDITOR (teacher)
-   ============================================================ */
+/* LESSON STUDIO (admin) + LESSON EDITOR (teacher) */
 .modal:has(.lesson-studio) {
   display: flex;
   width: min(100%, 76rem);
@@ -620,7 +618,7 @@
   padding-right: 1.5rem;
 }
 
-/* ---------- Teacher's simple lesson editor (teacher/views/lessons.js) ---------- */
+/* Teacher's simple lesson editor (teacher/views/lessons.js) */
 .lecture-page,
 .quiz-question,
 .game-level {

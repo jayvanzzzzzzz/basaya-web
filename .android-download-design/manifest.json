@@ -1,0 +1,27 @@
+[
+  {
+    "file": "app/src/main/java/ph/basaya/app/adapter/LessonAdapter.kt",
+    "originalHash": "60dc668bcf0a209e555d87dac60967f67cddfbbf6bed31ce1287ac1de1260733",
+    "resultHash": "895c9f3fa7aa6883c9c9c0e763c6cbcbbdde8a21f65a5ee670064353eb5ffcbd"
+  },
+  {
+    "file": "app/src/main/res/layout/item_lesson.xml",
+    "originalHash": "67113752946f1a43c2dafa11747b2ca84945e5bace6f40f250b2dea08af7c25f",
+    "resultHash": "0bd17bc3e17ec7e6d74cfec986c3be6e54710c1dca1157152ef52e09498e4e89"
+  },
+  {
+    "file": "app/src/main/res/values/strings.xml",
+    "originalHash": "aaa56a0bacff9c5180696da51809cbeb91bda80033b02244886cde5d4c25c01a",
+    "resultHash": "4ff2e054a49b3a9097e6ff1ad20b523fbab67c098fcb11bf890a3f55e80ea8e1"
+  },
+  {
+    "file": "app/src/main/res/layout/fragment_home.xml",
+    "originalHash": "320c19e47287e7e1aff68710e76ef25e1da2ba4a77c13d344ab44098584b9faf",
+    "resultHash": "01dc779cb23a2676445e4a68583332c718f7a9eb63bc977593844e58f875d361"
+  },
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/fragment/HomeFragment.kt",
+    "originalHash": "a1e56447e51af05a1106fe0de3fe9ce0db0f759b594cf6ff853cf71109b15cf1",
+    "resultHash": "8db18944f5bce45cd9e30120ebe4a6b70e0bb826a0c7c23042bcad95ed4c5ff6"
+  }
+]

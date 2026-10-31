@@ -222,8 +222,7 @@ function openAddTeacherModal() {
             return;
           }
           try {
-            // Created on the secondary Auth instance so this doesn't
-            // replace the admin's own active session.
+            // Created on the secondary Auth instance so this doesn't replace the admin's own active session.
             const cred = await createUserWithEmailAndPassword(
               secondaryAuth,
               email,
@@ -288,10 +287,7 @@ function openEditTeacherModal(teacher) {
   );
 }
 
-/**
- * Sends the BaSaya-branded reset email (notify-api). If the API can't send it
- * (e.g. Gmail isn't set up yet), falls back to Firebase's standard reset email.
- */
+/** Sends the BaSaya-branded reset email (notify-api). If the API can't send it (e.g. Gmail isn't set up yet), falls back to Firebase's standard reset email. */
 async function resetPassword(teacher) {
   const name = teacherName(teacher);
   if (!teacher.email) {

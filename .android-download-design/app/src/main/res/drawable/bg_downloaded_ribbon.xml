@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="112dp" android:height="24dp"
+    android:viewportWidth="112" android:viewportHeight="24">
+    <path android:fillColor="@color/lesson_status_done_bg"
+        android:pathData="M0,0 H112 L104,12 L112,24 H0 Z" />
+</vector>

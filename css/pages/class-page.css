@@ -1,6 +1,4 @@
-/* ============================================================
-   CLASS PAGE — overview stats + lesson plan
-   ============================================================ */
+/* CLASS PAGE — overview stats + lesson plan */
 .teacher-class-page {
   display: grid;
   gap: 1.25rem;
@@ -153,7 +151,7 @@
 }
 
 
-/* ---------- Lesson plan ---------- */
+/* Lesson plan */
 /* All / Open / Closed tabs (same look as components/filter-tabs.css) */
 .class-lesson-tabs {
   display: flex;
@@ -534,8 +532,7 @@
   font-weight: 600;
 }
 
-/* "Class chat" header button: white-filled chat icon, and a red bubble while
-   the class has messages the teacher hasn't read (teacher/views/classPage.js). */
+/* "Class chat" header button: white-filled chat icon, and a red bubble while the class has messages the teacher hasn't read (teacher/views/classPage.js). */
 .class-chat-button {
   position: relative;
 }

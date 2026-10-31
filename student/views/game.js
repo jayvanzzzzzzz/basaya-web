@@ -117,7 +117,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
       </div>
     </section>`;
 
-  // ----- Board -----
+  // Board
   const gridEl = $("#game-grid");
   const cells = new Map(); // "row,column" -> { el, color }
   const wordCells = words.map(() => []);
@@ -186,7 +186,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
   };
   updateProgress(false);
 
-  // ----- Wheel -----
+  // Wheel
   const wheel = $("#game-wheel");
   const line = $("#game-line polyline");
   const preview = $("#game-preview");
@@ -220,7 +220,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
   };
   buildWheel();
 
-  // ----- Swiping -----
+  // Swiping
   let selecting = false;
   let selected = [];
   let pointer = null;
@@ -307,7 +307,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
   wheel.addEventListener("pointercancel", () => endSelection(false));
   wheel.addEventListener("lostpointercapture", () => endSelection(true));
 
-  // ----- Shuffle -----
+  // Shuffle
   let shuffling = false;
   // The same letter tiles glide around the wheel to their new places (no fade out and in).
   $("#game-shuffle").addEventListener("click", (event) => {
@@ -331,7 +331,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
     }, 560);
   });
 
-  // ----- Finding words -----
+  // Finding words
   const onWordFound = async (word, wordIndex) => {
     found.add(word);
     saveFound(lessonId, level.level, [...found]);
@@ -387,7 +387,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
     }, 2000);
   };
 
-  // ----- Fit to the screen -----
+  // Fit to the screen
   const onResize = () => {
     fitBoard();
     layoutWheel();

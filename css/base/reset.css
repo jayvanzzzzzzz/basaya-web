@@ -1,6 +1,4 @@
-/* ============================================================
-   RESET + ELEMENT DEFAULTS
-   ============================================================ */
+/* RESET + ELEMENT DEFAULTS */
 [hidden],
 [data-paged-out] {
   display: none !important;

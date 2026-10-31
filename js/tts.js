@@ -131,10 +131,7 @@ export async function playDictionaryWord(entry) {
   }
 }
 
-/**
- * The speaker button beside a dictionary word: busy while the audio loads, `is-playing`
- * while it plays, and `failMessage` as a toast when it can't play.
- */
+/** The speaker button beside a dictionary word: busy while the audio loads, `is-playing` while it plays, and `failMessage` as a toast when it can't play. */
 export async function speakWord(button, entry, failMessage) {
   if (button.getAttribute("aria-busy") === "true") return;
   button.setAttribute("aria-busy", "true");

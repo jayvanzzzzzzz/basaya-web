@@ -21,7 +21,7 @@ import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.j
 // The class list shows each chat's last message and an unread dot; the sidebar shows how
 // many classes have unread messages. Data: js/chat.js. Styles: css/pages/messages.css.
 
-// ───────────── Live class summaries (sidebar badge, class list, class cards) ─────────────
+// Live class summaries (sidebar badge, class list, class cards)
 
 const summaries = new Map(); // classId → chat/state
 const summaryWatchers = new Map(); // classId → unsubscribe
@@ -89,7 +89,7 @@ export const chatDot = (classId) =>
     ? `<span class="chat-dot" title="New messages in the class chat"><span aria-hidden="true"></span>New messages</span>`
     : "";
 
-// ───────────── Formatting ─────────────
+// Formatting
 
 const timeOf = (millis) => new Date(millis).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -129,7 +129,7 @@ const ICONS = {
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
-// ───────────── The page ─────────────
+// The page
 
 let openClassId = null;
 let stopChat = () => {};

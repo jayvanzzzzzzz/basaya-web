@@ -1,8 +1,6 @@
-/* ============================================================
-   STUDENT — one lesson: the path, Lecture, Gawain, Pagsusulit, results
-   ============================================================ */
+/* STUDENT — one lesson: the path, Lecture, Gawain, Pagsusulit, results */
 
-/* ---------- Lesson path ---------- */
+/* Lesson path */
 .st-path {
   display: grid;
   gap: 1rem;
@@ -218,7 +216,7 @@
   }
 }
 
-/* ---------- Lecture ---------- */
+/* Lecture */
 .st-lecture {
   display: flex;
   flex: 1;
@@ -403,7 +401,7 @@
   animation: stPulse 2s var(--ease-in-out) infinite;
 }
 
-/* ---------- Gawain ---------- */
+/* Gawain */
 .st-activity {
   display: flex;
   flex: 1;
@@ -606,7 +604,7 @@
   height: 3.25rem;
 }
 
-/* ---------- Pagsusulit ---------- */
+/* Pagsusulit */
 :root[data-theme="dark"] .st-shell.is-focus:has(.st-quiz) .st-content,
 :root[data-theme="dark"] .st-focus-loading--space {
   --ink: #f4f3ff;
@@ -832,7 +830,7 @@
   color: #3a1d00;
 }
 
-/* ---------- Results ---------- */
+/* Results */
 .st-results {
   display: grid;
   flex: 1;

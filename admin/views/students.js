@@ -235,10 +235,7 @@ export async function renderStudents() {
   });
 }
 
-/**
- * Sends the BaSaya-branded reset email (notify-api). If the API can't send it
- * (e.g. Gmail isn't set up yet), falls back to Firebase's standard reset email.
- */
+/** Sends the BaSaya-branded reset email (notify-api). If the API can't send it (e.g. Gmail isn't set up yet), falls back to Firebase's standard reset email. */
 async function sendResetLink(student) {
   const name = studentName(student);
   if (!student.email) {

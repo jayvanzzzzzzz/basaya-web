@@ -1,7 +1,4 @@
-/* ============================================================
-   DUPLICATE TITLE — asked before saving a lesson whose title is taken
-   (admin/views/duplicateTitle.js)
-   ============================================================ */
+/* DUPLICATE TITLE — asked before saving a lesson whose title is taken (admin/views/duplicateTitle.js) */
 .dup-title-modal {
   width: min(100%, 38rem);
   padding: 1.6rem 1.6rem 1.3rem;
@@ -25,7 +22,7 @@
   stroke-width: 2;
 }
 
-/* ---------- Heading ---------- */
+/* Heading */
 .dup-head {
   display: flex;
   align-items: flex-start;
@@ -86,7 +83,7 @@
   line-height: 1.55;
 }
 
-/* ---------- Side by side ---------- */
+/* Side by side */
 .dup-compare {
   position: relative;
   display: grid;
@@ -198,7 +195,7 @@
   text-transform: uppercase;
 }
 
-/* ---------- Quick fix ---------- */
+/* Quick fix */
 .dup-fix {
   display: flex;
   width: 100%;
@@ -280,7 +277,7 @@
   transform: translateX(3px);
 }
 
-/* ---------- Actions ---------- */
+/* Actions */
 .dup-actions {
   margin-top: 0;
 }
@@ -294,7 +291,7 @@
   height: 1rem;
 }
 
-/* ---------- Small screens ---------- */
+/* Small screens */
 @media (max-width: 560px) {
   .dup-compare {
     grid-template-columns: minmax(0, 1fr);

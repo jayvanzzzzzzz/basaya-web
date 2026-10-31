@@ -1,3 +1,4 @@
+import { auth } from "../js/firebase.js";
 // Lecture audio, downloaded before the lecture opens so each sentence plays the moment it
 // appears. views/lessonPath.js waits for the page the lecture opens on (with a spinner on the
 // card), and views/lecture.js fetches the next page while the student reads. The audio
@@ -41,7 +42,14 @@ export function unlockLecturePlayer() {
 /** Downloads one sentence's audio. A failed download is forgotten, so a retry downloads again. */
 function download(url) {
   if (!downloads.has(url)) {
-    const job = fetch(url)
+    const job = (async () => {
+      if ("caches" in window) for (const name of await caches.keys()) {
+        if (!name.startsWith(`basaya-audio-${encodeURIComponent(auth.currentUser?.uid || "")}-`)) continue;
+        const saved = await (await caches.open(name)).match(url);
+        if (saved) return saved;
+      }
+      return fetch(url);
+    })()
       .then((response) => {
         if (!response.ok) throw new Error(`Audio ${response.status}: ${url}`);
         return response.blob();

@@ -1,7 +1,4 @@
-/* ============================================================
-   CLASS TEACHER — "Needs a teacher" badge, filter, Assign button,
-   and the teacher pickers (admin/views/classTeacher.js)
-   ============================================================ */
+/* CLASS TEACHER — "Needs a teacher" badge, filter, Assign button, and the teacher pickers (admin/views/classTeacher.js) */
 .class-teacher-badge {
   display: inline-flex;
   flex: 0 0 auto;
@@ -93,7 +90,7 @@
   color: #fff;
 }
 
-/* ---------- Assign teacher modal ---------- */
+/* Assign teacher modal */
 .assign-teacher {
   display: grid;
   gap: 1rem;

@@ -1,8 +1,4 @@
-/* ============================================================
-   DIRECTORY PANELS
-   One look for every "list in a card": teachers, classes, lessons,
-   students, the lesson picker and the class's lesson plan.
-   ============================================================ */
+/* DIRECTORY PANELS One look for every "list in a card": teachers, classes, lessons, students, the lesson picker and the class's lesson plan. */
 .teacher-directory,
 .admin-class-directory,
 .admin-lesson-directory,
@@ -149,7 +145,7 @@
   background: transparent !important;
 }
 
-/* ---------- Teacher class directory (grid of class cards) ---------- */
+/* Teacher class directory (grid of class cards) */
 .class-directory {
   padding-bottom: 1.6rem;
 }
@@ -159,7 +155,7 @@
   margin: 0 1.6rem;
 }
 
-/* ---------- Students ---------- */
+/* Students */
 .student-directory {
   padding: 0;
 }

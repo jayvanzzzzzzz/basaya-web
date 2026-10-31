@@ -54,10 +54,7 @@ export function trendOf(scores) {
   return "STEADY";
 }
 
-/**
- * One skill from its per-lesson results
- * ({ lessonId, correct, attempts, items, completedAtMillis }).
- */
+/** One skill from its per-lesson results ({ lessonId, correct, attempts, items, completedAtMillis }). */
 export function summarizeSkill(skillKey, results = []) {
   // Lessons not attempted are "no data". A part missed at the deadline is a 0 (withMissed).
   const done = results
@@ -108,7 +105,7 @@ export function summarize(resultsBySkill) {
   };
 }
 
-// ---------- Reading Firestore (users/{uid}/assignedLessons/{lessonId}) ----------
+// Reading Firestore (users/{uid}/assignedLessons/{lessonId})
 
 const millis = (value) =>
   value?.toMillis ? value.toMillis() : typeof value === "number" ? value : Date.now();
@@ -197,8 +194,7 @@ export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now
       const at = list.findIndex((result) => result.lessonId === lesson.id);
       const saved = part.resume ? Math.max(Math.floor(Number(doc.resume?.[part.resume]?.[part.correct])) || 0, 0) : 0;
       if (at >= 0) {
-        // Only a half-played crossword has a record before it's finished: the words found on
-        // the level being played count, and the rest of the words are added as wrong.
+        // Only a half-played crossword has a record before it's finished: the words found on the level being played count, and the rest of the words are added as wrong.
         const result = list[at];
         const rest = items - result.items;
         if (rest > 0) {

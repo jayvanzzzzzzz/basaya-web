@@ -92,7 +92,7 @@
   animation: fadeIn var(--dur-slow) var(--ease-out);
 }
 
-/* ---------- Top bar ---------- */
+/* Top bar */
 .st-topbar {
   position: sticky;
   top: 0;
@@ -375,7 +375,7 @@
   font-size: 2rem;
 }
 
-/* ---------- Page column ---------- */
+/* Page column */
 .st-content {
   width: min(100%, var(--st-column));
   margin: 0 auto;
@@ -383,7 +383,7 @@
   outline: none;
 }
 
-/* ---------- Bottom menu ---------- */
+/* Bottom menu */
 .st-nav {
   position: fixed;
   right: 0;
@@ -479,7 +479,7 @@
   padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + var(--st-safe-bottom));
 }
 
-/* ---------- Shared pieces ---------- */
+/* Shared pieces */
 .st-content svg,
 .st-modal svg {
   fill: none;

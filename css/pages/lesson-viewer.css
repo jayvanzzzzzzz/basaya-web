@@ -1,6 +1,4 @@
-/* ============================================================
-   LESSON VIEWER — read-only "View lesson" (admin/views/lessonViewer.js)
-   ============================================================ */
+/* LESSON VIEWER — read-only "View lesson" (admin/views/lessonViewer.js) */
 .lesson-viewer-modal {
   display: flex;
   width: min(100%, 64rem);
@@ -49,7 +47,7 @@
   stroke-width: 2;
 }
 
-/* ---------- Hero ---------- */
+/* Hero */
 .lv-hero {
   position: relative;
   isolation: isolate;
@@ -163,7 +161,7 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* ---------- Tabs ---------- */
+/* Tabs */
 .lv-tabs {
   display: flex;
   gap: 0.25rem;
@@ -249,7 +247,7 @@
   color: var(--primary);
 }
 
-/* ---------- Body ---------- */
+/* Body */
 .lv-body {
   min-height: 0;
   flex: 1;
@@ -353,7 +351,7 @@
   font-size: 0.82rem;
 }
 
-/* ---------- Activity ---------- */
+/* Activity */
 .lv-legend {
   display: flex;
   flex-wrap: wrap;
@@ -399,7 +397,7 @@
   stroke-width: 3;
 }
 
-/* ---------- Audio buttons ---------- */
+/* Audio buttons */
 .lv-play {
   --progress: 0;
   position: relative;
@@ -516,7 +514,7 @@
   color: #fff;
 }
 
-/* ---------- Lectures ---------- */
+/* Lectures */
 .lv-lines {
   display: grid;
   gap: 0.35rem;
@@ -551,7 +549,7 @@
   font-weight: 600;
 }
 
-/* ---------- Pronunciation ---------- */
+/* Pronunciation */
 .lv-words {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
@@ -598,7 +596,7 @@
   text-overflow: ellipsis;
 }
 
-/* ---------- Quiz ---------- */
+/* Quiz */
 .lv-question__text {
   margin: 0;
   font-size: 1rem;
@@ -666,7 +664,7 @@
   text-transform: uppercase;
 }
 
-/* ---------- Game ---------- */
+/* Game */
 .lv-levels {
   display: grid;
   gap: 0.85rem;
@@ -770,7 +768,7 @@
   font-weight: 600;
 }
 
-/* ---------- Empty / loading ---------- */
+/* Empty / loading */
 .lv-empty {
   display: grid;
   justify-items: center;
@@ -811,7 +809,7 @@
   animation: shimmer 1.3s linear infinite;
 }
 
-/* ---------- Footer ---------- */
+/* Footer */
 .lv-footer {
   display: flex;
   flex-wrap: wrap;
@@ -847,7 +845,7 @@
   height: 1rem;
 }
 
-/* ---------- Small screens ---------- */
+/* Small screens */
 @media (max-width: 760px) {
   .lesson-viewer-modal {
     height: 94vh;

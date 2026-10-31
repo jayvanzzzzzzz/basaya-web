@@ -1,7 +1,4 @@
-/* ============================================================
-   PAGE HEADER — flat workspace header, shared by every page
-   (only the teacher dashboard keeps the gradient welcome strip)
-   ============================================================ */
+/* PAGE HEADER — flat workspace header, shared by every page (only the teacher dashboard keeps the gradient welcome strip) */
 .page-header {
   position: relative;
   isolation: isolate;
@@ -20,8 +17,7 @@
     0 14px 34px -26px rgba(31, 37, 71, 0.4);
 }
 
-/* Decoration layer (own overflow, so the ⋯ menu can still spill out of the card):
-   brand hairline on top, soft glow, and ᜊᜐᜌ — "Ba·Sa·Ya" in Baybayin */
+/* Decoration layer (own overflow, so the ⋯ menu can still spill out of the card): brand hairline on top, soft glow, and ᜊᜐᜌ — "Ba·Sa·Ya" in Baybayin */
 .page-header__art {
   position: absolute;
   inset: 0;
@@ -233,7 +229,7 @@
   display: none;
 }
 
-/* ---------- "⋯" menu for less-used actions ---------- */
+/* "⋯" menu for less-used actions */
 .header-menu {
   position: relative;
 }
@@ -306,7 +302,7 @@
   color: var(--danger);
 }
 
-/* ---------- Slim bar once the header scrolls away ---------- */
+/* Slim bar once the header scrolls away */
 .page-header-bar {
   position: sticky;
   top: 0.75rem;
@@ -363,9 +359,7 @@
   flex: 0 0 auto;
 }
 
-/* ============================================================
-   TEACHER DASHBOARD — the one gradient welcome strip
-   ============================================================ */
+/* TEACHER DASHBOARD — the one gradient welcome strip */
 .teacher-dashboard-header {
   position: relative;
   isolation: isolate;
@@ -455,7 +449,7 @@
   color: #3f3790;
 }
 
-/* ---------- Phones: actions drop under the title; no slim bar ---------- */
+/* Phones: actions drop under the title; no slim bar */
 @media (max-width: 860px) {
   .page-header {
     flex-direction: column;

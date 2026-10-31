@@ -11,7 +11,7 @@ import { auth } from "../js/firebase.js";
 const STT_URL = "https://basaya-stt.jayvanzsingca5.workers.dev";
 const TIMEOUT_MS = 15_000;
 
-// ---------- Recording (VoiceRecorder.kt) ----------
+// Recording (VoiceRecorder.kt)
 
 const SAMPLE_RATE = 16_000;
 const FRAME_SAMPLES = 320; // 20 ms
@@ -23,10 +23,7 @@ const PRE_ROLL_FRAMES = 15; // 300 ms
 const NO_SPEECH_TIMEOUT_FRAMES = 300; // 6 s
 const MAX_FRAMES = 350; // 7 s hard limit
 
-/**
- * One microphone for the whole pronunciation screen, so the browser asks permission once.
- * Create it inside a tap: iPhones only start audio from a user gesture.
- */
+/** One microphone for the whole pronunciation screen, so the browser asks permission once. Create it inside a tap: iPhones only start audio from a user gesture. */
 export class Microphone {
   constructor() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -179,7 +176,7 @@ function wavBlob(frames) {
   return new Blob([buffer], { type: "audio/wav" });
 }
 
-// ---------- basaya-stt (WhisperSttClient.kt) ----------
+// basaya-stt (WhisperSttClient.kt)
 
 /** { text } | { networkError: true } (offline/timeout) | { unavailable: true } (busy/limit). */
 export async function transcribe(wav) {
@@ -203,7 +200,7 @@ export async function transcribe(wav) {
   }
 }
 
-// ---------- Browser speech recognition (the fallback) ----------
+// Browser speech recognition (the fallback)
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const browserRecognitionAvailable = () => Boolean(Recognition);
@@ -245,16 +242,13 @@ export function listenWithBrowser(signal) {
   });
 }
 
-// ---------- Scoring (PronunciationScorer.kt) ----------
+// Scoring (PronunciationScorer.kt)
 
 /** Lowercase, accents removed (á → a, ñ → n), letters only, spaces and hyphens dropped. */
 const normalize = (text) =>
   text.trim().toLowerCase().normalize("NFD").replace(/\p{Mn}+/gu, "").replace(/[^a-z]/g, "");
 
-/**
- * Tagalog speakers (and recognizers) freely swap o/u and e/i ("puno"/"punu",
- * "babae"/"babai"), so treat those vowels as the same sound when comparing.
- */
+/** Tagalog speakers (and recognizers) freely swap o/u and e/i ("puno"/"punu", "babae"/"babai"), so treat those vowels as the same sound when comparing. */
 const loose = (text) => text.replace(/o/g, "u").replace(/e/g, "i");
 
 /** The recognizer may hear extra words ("ang bahay") or split one ("ba hay"). */
@@ -276,10 +270,7 @@ function levenshtein(a, b) {
   return dp[a.length][b.length];
 }
 
-/**
- * "great", "okay" or "try-again". Short words must match exactly (one wrong letter
- * usually makes another word); words over 7 letters allow a single slip, as "okay".
- */
+/** "great", "okay" or "try-again". Short words must match exactly (one wrong letter usually makes another word); words over 7 letters allow a single slip, as "okay". */
 export function score(targetWord, candidates, confidences = null) {
   const target = normalize(targetWord);
   let bestDistance = Infinity;

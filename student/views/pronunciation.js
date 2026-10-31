@@ -253,7 +253,7 @@ export async function renderPronunciation(lessonId) {
     setMood("idle");
   };
 
-  // ----- Playing the word -----
+  // Playing the word
   const speakWithTts = (word) => {
     if (!window.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(word);
@@ -281,7 +281,7 @@ export async function renderPronunciation(lessonId) {
   };
   speaker.addEventListener("click", playWord);
 
-  // ----- Results -----
+  // Results
   const advance = () => {
     index += 1;
     if (index >= words.length) finish();
@@ -332,7 +332,7 @@ export async function renderPronunciation(lessonId) {
     shake(micButton);
   };
 
-  // ----- Listening -----
+  // Listening
   const listenBrowser = async () => {
     listeningUi();
     listening = new AbortController();
@@ -400,7 +400,7 @@ export async function renderPronunciation(lessonId) {
     else listenWhisper();
   });
 
-  // ----- Finish -----
+  // Finish
   const finish = async () => {
     if (saving) return;
     saving = true;

@@ -43,8 +43,7 @@ service cloud.firestore {
       let practicePath = /databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId + '__practice');
       return (exists(path) && scheduleAllows(get(path).data) &&
           get(path).data.get('mode', 'assessment') != 'practice') ||
-        // Older links have auto-generated ids and no schedule; a lesson that is only in
-        // the class as Practice saves nothing.
+        // Older links have auto-generated ids and no schedule; a lesson that is only in the class as Practice saves nothing.
         (!exists(path) && !exists(practicePath));
     }
 
@@ -54,8 +53,7 @@ service cloud.firestore {
       return classId == null || classId == "" || classLessonAllows(classId, lessonId);
     }
 
-    // A student can't switch or leave a class while still on its roster: leaving needs the
-    // teacher's approval (notify-api/api/remove-student clears classId).
+    // A student can't switch or leave a class while still on its roster: leaving needs the teacher's approval (notify-api/api/remove-student clears classId).
     function classChangeAllowed(userId) {
       let before = resource.data.get('classId', null);
       let after = request.resource.data.get('classId', null);
@@ -63,8 +61,7 @@ service cloud.firestore {
         !exists(/databases/$(database)/documents/classes/$(before)/students/$(userId));
     }
 
-    // The teacher of the class the signed-in student is on the roster of (the chat's
-    // member list shows the teacher's name; a removed teacher's doc reads as missing).
+    // The teacher of the class the signed-in student is on the roster of (the chat's member list shows the teacher's name; a removed teacher's doc reads as missing).
     function teachesMyClass(teacherId) {
       let myClass = get(/databases/$(database)/documents/users/$(request.auth.uid))
         .data.get('classId', '');
@@ -113,9 +110,7 @@ service cloud.firestore {
       }
     }
 
-    // All authenticated users can read lessons.
-    // Only administrators can create, edit, or delete lessons
-    // and their activity/lectures/pronunciation/quiz/game content.
+    // All authenticated users can read lessons. Only administrators can create, edit, or delete lessons and their activity/lectures/pronunciation/quiz/game content.
     match /lessons/{lessonId} {
       allow read: if signedIn();
       allow create, update, delete: if isAdmin();
@@ -138,13 +133,11 @@ service cloud.firestore {
       allow create: if signedIn() &&
         request.resource.data.teacherId == request.auth.uid;
 
-      // The class's teacher or an admin can edit it (a teacher also uses this to
-      // request deletion: deletionRequest / deletionDeclined fields).
+      // The class's teacher or an admin can edit it (a teacher also uses this to request deletion: deletionRequest / deletionDeclined fields).
       allow update: if signedIn() &&
         (resource.data.teacherId == request.auth.uid || isAdmin());
 
-      // Never deleted directly: an admin approves, then notify-api/api/delete-class
-      // removes the class with its roster, lessons and every student's progress.
+      // Never deleted directly: an admin approves, then notify-api/api/delete-class removes the class with its roster, lessons and every student's progress.
       allow delete: if false;
 
       match /students/{studentId} {
@@ -158,8 +151,7 @@ service cloud.firestore {
         // Joining: a student adds themselves.
         allow create: if signedIn() && request.auth.uid == studentId;
 
-        // The student may rename themselves and ask to leave (or cancel); the class's
-        // teacher may decline a leave request.
+        // The student may rename themselves and ask to leave (or cancel); the class's teacher may decline a leave request.
         allow update: if signedIn() && (
           (request.auth.uid == studentId &&
             request.resource.data.diff(resource.data).affectedKeys()
@@ -173,7 +165,7 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      // Notification list ("new lesson"), written only by notify-api (Admin SDK).
+      // Notification list
       match /notifications/{notificationId} {
         allow read: if signedIn() &&
           (get(/databases/$(database)/documents/classes/$(classId))
@@ -303,8 +295,7 @@ service cloud.firestore {
             request.resource.data.lastText == "" &&
             joiningNow(classId) &&
             request.resource.data.lastSenderName == rosterNameAfter(classId)) ||
-          // A student deleting their own newest message (within the 5 minutes they can) blanks
-          // its text, so the teacher's class list says "Message removed".
+          // A student deleting their own newest message (within the 5 minutes they can) blanks its text, so the teacher's class list says "Message removed".
           (isChatMember(classId) && resource != null &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText']) &&
             request.resource.data.lastText == "" &&
@@ -328,8 +319,7 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      // Teachers can add an existing lesson only to a class they own.
-      // Admins can read them to see which classes use a lesson (lesson editor).
+      // Teachers can add an existing lesson only to a class they own. Admins can read them to see which classes use a lesson (lesson editor).
       match /classLessons/{lessonId} {
         allow read: if signedIn() &&
           (isAdmin() ||
@@ -389,8 +379,7 @@ service cloud.firestore {
 
       allow read: if signedIn();
 
-      // Admins may also write someone else's createdBy/createdAt: renaming a word moves
-      // it to a new doc id and keeps who first added it.
+      // Admins may also write someone else's createdBy/createdAt: renaming a word moves it to a new doc id and keeps who first added it.
       allow create: if validWord() && (isAdmin() || (isTeacher() &&
         request.resource.data.createdBy == request.auth.uid &&
         request.resource.data.createdAt == request.time));
@@ -403,7 +392,6 @@ service cloud.firestore {
         (isTeacher() && resource.data.createdBy == request.auth.uid && resource.data.hidden == false);
     }
 
-    // adminPasswordChanges (admin password changes waiting for email approval) has
-    // no rule on purpose: only notify-api reads and writes it, with the Admin SDK.
+    // adminPasswordChanges (admin password changes waiting for email approval) has no rule on purpose: only notify-api reads and writes it, with the Admin SDK.
   }
 }

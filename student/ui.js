@@ -3,6 +3,7 @@ import { $, escapeHtml, openModal } from "../js/helpers.js";
 // Small UI pieces shared by the student screens: the lesson dialog, confetti, icons.
 
 export const ICONS = {
+  download: '<path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" />',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5" />',
   cross: '<path d="M6 6l12 12M18 6 6 18" />',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />',
@@ -123,10 +124,7 @@ export function setTalking(talker, on) {
   });
 }
 
-/**
- * The app's lesson status dialog: icon, title, message and one or two buttons.
- * Resolves with "primary", "secondary" or null when closed another way.
- */
+/** The app's lesson status dialog: icon, title, message and one or two buttons. Resolves with "primary", "secondary" or null when closed another way. */
 export function showDialog({ iconName = "check", tone = "info", title, message, primary = "OK", secondary }) {
   return new Promise((resolve) => {
     let answer = null;
@@ -160,7 +158,7 @@ export function showDialog({ iconName = "check", tone = "info", title, message, 
   });
 }
 
-// ---------- Confetti (the app's ConfettiView) ----------
+// Confetti (the app's ConfettiView)
 
 const CONFETTI_COLORS = ["#ffc93c", "#4f8bff", "#8a6cf0", "#f25c54", "#24994a", "#ff8fb1"];
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");

@@ -33,10 +33,7 @@ const DONE_MESSAGES = {
   quiz: "Natapos mo na ang pagsusulit. Hindi na ito maaaring ulitin.",
 };
 
-/**
- * The count line under each card: a score once there is one, else how far the student got
- * (a part left halfway, see resumeOf), else how many items.
- */
+/** The count line under each card: a score once there is one, else how far the student got (a part left halfway, see resumeOf), else how many items. */
 function countLine(key, progress, counts) {
   const started = (part, total) => resumeOf(progress, part, total)?.done ?? 0;
   if (key === "lecture")
@@ -99,8 +96,7 @@ export async function renderLessonPath(lessonId) {
     pronunciation: progress.pronunciationFinished === true,
     quiz: progress.quizFinished === true,
   };
-  // A finished quiz stays open even if the lecture flag lags behind. A Practice lesson
-  // saves nothing, so nothing is ever finished and nothing waits for the lecture.
+  // A finished quiz stays open even if the lecture flag lags behind. A Practice lesson saves nothing, so nothing is ever finished and nothing waits for the lecture.
   const quizLocked = !lesson.practice && !finished.lecture && !finished.quiz;
   const parts = PARTS.filter(
     (part) => !(part.key === "game" && lesson.gameSkipped) && !(part.key === "activity" && lesson.activitySkipped),
@@ -150,7 +146,7 @@ export async function renderLessonPath(lessonId) {
     if (!blocked(reviewing)) navigate(partUrl(part));
   };
 
-  // ----- Lecture: opens only once the audio of its first page is downloaded -----
+  // Lecture: opens only once the audio of its first page is downloaded
   let active = true;
   let preparing = false;
   onLeave(() => {

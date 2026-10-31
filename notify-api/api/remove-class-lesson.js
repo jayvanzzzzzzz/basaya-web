@@ -52,8 +52,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "This lesson is not in the class" });
     }
 
-    // A roster entry whose account has moved to another class keeps its progress:
-    // that class may have the same lesson.
+    // A roster entry whose account has moved to another class keeps its progress: that class may have the same lesson.
     const studentIds = new Set(membersSnap.docs.map((member) => member.id));
     const elsewhere = await Promise.all(
       rosterSnap.docs

@@ -1,7 +1,4 @@
-/* ============================================================
-   PRINT — Class Report and student progress on paper / PDF
-   (teacher/views/reportExport.js). Print always uses the light theme.
-   ============================================================ */
+/* PRINT — Class Report and student progress on paper / PDF (teacher/views/reportExport.js). Print always uses the light theme. */
 
 /* Header buttons: icon + label */
 .report-action svg {
@@ -45,7 +42,7 @@
     transition: none !important;
   }
 
-  /* ---------- Shell: only the report itself ---------- */
+  /* Shell: only the report itself */
   .sidebar,
   .site-footer,
   .header-actions,
@@ -99,7 +96,7 @@
     color: #333;
   }
 
-  /* ---------- Print-only heading and sign-off ---------- */
+  /* Print-only heading and sign-off */
   .print-meta {
     display: flex;
     align-items: center;
@@ -163,7 +160,7 @@
     font-size: 8.5pt;
   }
 
-  /* ---------- Report content ---------- */
+  /* Report content */
   .progress-page {
     gap: 1rem;
   }

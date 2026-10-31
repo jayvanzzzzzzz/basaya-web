@@ -5,7 +5,7 @@
    flat white cards with thin borders, violet only for actions.
    ============================================================ */
 
-/* ---------- Tokens ---------- */
+/* Tokens */
 :root {
   --nav-bg: #1b2150;
   --nav-ink: #c9cde6;
@@ -62,7 +62,7 @@
   background: var(--bg);
 }
 
-/* ---------- Sidebar: deep navy, gold marks the current page ---------- */
+/* Sidebar: deep navy, gold marks the current page */
 .sidebar {
   border-right: 0;
   background: var(--nav-bg);
@@ -208,7 +208,7 @@
   }
 }
 
-/* ---------- Buttons: flat, no lip ---------- */
+/* Buttons: flat, no lip */
 .button.primary {
   text-shadow: none;
   box-shadow: none;
@@ -240,7 +240,7 @@
   transform: none;
 }
 
-/* ---------- Page header: plain card, Baybayin watermark kept ---------- */
+/* Page header: plain card, Baybayin watermark kept */
 .page-header {
   box-shadow: var(--shadow-sm);
 }
@@ -277,7 +277,7 @@
   letter-spacing: -0.02em;
 }
 
-/* ---------- Teacher dashboard: white welcome band with the mascot ---------- */
+/* Teacher dashboard: white welcome band with the mascot */
 .teacher-dashboard-header {
   min-height: 9.5rem;
   border: 1px solid var(--border);
@@ -339,12 +339,12 @@
   filter: brightness(1.06);
 }
 
-/* ---------- Cards: thin border, no lift ---------- */
+/* Cards: thin border, no lift */
 .card {
   box-shadow: var(--shadow-sm);
 }
 
-/* ---------- Directory panels and tables ---------- */
+/* Directory panels and tables */
 .teacher-directory__intro,
 .admin-class-directory__intro,
 .admin-lesson-directory__intro,

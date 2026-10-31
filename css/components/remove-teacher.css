@@ -1,6 +1,4 @@
-/* ============================================================
-   REMOVE TEACHER — profile-card confirmation (admin/views/teachers.js)
-   ============================================================ */
+/* REMOVE TEACHER — profile-card confirmation (admin/views/teachers.js) */
 .remove-teacher {
   display: grid;
   gap: 1rem;
@@ -175,7 +173,7 @@
   display: none;
 }
 
-/* ---------- Table row leaving / coming back ---------- */
+/* Table row leaving / coming back */
 .teacher-table tbody tr.is-leaving td {
   border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
   background: var(--danger-soft);

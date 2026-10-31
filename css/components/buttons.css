@@ -1,8 +1,4 @@
-/* ============================================================
-   BUTTONS
-   "Candy" buttons: a solid lip underneath that presses in on click,
-   like the buttons in the BaSaya app.
-   ============================================================ */
+/* BUTTONS "Candy" buttons: a solid lip underneath that presses in on click, like the buttons in the BaSaya app. */
 .button {
   position: relative;
   display: inline-flex;

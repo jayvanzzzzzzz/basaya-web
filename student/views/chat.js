@@ -26,7 +26,7 @@ import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.j
 // keeps the chat open, and can delete their own message within 5 minutes. The rules
 // (firestore.rules, "Class chat") enforce all of it. Styles: css/pages/messages.css.
 
-// ---------- Unread dot on the "Chat" tab ----------
+// Unread dot on the "Chat" tab
 
 let stopBadge = null;
 let badgeClassId = null;
@@ -58,7 +58,7 @@ function setBadge(on) {
   link.setAttribute("aria-label", on ? "Chat, may bagong mensahe" : "Chat");
 }
 
-// ---------- Formatting ----------
+// Formatting
 
 const timeOf = (millis) => new Date(millis).toLocaleTimeString("fil-PH", { hour: "numeric", minute: "2-digit" });
 
@@ -129,7 +129,7 @@ function messageHtml(message, previous, delivery) {
   </li>`;
 }
 
-// ---------- The page ----------
+// The page
 
 export async function renderChat() {
   const id = classId();

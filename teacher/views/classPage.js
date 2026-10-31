@@ -64,10 +64,7 @@ const lessonTabByClass = new Map();
 
 const millisOf = (timestamp) => timestamp?.toMillis?.() ?? null;
 
-/**
- * List order: open lessons by nearest deadline, then open ones with no deadline,
- * then not-open-yet (soonest to open first), then closed (most recently closed first).
- */
+/** List order: open lessons by nearest deadline, then open ones with no deadline, then not-open-yet (soonest to open first), then closed (most recently closed first). */
 function compareBySchedule(a, b) {
   const rank = { open: 0, scheduled: 1, closed: 2 };
   const statusA = scheduleStatus(a.link);
@@ -126,8 +123,7 @@ const EXTEND_PRESETS = [
 
 function openExtendModal(classId, link, lesson, onSaved) {
   const currentDue = link.dueAt.toDate();
-  // Presets count from the current deadline, or from now once it has passed,
-  // so the new deadline is always in the future.
+  // Presets count from the current deadline, or from now once it has passed, so the new deadline is always in the future.
   const base = () => Math.max(currentDue.getTime(), Date.now());
   const closed = currentDue.getTime() < Date.now();
   openModal(
@@ -219,8 +215,7 @@ async function saveSchedule(classId, link, { openAt, dueAt }) {
   if (link.id === lessonId || linkMode(link) === "practice") {
     return updateDoc(doc(db, "classes", classId, "classLessons", link.id), { openAt, dueAt });
   }
-  // Older links have auto-generated ids. Move them to the lesson id so the
-  // Firestore rules can find the schedule.
+  // Older links have auto-generated ids. Move them to the lesson id so the Firestore rules can find the schedule.
   const { id, ...data } = link;
   const batch = writeBatch(db);
   batch.set(doc(db, "classes", classId, "classLessons", lessonId), {
@@ -495,8 +490,7 @@ export async function renderClass(classId) {
 }
 
 function openRemoveLessonModal(classroom, link, lesson, studentCount) {
-  // Practice saves no progress: removing it only takes that copy out (an Assessment of the
-  // same lesson stays, with its progress).
+  // Practice saves no progress: removing it only takes that copy out (an Assessment of the same lesson stays, with its progress).
   const practice = linkMode(link) === "practice";
   if (practice) studentCount = 0;
   const students = `${studentCount} student${studentCount === 1 ? "" : "s"}`;

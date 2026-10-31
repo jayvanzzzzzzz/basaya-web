@@ -2,8 +2,7 @@ import { adminAuth } from "./firebase.js";
 import { passwordResetEmail } from "./emails.js";
 import { sendMail } from "./mailer.js";
 
-// Firebase makes the secure one-time code (valid 1 hour); the link opens our own
-// page, reset-password.html on the website, which finishes the reset with it.
+// Firebase makes the secure one-time code (valid 1 hour); the link opens our own page, reset-password.html on the website, which finishes the reset with it.
 
 const SITE_URL = (process.env.SITE_URL || "https://basaya.onrender.com").replace(/\/$/, "");
 

@@ -1,5 +1,4 @@
-// Word helpers for the Diksiyonaryo, shared by the pages and tools/build-dictionary.mjs
-// (no Firebase or DOM here, so Node can import it too).
+// Word helpers for the Diksiyonaryo, shared by the pages and tools/build-dictionary.mjs (no Firebase or DOM here, so Node can import it too).
 
 /** Search key: "Báhay " → "bahay". Accent marks and case don't matter when looking up. */
 export const normalizeWord = (value = "") =>
@@ -35,10 +34,7 @@ function strippings(word) {
   return out.map((w) => w.replace(/^-/, "")).filter((w) => w.length >= 3 && VOWEL.test(w));
 }
 
-/**
- * Possible root words of an inflected word, closest first. Only a guess:
- * the caller keeps the ones the dictionary actually has.
- */
+/** Suggest root words, closest first; the caller checks which ones exist in the dictionary. */
 export function guessRoots(value, depth = 3) {
   const start = normalizeWord(value);
   const seen = new Set([start]);

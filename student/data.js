@@ -6,13 +6,18 @@ import {
   getDoc,
   getDocFromServer,
   getDocs,
+  getDocsFromServer,
+  getDocFromCache,
   query,
   serverTimestamp,
   setDoc,
   updateDoc,
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "../js/firebase.js";
+import { db, offlineReady } from "../js/firebase.js";
+import { getDownload, putDownload, listDownloads, removeDownload, snapshotOf } from "./offlineStore.js";
+import { saveLocally } from "./sync.js";
+import { withDownloadAbort } from "./downloadCancellation.js";
 import { summarize, resultsFrom, lessonParts, withMissed } from "../js/scoring.js";
 import { skippedParts } from "../js/skippedParts.js";
 import { lessonItems } from "../js/lessonItems.js";
@@ -43,7 +48,7 @@ export const fullName = (profile = student.profile) =>
     .join(" ");
 
 export async function loadProfile() {
-  const snap = await getDoc(userRef());
+  const snap = await (navigator.onLine ? getDoc(userRef()) : getDocFromCache(userRef()));
   student.profile = snap.exists() ? snap.data() : {};
   return student.profile;
 }
@@ -56,6 +61,7 @@ export async function loadProfile() {
 let clockAnchor = null; // { serverMs, perfMs }
 
 export async function syncClock() {
+  if (!navigator.onLine) return;
   try {
     await updateDoc(userRef(), { clockCheckAt: serverTimestamp() });
     const perfMs = performance.now();
@@ -106,10 +112,7 @@ function forgetFoundWords(lessonIds) {
   }
 }
 
-/**
- * Something was done even if no part is finished yet: a part left halfway (a saved place),
- * a game level, or Bigkas (the app's LessonResume.started).
- */
+/** Something was done even if no part is finished yet: a part left halfway (a saved place), a game level, or Bigkas (the app's LessonResume.started). */
 const hasStarted = (data) =>
   Object.values(data.resume || {}).some((state) => Number(state?.done) > 0) ||
   Number(data.gameScore) > 0 ||
@@ -121,6 +124,15 @@ export async function loadClassLessons() {
   if (!id) {
     student.lessons = [];
     return [];
+  }
+
+  if (!navigator.onLine) {
+    const downloads = await listDownloads(student.uid, id);
+    student.lessons = await Promise.all(downloads.map(async ({ meta }) => {
+      const progress = await loadLessonProgress(meta.id);
+      return { ...meta, ...Object.fromEntries(Object.entries(progress).filter(([, value]) => typeof value === "boolean")), started: hasStarted(progress) };
+    }));
+    return student.lessons;
   }
 
   const [linksSnap, progressSnap, rosterSnap] = await Promise.all([
@@ -173,10 +185,10 @@ export async function loadClassLessons() {
         order: link.get("order") ?? lesson.get("order") ?? 0,
         openAt: toMillis(link.get("openAt")),
         dueAt,
-        // Its deadline passed before the student joined: they never could do it, so it
-        // isn't shown to them (teacher/views/progressData.js leaves it out of their totals).
+        // Its deadline passed before the student joined: they never could do it, so it isn't shown to them (teacher/views/progressData.js leaves it out of their totals).
         closedBeforeJoining: !finished && dueAt != null && joinedAt != null && dueAt < joinedAt,
         assignedAt: toMillis(link.get("createdAt")),
+        contentVersion: toMillis(lesson.get("updatedAt")),
         // Pagsasanay: the teacher chose Practice, so nothing the student does is saved.
         practice: isPracticeLink(link),
         gameSkipped: skipped.get(lessonId).game,
@@ -200,7 +212,7 @@ export async function findLesson(lessonId) {
   return student.lessons.find((lesson) => lesson.id === lessonId) || null;
 }
 
-// ---------- Schedule (the app's LessonSchedule.kt) ----------
+// Schedule (the app's LessonSchedule.kt)
 
 /** "open", "not-yet-open" (before the open date) or "closed" (after the deadline). */
 export function availability(lesson) {
@@ -233,15 +245,91 @@ export function formatWhen(millis) {
   });
 }
 
-// ---------- Lesson content ----------
+// Lesson content
 
 // Each loader takes the class entry id (an Assessment's is the lesson id, see contentId).
 
 async function contentDoc(lessonId, part, preferred = "content") {
-  const snap = await getDocs(collection(db, "lessons", contentId(lessonId), part));
+  const snap = await contentCollection(lessonId, part);
   if (snap.empty) return null;
-  return snap.docs.find((item) => item.id === preferred) || snap.docs[0];
+  return snap.docs.find((item) => item.id === preferred) || snap.docs.find((item) => item.id !== "status") || null;
 }
+
+async function contentCollection(lessonId, part) {
+  if (!navigator.onLine) {
+    const saved = await getDownload(student.uid, classId(), lessonId);
+    if (!saved) throw new Error("I-download muna ang aralin habang online.");
+    return snapshotOf(saved.parts[part] || []);
+  }
+  return getDocs(collection(db, "lessons", contentId(lessonId), part));
+}
+
+export async function downloadLesson(lessonId, onProgress = () => {}, { signal } = {}) {
+  signal?.throwIfAborted();
+  if (!navigator.onLine || !(await withDownloadAbort(offlineReady, signal))) throw new Error("Kailangan ng internet at available na device storage.");
+  if (!("serviceWorker" in navigator)) throw new Error("Hindi suportado ang offline na aralin sa browser na ito.");
+  let readyTimeout;
+  let registration;
+  try {
+    registration = await withDownloadAbort(Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => { readyTimeout = setTimeout(() => reject(new Error("Hindi pa handa ang offline na app. I-refresh habang online at subukan muli.")), 15000); }),
+    ]), signal);
+  } finally {
+    clearTimeout(readyTimeout);
+  }
+  // Wait for this version's shell to finish installing before marking a lesson ready.
+  if (!registration.active) throw new Error("Inihahanda pa ang app. Subukan muli.");
+  const shellReady = await Promise.all((await caches.keys()).filter((name) => name.startsWith("basaya-offline-v2")).map(async (name) =>
+    Boolean(await (await caches.open(name)).match(new URL("../.offline-ready", import.meta.url).href))));
+  if (!shellReady.some(Boolean)) throw new Error("Inihahanda pa ang offline na app. Isara at buksan muli ang BaSaya habang online, saka subukan.");
+  const uid = student.uid;
+  const cid = classId();
+  const lesson = await findLesson(lessonId);
+  if (!lesson || !canOpen(lesson)) throw new Error("Hindi bukas ang aralin.");
+  const parts = {};
+  for (const part of ["lectures", "game", "activity", "pronunciation", "quiz"]) {
+    signal?.throwIfAborted();
+    const snap = await withDownloadAbort(getDocsFromServer(collection(db, "lessons", contentId(lessonId), part)), signal);
+    parts[part] = snap.docs.map((item) => ({ id: item.id, data: item.data() }));
+  }
+  await withDownloadAbort(loadLessonProgress(lessonId), signal);
+  const urls = new Set();
+  const collect = (value) => {
+    if (typeof value === "string" && value.startsWith("https://")) urls.add(value);
+    else if (Array.isArray(value)) value.forEach(collect);
+    else if (value && typeof value === "object") Object.entries(value).forEach(([key, item]) => {
+      if (["audioUrl", "audioRefs", "cloudAudio", "pages"].includes(key)) collect(item);
+    });
+  };
+  Object.values(parts).flat().forEach(({ data }) => collect(data));
+  const audioCache = `basaya-audio-${encodeURIComponent(uid)}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  try {
+    const cache = await caches.open(audioCache);
+    let done = 0;
+    for (const url of urls) {
+      signal?.throwIfAborted();
+      const response = await fetch(url, { signal });
+      if (!response.ok || response.type === "opaque") throw new Error("Hindi ma-download ang audio. Subukan muli.");
+      await cache.put(url, response);
+      signal?.throwIfAborted();
+      onProgress(Math.round(++done / urls.size * 100));
+    }
+    if (student.uid !== uid || classId() !== cid) throw new Error("Nagbago ang account o klase. Subukan muli.");
+    const previous = await getDownload(uid, cid, lessonId);
+    signal?.throwIfAborted();
+    await putDownload(uid, cid, { meta: { ...lesson }, parts, audioCache, downloadedAt: Date.now() });
+    if (previous?.audioCache) await caches.delete(previous.audioCache);
+    onProgress(100);
+    navigator.storage?.persist?.().catch(() => {});
+  } catch (error) {
+    await caches.delete(audioCache);
+    throw error;
+  }
+}
+
+export const downloadedLessons = () => listDownloads(student.uid, classId());
+export const removeLessonDownload = (id) => removeDownload(student.uid, classId(), id);
 
 const httpsOnly = (value) => (typeof value === "string" && value.startsWith("https://") ? value : "");
 
@@ -331,7 +419,7 @@ export async function loadPronunciation(lessonId) {
 
 /** The crossword levels in order: [{ level, words }] (words as saved: key word first). */
 export async function loadGameLevels(lessonId) {
-  const snap = await getDocs(collection(db, "lessons", contentId(lessonId), "game"));
+  const snap = await contentCollection(lessonId, "game");
   return snap.docs
     .filter((item) => item.id !== "status")
     .map((item) => ({
@@ -352,7 +440,7 @@ export async function loadContentCounts(lessonId) {
       return 0;
     }
   };
-  const levels = getDocs(collection(db, "lessons", contentId(lessonId), "game"))
+  const levels = contentCollection(lessonId, "game")
     .then((snap) => snap.docs.filter((item) => item.id !== "status").length)
     .catch(() => 0);
   const [lecture, activity, quiz, pronunciation, game] = await Promise.all([
@@ -365,7 +453,7 @@ export async function loadContentCounts(lessonId) {
   return { lecture, activity, quiz, pronunciation, game };
 }
 
-// ---------- Progress (users/{uid}/assignedLessons/{lessonId}) ----------
+// Progress (users/{uid}/assignedLessons/{lessonId})
 
 // ---------- Practice lessons ----------
 // A Practice lesson saves nothing to Firestore (the rules reject it too) and can be done
@@ -386,7 +474,13 @@ function rememberPractice(lessonId, fields) {
 
 export async function loadLessonProgress(lessonId) {
   if (isPractice(lessonId)) return { ...(practiceProgress.get(lessonId) || {}) };
-  const snap = await getDoc(progressRef(lessonId));
+  let snap;
+  try {
+    snap = await (navigator.onLine ? getDoc(progressRef(lessonId)) : getDocFromCache(progressRef(lessonId)));
+  } catch (error) {
+    if (!navigator.onLine && error.code === "unavailable") return {};
+    throw error;
+  }
   return snap.exists() ? snap.data() : {};
 }
 
@@ -409,7 +503,7 @@ export async function saveProgress(lessonId, fields, skill) {
       },
     };
   }
-  await setDoc(progressRef(lessonId), data, { merge: true });
+  await saveLocally(progressRef(lessonId), data, { merge: true }, student.uid);
 
   const lesson = student.lessons.find((item) => item.id === lessonId);
   if (lesson) {
@@ -437,13 +531,16 @@ export function resumeOf(progress, part, total) {
 export async function saveResume(lessonId, part, state) {
   if (isPractice(lessonId)) return;
   try {
-    await setDoc(
+    await saveLocally(
       progressRef(lessonId),
       { resume: { [part]: { ...state, updatedAt: serverTimestamp() } } },
       { merge: true },
+      student.uid,
     );
   } catch (error) {
     console.warn(`Could not save the ${part} place`, error);
+    const { reportSyncFailure } = await import("./sync.js");
+    reportSyncFailure(student.uid);
   }
 }
 
@@ -459,6 +556,7 @@ export async function loadClassProgressDocs() {
 
 /** Saves users/{uid}.skillSummary the way SkillProgressRepository.saveSummary does. */
 export async function saveSummary(summary) {
+  if (!navigator.onLine) return;
   const skills = Object.fromEntries(
     Object.values(summary.skills).map((skill) => [
       skill.skill,

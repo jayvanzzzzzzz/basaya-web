@@ -1,6 +1,4 @@
-/* ============================================================
-   STUDENT — Account (profile, class, password, logout)
-   ============================================================ */
+/* STUDENT — Account (profile, class, password, logout) */
 .st-account {
   display: grid;
   gap: 1rem;

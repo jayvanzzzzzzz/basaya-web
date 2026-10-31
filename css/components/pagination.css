@@ -1,7 +1,4 @@
-/* ============================================================
-   PAGINATION (js/pagination.js)
-   [ Showing 11–20 of 74 teachers ]   [‹] [1] … [4][5][6] … [8] [›]   [Rows: 10 ▾]
-   ============================================================ */
+/* PAGINATION (js/pagination.js) [ Showing 11–20 of 74 teachers ] [‹] [1] … [4][5][6] … [8] [›] [Rows: 10 ▾] */
 .pagination {
   display: flex;
   flex-wrap: wrap;

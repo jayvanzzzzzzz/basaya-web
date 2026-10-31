@@ -1,9 +1,5 @@
-/* ============================================================
-   DATA TABLES — teachers, classes, lessons
-   Rows are separate soft cards; the header is a quiet tinted strip.
-   ============================================================ */
-/* Visible on wide screens so row menus can float past the table edge;
-   scrolls sideways only when the table can't fit. */
+/* DATA TABLES — teachers, classes, lessons Rows are separate soft cards; the header is a quiet tinted strip. */
+/* Visible on wide screens so row menus can float past the table edge; scrolls sideways only when the table can't fit. */
 .teacher-table-wrap,
 .admin-class-table-wrap,
 .admin-lesson-table-wrap {
@@ -144,7 +140,7 @@
   display: none;
 }
 
-/* ---------- Identity cells ---------- */
+/* Identity cells */
 .teacher-table__person,
 .admin-class-table__identity,
 .admin-lesson-table__title {

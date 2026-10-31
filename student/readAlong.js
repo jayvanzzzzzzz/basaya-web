@@ -24,10 +24,7 @@ export function fillSentence(line, text) {
   }
 }
 
-/**
- * Estimated start of each word (seconds): the sound is shared out by word length, with a
- * little silence first and last, and a pause after commas and full stops.
- */
+/** Estimated start of each word (seconds): the sound is shared out by word length, with a little silence first and last, and a pause after commas and full stops. */
 function estimateStarts(words, duration) {
   const lead = Math.min(0.12, duration * 0.04);
   const tail = Math.min(0.35, duration * 0.08);

@@ -94,8 +94,7 @@ export function loadSeed() {
   return seed;
 }
 
-// Teacher words are extra: if Firestore can't be reached (offline, rules not yet
-// deployed), the Wiktionary words still work.
+// Teacher words are extra: if Firestore can't be reached (offline, rules not yet deployed), the Wiktionary words still work.
 const orNothing = (promise, fallback) =>
   promise.catch((error) => {
     console.warn("Dictionary: teacher words unavailable", error);
@@ -109,10 +108,7 @@ async function teacherWordsStartingWith(prefix, max) {
   return snap.docs.map(fromDoc);
 }
 
-/**
- * Words starting with `text`, the exact match first. Teacher words replace
- * seed words with the same key. `includeHidden` is for the teacher page.
- */
+/** Words starting with `text`, the exact match first. Teacher words replace seed words with the same key. `includeHidden` is for the teacher page. */
 export async function searchWords(text, { max = 30, includeHidden = false } = {}) {
   const prefix = normalizeWord(text);
   if (!prefix) return [];
@@ -137,10 +133,7 @@ export async function lookupWord(text) {
   return all.find((entry) => entry.key === key) || null;
 }
 
-/**
- * Root words the dictionary has for an inflected word: "kumakain" → [kain].
- * Costs at most one Firestore query.
- */
+/** Root words the dictionary has for an inflected word: "kumakain" → [kain]. Costs at most one Firestore query. */
 export async function suggestRoots(text) {
   const roots = guessRoots(text).filter((root) => !root.includes("/"));
   if (!roots.length) return [];
@@ -174,7 +167,7 @@ export async function syllablesFor(text) {
   return syllabify(text);
 }
 
-// ---------- teacher side ----------
+// teacher side
 
 /**
  * Every word, A to Z, for the teacher/admin Dictionary page and the student "Lahat" list:
@@ -251,10 +244,7 @@ export async function renameWord(entry, fields, who) {
   return key;
 }
 
-/**
- * Deletes a word for everyone. A word Wiktionary has gets a hidden marker, since the
- * seed file can't change; a word only a teacher added is just removed.
- */
+/** Deletes a word for everyone. A word Wiktionary has gets a hidden marker, since the seed file can't change; a word only a teacher added is just removed. */
 export async function deleteWord(entry, who) {
   if (entry.source !== "wiktionary" && !entry.replaces) return deleteDoc(doc(words, entry.key));
   const existing = await getDoc(doc(words, entry.key));

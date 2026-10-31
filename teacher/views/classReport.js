@@ -193,7 +193,7 @@ export async function renderClassReport(classId) {
     return lectures.total > 0 && lectures.done === lectures.total;
   }).length;
 
-  // ---------- Skill performance: one row per skill ----------
+  // Skill performance: one row per skill
   const skillRows = report.skills
     .map((skill) => {
       const scoredSkill = skill.key !== "pagUnawa" || skill.average != null;
@@ -237,7 +237,7 @@ export async function renderClassReport(classId) {
     })
     .join("");
 
-  // ---------- Needs attention: students with a flagged skill ----------
+  // Needs attention: students with a flagged skill
   const attention = report.studentsNeedingHelp
     .map(
       ({ student, progress }) => `<li>
@@ -249,7 +249,7 @@ export async function renderClassReport(classId) {
     )
     .join("");
 
-  // ---------- Students: flagged first, then by name ----------
+  // Students: flagged first, then by name
   const ordered = [...entries].sort((a, b) => {
     const flagA = a.progress.error ? 2 : a.progress.summary.needsHelp.length ? 0 : 1;
     const flagB = b.progress.error ? 2 : b.progress.summary.needsHelp.length ? 0 : 1;

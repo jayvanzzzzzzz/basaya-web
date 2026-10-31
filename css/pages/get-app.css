@@ -1,9 +1,6 @@
-/* ============================================================
-   GET THE APP — login page button + QR pop-up (js/get-app.js)
-   The QR always stays black on a white tile so phones can read it.
-   ============================================================ */
+/* GET THE APP — login page button + QR pop-up (js/get-app.js) The QR always stays black on a white tile so phones can read it. */
 
-/* ---------- Trigger under the sign-in card ---------- */
+/* Trigger under the sign-in card */
 .get-app-trigger {
   position: relative;
   isolation: isolate;
@@ -158,7 +155,7 @@
   transform: rotate(-8deg) scale(1.08);
 }
 
-/* ---------- Dialog shell ---------- */
+/* Dialog shell */
 .get-app {
   width: 100%;
   max-width: none;
@@ -259,7 +256,7 @@
   stroke-width: 2.2;
 }
 
-/* ---------- Left: the scanner stage ---------- */
+/* Left: the scanner stage */
 .get-app__stage {
   position: relative;
   isolation: isolate;
@@ -493,7 +490,7 @@
   animation: fadeIn 600ms var(--ease-out) 500ms backwards;
 }
 
-/* ---------- Right: instructions ---------- */
+/* Right: instructions */
 .get-app__body {
   display: flex;
   flex-direction: column;
@@ -695,7 +692,7 @@
   stroke-width: 2;
 }
 
-/* ---------- Full-screen QR ---------- */
+/* Full-screen QR */
 .get-app__present {
   position: fixed;
   inset: 0;
@@ -785,7 +782,7 @@
   box-shadow: 0 3px 0 rgba(30, 20, 110, 0.3);
 }
 
-/* ---------- Tablets ---------- */
+/* Tablets */
 @media (max-width: 860px) {
   .get-app__card {
     grid-template-columns: 1fr;
@@ -796,7 +793,7 @@
   }
 }
 
-/* ---------- Phones: a phone can't scan itself, so just download ---------- */
+/* Phones: a phone can't scan itself, so just download */
 @media (max-width: 640px) {
   .get-app[open] {
     align-items: end;

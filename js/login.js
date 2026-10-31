@@ -245,6 +245,10 @@ onAuthStateChanged(auth, async (user) => {
   }
   try {
     const profileSnap = await getDoc(doc(db, "users", user.uid));
+    // An empty offline cache cannot establish that the account has no profile.
+    if (!profileSnap.exists() && profileSnap.metadata.fromCache) {
+      throw new Error("Account profile is unavailable offline.");
+    }
     const role = profileSnap.data()?.role;
     const destination = ROLE_DESTINATIONS[role];
 
@@ -263,8 +267,14 @@ onAuthStateChanged(auth, async (user) => {
     window.location.replace(destination);
   } catch (error) {
     console.error(error);
-    await signOut(auth);
     revealLogin();
-    $("#login-error").textContent = "Could not verify your account.";
+    // Keep Firebase's saved session when the profile check fails temporarily.
+    const message = $("#login-error");
+    message.textContent = "Could not verify your saved account. Check your connection and retry. ";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Retry";
+    retry.addEventListener("click", () => window.location.reload());
+    message.append(retry);
   }
 });

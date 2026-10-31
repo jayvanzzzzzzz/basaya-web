@@ -1,7 +1,4 @@
-/* ============================================================
-   NOTICE — rich toast with avatar, action and countdown (notify() in js/helpers.js)
-   Stacks in the bottom-right; newest at the bottom.
-   ============================================================ */
+/* NOTICE — rich toast with avatar, action and countdown (notify() in js/helpers.js) Stacks in the bottom-right; newest at the bottom. */
 .notice-stack {
   position: fixed;
   right: 1.5rem;

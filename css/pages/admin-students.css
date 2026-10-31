@@ -1,7 +1,4 @@
-/* ============================================================
-   ADMIN → STUDENTS (admin/views/students.js)
-   The table itself reuses the teacher table (components/tables.css).
-   ============================================================ */
+/* ADMIN → STUDENTS (admin/views/students.js) The table itself reuses the teacher table (components/tables.css). */
 .student-table {
   min-width: 760px;
 }

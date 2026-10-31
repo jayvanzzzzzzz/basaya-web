@@ -1,6 +1,4 @@
-/* ============================================================
-   STUDENT — Mga Aralin (lesson list) and Sumali sa Klase (join)
-   ============================================================ */
+/* STUDENT — Mga Aralin (lesson list) and Sumali sa Klase (join) */
 .st-home {
   display: grid;
   gap: 1rem;
@@ -44,7 +42,9 @@
 /* Lahat / Bukas / Sarado: three equal segments */
 .st-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(max-content, 1fr);
+  overflow-x: auto;
   gap: 0.3rem;
   padding: 0.3rem;
   border: 1px solid var(--border);
@@ -289,7 +289,7 @@
   text-align: right;
 }
 
-/* ---------- Join class ---------- */
+/* Join class */
 .st-join {
   display: grid;
   gap: 1rem;
@@ -376,3 +376,54 @@
 .st-join__form .form-error:empty {
   display: none;
 }
+/* Keep the disclosure outside the lesson button so its actions never open a lesson. */
+.st-lesson-card { position: relative; }
+.st-lesson-card:has(.st-download-menu[open]) { z-index: 5; }
+.has-download-menu .st-lesson__top { padding-right: 4.75rem; min-height: 2rem; }
+.st-download-state { position: absolute; top: .65rem; right: 3.65rem; height: 2.75rem; display: flex; align-items: center; }
+.st-download-menu { position: absolute; top: .65rem; right: .65rem; }
+.st-download-menu > summary {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  color: var(--ink-3);
+  cursor: pointer;
+  list-style: none;
+}
+.st-download-menu > summary::-webkit-details-marker { display: none; }
+.st-download-menu > summary svg { width: 1.25rem; height: 1.25rem; fill: currentColor; }
+.st-download-menu > summary:hover,
+.st-download-menu[open] > summary { color: var(--primary); background: var(--surface); }
+.st-download-menu > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.st-download-controls {
+  position: absolute;
+  top: calc(100% + .25rem);
+  right: 0;
+  display: grid;
+  gap: .5rem;
+  width: min(16rem, calc(100vw - 4rem));
+  padding: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 28px #0002;
+}
+.st-download-controls > span { display: flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--ink-3); }
+.st-download-controls > button { display: flex; align-items: center; justify-content: flex-start; gap: .5rem; width: 100%; text-align: left; }
+.st-download-controls > button[hidden] { display: none; }
+.st-download-icon,
+.st-download-ring { display: inline-flex; width: 1.25rem; height: 1.25rem; flex: 0 0 1.25rem; }
+.st-download-icon svg,
+.st-download-ring svg { width: 100%; height: 100%; }
+.st-download-icon--done { color: var(--success); }
+.st-download-ring svg { transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
+.st-download-ring__track { stroke: var(--border); }
+.st-download-ring__fill { stroke: var(--primary); stroke-linecap: round; }
+.st-download-all { position: static; display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.st-download-all > span { font-size: .85rem; color: var(--ink-3); }
+#home-cancel-download-all[hidden] { display: none; }
+.st-sync-status { margin: 0; padding: .7rem 1rem; background: #fff1bd; color: #493807; font-size: .85rem; text-align: center; position: sticky; top: 0; z-index: 50; }
+.st-sync-status[hidden] { display: none; }

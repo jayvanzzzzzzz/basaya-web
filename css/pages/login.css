@@ -1,6 +1,4 @@
-/* ============================================================
-   LOGIN — split screen: brand world (left) + sign-in card (right)
-   ============================================================ */
+/* LOGIN — split screen: brand world (left) + sign-in card (right) */
 .auth-layout {
   position: relative;
   min-height: 100vh;
@@ -13,7 +11,7 @@
   grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
 }
 
-/* ---------- Left: brand world ---------- */
+/* Left: brand world */
 .auth-copy {
   position: relative;
   /* The welcome text and carousel aren't meant to be selected or highlighted. */
@@ -155,7 +153,7 @@
   }
 }
 
-/* ---------- Showcase: real BaSaya screens in one morphing window ---------- */
+/* Showcase: real BaSaya screens in one morphing window */
 .auth-showcase {
   --showcase-time: 4s;
   --phone-width: 11.75rem;
@@ -336,8 +334,7 @@
   opacity: 1;
 }
 
-/* Each screen keeps its own width, so the window clips it while morphing
-   instead of reflowing it. */
+/* Each screen keeps its own width, so the window clips it while morphing instead of reflowing it. */
 .showcase-shot {
   position: absolute;
   top: var(--bar-height);
@@ -1340,7 +1337,7 @@
   }
 }
 
-/* ---------- Right: sign-in ---------- */
+/* Right: sign-in */
 /* Sign-in stays centered; the footer sits at the bottom of the column. */
 .auth-panel {
   position: relative;
@@ -1489,7 +1486,7 @@
   height: 1.2rem;
 }
 
-/* ---------- Responsive ---------- */
+/* Responsive */
 @media (max-width: 900px) {
   .auth-shell {
     grid-template-columns: 1fr;

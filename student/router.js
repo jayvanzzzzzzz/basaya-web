@@ -14,9 +14,7 @@ import { renderNotifications, refreshBell } from "./views/notifications.js";
 import { renderAccount } from "./views/account.js";
 import { renderDictionary } from "./views/dictionary.js";
 
-// Hash routes:
-//   #/home  #/join  #/progress  #/chat  #/notifications  #/account  #/diksiyonaryo
-//   #/lesson/{id}  #/lesson/{id}/{lecture|game|activity|pronunciation|quiz}
+// Hash routes: #/home #/join #/progress #/chat #/notifications #/account #/diksiyonaryo #/lesson/{id} #/lesson/{id}/{lecture|game|activity|pronunciation|quiz}
 
 const PARTS = {
   lecture: renderLecture,

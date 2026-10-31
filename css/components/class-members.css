@@ -5,7 +5,7 @@
    Used by the teacher's Messages page and the student's Chat page.
    ============================================================ */
 
-/* ---------- The (i) button ---------- */
+/* The (i) button */
 .chat-info {
   position: relative;
   display: grid;
@@ -84,7 +84,7 @@
   transform: translateY(0);
 }
 
-/* ---------- The dialog ---------- */
+/* The dialog */
 .modal.cm-modal {
   width: min(100%, 27rem);
   padding: 0;
@@ -223,7 +223,7 @@
   white-space: nowrap;
 }
 
-/* ---------- Teacher ---------- */
+/* Teacher */
 .cm-teacher {
   display: flex;
   align-items: center;
@@ -318,7 +318,7 @@
   line-height: 1.4;
 }
 
-/* ---------- Students ---------- */
+/* Students */
 .cm-search {
   display: flex;
   align-items: center;
@@ -441,7 +441,7 @@
   height: 1.6rem;
 }
 
-/* ---------- Loading ---------- */
+/* Loading */
 .is-skeleton .cm-teacher__avatar,
 .is-skeleton .cm-row__avatar,
 .cm-bar {

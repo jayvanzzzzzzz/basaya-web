@@ -1,12 +1,10 @@
-/* ============================================================
-   TEACHER DASHBOARD — at a glance, class cards, "Due this week"
-   ============================================================ */
+/* TEACHER DASHBOARD — at a glance, class cards, "Due this week" */
 .teacher-dashboard {
   display: grid;
   gap: 1.25rem;
 }
 
-/* ---------- At a glance ---------- */
+/* At a glance */
 .dash-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
@@ -81,7 +79,7 @@
   font-size: 0.8rem;
 }
 
-/* ---------- Classes beside "Due this week" ---------- */
+/* Classes beside "Due this week" */
 .dash-columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
@@ -260,7 +258,7 @@
   text-align: center;
 }
 
-/* ---------- Due this week ---------- */
+/* Due this week */
 .dash-due {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

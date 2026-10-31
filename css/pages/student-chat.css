@@ -1,8 +1,4 @@
-/* ============================================================
-   STUDENT — Chat ng klase
-   The chat itself uses css/pages/messages.css (the teacher's chat); this file
-   only fits it into the student page column and the phone screen.
-   ============================================================ */
+/* STUDENT — Chat ng klase The chat itself uses css/pages/messages.css (the teacher's chat); this file only fits it into the student page column and the phone screen. */
 .st-shell.is-chat .st-content {
   padding-bottom: calc(var(--st-nav-height) + var(--st-safe-bottom) + 0.75rem);
 }

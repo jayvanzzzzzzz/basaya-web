@@ -20,7 +20,7 @@
     />
     <meta name="color-scheme" content="light dark" />
     <script>
-      // Theme before first paint: the saved choice, else the computer's setting (js/theme.js).
+      // Apply the saved theme before the page renders; otherwise use the system setting.
       (function () {
         var theme = null;
         try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
@@ -86,7 +86,7 @@
             <img src="img/logo.png" alt="BaSaya" class="brand-logo" />
             BaSaya
           </a>
-          <!-- Real BaSaya screens in one window that morphs between them (js/login.js) -->
+          <!-- Preview of BaSaya screens (js/login.js) -->
           <section class="auth-showcase" aria-roledescription="carousel" aria-label="What you can do in BaSaya" data-showcase>
             <div class="auth-showcase__stage" aria-hidden="true">
               <div class="auth-showcase__window" data-showcase-window>
@@ -434,7 +434,7 @@
         </div>
       </div>
 
-      <!-- Full-screen QR for showing a whole class -->
+      <!-- Full-screen QR code for classroom use -->
       <div class="get-app__present" data-get-app-presenter hidden>
         <div class="get-app__present-inner">
           <p class="get-app__present-kicker"><img src="img/logo.png" alt="" /> BaSaya</p>

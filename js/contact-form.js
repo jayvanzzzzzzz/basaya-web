@@ -158,7 +158,7 @@ export function wireContactForm(root) {
     count.textContent = fields.message.value.length;
   });
 
-  // ---- Photo: pick, drag & drop, preview, remove ----
+  // Photo: pick, drag & drop, preview, remove
   const showPhoto = () => {
     root.querySelector("[data-drop-empty]").hidden = Boolean(photo);
     root.querySelector("[data-drop-file]").hidden = !photo;
@@ -220,7 +220,7 @@ export function wireContactForm(root) {
     choose(event.dataTransfer.files[0]);
   });
 
-  // ---- Send ----
+  // Send
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     error.textContent = "";

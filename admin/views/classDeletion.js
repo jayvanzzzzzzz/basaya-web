@@ -92,10 +92,7 @@ async function studentCount(classId) {
   }
 }
 
-/**
- * The final step, for approving a request and for deleting directly: the admin types
- * "delete" before the button unlocks.
- */
+/** The final step, for approving a request and for deleting directly: the admin types "delete" before the button unlocks. */
 export function openDeleteConfirm(classroom, onChange) {
   const name = classroom.className || "Untitled class";
   const request = classroom.deletionRequest;

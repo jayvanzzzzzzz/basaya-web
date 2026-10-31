@@ -2,8 +2,7 @@ import { createHash } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "./firebase.js";
 
-// For the public endpoints (contact, forgot-password): at most `limit` calls per
-// hour from one IP, counted in `collection`/{hash of IP}.
+// For the public endpoints (contact, forgot-password): at most `limit` calls per hour from one IP, counted in `collection`/{hash of IP}.
 
 const HOUR_MS = 60 * 60 * 1000;
 

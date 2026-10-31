@@ -4,7 +4,7 @@
    Portals: one slim line at the bottom of the content area.
    ============================================================ */
 
-/* ---------- Footer ---------- */
+/* Footer */
 .site-footer {
   color: var(--ink-3);
   font-size: 0.76rem;
@@ -88,7 +88,7 @@
   border-top: 1px solid var(--border);
 }
 
-/* ---------- Info dialog ---------- */
+/* Info dialog */
 .site-info {
   width: 100%;
   max-width: none;
@@ -364,7 +364,7 @@
   font-size: 0.9rem;
 }
 
-/* ---------- Phones ---------- */
+/* Phones */
 @media (max-width: 640px) {
   .site-footer--app {
     justify-content: center;

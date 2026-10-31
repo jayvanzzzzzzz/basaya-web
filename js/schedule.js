@@ -10,7 +10,7 @@ export const linkLessonId = (link) => link.lessonId || link.id;
 export const linkMode = (link) => (link.mode === "practice" ? "practice" : "assessment");
 export const practiceLinkId = (lessonId) => `${lessonId}__practice`;
 
-// ----- Lesson schedule (classes/{classId}/classLessons/{linkId}.openAt / .dueAt) -----
+// Lesson schedule (classes/{classId}/classLessons/{linkId}.openAt / .dueAt)
 
 const pad = (n) => String(n).padStart(2, "0");
 
@@ -67,7 +67,7 @@ export function scheduleStatus(link, now = new Date()) {
   return "open";
 }
 
-// ----- Push notifications (notify-api on Vercel) -----
+// Push notifications (notify-api on Vercel)
 
 /** Sends the "new lesson" push to every student in the class. Throws on failure. */
 export const notifyStudents = (classId, lessonIds) =>

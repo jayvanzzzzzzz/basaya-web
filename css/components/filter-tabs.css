@@ -1,7 +1,4 @@
-/* ============================================================
-   FILTER TABS — segmented tabs with counts
-   Lessons by difficulty, classes by grade level.
-   ============================================================ */
+/* FILTER TABS — segmented tabs with counts Lessons by difficulty, classes by grade level. */
 .admin-lesson-filters,
 .admin-class-filters {
   display: flex;

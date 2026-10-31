@@ -1,5 +1,4 @@
-// "Get the app" pop-up on the login page: QR code to download the Android app,
-// a copy-link fallback, and a full-screen QR for showing a whole class.
+// "Get the app" pop-up on the login page: QR code to download the Android app, a copy-link fallback, and a full-screen QR for showing a whole class.
 
 const DOWNLOAD_URL = "https://github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk";
 const CLOSE_MS = 220;

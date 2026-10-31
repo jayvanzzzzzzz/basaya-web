@@ -1,7 +1,4 @@
-/* ============================================================
-   STUDENT PROGRESS + CLASS REPORT
-   (teacher/views/studentProgress.js, classReport.js, progressUi.js)
-   ============================================================ */
+/* STUDENT PROGRESS + CLASS REPORT (teacher/views/studentProgress.js, classReport.js, progressUi.js) */
 .progress-page {
   display: grid;
   gap: 1.4rem;
@@ -17,7 +14,7 @@
   stroke-width: 1.9;
 }
 
-/* ---------- Score ring ---------- */
+/* Score ring */
 .score-ring {
   position: relative;
   width: var(--ring-size);
@@ -76,7 +73,7 @@
   text-transform: uppercase;
 }
 
-/* ---------- Remark chips + trends ---------- */
+/* Remark chips + trends */
 .remark {
   display: inline-flex;
   width: max-content;
@@ -182,7 +179,7 @@
   background: var(--surface-3);
 }
 
-/* ---------- Overview row ---------- */
+/* Overview row */
 .progress-overview {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
@@ -298,7 +295,7 @@
   --primary-ring: color-mix(in srgb, var(--danger) 45%, transparent);
 }
 
-/* ---------- Sections ---------- */
+/* Sections */
 .progress-section {
   display: grid;
   gap: 1rem;
@@ -344,7 +341,7 @@
   gap: 1rem;
 }
 
-/* ---------- Skill cards ---------- */
+/* Skill cards */
 .skill-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
@@ -643,7 +640,7 @@
   transform: translateY(-3px) scale(1.1);
 }
 
-/* ---------- Remarks list ---------- */
+/* Remarks list */
 .remarks-list {
   display: grid;
   gap: 0.6rem;
@@ -718,7 +715,7 @@
   line-height: 1.5;
 }
 
-/* ---------- Words to practice ---------- */
+/* Words to practice */
 .word-chips {
   display: flex;
   flex-wrap: wrap;
@@ -744,7 +741,7 @@
   font-size: 0.72rem;
 }
 
-/* ---------- Tables ---------- */
+/* Tables */
 .progress-table-wrap {
   overflow-x: auto;
   margin: 0 -0.4rem;
@@ -911,7 +908,7 @@
   color: var(--danger);
 }
 
-/* ---------- Class Report hero ---------- */
+/* Class Report hero */
 .report-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
@@ -1077,7 +1074,7 @@
   line-height: 1.7;
 }
 
-/* ---------- Responsive ---------- */
+/* Responsive */
 @media (max-width: 1100px) {
   .report-hero {
     grid-template-columns: repeat(3, minmax(0, 1fr));

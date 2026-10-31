@@ -19,8 +19,7 @@ import { logout, refreshTopbar } from "../session.js";
 import { buddy, content, icon, showDialog } from "../ui.js";
 import { openJoin } from "./join.js";
 
-// "Account" (the app's ProfileFragment): name, gender and birthday (email is read-only),
-// the class with the leave-request flow, password change and logout.
+// "Account" (the app's ProfileFragment): name, gender and birthday (email is read-only), the class with the leave-request flow, password change and logout.
 
 const MONTHS = [
   "Enero", "Pebrero", "Marso", "Abril", "Mayo", "Hunyo",

@@ -1,6 +1,4 @@
-/* ============================================================
-   CARDS, STATS, LISTS, EMPTY STATES
-   ============================================================ */
+/* CARDS, STATS, LISTS, EMPTY STATES */
 .card {
   padding: 1.35rem;
   border: 1px solid var(--border);
@@ -14,7 +12,7 @@
   gap: 1rem;
 }
 
-/* ---------- Stats ---------- */
+/* Stats */
 .stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 1rem;
@@ -38,7 +36,7 @@
   font-size: 0.8rem;
 }
 
-/* ---------- Section titles ---------- */
+/* Section titles */
 .section-title {
   display: flex;
   align-items: center;
@@ -53,7 +51,7 @@
   margin: 0;
 }
 
-/* ---------- Simple lists ---------- */
+/* Simple lists */
 .list {
   display: grid;
   gap: 0.2rem;
@@ -109,7 +107,7 @@
   gap: 1rem;
 }
 
-/* ---------- People ---------- */
+/* People */
 .student-avatar {
   display: grid;
   width: 2.6rem;
@@ -136,7 +134,7 @@
   font-size: 0.83rem;
 }
 
-/* ---------- Progress ---------- */
+/* Progress */
 .progress {
   min-width: 7rem;
 }
@@ -156,7 +154,7 @@
   transition: width 700ms var(--ease-out);
 }
 
-/* ---------- Empty states ---------- */
+/* Empty states */
 .empty {
   display: grid;
   justify-items: center;

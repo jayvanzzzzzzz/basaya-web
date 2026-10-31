@@ -161,8 +161,7 @@ export function paginate({
     notify();
   });
 
-  // Runs after the page's own search handler (registered earlier), so the rows it hid
-  // are already hidden when we count.
+  // Runs after the page's own search handler (registered earlier), so the rows it hid are already hidden when we count.
   search?.addEventListener("input", () => {
     current = 1;
     render();

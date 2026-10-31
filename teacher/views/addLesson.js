@@ -210,8 +210,7 @@ export async function renderAddLessonPage(classId) {
     }),
   );
 
-  // Lesson type and schedule are picked in a pop-up after "Add selected lessons…".
-  // What was picked there is kept for the next time it opens.
+  // Lesson type and schedule are picked in a pop-up after "Add selected lessons…". What was picked there is kept for the next time it opens.
   const settings = { mode: "assessment", openAt: "", dueAt: "" };
   $("#link-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -292,8 +291,7 @@ export async function renderAddLessonPage(classId) {
         sync();
         backdrop.querySelector("[data-cancel]").addEventListener("click", close);
 
-        // While saving: the Add button spins with what it's doing, and nothing else can be
-        // changed or closed. setBusy(null) puts the form back after a failed save.
+        // While saving: the Add button spins with what it's doing, and nothing else can be changed or closed. setBusy(null) puts the form back after a failed save.
         const setBusy = (label) => {
           const busy = Boolean(label);
           submit.setAttribute("aria-busy", String(busy));
@@ -315,8 +313,7 @@ export async function renderAddLessonPage(classId) {
           setBusy(`Adding ${lessonsLabel(adding.length)}…`);
           const linkIds = [];
           try {
-            // An Assessment link's id is the lesson id, so Firestore rules can look up its
-            // schedule; a Practice link is "{lessonId}__practice" so both can be in the class.
+            // An Assessment link's id is the lesson id, so Firestore rules can look up its schedule; a Practice link is "{lessonId}__practice" so both can be in the class.
             const batch = writeBatch(db);
             adding.forEach((lessonId, index) => {
               const linkId = mode === "practice" ? practiceLinkId(lessonId) : lessonId;

@@ -1,6 +1,4 @@
-/* ============================================================
-   MESSAGES — class group chats (teacher/views/messages.js)
-   ============================================================ */
+/* MESSAGES — class group chats (teacher/views/messages.js) */
 .inbox {
   display: grid;
   grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
@@ -21,7 +19,7 @@
   stroke-width: 2;
 }
 
-/* ---------- Class list ---------- */
+/* Class list */
 .inbox-list {
   display: flex;
   min-height: 0;
@@ -216,7 +214,7 @@
   font-size: 0.86rem;
 }
 
-/* ---------- Chat ---------- */
+/* Chat */
 .chat {
   display: flex;
   min-width: 0;
@@ -358,7 +356,7 @@
   flex: 1;
 }
 
-/* ---------- Messages ---------- */
+/* Messages */
 .chat-scroll {
   min-height: 0;
   flex: 1;
@@ -407,8 +405,7 @@
   stroke-width: 2.4;
 }
 
-/* "Go to newest" button. A zero-height sticky strip at the end of the scroller, so it
-   floats over the bottom of the messages without taking any space. */
+/* "Go to newest" button. A zero-height sticky strip at the end of the scroller, so it floats over the bottom of the messages without taking any space. */
 .chat-jump {
   position: sticky;
   bottom: 0;
@@ -824,7 +821,7 @@
   justify-self: end;
 }
 
-/* ---------- Composer ---------- */
+/* Composer */
 .chat-composer {
   position: relative;
   display: flex;
@@ -919,7 +916,7 @@
   font-size: 0.68rem;
 }
 
-/* ---------- Badges elsewhere ---------- */
+/* Badges elsewhere */
 .nav-badge--chat {
   background: var(--primary);
 }
@@ -946,7 +943,7 @@
   animation: pulseRing 1.8s infinite;
 }
 
-/* ---------- Small screens: list, then chat ---------- */
+/* Small screens: list, then chat */
 @media (max-width: 860px) {
   .inbox {
     grid-template-columns: minmax(0, 1fr);

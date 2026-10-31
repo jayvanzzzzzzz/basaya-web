@@ -69,12 +69,12 @@ const MISSING = {
   words: "List the words for this level, one per line.",
 };
 
-// ---------- simple edit form (base fields only) ----------
+// simple edit form (base fields only)
 function editForm(lesson) {
   return `<h2>Edit lesson</h2><p>Update the basic details for this lesson.</p><form id="lesson-form"><label>Lesson title<input name="title" required data-missing="${MISSING.title}" maxlength="120" value="${escapeHtml(lesson.title)}" /></label><label>Difficulty<select name="difficulty" required data-missing="${MISSING.difficulty}">${difficultyOptions(lesson.difficulty)}</select></label><label>Overview<textarea name="description" required data-missing="${MISSING.description}">${escapeHtml(lesson.description)}</textarea></label><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary">Save lesson</button></div></form>`;
 }
 
-// ---------- full create-lesson builder ----------
+// full create-lesson builder
 function pageBlock(index) {
   return `<div class="card lecture-page" data-page>
     <div class="section-title"><h4>Page ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger" data-remove-page>Remove page</button>` : ""}</div>
@@ -208,7 +208,7 @@ function wireCreateForm(modal, close, title) {
     const form = e.currentTarget;
     const values = Object.fromEntries(new FormData(form));
 
-    // ---- collect + validate lecture pages ----
+    // collect + validate lecture pages
     const pages = [];
     for (const [i, pageEl] of $$(".lecture-page", pagesEl).entries()) {
       const sentences = $$("[data-sentence] input", pageEl)
@@ -221,7 +221,7 @@ function wireCreateForm(modal, close, title) {
       pages.push({ pageNumber: i + 1, sentences, audioResNames });
     }
 
-    // ---- collect + validate quiz questions ----
+    // collect + validate quiz questions
     const questions = [];
     for (const [i, qEl] of $$(".quiz-question", questionsEl).entries()) {
       const questionText = $("[data-question-text]", qEl).value.trim();
@@ -236,7 +236,7 @@ function wireCreateForm(modal, close, title) {
       });
     }
 
-    // ---- collect + validate game levels ----
+    // collect + validate game levels
     const levels = [];
     for (const [i, lvlEl] of $$(".game-level", levelsEl).entries()) {
       const words = $("[data-level-words]", lvlEl)

@@ -18,8 +18,7 @@ import {
   withMissed,
 } from "../../js/scoring.js";
 
-// Loads a class's lessons and students' progress for the student progress page and the
-// Class Report, and turns the numbers into plain-English remarks for the teacher.
+// Loads a class's lessons and students' progress for the student progress page and the Class Report, and turns the numbers into plain-English remarks for the teacher.
 
 const skillName = (key) => SKILLS.find((skill) => skill.key === key)?.name || key;
 const toMillis = (value) => (value?.toMillis ? value.toMillis() : null);
@@ -41,8 +40,7 @@ export async function loadClassContext(classId) {
     .filter((link) => link.mode !== "practice")
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  // A skipped game or Gawain counts as done (js/skippedParts.js). Item counts weigh a
-  // missed part's 0.
+  // A skipped game or Gawain counts as done (js/skippedParts.js). Item counts weigh a missed part's 0.
   const ids = links.map((link) => link.lessonId || link.id);
   const noItems = { items: {}, questions: [], words: [] };
   const [skipped, contents] = await Promise.all([
@@ -93,8 +91,7 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
   const lessonIds = new Set(lessons.map((lesson) => lesson.id));
   const docs = progressDocs.filter((item) => lessonIds.has(item.id));
   const now = Date.now();
-  // Lessons that closed before they joined don't count; parts left unfinished at any other
-  // deadline count as 0 (js/scoring.js withMissed).
+  // Lessons that closed before they joined don't count; parts left unfinished at any other deadline count as 0 (js/scoring.js withMissed).
   const held = lessons.filter(
     (lesson) => !(lesson.dueAt != null && joinedMillis != null && lesson.dueAt < joinedMillis),
   );
@@ -173,7 +170,7 @@ export function lecturesOf(progress) {
   return { done: open.filter((row) => row.lectureDone).length, total: open.length };
 }
 
-// ---------- Remarks ----------
+// Remarks
 
 /**
  * Plain-English notes about one student, most urgent first.
@@ -281,7 +278,7 @@ export function studentRemarks(progress) {
   return notes;
 }
 
-// ---------- Class Report ----------
+// Class Report
 
 /**
  * Class-wide numbers from every student's own skill scores (same rules as the app):

@@ -3,6 +3,7 @@ import { auth } from "../js/firebase.js";
 import { $, toast } from "../js/helpers.js";
 import { student, fullName } from "./data.js";
 import { showDialog } from "./ui.js";
+import { hasPendingSaves } from "./sync.js";
 
 /** Name and initial in the top bar and its account menu. */
 export function refreshTopbar() {
@@ -29,6 +30,10 @@ export async function logout() {
 
 /** Asks first, then signs out (the top bar menu and the Account page). */
 export async function confirmLogout() {
+  if (hasPendingSaves()) {
+    await showDialog({ iconName: "refresh", title: "May hindi pa naipapasang sagot", message: "Kumonekta at hintaying matapos ang pag-sync bago mag-sign out.", primary: "Sige" });
+    return;
+  }
   const answer = await showDialog({
     iconName: "door",
     title: "Mag-sign out?",
@@ -39,7 +44,7 @@ export async function confirmLogout() {
   if (answer === "primary") logout();
 }
 
-// ---------- Account menu (the name in the top bar) ----------
+// Account menu (the name in the top bar)
 
 const toggle = $("#st-menu-toggle");
 const popup = $("#st-menu");

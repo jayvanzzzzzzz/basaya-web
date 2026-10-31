@@ -1,4 +1,4 @@
-/* ---------- Diksiyonaryo (student/views/dictionary.js) ---------- */
+/* Diksiyonaryo (student/views/dictionary.js) */
 .st-bell.active {
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
   background: var(--primary-soft);
@@ -11,8 +11,7 @@
   stroke: none;
 }
 
-/* Nothing goes past the screen or a card: the column can't grow wider than the
-   phone (minmax), and a word too long for its line breaks onto the next one. */
+/* Nothing goes past the screen or a card: the column can't grow wider than the phone (minmax), and a word too long for its line breaks onto the next one. */
 .st-dict {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

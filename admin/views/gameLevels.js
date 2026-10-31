@@ -140,7 +140,7 @@ export function tilesFor(word, key) {
   return used;
 }
 
-// ───────────── Crossword layout: a port of the app's CrosswordGridBuilder.kt ─────────────
+// Crossword layout: a port of the app's CrosswordGridBuilder.kt
 
 const ACROSS = "across";
 const DOWN = "down";
@@ -260,7 +260,7 @@ function validIntersections(word, candidate, occupied) {
   return intersections;
 }
 
-// ───────────────────────────── Markup ─────────────────────────────
+// Markup
 
 /** Old levels were a plain list: the longest word becomes the key word. */
 export function splitLevel(level = {}) {
@@ -325,7 +325,7 @@ export function gameLevelHtml(level = {}) {
     </article>`;
 }
 
-// ───────────────────────────── State per level ─────────────────────────────
+// State per level
 
 const chipWords = (level) => $$("[data-word-chip]", level).map((chip) => chip.dataset.wordChip);
 const keyOf = (level) => normalize($("[data-key-word]", level).value);
@@ -569,7 +569,7 @@ export function refreshLevel(level) {
   return result;
 }
 
-// ───────────────────────────── Events ─────────────────────────────
+// Events
 
 function addWords(level, raw) {
   const input = $("[data-word-input]", level);
@@ -594,10 +594,7 @@ function flash(element) {
   element.classList.add("is-shaking");
 }
 
-/**
- * Wires every level inside `container` (works for levels added later too).
- * `lessonWords()` returns the lesson's 3–7 letter words, used for suggestions.
- */
+/** Wires every level inside `container` (works for levels added later too). `lessonWords()` returns the lesson's 3–7 letter words, used for suggestions. */
 export function wireGameLevels(container, { onSkipGame, lessonWords } = {}) {
   if (lessonWords) lessonWordsOf = lessonWords;
   container.addEventListener("input", (event) => {

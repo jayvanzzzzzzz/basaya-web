@@ -105,7 +105,7 @@ function sectionHead(title, instruction) {
   </header>`;
 }
 
-// ───────────── Sections ─────────────
+// Sections
 
 function activityHtml(activity, status) {
   if (status?.completion === "skipped") {
@@ -251,7 +251,7 @@ function gameHtml(levels, status) {
     </ol>`;
 }
 
-// ───────────── Frame ─────────────
+// Frame
 
 function counts(sections) {
   const lectureSentences = (sections.lectures?.pages || []).flatMap((page) =>

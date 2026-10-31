@@ -1,7 +1,4 @@
-/* ============================================================
-   REGISTER — register.html (js/register.js)
-   Student sign-up; the card layout comes from reset-password.css.
-   ============================================================ */
+/* REGISTER — register.html (js/register.js) Student sign-up; the card layout comes from reset-password.css. */
 .register-card {
   width: min(100%, 30rem);
 }

@@ -1,6 +1,4 @@
-/* ============================================================
-   LESSON DELETE — "Delete lesson" dialog (admin/views/lessonDeletion.js)
-   ============================================================ */
+/* LESSON DELETE — "Delete lesson" dialog (admin/views/lessonDeletion.js) */
 .lesson-delete-modal {
   width: min(100%, 31rem);
   padding: 1.6rem 1.6rem 1.25rem;
@@ -28,7 +26,7 @@
   stroke-width: 2;
 }
 
-/* ---------- Heading ---------- */
+/* Heading */
 .ld-head {
   display: flex;
   align-items: flex-start;
@@ -81,7 +79,7 @@
   line-height: 1.55;
 }
 
-/* ---------- The lesson, as a ticket ---------- */
+/* The lesson, as a ticket */
 .ld-ticket {
   position: relative;
   display: flex;
@@ -132,7 +130,7 @@
   white-space: nowrap;
 }
 
-/* ---------- What goes with it ---------- */
+/* What goes with it */
 .ld-impact {
   display: grid;
   gap: 0.6rem;
@@ -236,7 +234,7 @@
   animation: shimmer 1.3s linear infinite;
 }
 
-/* ---------- Note ---------- */
+/* Note */
 .ld-note {
   display: flex;
   align-items: flex-start;
@@ -259,7 +257,7 @@
   display: none;
 }
 
-/* ---------- Press and hold ---------- */
+/* Press and hold */
 .ld-actions {
   margin-top: 0.15rem;
 }
@@ -333,7 +331,7 @@
   text-align: right;
 }
 
-/* ---------- Small screens ---------- */
+/* Small screens */
 @media (max-width: 560px) {
   .ld-impact__grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

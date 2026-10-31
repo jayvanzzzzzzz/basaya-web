@@ -1,6 +1,4 @@
-/* ============================================================
-   LOADING SCREENS
-   ============================================================ */
+/* LOADING SCREENS */
 .loading-screen {
   display: grid;
   min-height: 100vh;
@@ -64,7 +62,7 @@
   }
 }
 
-/* ---------- Teacher portal loader ---------- */
+/* Teacher portal loader */
 .teacher-loading::before {
   position: absolute;
   inset: 0;

@@ -1,6 +1,4 @@
-/* ============================================================
-   THEME TOGGLE (js/theme.js) — sun / moon button
-   ============================================================ */
+/* THEME TOGGLE (js/theme.js) — sun / moon button */
 .theme-toggle {
   position: relative;
   display: grid;
@@ -91,9 +89,7 @@
   animation: popIn var(--dur-slow) var(--ease-out) 300ms backwards;
 }
 
-/* ---------- Switching animation ----------
-   Modern browsers: the new theme grows in a circle from the button
-   (View Transitions, driven by js/theme.js). Others: a soft cross-fade. */
+/* Switching animation Modern browsers: the new theme grows in a circle from the button (View Transitions, driven by js/theme.js). Others: a soft cross-fade. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;

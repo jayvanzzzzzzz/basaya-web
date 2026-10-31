@@ -1,6 +1,4 @@
-/* ============================================================
-   ADD LESSON — pick lessons, set a schedule, add to class
-   ============================================================ */
+/* ADD LESSON — pick lessons, set a schedule, add to class */
 .teacher-add-lesson-page {
   display: grid;
   gap: 1.25rem;
@@ -283,7 +281,7 @@
   stroke-width: 2.4;
 }
 
-/* ---------- Slim sticky bar: selected count + Add (type + schedule are in the pop-up) ---------- */
+/* Slim sticky bar: selected count + Add (type + schedule are in the pop-up) */
 .lesson-picker__footer {
   position: sticky;
   bottom: 0.75rem;

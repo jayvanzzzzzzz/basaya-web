@@ -1,6 +1,4 @@
-/* ============================================================
-   APP SHELL — frosted sidebar + content canvas
-   ============================================================ */
+/* APP SHELL — frosted sidebar + content canvas */
 .app-shell {
   display: grid;
   min-height: 100vh;
@@ -15,7 +13,7 @@
   animation: fadeIn var(--dur-slow) var(--ease-out);
 }
 
-/* ---------- Sidebar ---------- */
+/* Sidebar */
 .sidebar {
   position: sticky;
   top: 0;
@@ -44,7 +42,7 @@
   filter: drop-shadow(0 6px 10px rgba(91, 76, 244, 0.25));
 }
 
-/* ---------- Navigation ---------- */
+/* Navigation */
 .main-nav {
   display: grid;
   gap: 0.3rem;
@@ -174,7 +172,7 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
-/* ---------- "At a glance" stat in the teacher sidebar ---------- */
+/* "At a glance" stat in the teacher sidebar */
 /* .sidebar prefix: wins over the generic ticket-stub styles loaded later */
 .sidebar .code-stub--sidebar {
   display: grid;
@@ -216,7 +214,7 @@
   font-weight: 600;
 }
 
-/* ---------- Account menu ---------- */
+/* Account menu */
 /* Account button + theme toggle side by side */
 .sidebar-bottom {
   display: grid;
@@ -364,7 +362,7 @@
   stroke-width: 2.2;
 }
 
-/* ---------- Content ---------- */
+/* Content */
 /* Column so the footer stays at the bottom on short pages */
 .content {
   display: flex;
@@ -385,7 +383,7 @@
   animation-delay: 60ms;
 }
 
-/* ---------- Mobile: sidebar becomes a top bar ---------- */
+/* Mobile: sidebar becomes a top bar */
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
@@ -413,8 +411,7 @@
     height: 2.2rem;
   }
 
-  /* On a phone the icons don't all fit: they scroll sideways, so the account button
-     and theme toggle keep their room (squeezed, the toggle covered "Sign out"). */
+  /* On a phone the icons don't all fit: they scroll sideways, so the account button and theme toggle keep their room (squeezed, the toggle covered "Sign out"). */
   .main-nav {
     display: flex;
     min-width: 0;

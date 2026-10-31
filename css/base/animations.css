@@ -1,8 +1,4 @@
-/* ============================================================
-   MOTION LIBRARY
-   Everything eases out (fast start, soft landing). Springy only for
-   small "pop" feedback. All of it switches off for reduced motion.
-   ============================================================ */
+/* MOTION LIBRARY Everything eases out (fast start, soft landing). Springy only for small "pop" feedback. All of it switches off for reduced motion. */
 @keyframes fadeIn {
   from {
     opacity: 0;

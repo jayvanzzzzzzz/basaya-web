@@ -1,8 +1,6 @@
-/* ============================================================
-   STUDENT — Bigkas (pronunciation), Laro (crossword), Mga Abiso
-   ============================================================ */
+/* STUDENT — Bigkas (pronunciation), Laro (crossword), Mga Abiso */
 
-/* ---------- Bigkas ---------- */
+/* Bigkas */
 .st-pron {
   display: flex;
   flex: 1;
@@ -378,7 +376,7 @@
   text-align: center;
 }
 
-/* ---------- Laro (sky, sun and clouds like the app) ---------- */
+/* Laro (sky, sun and clouds like the app) */
 body:has(.st-game),
 body:has(.st-focus-loading--sky) {
   background: linear-gradient(180deg, #8fd3ff 0%, #c9ecff 55%, #fff5d6 100%);
@@ -724,7 +722,7 @@ body:has(.st-focus-loading--sky) {
   max-width: 22rem;
 }
 
-/* ---------- Home: a lesson opened from a notification glows ---------- */
+/* Home: a lesson opened from a notification glows */
 .st-lesson.is-glow {
   animation: stGlow 0.85s var(--ease-in-out) 3;
 }
@@ -734,7 +732,7 @@ body:has(.st-focus-loading--sky) {
   50% { box-shadow: var(--lip), 0 0 0 3px var(--brand-violet); transform: scale(1.03); }
 }
 
-/* ---------- Mga Abiso ---------- */
+/* Mga Abiso */
 .st-notifs {
   display: grid;
   gap: 0.75rem;

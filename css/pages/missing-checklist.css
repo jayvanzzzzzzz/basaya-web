@@ -1,7 +1,4 @@
-/* ============================================================
-   MISSING CHECKLIST — what's left to fill before a lesson can be published
-   (admin/views/missingChecklist.js). Lives in the lesson editor's backdrop.
-   ============================================================ */
+/* MISSING CHECKLIST — what's left to fill before a lesson can be published (admin/views/missingChecklist.js). Lives in the lesson editor's backdrop. */
 .missing-toast {
   --tone: var(--danger);
   --tone-soft: var(--danger-soft);
@@ -140,7 +137,7 @@
   height: 0.95rem;
 }
 
-/* ---------- Groups (one per part of the lesson) ---------- */
+/* Groups (one per part of the lesson) */
 .missing-toast__groups {
   display: grid;
   align-content: start;
@@ -251,7 +248,7 @@
   outline-offset: 2px;
 }
 
-/* ---------- The fields themselves ---------- */
+/* The fields themselves */
 .lesson-studio input.is-missing,
 .lesson-studio textarea.is-missing {
   border-color: var(--danger);

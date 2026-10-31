@@ -86,8 +86,7 @@ export async function renderLecture(lessonId) {
   if (state === "not-yet-open" || (state === "closed" && !lesson.lectureFinished)) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
-  // Opened from the lesson path, everything is ready. Opened by its address (e.g. a reload),
-  // load it here and wait for the audio at most AUDIO_WAIT_MS.
+  // Opened from the lesson path, everything is ready. Opened by its address (e.g. a reload), load it here and wait for the audio at most AUDIO_WAIT_MS.
   if (prepared?.lessonId !== lessonId) {
     try {
       await prepareLecture(lesson);
@@ -138,8 +137,7 @@ export async function renderLecture(lessonId) {
   const book = $("#lecture-book");
   const speaker = $("#lecture-speaker");
   const autoButton = $("#lecture-auto");
-  // One element for every sentence and every visit: the lesson path unlocked it on the card
-  // tap, and iPhones then let it keep playing.
+  // One element for every sentence and every visit: the lesson path unlocked it on the card tap, and iPhones then let it keep playing.
   const player = lecturePlayer();
   const listeners = new AbortController();
   let speakerOn = !muted;
@@ -162,8 +160,7 @@ export async function renderLecture(lessonId) {
   };
   const { signal } = listeners;
   player.addEventListener("playing", () => setTalking(true), { signal });
-  // Not on "pause": stopAudio() pauses before the next sentence starts, and that late event
-  // would stop the new sentence's read-along.
+  // Not on "pause": stopAudio() pauses before the next sentence starts, and that late event would stop the new sentence's read-along.
   const endReadAlong = () => {
     stopReadAlong();
     stopReadAlong = () => {};

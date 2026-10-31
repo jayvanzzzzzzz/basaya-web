@@ -3,8 +3,7 @@ import { state } from "../../js/state.js";
 import { LEVELS, remarkFor } from "../../js/scoring.js";
 import { titledFullName } from "../../js/chat.js?v=removed-preview";
 
-// Print (and "Save as PDF") and Excel export for the Class Report and student progress
-// pages. Print styles: css/layout/print.css.
+// Print (and "Save as PDF") and Excel export for the Class Report and student progress pages. Print styles: css/layout/print.css.
 
 // Always print in the light theme: dark pages waste ink and print poorly.
 let themeBeforePrint = null;
@@ -71,7 +70,7 @@ export const printSignature = () => `<footer class="print-signature" aria-hidden
     <div><span class="print-signature__line">${escapeHtml(today())}</span><small>Date</small></div>
   </footer>`;
 
-// ---------- Excel ----------
+// Excel
 
 /** A name that's safe in a file name: "Grade 3 / Sampaguita" → "Grade 3 Sampaguita". */
 export const fileName = (text = "") =>

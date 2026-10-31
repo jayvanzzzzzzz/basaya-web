@@ -262,8 +262,7 @@ export async function renderLessons() {
         });
       });
 
-    // Searching only hides rows (pagination recounts them), so the page isn't rebuilt
-    // on every key and nothing flickers.
+    // Searching only hides rows (pagination recounts them), so the page isn't rebuilt on every key and nothing flickers.
     const applySearch = () => {
       const query = activeLessonSearch.trim().toLowerCase();
       let shown = 0;
@@ -837,10 +836,7 @@ function clearQuestionError(question) {
   $("[data-question-error]", question).hidden = true;
 }
 
-/**
- * Every question that will be saved (text and all three choices filled) needs at least one
- * correct answer. Returns the first invalid question, or null.
- */
+/** Every question that will be saved (text and all three choices filled) needs at least one correct answer. Returns the first invalid question, or null. */
 function validateQuiz(container) {
   let firstInvalid = null;
 
@@ -1059,8 +1055,7 @@ async function openLessonModal(existing = null) {
     const gameLevelNavigation = $("[data-game-level-navigation]", modal);
     const addGameLevelButton = $("[data-add-game-level]", modal);
 
-    // One clip at a time: replaying (or starting another clip) stops the one already
-    // playing, so the same audio never overlaps itself and sounds like an echo.
+    // One clip at a time: replaying (or starting another clip) stops the one already playing, so the same audio never overlaps itself and sounds like an echo.
     const previewPlayer = new Audio();
     const stopOtherAudio = (current) => {
       if (previewPlayer !== current) previewPlayer.pause();
@@ -1240,8 +1235,7 @@ async function openLessonModal(existing = null) {
       button.addEventListener("click", () => showStep(button.dataset.step));
     });
 
-    // Once Publish/Save has been tried, empty fields stay outlined (and the checklist
-    // toast stays current) until they're filled.
+    // Once Publish/Save has been tried, empty fields stay outlined (and the checklist toast stays current) until they're filled.
     const jumpTo = (item) => {
       if (!item?.target?.isConnected) return;
       showStep(item.step);
@@ -1507,8 +1501,7 @@ async function openLessonModal(existing = null) {
       }
       checklist.update([]);
 
-      // Another lesson already has this title? Ask before saving (edits that keep their
-      // own title aren't asked again).
+      // Another lesson already has this title? Ask before saving (edits that keep their own title aren't asked again).
       const form = event.currentTarget;
       const submit = event.submitter;
       const titleInput = form.elements.title;
@@ -1535,8 +1528,7 @@ async function openLessonModal(existing = null) {
         if (choice.action === "save-as") titleInput.value = choice.title;
       }
 
-      // Skipping the Gawain or the game deletes what this lesson already has saved for
-      // it, so ask first.
+      // Skipping the Gawain or the game deletes what this lesson already has saved for it, so ask first.
       const savedPages = skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
       const savedLevels = skipGame.checked ? sections.game?.length || 0 : 0;
       if (savedPages || savedLevels) {
@@ -1768,8 +1760,7 @@ function readActivity(container) {
   };
 }
 
-// Keeps audio that was saved earlier when the row has no newly generated preview,
-// but only if the text it was generated from is unchanged.
+// Keeps audio that was saved earlier when the row has no newly generated preview, but only if the text it was generated from is unchanged.
 function existingCloudAudio(row, text) {
   try {
     const saved = JSON.parse(row.dataset.cloudAudio || "null");
@@ -1937,10 +1928,7 @@ function confirmDeleteSkipped({ pages = 0, levels = 0 }) {
   });
 }
 
-/**
- * Saves activity/content, or with activity = null deletes the Gawain and saves
- * activity/status = { completion: "skipped" }, as the game does (see replaceGameLevels).
- */
+/** Saves activity/content, or with activity = null deletes the Gawain and saves activity/status = { completion: "skipped" }, as the game does (see replaceGameLevels). */
 async function replaceActivity(lessonId, activity) {
   const statusRef = doc(db, "lessons", lessonId, "activity", "status");
   if (activity) {
