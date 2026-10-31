@@ -234,9 +234,20 @@
           </section>
         </section>
         <section class="auth-panel">
+          <section id="recent-accounts" class="form-card recent-accounts" aria-labelledby="recent-title" hidden>
+            <h2 id="recent-title" tabindex="-1">Recent accounts</h2>
+            <p class="recent-accounts__hint">Choose your profile to sign in.</p>
+            <div id="recent-account-list" class="recent-accounts__list"></div>
+            <p id="recent-account-error" class="form-error" role="alert"></p>
+            <button id="another-account" class="button secondary" type="button">Log into another account</button>
+            <p class="recent-accounts__note">Accounts are remembered on this device. Your password is always required for email sign-in.</p>
+          </section>
           <form id="login-form" class="form-card">
-            <h2>Sign in</h2>
+            <button id="back-to-accounts" class="recent-accounts__back" type="button" hidden>← Recent accounts</button>
+            <div id="selected-account" class="recent-accounts__selected" hidden></div>
+            <h2 id="signin-title">Sign in</h2>
             <label
+              id="login-email-field"
               >Email<input
                 id="email"
                 type="email"
@@ -246,6 +257,7 @@
                 placeholder="you@email.com"
             /></label>
             <label
+              id="login-password-field"
               >Password<span class="password-field"
                 ><input
                   id="password"
@@ -479,7 +491,7 @@
           ),
         12000,
       );
-      import("./js/login.js?v=login-signin-animation").catch((error) => {
+      import("./js/login.js?v=recent-accounts-1").catch((error) => {
         console.error("Login startup failed:", error);
         showStartupError(error.message || "The Firebase SDK could not load.");
       });

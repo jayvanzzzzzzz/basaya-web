@@ -6,6 +6,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 
 import { auth, db } from "../js/firebase.js";
 import { state } from "../js/state.js";
+import { rememberAccount } from "../js/recent-accounts.js";
 import { $, setLoading, shell, toast } from "../js/helpers.js";
 import { renderRoute } from "./router.js";
 // Every form's required fields show their own message instead of the browser bubble.
@@ -36,6 +37,7 @@ document.addEventListener("click", async (event) => {
 });
 
 $("#logout-button").addEventListener("click", async () => {
+  rememberAccount(auth.currentUser, state.profile || {});
   sessionStorage.setItem("basayaSignedOut", "true");
   try {
     await signOut(auth);

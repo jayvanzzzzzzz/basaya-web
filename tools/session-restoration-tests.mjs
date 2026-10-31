@@ -10,6 +10,7 @@ async function restore({ user = { uid: "student-1", providerData: [] }, role = "
   let pending;
   const context = {
     auth: {}, db: {},
+    rememberAccount: () => {},
     onAuthStateChanged: (_, handler) => { pending = handler(user); },
     getDoc: async () => {
       if (failure) throw failure;

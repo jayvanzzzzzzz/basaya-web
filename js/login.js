@@ -9,6 +9,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import { auth, db } from "./firebase.js";
 import { $ } from "./helpers.js";
 import { clearFieldErrors, fieldError } from "./field-errors.js";
+import { recentAccounts, rememberAccount, removeAccount } from "./recent-accounts.js";
 
 const loading = document.getElementById("loading-screen");
 const loginView = document.getElementById("login-view");
@@ -17,6 +18,108 @@ const loginButton = loginForm.querySelector('[type="submit"]');
 const loginButtonLabel = loginButton.querySelector(".login-submit__label");
 const googleLoginButton = $("#google-login");
 let signingIn = false;
+let selectedAccount = null;
+const recentPanel = $("#recent-accounts");
+const recentList = $("#recent-account-list");
+const backToAccounts = $("#back-to-accounts");
+const selectedProfile = $("#selected-account");
+
+function avatar(account) {
+  const element = document.createElement("span");
+  element.className = "recent-accounts__avatar";
+  element.setAttribute("aria-hidden", "true");
+  element.textContent = account.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  if (account.photoURL) {
+    const photo = document.createElement("img");
+    photo.alt = "";
+    photo.referrerPolicy = "no-referrer";
+    photo.addEventListener("error", () => photo.remove());
+    photo.src = account.photoURL;
+    element.append(photo);
+  }
+  return element;
+}
+
+function showSignIn(account = null) {
+  if (signingIn) return;
+  selectedAccount = account;
+  recentPanel.hidden = true;
+  loginForm.hidden = false;
+  backToAccounts.hidden = recentAccounts().length === 0;
+  selectedProfile.hidden = !account;
+  selectedProfile.replaceChildren();
+  if (account) {
+    const name = document.createElement("strong");
+    name.textContent = account.name;
+    selectedProfile.append(avatar(account), name);
+  }
+  const google = account?.provider === "google.com";
+  $("#signin-title").textContent = account ? "Welcome back" : "Sign in";
+  $("#login-email-field").hidden = !!account;
+  $("#email").value = account?.email || "";
+  $("#email").readOnly = !!account;
+  passwordInput.value = "";
+  passwordInput.required = !google;
+  setPasswordVisible(false);
+  $("#login-password-field").hidden = google;
+  loginForm.querySelector(".auth-forgot").hidden = google;
+  loginButton.hidden = google;
+  loginForm.querySelector(".auth-register").hidden = !!account;
+  loginForm.querySelector(".auth-google-divider").hidden = !!account;
+  googleLoginButton.hidden = !!account && !google;
+  $("#login-error").textContent = "";
+  clearFieldErrors(loginForm);
+  if (account) (google ? googleLoginButton : passwordInput).focus();
+  else $("#email").focus();
+}
+
+function showRecentAccounts(focus = false) {
+  if (signingIn) return;
+  const accounts = recentAccounts();
+  if (!accounts.length) { showSignIn(); return; }
+  selectedAccount = null;
+  passwordInput.value = "";
+  recentList.replaceChildren();
+  $("#recent-account-error").textContent = "";
+  accounts.forEach((account) => {
+    const row = document.createElement("div");
+    row.className = "recent-accounts__row";
+    const choose = document.createElement("button");
+    choose.type = "button";
+    choose.className = "recent-accounts__choose";
+    choose.setAttribute("aria-label", `Sign in as ${account.name}`);
+    const label = document.createElement("span");
+    const name = document.createElement("strong");
+    name.textContent = account.name;
+    const hint = document.createElement("small");
+    hint.textContent = account.provider === "google.com" ? "Continue with Google" : "Enter password to sign in";
+    label.append(name, hint);
+    choose.append(avatar(account), label);
+    choose.addEventListener("click", () => showSignIn(account));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "recent-accounts__remove";
+    remove.textContent = "×";
+    remove.title = `Remove ${account.name} from this device`;
+    remove.setAttribute("aria-label", remove.title);
+    remove.addEventListener("click", () => {
+      if (removeAccount(account.uid)) showRecentAccounts(true);
+      else $("#recent-account-error").textContent = "Could not remove this saved profile. Check your browser storage settings.";
+    });
+    row.append(choose, remove);
+    recentList.append(row);
+  });
+  loginForm.hidden = true;
+  recentPanel.hidden = false;
+  if (focus) $("#recent-title").focus();
+}
+
+$("#another-account").addEventListener("click", () => showSignIn());
+backToAccounts.addEventListener("click", () => showRecentAccounts(true));
+window.addEventListener("storage", (event) => {
+  if (event.key !== null && event.key !== "basaya.recentAccounts.v1") return;
+  if (!signingIn && !loginView.hidden && (!recentPanel.hidden || selectedAccount)) showRecentAccounts();
+});
 // Showcase: real BaSaya screens in one window that morphs between them. Each
 // tab's meter fills over --showcase-time; when it ends, the next screen shows.
 const showcase = document.querySelector("[data-showcase]");
@@ -137,6 +240,7 @@ function revealLogin() {
   loginView.hidden = false;
   clearSignedOutCredentials();
   setSigningIn(false);
+  showRecentAccounts();
   // Start from the first screen now that it's visible.
   if (showcase && showcaseShots.length) showShowcase(0);
 }
@@ -159,6 +263,7 @@ passwordToggle.addEventListener("click", () => {
 function clearSignedOutCredentials() {
   if (sessionStorage.getItem("basayaSignedOut") !== "true") return;
   $("#email").value = "";
+  if (selectedAccount) $("#email").value = selectedAccount.email;
   passwordInput.value = "";
   setPasswordVisible(false);
   $("#login-error").textContent = "";
@@ -170,6 +275,10 @@ window.addEventListener("pageshow", clearSignedOutCredentials);
 function setSigningIn(active) {
   signingIn = active;
   loginButton.disabled = active;
+  googleLoginButton.disabled = active;
+  backToAccounts.disabled = active;
+  $("#email").disabled = active;
+  passwordInput.disabled = active;
   loginButton.setAttribute("aria-busy", String(active));
   loginForm.setAttribute("aria-busy", String(active));
   loginButtonLabel.textContent = active ? "Signing in…" : "Sign in to BaSaya";
@@ -184,7 +293,7 @@ const ROLE_DESTINATIONS = {
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (signingIn) return;
-  const email = $("#email").value.trim();
+  const email = selectedAccount?.email || $("#email").value.trim();
   const password = passwordInput.value;
   // Hide it again so a browser's "save password" prompt never sees it as plain text.
   setPasswordVisible(false);
@@ -212,10 +321,10 @@ googleLoginButton.addEventListener("click", async () => {
   if (signingIn) return;
   const error = $("#login-error");
   error.textContent = "";
-  googleLoginButton.disabled = true;
+  setSigningIn(true);
   try {
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
+    provider.setCustomParameters({ prompt: "select_account", ...(selectedAccount ? { login_hint: selectedAccount.email } : {}) });
     await signInWithPopup(auth, provider);
   } catch (signInError) {
     console.error("Google sign-in failed", signInError);
@@ -234,7 +343,7 @@ googleLoginButton.addEventListener("click", async () => {
                 : "Could not verify your Google account. Please try again.";
     }
   } finally {
-    googleLoginButton.disabled = false;
+    setSigningIn(false);
   }
 });
 
@@ -263,6 +372,7 @@ onAuthStateChanged(auth, async (user) => {
       $("#login-error").textContent = "This account has no portal access.";
       return;
     }
+    rememberAccount(user, profileSnap.data());
     sessionStorage.removeItem("basayaSignedOut");
     window.location.replace(destination);
   } catch (error) {

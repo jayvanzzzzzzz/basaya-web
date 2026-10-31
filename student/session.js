@@ -4,6 +4,7 @@ import { $, toast } from "../js/helpers.js";
 import { student, fullName } from "./data.js";
 import { showDialog } from "./ui.js";
 import { hasPendingSaves } from "./sync.js";
+import { rememberAccount } from "../js/recent-accounts.js";
 
 /** Name and initial in the top bar and its account menu. */
 export function refreshTopbar() {
@@ -17,6 +18,7 @@ export function refreshTopbar() {
 }
 
 export async function logout() {
+  rememberAccount(auth.currentUser, student.profile);
   sessionStorage.setItem("basayaSignedOut", "true");
   try {
     await signOut(auth);

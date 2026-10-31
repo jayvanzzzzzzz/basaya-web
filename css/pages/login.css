@@ -1352,6 +1352,10 @@
   margin-top: auto;
 }
 
+.auth-panel > #login-form {
+  margin-top: auto;
+}
+
 .auth-panel > .site-footer {
   margin-top: auto;
 }
@@ -1485,6 +1489,25 @@
   width: 1.2rem;
   height: 1.2rem;
 }
+
+.recent-accounts[hidden], .auth-panel [hidden] { display: none !important; }
+.recent-accounts__hint, .recent-accounts__note { color: var(--ink-3); line-height: 1.6; }
+.recent-accounts__hint { margin: -0.5rem 0 1.25rem; }
+.recent-accounts__note { margin: 1rem 0 0; font-size: 0.8rem; }
+.recent-accounts__list { display: grid; gap: 0.75rem; margin-bottom: 1.25rem; }
+.recent-accounts__row { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); transition: border-color 180ms, box-shadow 180ms; }
+.recent-accounts__row:focus-within, .recent-accounts__row:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(91, 76, 244, 0.1); }
+.recent-accounts__choose { display: flex; flex: 1; align-items: center; gap: 0.9rem; min-width: 0; padding: 0.9rem; border: 0; border-radius: 1rem; text-align: left; background: transparent; color: var(--ink); cursor: pointer; font: inherit; }
+.recent-accounts__choose > span:last-child { min-width: 0; }
+.recent-accounts__choose strong, .recent-accounts__choose small { display: block; overflow-wrap: anywhere; }
+.recent-accounts__choose small { margin-top: 0.25rem; color: var(--ink-3); font-size: 0.78rem; }
+.recent-accounts__avatar { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 3.4rem; height: 3.4rem; overflow: hidden; border-radius: 1rem; background: var(--surface-3); color: var(--primary); font-size: 1.1rem; font-weight: 700; }
+.recent-accounts__avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.recent-accounts__remove { flex: none; min-width: 44px; min-height: 44px; margin-right: 0.25rem; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); font-size: 1.5rem; cursor: pointer; }
+.recent-accounts__remove:hover { background: var(--surface-3); color: var(--ink); }
+.recent-accounts__back { align-self: start; padding: 0.5rem 0; border: 0; background: transparent; color: var(--primary); cursor: pointer; font: inherit; font-size: 0.85rem; }
+.recent-accounts__selected { display: flex; align-items: center; gap: 0.9rem; margin: 0.25rem 0; overflow-wrap: anywhere; }
+.recent-accounts > .button { width: 100%; justify-content: center; }
 
 /* Responsive */
 @media (max-width: 900px) {
