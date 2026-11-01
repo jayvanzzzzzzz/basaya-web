@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/class-membership.js": { "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/api/assessment", "destination": "/api/class-membership?operation=assessment" },
+    { "source": "/api/join-class", "destination": "/api/class-membership?operation=request" },
+    { "source": "/api/review-join-requests", "destination": "/api/class-membership?operation=review" },
+    { "source": "/api/remove-student", "destination": "/api/class-membership?operation=remove" }
+  ]
+}

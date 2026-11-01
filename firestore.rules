@@ -20,53 +20,33 @@ service cloud.firestore {
     }
 
     function teachesClass(classId) {
-      return classId != null &&
+      return isTeacher() && classId != null &&
         exists(/databases/$(database)/documents/classes/$(classId)) &&
         get(/databases/$(database)/documents/classes/$(classId))
           .data.teacherId == request.auth.uid;
     }
 
-    // Lesson schedule: the teacher's optional openAt/dueAt on
-    // classes/{classId}/classLessons/{lessonId}. Judged by server time
-    // (request.time), so changing the phone's date does not help.
-    function scheduleAllows(link) {
-      return (link.get('openAt', null) == null || request.time >= link.openAt) &&
-        (link.get('dueAt', null) == null || request.time <= link.dueAt);
+    // Approval is represented by BOTH the server-owned profile link and roster entry.
+    function isClassMember(classId) {
+      return signedIn() && classId is string && classId != '' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '') == classId &&
+        exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid));
     }
 
-    // A Practice lesson (link mode "practice") never saves progress: students can redo it
-    // as often as they like and the teacher's reports leave it out. A lesson can be in a
-    // class twice: as an Assessment (link id = lesson id) and as Practice
-    // (link id = "{lessonId}__practice"). Progress is only for the Assessment.
-    function classLessonAllows(classId, lessonId) {
-      let path = /databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId);
-      let practicePath = /databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId + '__practice');
-      return (exists(path) && scheduleAllows(get(path).data) &&
-          get(path).data.get('mode', 'assessment') != 'practice') ||
-        // Older links have auto-generated ids and no schedule; a lesson that is only in the class as Practice saves nothing.
-        (!exists(path) && !exists(practicePath));
+    function canReadLearningContent() {
+      return signedIn() && (isTeacher() || isAdmin() ||
+        isClassMember(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '')));
     }
 
-    function lessonIsOpen(userId, lessonId) {
-      let classId = get(/databases/$(database)/documents/users/$(userId))
-        .data.get('classId', null);
-      return classId == null || classId == "" || classLessonAllows(classId, lessonId);
-    }
-
-    // A student can't switch or leave a class while still on its roster: leaving needs the teacher's approval (notify-api/api/remove-student clears classId).
-    function classChangeAllowed(userId) {
-      let before = resource.data.get('classId', null);
-      let after = request.resource.data.get('classId', null);
-      return before == after || before == null || before == "" ||
-        !exists(/databases/$(database)/documents/classes/$(before)/students/$(userId));
-    }
+    // Assessment membership, explicit assignments and server-time schedules are
+    // checked by the API; clients cannot write progress directly.
 
     // The teacher of the class the signed-in student is on the roster of (the chat's member list shows the teacher's name; a removed teacher's doc reads as missing).
     function teachesMyClass(teacherId) {
       let myClass = get(/databases/$(database)/documents/users/$(request.auth.uid))
         .data.get('classId', '');
       return myClass is string && myClass != '' &&
-        exists(/databases/$(database)/documents/classes/$(myClass)/students/$(request.auth.uid)) &&
+        isClassMember(myClass) &&
         get(/databases/$(database)/documents/classes/$(myClass)).data.get('teacherId', '') == teacherId;
     }
 
@@ -80,7 +60,10 @@ service cloud.firestore {
 
       allow create: if signedIn() && (                                                                                                                                            
           (request.auth.uid == userId &&                                                                                                                                            
-            request.resource.data.role == "student") ||                                                                                                                             
+            request.resource.data.role == "student" &&
+            request.resource.data.get('classId', '') == '' &&
+            request.resource.data.get('className', '') == '' &&
+            !request.resource.data.keys().hasAny(['joinRequest', 'progressSession', 'skillSummary'])) ||
           isAdmin()                                                                                                                                                                 
         );                                                                                                                                                                          
                                                                                                                                                                                     
@@ -88,7 +71,7 @@ service cloud.firestore {
           isAdmin() ||
           (request.auth.uid == userId &&
             request.resource.data.role == resource.data.role &&
-            classChangeAllowed(userId))
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary']))
         );
                                                                                                                                                                                     
         allow delete: if isAdmin();    
@@ -104,19 +87,33 @@ service cloud.firestore {
             ))
         );
 
-        // Progress is rejected before the lesson opens and after its deadline.
-        allow write: if signedIn() && request.auth.uid == userId &&
-          lessonIsOpen(userId, lessonId);
+        // Answers go to the authenticated assessment API. Scores, resume counts,
+        // skill records and completion transitions are calculated by the server.
+        allow create, update: if false;
+        allow delete: if false;
+      }
+
+      // Immutable history is written only by the API, including after a transfer.
+      match /classProgress/{classId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin() || teachesClass(classId));
+        allow write: if false;
+        match /{document=**} {
+          allow read: if signedIn() && (request.auth.uid == userId || isAdmin() || teachesClass(classId));
+          allow write: if false;
+        }
       }
     }
 
-    // All authenticated users can read lessons. Only administrators can create, edit, or delete lessons and their activity/lectures/pronunciation/quiz/game content.
+    // Staff and approved members can read lessons. Only admins can change lesson content.
     match /lessons/{lessonId} {
-      allow read: if signedIn();
+      allow read: if canReadLearningContent();
       allow create, update, delete: if isAdmin();
 
       match /{subcollection}/{docId} {
-        allow read: if signedIn();
+        // Firestore cannot hide individual fields. Students receive sanitized
+        // quiz/activity content from the API instead of answer-key documents.
+        allow read: if canReadLearningContent() &&
+          (!(subcollection in ['quiz', 'activity']) || isTeacher() || isAdmin());
         allow write: if isAdmin();
       }
     }
@@ -128,34 +125,42 @@ service cloud.firestore {
     }
 
     match /classes/{classId} {
-      allow read: if signedIn();
+      // Class codes are visible only to staff and already-approved members.
+      allow read: if signedIn() && (isAdmin() ||
+        (isTeacher() && resource.data.teacherId == request.auth.uid) || isClassMember(classId));
 
-      allow create: if signedIn() &&
+      // Only teachers may create a class, and only with themselves as its teacher.
+      allow create: if isTeacher() &&
         request.resource.data.teacherId == request.auth.uid;
 
       // The class's teacher or an admin can edit it (a teacher also uses this to request deletion: deletionRequest / deletionDeclined fields).
-      allow update: if signedIn() &&
-        (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow update: if isAdmin() || (teachesClass(classId) &&
+        request.resource.data.teacherId == resource.data.teacherId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['membershipClosed']));
 
       // Never deleted directly: an admin approves, then notify-api/api/delete-class removes the class with its roster, lessons and every student's progress.
       allow delete: if false;
+
+      match /joinRequests/{studentId} {
+        allow read: if signedIn() && (teachesClass(classId) || request.auth.uid == studentId);
+        // Code validation, approval and rejection use the authenticated API only.
+        allow write: if false;
+      }
 
       match /students/{studentId} {
         allow read: if signedIn() &&
           (request.auth.uid == studentId ||
            isAdmin() ||
-           get(/databases/$(database)/documents/classes/$(classId))
-             .data.teacherId == request.auth.uid ||
-           exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
+           teachesClass(classId) || isClassMember(classId));
 
-        // Joining: a student adds themselves.
-        allow create: if signedIn() && request.auth.uid == studentId;
+        // Only server approval can create a roster entry.
+        allow create: if false;
 
         // The student may rename themselves and ask to leave (or cancel); the class's teacher may decline a leave request.
         allow update: if signedIn() && (
-          (request.auth.uid == studentId &&
+          (request.auth.uid == studentId && isClassMember(classId) &&
             request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['fullName', 'joinedAt', 'leaveRequest', 'leaveDeclined'])) ||
+              .hasOnly(['fullName', 'leaveRequest', 'leaveDeclined'])) ||
           (teachesClass(classId) &&
             request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['leaveRequest', 'leaveDeclined']))
@@ -168,9 +173,7 @@ service cloud.firestore {
       // Notification list
       match /notifications/{notificationId} {
         allow read: if signedIn() &&
-          (get(/databases/$(database)/documents/classes/$(classId))
-             .data.teacherId == request.auth.uid ||
-           exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
+          (teachesClass(classId) || isClassMember(classId));
         allow write: if false;
       }
 
@@ -178,7 +181,7 @@ service cloud.firestore {
       // messages/{id}   text, senderId, senderName, role ("teacher" | "student"), sentAt;
       //                 a removed message keeps its place: text "", deleted true, deletedBy.
       //                 A join notice ("… joined the class") has kind "join" and text "",
-      //                 written by the student in the same batch that adds them to the roster.
+      //                 written by the approval API when the teacher enrolls the student.
       // chat/state      open (missing = open) and a summary of the last message (lastAt,
       //                 lastText, lastSenderName, lastRole), so unread badges cost one read.
       //                 lastRole "join" (text "") after a join notice.
@@ -186,7 +189,7 @@ service cloud.firestore {
       // A student sends with one batch: the message, chatSenders/{uid} and chat/state.
 
       function isChatMember(classId) {
-        return exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid));
+        return isClassMember(classId);
       }
 
       function chatOpen(classId) {
@@ -200,14 +203,6 @@ service cloud.firestore {
           .data.lastSentAt == request.time;
       }
 
-      // The student's roster entry is created, stamped with this request's time, in the same
-      // batch (joining). Leaving deletes the entry, so a rejoin is a new one; a member can't
-      // re-post the notice by re-stamping joinedAt.
-      function joiningNow(classId) {
-        let roster = /databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid);
-        return !exists(roster) && getAfter(roster).data.joinedAt == request.time;
-      }
-
       function rosterNameAfter(classId) {
         return getAfter(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid))
           .data.get('fullName', '');
@@ -216,16 +211,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if signedIn() && (teachesClass(classId) || isChatMember(classId));
 
-        // Join notice: only alongside the join itself, even while the chat is closed.
-        allow create: if signedIn() &&
-          request.resource.data.keys().hasOnly(['kind', 'text', 'senderId', 'senderName', 'role', 'sentAt']) &&
-          request.resource.data.kind == "join" &&
-          request.resource.data.text == "" &&
-          request.resource.data.role == "student" &&
-          request.resource.data.senderId == request.auth.uid &&
-          request.resource.data.sentAt == request.time &&
-          joiningNow(classId) &&
-          request.resource.data.senderName == rosterNameAfter(classId);
+        // Join notices are written by the approval API in the enrollment transaction.
 
         allow create: if signedIn() &&
           request.resource.data.keys().hasOnly(['text', 'senderId', 'senderName', 'role', 'sentAt']) &&
@@ -285,16 +271,6 @@ service cloud.firestore {
             request.resource.data.lastText.size() <= 300 &&
             chatOpen(classId) &&
             sentNow(classId)) ||
-          // A joining student updates the summary alongside their join notice.
-          ((resource == null
-              ? request.resource.data.keys().hasOnly(['lastAt', 'lastText', 'lastSenderName', 'lastRole'])
-              : request.resource.data.diff(resource.data).affectedKeys()
-                  .hasOnly(['lastAt', 'lastText', 'lastSenderName', 'lastRole'])) &&
-            request.resource.data.lastAt == request.time &&
-            request.resource.data.lastRole == "join" &&
-            request.resource.data.lastText == "" &&
-            joiningNow(classId) &&
-            request.resource.data.lastSenderName == rosterNameAfter(classId)) ||
           // A student deleting their own newest message (within the 5 minutes they can) blanks its text, so the teacher's class list says "Message removed".
           (isChatMember(classId) && resource != null &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText']) &&
@@ -323,13 +299,9 @@ service cloud.firestore {
       match /classLessons/{lessonId} {
         allow read: if signedIn() &&
           (isAdmin() ||
-           get(/databases/$(database)/documents/classes/$(classId))
-             .data.teacherId == request.auth.uid ||
-           exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)));
+           teachesClass(classId) || isClassMember(classId));
 
-        allow write: if signedIn() &&
-          get(/databases/$(database)/documents/classes/$(classId))
-            .data.teacherId == request.auth.uid;
+        allow write: if teachesClass(classId);
       }
     }
 

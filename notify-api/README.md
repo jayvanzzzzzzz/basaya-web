@@ -4,9 +4,12 @@ The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 
 | Endpoint | Who can call it | What it does |
 |---|---|---|
+| `POST /api/assessment` | approved student | Serves content without answer keys; accepts answers/audio and derives scores, completion and skill summaries on the server. See [assessment validation and rollout](../audit/ASSESSMENT-VALIDATION.md). |
+| `POST /api/join-class` | student | Validates `{ code }`, rate-limits guesses, and creates a pending request. Does not enroll the student. |
+| `POST /api/review-join-requests` | the class's teacher | Reviews `{ classId, requests: [{ studentId, requestId, progressMode? }], action: "approve" or "decline" }`. For returning students, `progressMode` is `"restore"` (default) or `"fresh"`. Up to 50 decisions per call, each in its own transaction. |
 | `POST /api/notify-lesson` | the class's teacher | Sends the "new lesson" push notification to the FCM topic `class_<classId>`. The Android app subscribes to that topic when the student opens the Home screen. |
 | `POST /api/notify-deadline` | the class's teacher | Tells the class a lesson's deadline was extended: saves it to the notification list and sends a `deadline_extended` push to `class_<classId>`. |
-| `POST /api/remove-student` | the class's teacher | Removes a student from a class, with their progress for its lessons. |
+| `POST /api/remove-student` | the class's teacher | Archives accepted progress and removes active membership atomically. Rejoining the same class can restore it. |
 | `POST /api/remove-class-lesson` | the class's teacher | Takes a lesson out of a class and deletes every student's progress on it, so adding it back starts fresh. |
 | `POST /api/delete-class` | admin | Deletes a class with its roster, lessons and every student's progress. |
 | `POST /api/send-password-reset` | admin | Emails a teacher or student a BaSaya-branded password reset link. The link opens `reset-password.html` on the website. |
@@ -18,6 +21,36 @@ The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 
 Signed-in calls send `Authorization: Bearer <Firebase ID token>`. Email templates are in `lib/emails.js`.
 
+Membership URLs are routed by `vercel.json` to `api/class-membership.js`. The previous
+`/api/remove-student` URL is preserved; its implementation is now in `handlers/remove-student.js`.
+Join requests, reviews, and removal share one function, keeping the API at 12 functions.
+The grouped function has a 60-second maximum duration for bulk decisions. Routing follows
+[Vercel rewrites](https://vercel.com/docs/routing/rewrites), within the documented
+[plain-function hosting limit](https://vercel.com/docs/functions/runtimes).
+
+Requests live in `classes/{classId}/joinRequests/{studentId}` and a protected
+`users/{uid}.joinRequest` pointer. A pending request grants no roster, lesson or chat access.
+Only approval creates the roster and profile link, with one join notice. Fresh records use
+server-time `joinedAt`; restored records retain their original join date.
+The current request's `requestId` is required to prevent decisions from stale browser tabs.
+The server sets `hasPreviousProgress` only when this class has an archived record with saved work.
+The teacher sees restoration choices only for those requests. A restore retains completion,
+scores, resume positions and the progress-session token. An explicit fresh start uses a new
+token, leaving previous snapshots intact. Another class always uses its own record.
+Immutable snapshots live at `users/{uid}/classProgress/{classId}/archives/{archiveId}` with
+lesson documents in `lessons/{lessonId}`. `assignedLessons` remains the active projection
+for existing reports. History is readable by the student, the owning class teacher and admins;
+only the API can write it. No school-year field is used. Already-deleted results cannot be recovered.
+Existing approved members (profile link plus roster entry) retain access. Deleting a class
+closes enrollment before loading its roster and clears its pending requests.
+
+Code guesses are limited to 20 per student per hour. Optionally add a Firestore TTL policy
+on `joinRequestLimits.expiresAt` to remove expired counters. Client access to these counters
+is denied by the rules. Chat topic pushes contain a generic notice; private chat text stays
+behind Firestore membership checks.
+
+Rollout and local validation are documented in `../audit/PHASE-2-APPROVALS.md`.
+
 ## Deploy (one time)
 
 1. **Service account key:** Firebase Console → Project settings → Service accounts → *Generate new private key*. Keep the file private and never commit it.
@@ -26,7 +59,7 @@ Signed-in calls send `Authorization: Bearer <Firebase ID token>`. Email template
    | Name | Value |
    |---|---|
    | `FIREBASE_SERVICE_ACCOUNT` | the whole content of the JSON key file |
-   | `ALLOWED_ORIGINS` | where the website runs, comma-separated, e.g. `http://localhost,https://basaya.onrender.com` |
+   | `ALLOWED_ORIGINS` | deployed website origins, comma-separated, e.g. `https://basaya.onrender.com`. `http://localhost` and `http://127.0.0.1` are always included; add local origins with other ports explicitly. |
    | `NOTIFY_TIME_ZONE` | optional, default `Asia/Manila` |
    | `GMAIL_USER` | the Gmail address that sends BaSaya's emails, e.g. `adminbasaya@gmail.com` |
    | `GMAIL_APP_PASSWORD` | that account's 16-letter App Password, without spaces (see below) |

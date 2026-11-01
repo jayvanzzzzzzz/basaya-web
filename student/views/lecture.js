@@ -6,12 +6,14 @@ import {
   loadLecture,
   loadLessonProgress,
   resumeOf,
+  student,
   saveProgress,
   saveResume,
 } from "../data.js";
 import { audioSource, downloadPageAudio, lecturePlayer } from "../lectureAudio.js";
 import { fillSentence, followAlong } from "../readAlong.js";
 import { onLeave } from "../router.js";
+import { lectureSaves } from "../lectureSaves.js";
 import { content, icon, setTalking as moveMouth, showDialog, talkingBuddy } from "../ui.js";
 
 // The lecture (the app's LectureActivity): tap to reveal each sentence while the talking
@@ -147,6 +149,21 @@ export async function renderLecture(lessonId) {
   let stopReadAlong = () => {};
   let autoPlay = false;
   let autoTimer = 0;
+  let active = true;
+  let saveWarning = false;
+  const pageSaves = lectureSaves({
+    done: startPage, total: lecture.pages.length,
+    key: JSON.stringify(["basaya.lectureSaves", student.uid, student.profile.classId,
+      student.profile.progressSession, lessonId, lesson.contentVersion]),
+    save: done => saveResume(lessonId, "lecture", { done, total: lecture.pages.length }),
+    onError: () => {
+      if (active && !saveWarning) toast("Hindi pa na-save ang pahina. Susubukan muli kapag kumonekta o pinindot ang Tapusin.");
+      saveWarning = true;
+    },
+  });
+  const retryPages = () => { if (tracking && !lesson.practice) pageSaves.retry(); };
+  window.addEventListener("online", retryPages);
+  if (navigator.onLine && tracking && !lesson.practice) pageSaves.retry();
 
   /** While auto-play is on, reads the next sentence (or turns the page) after `delay`. */
   const autoNext = (delay) => {
@@ -191,11 +208,13 @@ export async function renderLecture(lessonId) {
     endReadAlong();
   };
   onLeave(() => {
+    active = false;
     clearTimeout(autoTimer);
     stopAudio();
     listeners.abort();
     player.removeAttribute("src");
     document.removeEventListener("keydown", onKey);
+    window.removeEventListener("online", retryPages);
   });
 
   const play = (index) => {
@@ -255,10 +274,11 @@ export async function renderLecture(lessonId) {
   };
 
   const nextPage = () => {
+    if (saving) return;
     if (pageIndex < lecture.pages.length - 1) {
-      if (tracking && availability(lesson) === "open")
-        saveResume(lessonId, "lecture", { done: pageIndex + 1, total: lecture.pages.length });
-      showPage(pageIndex + 1);
+      const done = pageIndex + 1;
+      showPage(done);
+      if (tracking && !lesson.practice && availability(lesson) === "open") pageSaves.advance(done);
     } else {
       finish();
     }
@@ -286,8 +306,14 @@ export async function renderLecture(lessonId) {
     stopAudio();
     nextButton.disabled = true;
     try {
-      if (availability(lesson) === "open")
+      if (navigator.onLine && availability(lesson) === "open") {
+        if (tracking && !lesson.practice) {
+          pageSaves.advance(lecture.pages.length);
+          await pageSaves.flush();
+        }
         await saveProgress(lessonId, { lectureFinished: true, ...clearResume("lecture") });
+      }
+      if (!navigator.onLine && tracking) toast("Nabasa mo ang aralin. Kumonekta at balikan ito upang maitala ang iyong progreso.");
     } catch (error) {
       console.error("Failed to mark lecture finished", error);
       toast("Hindi na-save ang iyong progreso. Subukan muli.");
@@ -295,7 +321,7 @@ export async function renderLecture(lessonId) {
       saving = false;
       return;
     }
-    navigate(pathUrl);
+    if (active) navigate(pathUrl);
   };
 
   const confirmClose = async () => {

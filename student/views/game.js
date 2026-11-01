@@ -1,19 +1,18 @@
-import { increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import { buildCrossword } from "../../admin/views/gameLevels.js";
 import {
   student,
   availability,
   clearResume,
+  assessmentRequest,
   findLesson,
   loadGameLevels,
   loadLessonProgress,
-  refreshSummary,
   saveProgress,
-  saveResume,
 } from "../data.js";
 import { onLeave } from "../router.js";
 import { buddy, confetti, content, icon } from "../ui.js";
+import { gameSaves, gameSaveScope } from "../gameSync.js";
 
 // Laro (the app's CrosswordActivity): swipe across the letter wheel to spell the words
 // that fill the crossword. One level at a time; each finished level is saved like the app:
@@ -24,6 +23,7 @@ import { buddy, confetti, content, icon } from "../ui.js";
 /** One color per found word (the app's CandyTile.PALETTE). */
 const PALETTE = ["#f25c54", "#4f7cec", "#14a396", "#8e5cf0", "#e46f0e", "#e8508f", "#2fa84f"];
 const LIPS = ["#c9413a", "#3559c2", "#0c7c72", "#6c3fc8", "#b95606", "#be3570", "#1f8139"];
+let disposeGameView = null;
 
 const normalize = (word) => word.trim().toUpperCase();
 
@@ -48,7 +48,7 @@ function shuffle(list) {
 }
 
 // Words found mid-level stay on this device, like the app keeps them on the phone.
-const foundKey = (lessonId, level) => `basaya.crossword.${student.uid}.${lessonId}.${level}`;
+const foundKey = (lessonId, level) => `basaya.crossword.${student.uid}.${student.profile.progressSession || "legacy"}.${lessonId}.${level}`;
 function loadFound(lessonId, level) {
   try {
     return JSON.parse(localStorage.getItem(foundKey(lessonId, level)) || "[]");
@@ -56,44 +56,82 @@ function loadFound(lessonId, level) {
     return [];
   }
 }
-function saveFound(lessonId, level, words) {
+function saveFound(lessonId, level, words, key = foundKey(lessonId, level)) {
   try {
-    if (words.length) localStorage.setItem(foundKey(lessonId, level), JSON.stringify(words));
-    else localStorage.removeItem(foundKey(lessonId, level));
+    if (words.length) localStorage.setItem(key, JSON.stringify(words));
+    else localStorage.removeItem(key);
   } catch {
     // Private mode: found words are only kept while the page is open.
   }
 }
 
 export async function renderGame(lessonId) {
+  disposeGameView?.();
   const lesson = await findLesson(lessonId);
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
+  if (!navigator.onLine && !lesson.practice) { toast("Kumonekta upang masagutan at maitala ang laro."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.gameFinished || lesson.gameSkipped) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading st-focus-loading--sky"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
-  const [levels, progress] = await Promise.all([loadGameLevels(lessonId), loadLessonProgress(lessonId)]);
+  const [levels, progress] = await Promise.all([loadGameLevels(lessonId), lesson.practice
+    ? loadLessonProgress(lessonId) : assessmentRequest(lessonId, "begin", { part: "game" })]);
   if (!levels.length) {
     toast("Walang laro para sa araling ito.");
     return navigate(pathUrl);
   }
-  if (progress.gameFinished) return navigate(pathUrl);
+  if (progress.gameFinished || progress.finished) return navigate(pathUrl);
 
-  const maxLevel = Math.max(...levels.map((item) => item.level));
-  const levelNumber = Math.min((Number(progress.gameScore) || 0) + 1, maxLevel);
-  const level = levels.find((item) => item.level === levelNumber);
+  const levelIndex = lesson.practice
+    ? Math.min(Number(progress.gameScore) || 0, levels.length - 1)
+    : levels.findIndex(item => item.level === progress.level);
+  const level = levels[levelIndex];
   if (!level) {
     toast("May problema sa pag-load ng laro.");
     return navigate(pathUrl);
   }
-  playLevel({ lessonId, pathUrl, level, levels, lessonTitle: lesson.title });
+  const savedGame = lesson.practice ? progress.resume?.game : progress.resume;
+  let saveContext = null;
+  if (!lesson.practice) {
+    if (!progress.attemptId) {
+      toast("Hindi pa handa ang laro. I-refresh at subukang muli.");
+      return navigate(pathUrl);
+    }
+    saveContext = { ...gameSaveScope(), lessonId, level: level.level, attemptId: progress.attemptId };
+    const accepted = savedGame?.level === level.level && Array.isArray(savedGame.foundWords) ? savedGame.foundWords : [];
+    gameSaves.reconcile(saveContext, accepted);
+    saveFound(lessonId, level.level, accepted);
+  }
+  playLevel({ lessonId, pathUrl, level, levelIndex, levels, lessonTitle: lesson.title, saveContext });
 }
 
-function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
+function playLevel({ lessonId, pathUrl, level, levelIndex, levels, lessonTitle, saveContext }) {
+  disposeGameView?.();
   const words = level.words.map(normalize);
   const grid = buildCrossword(words);
   const found = new Set(loadFound(lessonId, level.level).map(normalize).filter((word) => words.includes(word)));
+  const accepted = new Set(found);
+  const pendingJobs = () => saveContext ? gameSaves.entries(saveContext) : [];
+  pendingJobs().filter(job => job.kind === "answer" && words.includes(job.word)).forEach(job => found.add(job.word));
+  const storageKey = foundKey(lessonId, level.level);
+  const practice = student.lessons.find(item => item.id === lessonId)?.practice;
+  let active = true;
   let completed = false;
+  const cleanups = [];
+  const dispose = () => {
+    active = false;
+    cleanups.splice(0).forEach(fn => fn());
+    if (disposeGameView === dispose) disposeGameView = null;
+  };
+  disposeGameView = dispose;
+  onLeave(dispose);
+  const recoverLevel = error => {
+    if (error.status !== 409 || !["Refresh the current crossword level.", "This crossword attempt changed. Reopen the game."].includes(error.message)) return false;
+    active = false;
+    toast("Nagbago ang kasalukuyang antas. Buksan muli ang laro upang ituloy ang naitalang progreso.");
+    navigate(pathUrl);
+    return true;
+  };
 
   content().innerHTML = `
     <section class="st-game">
@@ -102,13 +140,16 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
       <span class="st-game__cloud st-game__cloud--two" aria-hidden="true"></span>
       <header class="st-focus-bar st-game__bar">
         <a class="st-icon-button" href="#${pathUrl}" aria-label="Bumalik">${icon("back")}</a>
-        <span class="st-game__level">Antas ${level.level}</span>
+        <span class="st-game__level">Antas ${levelIndex + 1}</span>
         <span class="st-game__progress" id="game-progress" role="status"></span>
       </header>
       <div class="st-game__board" id="game-board">
         <div class="st-game__grid" id="game-grid" style="--rows:${grid.rows};--columns:${grid.columns}"></div>
       </div>
-      <div class="st-game__preview-row"><span class="st-game__preview" id="game-preview" aria-live="polite"></span></div>
+      <div class="st-game__preview-row">
+        <span class="st-game__preview" id="game-preview" aria-live="polite"></span>
+        <button class="button secondary" id="game-retry" type="button" hidden>Subukan muli</button>
+      </div>
       <div class="st-game__wheel-wrap">
         <div class="st-game__wheel" id="game-wheel" role="group" aria-label="Mga titik: idaan ang daliri sa mga titik para bumuo ng salita">
           <svg class="st-game__line" id="game-line" aria-hidden="true"><polyline points="" /></svg>
@@ -158,8 +199,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
           cell.el.classList.add("is-pop");
         }
       };
-      if (animate) setTimeout(paint, i * 80);
-      else paint();
+      paint();
     });
   };
   words.forEach((word, wordIndex) => found.has(word) && fillWord(wordIndex, false));
@@ -185,6 +225,14 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
     }
   };
   updateProgress(false);
+
+  const updateSaving = () => {
+    if (!active) return;
+    const jobs = pendingJobs();
+    const failed = jobs.some(item => item.error);
+    $("#game-retry").hidden = !failed;
+    gridEl.setAttribute("aria-busy", String(jobs.length > 0));
+  };
 
   // Wheel
   const wheel = $("#game-wheel");
@@ -293,6 +341,8 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
       showPreview(word, "error");
       setTimeout(() => showPreview(""), 600);
     } else if (found.has(word)) {
+      if (pendingJobs().some(job => job.word === word && job.error)) retryWords();
+      else if (words.every(item => found.has(item))) finishLevel();
       showPreview("");
       wordCells[wordIndex].forEach((cell, i) => {
         cell.el.classList.remove("is-pop");
@@ -332,47 +382,56 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
   });
 
   // Finding words
-  const onWordFound = async (word, wordIndex) => {
+  const retryWords = () => {
+    if (!active) return;
+    if (!practice) gameSaves.retry(saveContext);
+    if (words.every(item => found.has(item))) finishLevel();
+  };
+  $("#game-retry").addEventListener("click", retryWords);
+
+  const onWordFound = (word, wordIndex) => {
+    if (!practice) {
+      try { gameSaves.enqueue({ ...saveContext, kind: "answer", word, eventId: crypto.randomUUID() }); }
+      catch (error) { toast(error.message || "Hindi ma-save sa device. Subukan muli."); return; }
+    } else {
+      accepted.add(word);
+      saveFound(lessonId, level.level, [...accepted], storageKey);
+    }
     found.add(word);
-    saveFound(lessonId, level.level, [...found]);
-    if (found.size < words.length)
-      saveResume(lessonId, "game", { done: found.size, total: words.length, level: level.level });
     showPreview(word, "success");
-    setTimeout(() => showPreview(""), 700);
+    setTimeout(() => { if (active) showPreview(""); }, 700);
     const box = preview.getBoundingClientRect();
     confetti({ count: 24, x: box.left + box.width / 2, y: box.top + box.height / 2 });
     fillWord(wordIndex, true);
     updateProgress(true);
+    updateSaving();
+    if (words.every(item => found.has(item))) finishLevel();
+  };
 
-    if (completed || !words.every((item) => found.has(item))) return;
+  const showComplete = () => {
+    if (!active) return;
     completed = true;
-    setTimeout(() => {
-      $$(".st-cell", gridEl).forEach((cell) => cell.classList.add("is-cheer"));
-      confetti({ count: 140 });
-    }, 500);
-
+    saveFound(lessonId, level.level, [], storageKey);
+    $$(".st-cell", gridEl).forEach(cell => cell.classList.add("is-cheer"));
+    dispose();
+    showLevelComplete({ lessonId, pathUrl, levelNumber: levelIndex + 1, total: levels.length, lessonTitle });
+  };
+  const finishLevel = async () => {
+    if (!active || completed || !words.every(item => found.has(item))) return;
     const total = levels.length;
     try {
-      await saveProgress(lessonId, {
-        gameScore: level.level,
-        gameTotal: total,
-        gameFinished: level.level >= total,
-        gameCompletedAt: serverTimestamp(),
-        ...clearResume("game"),
-        // Talasalitaan: levels add up (the app's SkillProgressRepository.addCrosswordLevel).
-        skills: {
-          talasalitaan: {
-            correct: increment(words.length),
-            attempts: increment(words.length),
-            items: increment(words.length),
-            levels: increment(1),
-            completedAt: serverTimestamp(),
-          },
-        },
-      });
-      saveFound(lessonId, level.level, []);
-      refreshSummary();
+      if (practice) {
+        await saveProgress(lessonId, { gameScore: levelIndex + 1, gameLevel: level.level,
+          gameFinished: levelIndex + 1 >= total, ...clearResume("game") });
+        showComplete();
+      } else {
+        gameSaves.enqueue({ ...saveContext, kind: "finish", words: [...found], eventId: crypto.randomUUID() });
+        completed = true;
+        $$(".st-cell", gridEl).forEach(cell => cell.classList.add("is-cheer"));
+        updateSaving();
+      }
     } catch (error) {
+      if (recoverLevel(error)) return;
       console.error("Failed to save game progress", error);
       toast(
         error?.code === "permission-denied"
@@ -380,12 +439,29 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
           : "Hindi na-save ang laro. Subukan muli.",
       );
       completed = false;
+      if (active) $("#game-retry").hidden = false;
       return;
     }
-    setTimeout(() => {
-      if ($("#game-grid")) showLevelComplete({ lessonId, pathUrl, levelNumber: level.level, total, lessonTitle });
-    }, 2000);
   };
+
+  if (!practice) cleanups.push(gameSaves.subscribe(event => {
+    if (!active) return;
+    const job = event.job;
+    if (job && (job.uid !== saveContext.uid || job.classId !== saveContext.classId ||
+        job.progressSession !== saveContext.progressSession || job.lessonId !== lessonId ||
+        job.level !== level.level || job.attemptId !== saveContext.attemptId)) return;
+    if (event.type === "saved" && job.kind === "answer") {
+      accepted.add(job.word);
+      saveFound(lessonId, level.level, [...accepted], storageKey);
+    } else if (event.type === "saved" && job.kind === "finish") showComplete();
+    else if (event.type === "error" && !recoverLevel(event.error) && event.error.status && event.error.status < 500)
+      toast(event.error.message);
+    else if (event.type === "storage-error") toast("Hindi ma-save sa device. Subukan muli.");
+    updateSaving();
+  }));
+  updateSaving();
+  // Reopening after Back/restart restores pending words and any finalization.
+  if (words.every(item => found.has(item))) finishLevel();
 
   // Fit to the screen
   const onResize = () => {
@@ -394,7 +470,7 @@ function playLevel({ lessonId, pathUrl, level, levels, lessonTitle }) {
     drawLine();
   };
   window.addEventListener("resize", onResize);
-  onLeave(() => window.removeEventListener("resize", onResize));
+  cleanups.push(() => window.removeEventListener("resize", onResize));
   requestAnimationFrame(onResize);
   fitBoard();
 }

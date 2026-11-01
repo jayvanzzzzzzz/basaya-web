@@ -4,11 +4,14 @@ import {
   firstName,
   loadClassLessons,
   loadClassProgressDocs,
-  saveSummary,
   scoredLessons,
   scoredResults,
 } from "../data.js";
 import { buddy, content, icon, stars } from "../ui.js";
+import { onLeave } from "../router.js";
+import { student } from "../data.js";
+
+let lastView = null;
 
 // "Aking Progreso" (the app's ProgressFragment): five separate skill cards, never one
 // combined grade. Uses the same scoring as the app and the teacher's reports (js/scoring.js).
@@ -123,18 +126,25 @@ function hardWords(docs) {
 }
 
 export async function renderProgress() {
+  let active = true;
+  const scope = JSON.stringify([student.uid, student.profile.classId, student.profile.progressSession]);
+  const current = () => active && scope === JSON.stringify([student.uid, student.profile.classId, student.profile.progressSession]);
+  onLeave(() => { active = false; });
   content().innerHTML = `
     <section class="st-progress">
       <header class="st-progress__title">
         <h1>Aking Progreso</h1>
         <p>Tingnan kung gaano ka na kagaling sa bawat kasanayan!</p>
       </header>
-      <div id="progress-body"><div class="st-loading"><span></span><span></span><span></span></div></div>
+      <div id="progress-body">${lastView?.scope === scope ? lastView.html : '<div class="st-loading"><span></span><span></span><span></span></div>'}</div>
     </section>`;
 
   await loadClassLessons();
+  if (!current()) return;
   const docs = await loadClassProgressDocs();
+  if (!current()) return;
   const summary = summarize(await scoredResults(docs));
+  if (!current()) return;
 
   // Practice lessons save nothing, so they are left out of every count here.
   const lessons = scoredLessons();
@@ -198,6 +208,5 @@ export async function renderProgress() {
         : ""
     }`;
 
-  // Keep the saved summary (read by the teacher's reports) in step with what the student sees.
-  saveSummary(summary).catch((error) => console.warn("Could not save skill summary", error));
+  lastView = { scope, html: $("#progress-body").innerHTML };
 }

@@ -520,12 +520,15 @@ body:has(.st-focus-loading--sky) {
   animation: stStarPop 300ms var(--ease-spring);
 }
 
+#game-retry { margin-left: 8px; font-size: 0.75rem; padding: 6px 10px; }
+
 .st-cell.is-cheer {
   animation: stHop 0.9s var(--ease-spring) 2;
   animation-delay: calc(var(--i) * 45ms);
 }
 
 .st-game__preview-row {
+  position: relative;
   display: grid;
   min-height: 2.75rem;
   place-items: center;

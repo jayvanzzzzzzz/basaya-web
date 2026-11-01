@@ -1,17 +1,17 @@
 import { adminAuth, db } from "./firebase.js";
 
-// Shared by the API endpoints: CORS for the teacher site, and who is calling.
+// Shared by the API endpoints: CORS for the web portals, and who is calling.
 
 export const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
-/** Lets the teacher site (ALLOWED_ORIGINS) call the API from the browser. */
+/** Allows the local XAMPP site plus deployed sites listed in ALLOWED_ORIGINS. */
 export function allowCors(req, res) {
   const allowed = (process.env.ALLOWED_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
   const origin = req.headers.origin;
-  if (origin && allowed.includes(origin)) {
+  if (origin && ["http://localhost", "http://127.0.0.1", ...allowed].includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");

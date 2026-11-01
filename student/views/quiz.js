@@ -5,13 +5,15 @@ import {
   findLesson,
   loadLessonProgress,
   loadQuiz,
-  refreshSummary,
   saveProgress,
   resumeOf,
-  saveResume,
   clearResume,
+  submitAnswer,
+  assessmentRequest,
+  student,
 } from "../data.js";
-import { onLeave } from "../router.js";
+import { beforeLeave, onLeave } from "../router.js";
+import { confirmQuizExit } from "../quizExitDialog.js";
 import { content, icon } from "../ui.js";
 import { renderResults } from "./results.js";
 
@@ -19,12 +21,11 @@ import { renderResults } from "./results.js";
 // track, and a question is right only when exactly the correct choice(s) were picked.
 // Opens only after the lecture. Saves the Pagsusulit skill. The questions and each question's
 // choices come in a new random order every time. An answer is final once "Susunod" is pressed:
-// it's saved in resume.quiz, so closing continues with the questions not answered yet, and at
-// the deadline the answered ones count as given and the rest as wrong (js/scoring.js withMissed).
+// the server saves it in resume.quiz. Confirming an exit abandons the unfinished attempt;
+// opening the quiz again starts from question one. Submitted results remain locked.
 //   resume.quiz = { done, total, score, answered: [question index as stored], missed: [question text] }
 
 const LETTERS = "ABCDEFGH";
-const sameSet = (a, b) => a.size === b.size && [...a].every((value) => b.has(value));
 
 function shuffle(list) {
   const copy = [...list];
@@ -42,6 +43,7 @@ function shuffleQuiz(questions) {
     return {
       ...question,
       choices: order.map((i) => question.choices[i]),
+      choiceOrder: order,
       correct: new Set([...question.correct].map((i) => order.indexOf(i))),
     };
   });
@@ -51,6 +53,7 @@ export async function renderQuiz(lessonId) {
   const lesson = await findLesson(lessonId);
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
+  if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang pagsusulit."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.quizFinished) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading st-focus-loading--space"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
@@ -65,9 +68,10 @@ export async function renderQuiz(lessonId) {
     toast("Walang pagsusulit para sa araling ito.");
     return navigate(pathUrl);
   }
-  // Where the student stopped: only the questions not answered yet are asked.
+  // Recover an interrupted connection, but a confirmed exit clears this on the server.
   const total = quiz.questions.length;
-  const resume = resumeOf(progress, "quiz", total);
+  const attempt = lesson.practice ? null : await assessmentRequest(lessonId, "begin", { part: "quiz" });
+  const resume = attempt?.resume || resumeOf(progress, "quiz", total);
   const answered = new Set(
     (Array.isArray(resume?.answered) ? resume.answered : []).map(Number).filter((i) => i >= 0 && i < total),
   );
@@ -80,7 +84,7 @@ export async function renderQuiz(lessonId) {
   content().innerHTML = `
     <section class="st-quiz">
       <header class="st-focus-bar">
-        <a class="st-icon-button st-icon-button--light" href="#${pathUrl}" aria-label="Isara">${icon("close")}</a>
+        <button class="st-quiz__back" type="button" id="quiz-back" aria-label="Bumalik sa aralin">${icon("back")}<span>Bumalik</span></button>
         <span class="st-quiz__label">Pagsusulit</span>
       </header>
       ${quiz.title ? `<h1 class="st-quiz__title">${escapeHtml(quiz.title)}</h1>` : ""}
@@ -101,12 +105,41 @@ export async function renderQuiz(lessonId) {
 
   const choicesEl = $("#quiz-choices");
   const next = $("#quiz-next");
+  const back = $("#quiz-back");
   const answers = quiz.questions.map(() => new Set());
+  const accepted = quiz.questions.map(() => false);
+  const eventIds = quiz.questions.map(() => crypto.randomUUID());
   let index = 0;
   let saving = false;
-  onLeave(() => {});
+  let leaving = false;
+  let completed = false;
+  let pendingSave = Promise.resolve();
+  const enrollment = JSON.stringify([student.uid, student.profile.classId, student.profile.progressSession]);
+  const releaseGuard = beforeLeave(async () => {
+    if (completed || enrollment !== JSON.stringify([student.uid, student.profile.classId, student.profile.progressSession])) return true;
+    leaving = true;
+    back.disabled = true;
+    next.disabled = true;
+    try {
+      await pendingSave;
+      if (completed) return true;
+      if (!(await confirmQuizExit())) return false;
+      if (!lesson.practice) await assessmentRequest(lessonId, "abandon", { part: "quiz", attemptId: attempt.attemptId });
+      return true;
+    } catch (error) {
+      toast("Hindi makumpirma ang pag-alis. Kumonekta sa internet at subukan muli. Mananatili muna ang iyong mga sagot.");
+      return false;
+    } finally {
+      leaving = false;
+      back.disabled = false;
+      next.disabled = saving || !answers[index]?.size;
+      if (back.isConnected) back.focus();
+    }
+  });
+  onLeave(releaseGuard);
+  back.addEventListener("click", () => { if (!leaving) navigate(pathUrl); });
 
-  const isRight = (i) => sameSet(answers[i], quiz.questions[i].correct);
+  const isRight = (i) => accepted[i];
   /** Answers given so far, earlier sessions included, after `count` questions of this one. */
   const answeredAfter = (count) => {
     const asked = quiz.questions.slice(0, count);
@@ -155,7 +188,7 @@ export async function renderQuiz(lessonId) {
 
   choicesEl.addEventListener("click", (event) => {
     const button = event.target.closest("[data-choice]");
-    if (!button) return;
+    if (!button || saving || leaving) return;
     const choice = Number(button.dataset.choice);
     const picked = answers[index];
     if (quiz.questions[index].multiple) {
@@ -166,23 +199,29 @@ export async function renderQuiz(lessonId) {
       picked.clear();
       picked.add(choice);
     }
-    drawChoices();
-    choicesEl.querySelector(`[data-choice="${choice}"]`)?.focus();
+    choicesEl.querySelectorAll("[data-choice]").forEach((tile) => {
+      const selected = picked.has(Number(tile.dataset.choice));
+      tile.classList.toggle("is-picked", selected);
+      tile.setAttribute("aria-checked", String(selected));
+    });
+    next.disabled = picked.size === 0;
+    button.focus();
   });
 
   const finish = async () => {
     if (saving) return;
     saving = true;
     next.disabled = true;
-    const { score, missed } = answeredAfter(quiz.questions.length);
+    let { score, missed } = answeredAfter(quiz.questions.length);
     try {
-      await saveProgress(
+      const result = await saveProgress(
         lessonId,
         {
           quizFinished: true,
           quizScore: score,
           quizTotal: total,
           quizCompletedAt: serverTimestamp(),
+          attemptId: attempt?.attemptId,
           ...clearResume("quiz"),
         },
         {
@@ -194,7 +233,7 @@ export async function renderQuiz(lessonId) {
           extras: { missedQuestions: missed },
         },
       );
-      refreshSummary();
+      if (result) score = result.score;
     } catch (error) {
       console.error("Failed to save quiz result", error);
       toast(
@@ -207,6 +246,8 @@ export async function renderQuiz(lessonId) {
       return;
     }
 
+    completed = true;
+    releaseGuard();
     const percent = Math.floor((score * 100) / total);
     renderResults({
       lessonId,
@@ -231,17 +272,30 @@ export async function renderQuiz(lessonId) {
     });
   };
 
-  next.addEventListener("click", () => {
-    if (index < quiz.questions.length - 1) {
-      index += 1;
-      saveResume(lessonId, "quiz", { done: answered.size + index, total, ...answeredAfter(index) });
-      showQuestion();
-    } else {
-      finish();
+  const submitCurrent = async () => {
+    saving = true;
+    next.disabled = true;
+    try {
+      const before = earlierScore + accepted.slice(0, index).filter(Boolean).length;
+      const question = quiz.questions[index];
+      const result = await submitAnswer(lessonId, "quiz", { index: question.position,
+        selected: [...answers[index]].map(i => question.choiceOrder[i]), eventId: eventIds[index], ...(attempt ? { attemptId: attempt.attemptId } : {}) });
+      accepted[index] = lesson.practice ? result.right : result.score > before;
+      saving = false;
+      if (index < quiz.questions.length - 1) { index += 1; showQuestion(); }
+      else await finish();
+    } catch (error) {
+      saving = false;
+      next.disabled = false;
+      toast(error.message || "Hindi na-save ang sagot. Subukan muli.");
     }
+  };
+  next.addEventListener("click", () => {
+    if (saving || leaving) return;
+    pendingSave = submitCurrent();
   });
 
   // Every answer was saved but finishing wasn't: finish now.
   if (quiz.questions.length) showQuestion();
-  else finish();
+  else pendingSave = finish();
 }

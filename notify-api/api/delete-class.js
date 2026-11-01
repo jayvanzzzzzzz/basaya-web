@@ -33,8 +33,13 @@ export default async function handler(req, res) {
 
     const firestore = db();
     const classRef = firestore.doc(`classes/${classId}`);
-    const [classSnap, rosterSnap, linksSnap, feedSnap, membersSnap, ...chatSnaps] = await Promise.all([
-      classRef.get(),
+    const classSnap = await classRef.get();
+    if (!classSnap.exists) {
+      return res.status(404).json({ error: "This class no longer exists" });
+    }
+    // Freeze BEFORE reading the roster: an approval that just committed must be included.
+    await classRef.update({ membershipClosed: true });
+    const [rosterSnap, linksSnap, feedSnap, membersSnap, ...chatSnaps] = await Promise.all([
       classRef.collection("students").get(),
       classRef.collection("classLessons").get(),
       classRef.collection("notifications").get(),
@@ -44,8 +49,16 @@ export default async function handler(req, res) {
       classRef.collection("chat").get(),
       classRef.collection("chatSenders").get(),
     ]);
-    if (!classSnap.exists) {
-      return res.status(404).json({ error: "This class no longer exists" });
+    const requestsSnap = await classRef.collection("joinRequests").get();
+    for (const request of requestsSnap.docs) {
+      const userRef = firestore.doc(`users/${request.id}`);
+      await firestore.runTransaction(async (tx) => {
+        const user = await tx.get(userRef);
+        const pending = user.get("joinRequest");
+        if (pending?.classId === classId && pending.requestId === request.get("requestId") && pending.status === "pending") {
+          tx.update(userRef, { joinRequest: { ...pending, status: "declined", reason: "class-deleted", reviewedAt: FieldValue.serverTimestamp() } });
+        }
+      });
     }
 
     const lessonIds = [
@@ -67,12 +80,13 @@ export default async function handler(req, res) {
           batch.update(userRef, {
             classId: FieldValue.delete(),
             className: FieldValue.delete(),
+            progressSession: FieldValue.delete(),
             skillSummary: FieldValue.delete(),
           }),
         );
       }
     });
-    [rosterSnap, linksSnap, feedSnap, ...chatSnaps].forEach((snap) =>
+    [rosterSnap, linksSnap, feedSnap, requestsSnap, ...chatSnaps].forEach((snap) =>
       snap.docs.forEach((item) => writes.push((batch) => batch.delete(item.ref))),
     );
     // The class itself goes last, so a failure part-way leaves it visible to retry.

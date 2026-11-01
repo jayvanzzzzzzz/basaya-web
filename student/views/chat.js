@@ -132,6 +132,8 @@ function messageHtml(message, previous, delivery) {
 // The page
 
 export async function renderChat() {
+  let active = true;
+  onLeave(() => { active = false; });
   const id = classId();
   if (!id) {
     content().innerHTML = `
@@ -146,6 +148,7 @@ export async function renderChat() {
 
   setBadge(false);
   const [name, teacher] = await Promise.all([rosterName(id, student.uid), loadClassTeacher(id)]);
+  if (!active || id !== classId()) return;
   myRosterName = name;
   classTeacher = teacher;
   const className = student.profile.className || "Klase";

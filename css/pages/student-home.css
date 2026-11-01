@@ -427,3 +427,34 @@
 #home-cancel-download-all[hidden] { display: none; }
 .st-sync-status { margin: 0; padding: .7rem 1rem; background: #fff1bd; color: #493807; font-size: .85rem; text-align: center; position: sticky; top: 0; z-index: 50; }
 .st-sync-status[hidden] { display: none; }
+
+/* Pending class membership: an understated status card with a clear way home. */
+.st-join--pending { width: min(100%, 600px); margin: 0 auto; padding: 1.5rem 0 2rem; }
+.st-join-pending__header { position: relative; padding: 1rem 1.5rem 1.6rem; text-align: left; }
+.st-join-pending__mark { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 1.2rem; border: 1px solid var(--border-strong); border-radius: 15px; background: var(--primary-soft); color: var(--primary); }
+.st-join-pending__mark svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.st-join-pending__close { position: absolute; top: 1rem; right: 1.5rem; }
+.st-join-pending__header .st-join-pending__eyebrow { margin: 0 0 .6rem; color: var(--primary-strong); font-size: .65rem; font-weight: 700; letter-spacing: .14em; }
+.st-join-pending__header h1 { margin: 0; color: var(--ink); font-size: clamp(1.45rem, 4.5vw, 1.9rem); font-weight: 600; line-height: 1.35; letter-spacing: -.025em; }
+.st-join-pending__header > p:last-child { margin: .65rem 0 0; color: var(--ink-2); font-size: .85rem; line-height: 1.7; }
+.st-join-pending__card { margin-inline: 1.5rem; padding: 1.5rem; border: 1px solid var(--border-strong); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.st-join-pending__card-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .6rem; color: var(--ink-3); font-size: .73rem; }
+.st-join-pending__badge { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .6rem; border-radius: 6px; background: var(--warning-soft); color: var(--warning); font-size: .66rem; font-weight: 600; }
+.st-join-pending__badge i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.st-join-pending__card h2 { margin: 1rem 0 .65rem; color: var(--ink); font-size: 1.2rem; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.st-join-pending__card > p:not(.st-join-pending__status) { margin: 0; color: var(--ink-2); font-size: .8rem; line-height: 1.8; }
+.st-join-pending__note { display: flex; align-items: flex-start; gap: .55rem; margin-block: 1.3rem; padding-block: 1rem; border-block: 1px solid var(--border); color: var(--ink-3); font-size: .71rem; line-height: 1.75; }
+.st-join-pending__note svg { flex: 0 0 17px; width: 17px; height: 17px; margin-top: .1rem; padding: 2px; border: 1px solid currentColor; border-radius: 50%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.st-join-pending__actions { display: flex; align-items: stretch; gap: .65rem; }
+.st-join-pending__home.button { display: inline-flex; align-items: center; justify-content: center; flex: 1; gap: .55rem; min-height: 46px; padding: .8rem 1rem; border-radius: 10px; font-size: .78rem; box-shadow: none; }
+.st-join-pending__home svg { flex: 0 0 18px; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.st-join-pending__refresh.st-icon-button { flex: 0 0 46px; width: 46px; height: auto; min-height: 46px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--ink-2); box-shadow: none; }
+.st-join-pending__refresh:hover { background: var(--primary-soft); color: var(--primary); }
+.st-join-pending__refresh:disabled { opacity: .55; cursor: progress; }
+.st-join-pending__refresh[aria-busy="true"] svg { animation: st-pending-refresh .85s linear infinite; }
+.st-join-pending__refresh:focus-visible, .st-join-pending__home:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 3px; }
+.st-join-pending__status { margin: .85rem 0 0; color: var(--ink-2); font-size: .73rem; line-height: 1.7; }
+.st-join-pending__status:empty { display: none; }
+@keyframes st-pending-refresh { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .st-join-pending__refresh[aria-busy="true"] svg { animation: none; } }
+@media (max-width: 420px) { .st-join--pending { padding-top: .5rem; } .st-join-pending__header { padding-inline: 1rem; } .st-join-pending__close { right: 1rem; } .st-join-pending__card { margin-inline: 1rem; padding: 1.1rem; } .st-join-pending__home.button { padding-inline: .65rem; font-size: .73rem; } }

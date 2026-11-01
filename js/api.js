@@ -5,11 +5,12 @@ import { notifyApiUrl } from "../firebase-config.js";
 // Calls the BaSaya API on Vercel (notify-api/), as the signed-in user when there is one.
 
 /** POSTs `body` to `/api/<path>`. Throws with the server's message on failure. */
-export async function postToApi(path, body) {
+export async function postToApi(path, body, { signal } = {}) {
   if (!notifyApiUrl) throw new Error("the BaSaya API is not set up yet");
   const token = await auth.currentUser?.getIdToken();
   const response = await fetch(`${notifyApiUrl.replace(/\/+$/, "")}/api/${path}`, {
     method: "POST",
+    ...(signal ? { signal } : {}),
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -17,16 +18,25 @@ export async function postToApi(path, body) {
     body: JSON.stringify(body),
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || `server error (${response.status})`);
+  if (!response.ok) {
+    const error = new Error(result.error || `server error (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
   return result;
 }
 
 /** Admin only: deletes a class with its roster, lessons and every student's progress. */
 export const deleteClass = (classId) => postToApi("delete-class", { classId });
 
-/** Removes a student from the class, with their progress for its lessons. */
+/** Archives accepted progress, then removes active class membership. */
 export const removeStudent = (classId, studentId) =>
   postToApi("remove-student", { classId, studentId });
+
+/** A valid code creates a pending request; only the teacher can enroll the student. */
+export const requestClassJoin = (code) => postToApi("join-class", { code });
+export const reviewJoinRequests = (classId, requests, action) =>
+  postToApi("review-join-requests", { classId, requests, action });
 
 /** Takes a lesson out of the class, with every student's progress on it. */
 export const removeClassLesson = (classId, lessonId) =>

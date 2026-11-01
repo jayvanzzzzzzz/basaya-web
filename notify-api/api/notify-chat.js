@@ -10,7 +10,6 @@ import { ID_PATTERN, allowCors, requireUser } from "../lib/http.js";
 // so phones aren't flooded. The Android app shows it unless the chat is already open.
 
 const FRESH_MS = 2 * 60 * 1000;
-const PREVIEW = 140;
 
 export default async function handler(req, res) {
   allowCors(req, res);
@@ -46,16 +45,16 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: "Already sent or too old" });
     }
 
-    const className = classSnap.get("className") || "Klase";
-    const text = String(message.text || "");
+    // Topic subscriptions are not authorization. Keep private message text in Firestore,
+    // where approved membership is checked, rather than broadcasting it in the push.
     await messaging().send({
       topic: `class_${classId}`,
       data: {
         type: "chat_message",
         classId,
         messageId,
-        title: `💬 ${className}`,
-        body: `${message.senderName || "Guro"}: ${text.length > PREVIEW ? `${text.slice(0, PREVIEW - 1)}…` : text}`,
+        title: "BaSaya · Mensahe sa klase",
+        body: "May bagong mensahe ang iyong guro. Buksan ang iyong klase para basahin ito.",
         sentAt: String(sentAt),
       },
       android: { priority: "high" },

@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 .vercel/
+audit/npm-cache/
+audit/android-join-approval/
+audit/android-class-progress/

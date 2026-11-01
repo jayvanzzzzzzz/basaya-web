@@ -28,6 +28,11 @@ function acknowledged(document, fields) {
 }
 function paint() {
   let banner = document.getElementById("st-sync-status");
+  // Pending answers save silently; show this banner only for offline/errors.
+  if (navigator.onLine && !failure) {
+    banner?.remove();
+    return;
+  }
   if (!banner) {
     banner = document.createElement("p");
     banner.id = "st-sync-status";
@@ -35,10 +40,10 @@ function paint() {
     banner.setAttribute("role", "status");
     document.getElementById("app-view")?.prepend(banner);
   }
-  banner.hidden = navigator.onLine && !pending && !failure;
+  banner.hidden = navigator.onLine && !failure;
   banner.textContent = failure || (!navigator.onLine
-    ? "Offline • Mga na-download na aralin lamang. Kumonekta bago ang deadline para maipasa ang mga sagot."
-    : "Ipinapadala ang mga sagot… Huwag munang mag-sign out.");
+    ? "Offline • Maaari mong basahin ang na-download na aralin. Kumonekta bago ang deadline upang masagutan at maitala ang assessment."
+    : "");
   if (failure) {
     const dismiss = document.createElement("button");
     dismiss.type = "button";
@@ -62,16 +67,15 @@ export function watchSync(uid, reference, onSynced = () => {}) {
     pending = snap.metadata.hasPendingWrites;
     if (!snap.metadata.fromCache && !pending) {
       const saved = receipts(uid);
-      let received = false;
       for (const [id, fields] of Object.entries(saved)) {
         if (applying.has(id)) continue;
-        received = true;
         const doc = snap.docs.find((item) => item.id === id);
         if (!acknowledged(doc?.data() || {}, fields)) reportSyncFailure(uid);
         delete saved[id];
       }
       localStorage.setItem(receiptKey(uid), JSON.stringify(saved));
-      if (received) Promise.resolve(onSynced()).catch(console.warn);
+      // Invalidate cached reads for changes from this browser or another device.
+      Promise.resolve(onSynced()).catch(console.warn);
     }
     paint();
   }, () => { failure = "Hindi ma-sync ang progreso. Kumonekta at i-refresh ang pahina."; paint(); });

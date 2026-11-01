@@ -6,10 +6,10 @@ import {
   findLesson,
   loadActivity,
   loadLessonProgress,
-  refreshSummary,
   resumeOf,
   saveProgress,
   saveResume,
+  submitAnswer,
 } from "../data.js";
 import { onLeave } from "../router.js";
 import { buddy, confettiFrom, content, icon, setBuddyMood, shake } from "../ui.js";
@@ -29,6 +29,7 @@ export async function renderActivity(lessonId) {
   const lesson = await findLesson(lessonId);
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
+  if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang gawain."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.activityFinished || lesson.activitySkipped) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
@@ -86,6 +87,8 @@ export async function renderActivity(lessonId) {
   let lives = Math.min(LIVES, Math.max(1, Number(resume?.lives) || (resume?.tried ? LIVES - 1 : LIVES)));
   const selected = new Set();
   let saving = false;
+  let lastRight = false;
+  let pendingSubmission = null;
   onLeave(() => {});
 
   const savePlace = (done) =>
@@ -94,7 +97,7 @@ export async function renderActivity(lessonId) {
   const page = () => activity.pages[pageIndex];
   const correctSet = () => new Set(page().correctIndices);
   // A page saved without correct answers can't be answered, so it never blocks the student.
-  const isCorrect = () => correctSet().size === 0 || sameSet(selected, correctSet());
+  const isCorrect = () => lastRight;
   // The page is over once it's right or its lives ran out.
   const pageOver = () => checked && (isCorrect() || lives === 0);
 
@@ -118,7 +121,7 @@ export async function renderActivity(lessonId) {
   };
 
   const showPage = () => {
-    const pickCount = page().correctIndices.length;
+    const pickCount = page().pickCount;
     $("#activity-pick").textContent = pickCount ? `Pumili ng ${pickCount} salita` : "";
     $("#activity-pick").hidden = !pickCount;
     selected.clear();
@@ -138,7 +141,7 @@ export async function renderActivity(lessonId) {
 
   tilesEl.addEventListener("click", (event) => {
     const tile = event.target.closest(".st-tile");
-    if (!tile || checked) return;
+    if (!tile || checked || saving || pendingSubmission) return;
     const index = Number(tile.dataset.index);
     if (selected.has(index)) selected.delete(index);
     else selected.add(index);
@@ -155,7 +158,22 @@ export async function renderActivity(lessonId) {
     feedback.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
-  const check = () => {
+  const check = async () => {
+    if (saving) return;
+    saving = true;
+    action.disabled = true;
+    pendingSubmission ||= { index: pageIndex, selected: [...selected], eventId: crypto.randomUUID() };
+    let result;
+    try {
+      result = await submitAnswer(lessonId, "activity", pendingSubmission);
+      pendingSubmission = null;
+    } catch (error) {
+      toast(error.message || "Hindi na-save ang sagot. Pindutin muli upang subukan.");
+      return;
+    } finally { saving = false; action.disabled = false; }
+    page().correctIndices = result.correctIndices || [];
+    page().explanation = result.explanation || "";
+    lastRight = result.right;
     const correct = correctSet();
     const right = isCorrect();
     const incomplete = !right && selected.size > 0 && [...selected].every((index) => correct.has(index));
@@ -188,7 +206,7 @@ export async function renderActivity(lessonId) {
     checked = true;
     updateTrack();
     if (right) score += 1;
-    savePlace(pageOver() ? pageIndex + 1 : pageIndex);
+    // Accepted attempts and remaining lives have already been saved by the server.
     const lastPage = pageIndex === activity.pages.length - 1;
 
     if (outOfLives) {
@@ -198,7 +216,7 @@ export async function renderActivity(lessonId) {
     } else if (right) {
       showFeedback(
         true,
-        correct.size === 0
+        page().pickCount === 0
           ? "Walang nakatakdang sagot ang pahinang ito. Tuloy tayo!"
           : `Mahusay! ${explanation}`.trim(),
       );
@@ -218,7 +236,7 @@ export async function renderActivity(lessonId) {
     saving = true;
     action.disabled = true;
     try {
-      await saveProgress(
+      const result = await saveProgress(
         lessonId,
         {
           activityFinished: true,
@@ -229,7 +247,7 @@ export async function renderActivity(lessonId) {
         },
         { key: "pagkilala", correct: score, attempts: total, items: total, extras: { retries } },
       );
-      refreshSummary();
+      if (result) score = result.score;
     } catch (error) {
       console.error("Failed to save activity result", error);
       toast(

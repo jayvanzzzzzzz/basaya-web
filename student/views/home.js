@@ -14,7 +14,7 @@ import {
 } from "../data.js";
 import { content, icon, showDialog } from "../ui.js";
 import { refreshBell } from "./notifications.js";
-import { putDownload } from "../offlineStore.js";
+import { listDownloads, removeDownload, updateDownloadMetadata } from "../offlineStore.js";
 import { onLeave } from "../router.js";
 import { downloadLessons } from "../downloadQueue.js";
 import { withDownloadAbort } from "../downloadCancellation.js";
@@ -23,6 +23,7 @@ import { withDownloadAbort } from "../downloadCancellation.js";
 
 const DIFFICULTY = ["beginner", "intermediate", "advanced"];
 let downloads = new Map();
+let downloadsScope = "";
 const downloading = new Set();
 const downloadProgress = new Map();
 const removingDownloads = new Set();
@@ -230,9 +231,11 @@ function showLocked(lesson) {
 function emptyState(kind, query = "") {
   const states = {
     "no-class": {
-      title: "Wala ka pang nasalihang klase.",
-      text: "Pindutin ang button sa ibaba para sumali gamit ang class code.",
-      action: `<a class="button primary" href="#/join">${icon("plus")}Sumali sa klase</a>`,
+      title: student.profile.joinRequest?.status === "pending" ? "Hinihintay ang pag-apruba ng guro" : "Wala ka pang nasalihang klase.",
+      text: student.profile.joinRequest?.status === "pending"
+        ? `Naipadala ang kahilingan sa ${student.profile.joinRequest.className || "iyong klase"}. Mabubuksan ang mga aralin at chat kapag inaprubahan ka.`
+        : student.profile.joinRequest?.status === "declined" ? "Hindi inaprubahan ang iyong kahilingan. Kausapin ang guro o gamitin muli ang tamang class code." : "Ipadala ang kahilingan gamit ang class code ng iyong guro.",
+      action: `<a class="button primary" href="#/join">${icon("plus")}${student.profile.joinRequest?.status === "pending" ? "Tingnan ang kahilingan" : "Sumali sa klase"}</a>`,
     },
     "no-lessons": {
       title: navigator.onLine ? "Wala pang nakatalagang aralin." : "Walang na-download na aralin.",
@@ -257,6 +260,8 @@ function emptyState(kind, query = "") {
 }
 
 export async function renderHome() {
+  const scope = JSON.stringify([student.uid, classId(), student.profile.progressSession]);
+  if (scope !== downloadsScope) { downloads = new Map(); downloadsScope = scope; }
   if (!isInstalledPwa() && activeTab === "downloaded") activeTab = "all";
   let active = true;
   onLeave(() => { active = false; });
@@ -331,6 +336,7 @@ export async function renderHome() {
   };
 
   const draw = () => {
+    if (!active) return;
     updateBulkButton();
     const query = search.value.trim();
     tabs.hidden = !classId() || !student.lessons.length;
@@ -400,26 +406,33 @@ export async function renderHome() {
     draw();
   });
 
-  const load = async ({ preserveCards = false } = {}) => {
+  const load = async ({ preserveCards = false, force = false } = {}) => {
     const previousLessons = JSON.stringify(student.lessons);
     // The class may have changed elsewhere (e.g. the teacher approved leaving).
-    await loadProfile();
+    if (force) await loadProfile();
+    if (!active) return;
+    const uid = student.uid;
+    const cid = classId();
+    const sameScope = () => active && student.uid === uid && classId() === cid;
     $("#home-class").textContent = student.profile.className || "";
-    search.closest(".st-search").hidden = !classId();
-    await loadClassLessons();
+    search.closest(".st-search").hidden = !cid;
+    await loadClassLessons({ force });
+    if (!sameScope()) return;
+    if (!preserveCards) draw();
     try {
-      const saved = await downloadedLessons();
-      // Refresh schedules and membership without replacing the downloaded content version.
+      const saved = await listDownloads(uid, cid);
+      // Update only the latest record's metadata; downloaded content stays device-owned.
       if (navigator.onLine) for (const item of saved) {
+        if (!sameScope()) return;
         const current = student.lessons.find((lesson) => lesson.id === item.meta.id);
-        if (!current) await removeLessonDownload(item.meta.id);
-        else {
-          item.meta = { ...current, contentVersion: item.meta.contentVersion };
-          await putDownload(student.uid, student.profile.classId, item);
-        }
+        if (!current) await removeDownload(uid, cid, item.meta.id);
+        else await updateDownloadMetadata(uid, cid, current);
       }
-      downloads = new Map((await downloadedLessons()).map((item) => [item.meta.id, item]));
+      const latest = await listDownloads(uid, cid);
+      if (!sameScope()) return;
+      downloads = new Map(latest.map((item) => [item.meta.id, item]));
     } catch (error) {
+      if (!sameScope()) return;
       console.warn("Downloads unavailable", error);
       downloads = new Map();
     }
@@ -570,12 +583,18 @@ export async function renderHome() {
     refresh.classList.add("is-spinning");
     refresh.disabled = true;
     try {
-      await load();
+      await load({ force: true });
     } finally {
       refresh.classList.remove("is-spinning");
       refresh.disabled = false;
     }
   });
 
-  await load();
+  if (student.lessons.length || !classId()) draw();
+  try { await load(); }
+  catch (error) {
+    if (!active) return;
+    if (!student.lessons.length) throw error;
+    toast("Hindi ma-refresh ang mga aralin. Ipinapakita ang huling na-load.");
+  }
 }

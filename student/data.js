@@ -10,17 +10,14 @@ import {
   getDocFromCache,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db, offlineReady } from "../js/firebase.js";
+import { postToApi } from "../js/api.js";
 import { getDownload, putDownload, listDownloads, removeDownload, snapshotOf } from "./offlineStore.js";
-import { saveLocally } from "./sync.js";
 import { withDownloadAbort } from "./downloadCancellation.js";
 import { summarize, resultsFrom, lessonParts, withMissed } from "../js/scoring.js";
-import { skippedParts } from "../js/skippedParts.js";
-import { lessonItems } from "../js/lessonItems.js";
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
 // the Android app (C:\Projects\BaSaya) exactly, so a student can switch between the app and
@@ -38,6 +35,19 @@ const userRef = (uid = student.uid) => doc(db, "users", uid);
 const progressRef = (lessonId, uid = student.uid) =>
   doc(db, "users", uid, "assignedLessons", lessonId);
 const toMillis = (value) => (value?.toMillis ? value.toMillis() : null);
+const dataScope = () => JSON.stringify([student.uid, classId(), student.profile.progressSession || "", navigator.onLine]);
+let classLoad = null;
+let classLoaded = null;
+let progressLoaded = null;
+let dataRevision = 0;
+const DATA_MAX_AGE = 30_000;
+const fresh = (entry, scope) => entry?.scope === scope && Date.now() - entry.time < DATA_MAX_AGE;
+
+export function invalidateStudentData() {
+  dataRevision += 1;
+  classLoaded = null;
+  progressLoaded = null;
+}
 
 export const classId = () => student.profile.classId || "";
 export const firstName = () => (student.profile.firstName || "").trim();
@@ -48,7 +58,9 @@ export const fullName = (profile = student.profile) =>
     .join(" ");
 
 export async function loadProfile() {
+  const uid = student.uid;
   const snap = await (navigator.onLine ? getDoc(userRef()) : getDocFromCache(userRef()));
+  if (student.uid !== uid) return student.profile;
   student.profile = snap.exists() ? snap.data() : {};
   return student.profile;
 }
@@ -92,6 +104,68 @@ const entryId = (link) => (isPracticeLink(link) ? link.id : linkLessonId(link));
 
 /** The library lesson behind a class entry (an Assessment's entry id is its lesson id). */
 const contentId = (id) => student.lessons.find((lesson) => lesson.id === id)?.lessonId || id;
+let metadataRetryAt = 0;
+const metadataCache = new Map();
+const metadataLoads = new Map();
+const metadataKey = (body, version) => JSON.stringify([
+  student.uid, body.classId, body.progressSession, body.lessonId, version,
+]);
+const cachedMetadata = (key) => {
+  const entry = metadataCache.get(key);
+  if (entry && entry.expires > Date.now()) return entry.value;
+  metadataCache.delete(key);
+  return null;
+};
+const rememberMetadata = (key, value) => {
+  metadataCache.set(key, { value, expires: Date.now() + 60_000 });
+  return value;
+};
+async function readLessonMetadata(body, version) {
+  const key = metadataKey(body, version);
+  const cached = cachedMetadata(key);
+  if (cached) return cached;
+  if (metadataLoads.has(key)) return metadataLoads.get(key);
+  const pending = postToApi("assessment", body)
+    .then(value => rememberMetadata(key, value)).finally(() => metadataLoads.delete(key));
+  metadataLoads.set(key, pending);
+  return pending;
+}
+async function readClassMetadata(id, lessonDocs) {
+  const body = { operation: "metadata-list", classId: id, progressSession: student.profile.progressSession || "" };
+  const entries = [...lessonDocs].map(([lessonId, lesson]) => [lessonId, metadataKey({ ...body, lessonId }, toMillis(lesson.get("updatedAt")))]);
+  const cached = entries.map(([lessonId, key]) => [lessonId, cachedMetadata(key)]);
+  if (cached.every(([, value]) => value)) return new Map(cached);
+  const key = JSON.stringify([student.uid, body, entries]);
+  if (!metadataLoads.has(key)) {
+    const pending = postToApi("assessment", body).then(result => {
+      for (const [lessonId, entryKey] of entries) {
+        if (result.lessons[lessonId]) rememberMetadata(entryKey, result.lessons[lessonId]);
+      }
+      return new Map(Object.entries(result.lessons));
+    }).finally(() => metadataLoads.delete(key));
+    metadataLoads.set(key, pending);
+  }
+  return metadataLoads.get(key);
+}
+
+export async function assessmentRequest(lessonId, operation, fields = {}) {
+  if (!navigator.onLine) throw new Error("Kumonekta sa internet para maipasa at masuri ang sagot.");
+  const lesson = student.lessons.find(item => item.id === lessonId);
+  const body = {
+    operation, classId: classId(), progressSession: student.profile.progressSession || "",
+    ...(lessonId ? { lessonId: contentId(lessonId) } : {}),
+    ...(lesson?.practice ? { practice: true, entryId: lesson.id } : {}), ...fields,
+  };
+  const result = await (operation === "metadata"
+    ? readLessonMetadata(body, lesson?.contentVersion ?? null)
+    : postToApi("assessment", body));
+  if (!["metadata", "metadata-list", "content", "summary"].includes(operation)) invalidateStudentData();
+  return result;
+}
+
+export const submitAnswer = (lessonId, part, fields) => assessmentRequest(lessonId, "answer", {
+  part, eventId: crypto.randomUUID(), ...fields,
+});
 
 /** Lessons that count toward scores: every class lesson except Practice ones. */
 export const scoredLessons = () => student.lessons.filter((lesson) => !lesson.practice);
@@ -103,7 +177,7 @@ export const scoredLessons = () => student.lessons.filter((lesson) => !lesson.pr
  */
 function forgetFoundWords(lessonIds) {
   try {
-    const prefixes = lessonIds.map((lessonId) => `basaya.crossword.${student.uid}.${lessonId}.`);
+    const prefixes = lessonIds.map((lessonId) => `basaya.crossword.${student.uid}.${student.profile.progressSession || "legacy"}.${lessonId}.`);
     Object.keys(localStorage)
       .filter((key) => prefixes.some((prefix) => key.startsWith(prefix)))
       .forEach((key) => localStorage.removeItem(key));
@@ -119,7 +193,22 @@ const hasStarted = (data) =>
   data.pronunciationFinished === true;
 
 /** Lessons of the class, in the teacher's order, with schedule and progress flags. */
-export async function loadClassLessons() {
+export async function loadClassLessons({ force = false } = {}) {
+  const scope = dataScope();
+  if (classLoad?.scope === scope && classLoad.revision === dataRevision) return classLoad.promise;
+  if (!force && fresh(classLoaded, scope)) return student.lessons;
+  const entry = { scope, revision: dataRevision };
+  entry.promise = fetchClassLessons(scope, entry.revision).then(lessons => {
+    if (dataScope() === scope && entry.revision !== dataRevision) return loadClassLessons();
+    if (dataScope() === scope) classLoaded = { scope, time: Date.now() };
+    return lessons;
+  }).finally(() => { if (classLoad === entry) classLoad = null; });
+  classLoad = entry;
+  return entry.promise;
+}
+
+async function fetchClassLessons(scope, revision) {
+  const current = () => dataScope() === scope && revision === dataRevision;
   const id = classId();
   if (!id) {
     student.lessons = [];
@@ -128,10 +217,11 @@ export async function loadClassLessons() {
 
   if (!navigator.onLine) {
     const downloads = await listDownloads(student.uid, id);
-    student.lessons = await Promise.all(downloads.map(async ({ meta }) => {
+    const lessons = await Promise.all(downloads.map(async ({ meta }) => {
       const progress = await loadLessonProgress(meta.id);
       return { ...meta, ...Object.fromEntries(Object.entries(progress).filter(([, value]) => typeof value === "boolean")), started: hasStarted(progress) };
     }));
+    if (current()) student.lessons = lessons;
     return student.lessons;
   }
 
@@ -140,6 +230,8 @@ export async function loadClassLessons() {
     getDocs(collection(db, "users", student.uid, "assignedLessons")),
     getDoc(doc(db, "classes", id, "students", student.uid)).catch(() => null),
   ]);
+  if (!current()) return student.lessons;
+  progressLoaded = { scope, time: Date.now(), docs: progressSnap.docs.map(item => ({ id: item.id, ...item.data() })) };
   const joinedAt = toMillis(rosterSnap?.get?.("joinedAt"));
   const links = linksSnap.docs;
   const ids = [...new Set(links.map(linkLessonId))];
@@ -160,13 +252,27 @@ export async function loadClassLessons() {
       .flatMap((snap) => snap.docs)
       .map((lesson) => [lesson.id, lesson]),
   );
+  if (!current()) return student.lessons;
 
   const progress = new Map(progressSnap.docs.map((item) => [item.id, item.data()]));
   forgetFoundWords(links.map(entryId).filter((entry) => !progress.has(entry)));
-  const skipped = new Map(
-    await Promise.all([...lessonDocs.keys()].map(async (lessonId) => [lessonId, await skippedParts(lessonId)])),
-  );
+  const skipped = new Map([...lessonDocs.keys()].map(lessonId => {
+    const previous = student.lessons.find(item => item.lessonId === lessonId);
+    return [lessonId, { game: previous?.gameSkipped === true, activity: previous?.activitySkipped === true }];
+  }));
+  // One authenticated request for all assigned metadata. The same short-lived
+  // cache supplies lesson paths and progress pages without another round trip.
+  if (Date.now() >= metadataRetryAt) {
+    try {
+      const metadata = await readClassMetadata(id, lessonDocs);
+      for (const [lessonId, found] of metadata) skipped.set(lessonId, found.skipped);
+    } catch (error) {
+      console.warn("Lesson metadata unavailable; showing saved progress", error);
+      if (!error.status || error.status === 404 || error.status >= 500) metadataRetryAt = Date.now() + 30_000;
+    }
+  }
 
+  if (!current()) return student.lessons;
   student.lessons = links
     .filter((link) => lessonDocs.has(linkLessonId(link)))
     .map((link) => {
@@ -261,6 +367,10 @@ async function contentCollection(lessonId, part) {
     if (!saved) throw new Error("I-download muna ang aralin habang online.");
     return snapshotOf(saved.parts[part] || []);
   }
+  if (["quiz", "activity"].includes(part)) {
+    const found = await assessmentRequest(lessonId, "content");
+    return snapshotOf([{ id: "content", data: found[part] }, ...(part === "activity" && found.skipped.activity ? [{ id: "status", data: { completion: "skipped" } }] : [])]);
+  }
   return getDocs(collection(db, "lessons", contentId(lessonId), part));
 }
 
@@ -290,7 +400,7 @@ export async function downloadLesson(lessonId, onProgress = () => {}, { signal }
   const parts = {};
   for (const part of ["lectures", "game", "activity", "pronunciation", "quiz"]) {
     signal?.throwIfAborted();
-    const snap = await withDownloadAbort(getDocsFromServer(collection(db, "lessons", contentId(lessonId), part)), signal);
+    const snap = await withDownloadAbort(["quiz", "activity"].includes(part) ? contentCollection(lessonId, part) : getDocsFromServer(collection(db, "lessons", contentId(lessonId), part)), signal);
     parts[part] = snap.docs.map((item) => ({ id: item.id, data: item.data() }));
   }
   await withDownloadAbort(loadLessonProgress(lessonId), signal);
@@ -363,7 +473,7 @@ export async function loadActivity(lessonId) {
       ),
     ];
     const explanation = typeof page.explanation === "string" && page.explanation.trim() ? page.explanation : null;
-    return { words, correctIndices, explanation };
+    return { words, correctIndices, pickCount: page.pickCount ?? correctIndices.length, explanation };
   });
   return {
     title: snap.get("title") || "",
@@ -388,7 +498,7 @@ export async function loadQuiz(lessonId) {
     ];
     // Older lessons keep a single `answer`.
     const correct = new Set(answers.length ? answers : [Number(item.answer) || 0]);
-    return { question: item.question || "", choices, correct, multiple: correct.size > 1 };
+    return { question: item.question || "", choices, correct, multiple: item.multiple ?? correct.size > 1 };
   });
   return { title: snap.get("title") || "", questions };
 }
@@ -432,6 +542,7 @@ export async function loadGameLevels(lessonId) {
 
 /** How many pages/levels/questions/words each part has, for the lesson path. */
 export async function loadContentCounts(lessonId) {
+  if (navigator.onLine) return (await assessmentRequest(lessonId, "metadata")).counts;
   const count = async (part, field) => {
     try {
       const snap = await contentDoc(lessonId, part);
@@ -481,42 +592,41 @@ export async function loadLessonProgress(lessonId) {
     if (!navigator.onLine && error.code === "unavailable") return {};
     throw error;
   }
-  return snap.exists() ? snap.data() : {};
+  const progress = snap.exists() ? snap.data() : {};
+  // Old client-calculated resume scores are not valid server attempts.
+  progress.resume = { ...progress.resume };
+  for (const part of ["lecture", "quiz", "activity", "game", "pronunciation"]) {
+    if (!progress.assessmentState?.[part]) delete progress.resume[part];
+  }
+  return progress;
 }
 
 /**
- * Merges fields into the lesson's progress, and optionally one skill record
- * (skills.{key} = { correct, attempts, items, completedAt, ...extras }, as in
- * SkillProgressRepository.recordResult). The rules reject it outside the lesson's dates.
+ * Finalizes the requested part through the API. Client score/skill fields are
+ * display hints only; the API derives every stored result from accepted answers.
  */
 export async function saveProgress(lessonId, fields, skill) {
   if (isPractice(lessonId)) return rememberPractice(lessonId, fields);
-  const data = { ...fields };
-  if (skill) {
-    data.skills = {
-      [skill.key]: {
-        correct: skill.correct,
-        attempts: skill.attempts,
-        items: skill.items,
-        completedAt: serverTimestamp(),
-        ...(skill.extras || {}),
-      },
-    };
-  }
-  await saveLocally(progressRef(lessonId), data, { merge: true }, student.uid);
+  const part = ["quiz", "activity", "pronunciation", "game", "lecture"].find(part => `${part}Finished` in fields);
+  if (!part) throw new Error("Missing assessment part.");
+  const result = await assessmentRequest(lessonId, "finish", { part,
+    ...(part === "game" ? { level: fields.gameLevel ?? fields.gameScore } : {}),
+    ...(part === "quiz" ? { attemptId: fields.attemptId } : {}),
+  });
 
   const lesson = student.lessons.find((item) => item.id === lessonId);
   if (lesson) {
     Object.entries(fields).forEach(([key, value]) => {
-      if (typeof value === "boolean") lesson[key] = value;
+      if (key === `${part}Finished`) lesson[key] = result.finished;
     });
   }
+  return result;
 }
 
 // ---------- Resume (assignedLessons/{lessonId}.resume.{part}) ----------
 // Where the student stopped in the lecture, Gawain or Bigkas, so closing the page or
 // switching to the app continues from there. Same shape as the app's LessonResume.kt;
-// the quiz never resumes. Every state has `done` and `total` for the lesson path counts.
+// Every scored state is produced by the API from accepted answers.
 
 /** The saved place in one part, or null. A state for a different number of items is ignored. */
 export function resumeOf(progress, part, total) {
@@ -527,20 +637,18 @@ export function resumeOf(progress, part, total) {
   return { ...state, done: Math.min(done, total) };
 }
 
-/** Saves the place in a part. Never throws: losing one save only costs a few steps. */
+/** Advances lecture reading only. Scored parts save their place with each accepted answer. */
 export async function saveResume(lessonId, part, state) {
   if (isPractice(lessonId)) return;
+  // Scored resume state is derived from accepted answers by the backend.
+  if (part !== "lecture") return;
   try {
-    await saveLocally(
-      progressRef(lessonId),
-      { resume: { [part]: { ...state, updatedAt: serverTimestamp() } } },
-      { merge: true },
-      student.uid,
-    );
+    await assessmentRequest(lessonId, "resume", { part, done: state.done });
   } catch (error) {
     console.warn(`Could not save the ${part} place`, error);
     const { reportSyncFailure } = await import("./sync.js");
     reportSyncFailure(student.uid);
+    throw error;
   }
 }
 
@@ -548,41 +656,25 @@ export async function saveResume(lessonId, part, state) {
 export const clearResume = (part) => ({ resume: { [part]: deleteField() } });
 
 /** Progress docs of the class's lessons only (the app's LessonCompletion.classDocs). */
-export async function loadClassProgressDocs() {
-  const snap = await getDocs(collection(db, "users", student.uid, "assignedLessons"));
+export async function loadClassProgressDocs({ force = false } = {}) {
+  const scope = dataScope();
+  const revision = dataRevision;
+  let docs = fresh(progressLoaded, scope) && !force ? progressLoaded.docs : null;
+  if (!docs) {
+    const snap = await getDocs(collection(db, "users", student.uid, "assignedLessons"));
+    if (dataScope() !== scope) return [];
+    if (revision !== dataRevision) return loadClassProgressDocs({ force });
+    docs = snap.docs.map(item => ({ id: item.id, ...item.data() }));
+    progressLoaded = { scope, time: Date.now(), docs };
+  }
   const ids = new Set(scoredLessons().map((lesson) => lesson.id));
-  return snap.docs.filter((item) => ids.has(item.id)).map((item) => ({ id: item.id, ...item.data() }));
+  return docs.filter(item => ids.has(item.id));
 }
 
-/** Saves users/{uid}.skillSummary the way SkillProgressRepository.saveSummary does. */
-export async function saveSummary(summary) {
+/** Requests a server calculation; the browser cannot supply summary values. */
+export async function saveSummary() {
   if (!navigator.onLine) return;
-  const skills = Object.fromEntries(
-    Object.values(summary.skills).map((skill) => [
-      skill.skill,
-      {
-        score: skill.score,
-        level: skill.level,
-        trend: skill.trend,
-        lessons: skill.lessons,
-        items: skill.items,
-        needsHelp: skill.needsHelp,
-        lessonScores: skill.lessonScores,
-      },
-    ]),
-  );
-  await setDoc(
-    userRef(),
-    {
-      skillSummary: {
-        needsHelp: summary.needsHelp,
-        lessonsAssigned: scoredLessons().length,
-        skills,
-        updatedAt: serverTimestamp(),
-      },
-    },
-    { mergeFields: ["skillSummary"] },
-  );
+  return (await assessmentRequest(null, "summary")).summary;
 }
 
 /** Recomputes the skill summary after a part is finished. Never throws. */
@@ -595,7 +687,7 @@ export async function scoredResults(docs) {
   const now = Date.now();
   const closed = scoredLessons().filter((lesson) => lesson.dueAt != null && lesson.dueAt < now);
   const items = await Promise.all(
-    closed.map((lesson) => lessonItems(lesson.lessonId).then((found) => found.items).catch(() => ({}))),
+    closed.map((lesson) => assessmentRequest(lesson.id, "metadata").then((found) => found.items).catch(() => ({}))),
   );
   const lessons = closed.map((lesson, index) => ({ ...lesson, items: items[index] }));
   return withMissed(resultsFrom(docs), docs, lessons, now);

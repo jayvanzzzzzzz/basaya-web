@@ -9,9 +9,14 @@ import { state } from "../../js/state.js";
 import { $, escapeHtml, navigate, page, openModal, toast } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import { removeStudent } from "../../js/api.js";
-import { leaveChip, leaveRequestsPanel, wireLeaveRequests } from "./leaveRequests.js";
+import { leaveChip, leaveRequestsPanel, wireLeaveRequests, leaveLeaveRequests, pendingLeaves } from "./leaveRequests.js";
+import { enrollmentSummary, joinRequestsPanel } from "./joinRequestsUi.js";
+import { watchJoinRequests, leaveJoinRequests } from "./joinRequests.js";
+import { requestRibbons, wireRequestRibbons } from "./requestRibbons.js";
 
 export async function renderStudentsPage(classId) {
+  leaveJoinRequests();
+  leaveLeaveRequests();
   const classDoc = await getDoc(doc(db, "classes", classId));
   if (!classDoc.exists() || classDoc.data().teacherId !== state.user.uid) {
     return navigate("/dashboard");
@@ -66,9 +71,10 @@ export async function renderStudentsPage(classId) {
     })
     .join("");
 
-  $("#page-content").innerHTML = leaveRequestsPanel(students) + (students.length
+  $("#page-content").innerHTML = enrollmentSummary(classroom, students.length) + requestRibbons(pendingLeaves(students).length) +
+    `<div id="request-panel-join" role="tabpanel" aria-labelledby="request-tab-join">${joinRequestsPanel(classroom, students.length, { summary: false })}</div><div id="request-panel-leave" role="tabpanel" aria-labelledby="request-tab-leave" hidden>${leaveRequestsPanel()}</div>` + (students.length
     ? `
-      <section class="student-directory card">
+      <section class="student-directory card class-roster">
         <div class="student-directory__toolbar">
           <div>
             <p class="eyebrow">Class roster</p>
@@ -87,11 +93,16 @@ export async function renderStudentsPage(classId) {
       <section class="card empty student-empty">
         <p class="eyebrow">Class roster</p>
         <h3>No students yet</h3>
-        <p>Students will appear here after they join this class using the class code.</p>
+        <p>Students appear here once you approve their join requests above.</p>
         <code>${escapeHtml(classroom.classCode || "—")}</code>
       </section>`);
 
-  wireLeaveRequests(classroom, students, () => renderStudentsPage(classId));
+  wireRequestRibbons(classId);
+  const refreshStudents = () => {
+    if (location.hash === `#/classes/${encodeURIComponent(classId)}/students`) return renderStudentsPage(classId);
+  };
+  wireLeaveRequests(classroom, students, refreshStudents);
+  watchJoinRequests(classId, refreshStudents);
 
   $("#student-search")?.addEventListener("input", (event) => {
     const term = event.currentTarget.value.trim().toLowerCase();
@@ -149,12 +160,12 @@ function openRemoveStudentModal(classroom, student) {
   const name = student.fullName || "this student";
   openModal(
     `<h2>Remove ${escapeHtml(name)}?</h2>
-     <p>They'll be taken out of <strong>${escapeHtml(classroom.className)}</strong>, and their progress in this class will be deleted:</p>
+     <p>They'll be taken out of <strong>${escapeHtml(classroom.className)}</strong>. Their saved work will be archived:</p>
      <ul class="remove-student__list">
-       <li>Lesson progress and scores for this class's lessons</li>
-       <li>Their skill summary and class link in the app</li>
+       <li>Lesson progress and scores are kept for this class</li>
+       <li>Their active class link is removed</li>
      </ul>
-     <p class="muted">Their account stays. They can join again with the class code, starting fresh. This can't be undone.</p>
+     <p class="muted">Their account stays. Rejoining requires teacher approval. Saved progress can be restored, including completed assessments, or you can explicitly start a fresh record.</p>
      <p class="form-error" id="remove-student-error" role="alert"></p>
      <div class="modal-actions">
        <button type="button" class="button secondary" data-cancel>Keep student</button>

@@ -18,6 +18,7 @@ import { student, classId, fullName, loadProfile } from "../data.js";
 import { logout, refreshTopbar } from "../session.js";
 import { buddy, content, icon, showDialog } from "../ui.js";
 import { openJoin } from "./join.js";
+import { onLeave } from "../router.js";
 
 // "Account" (the app's ProfileFragment): name, gender and birthday (email is read-only), the class with the leave-request flow, password change and logout.
 
@@ -56,6 +57,10 @@ async function leaveState() {
 function classSection({ state, note }) {
   const name = student.profile.className || classId();
   if (state === "no-class") {
+    const request = student.profile.joinRequest;
+    if (request?.status === "pending" || request?.status === "declined") {
+      return `<div class="st-row"><span class="st-row__icon">${icon("home")}</span><span class="st-row__text"><small>Kahilingan sa klase</small><strong>${escapeHtml(request.className || "Iyong klase")}</strong></span></div><div class="st-status st-status--pending"><strong>${request.status === "pending" ? "Hinihintay ang pag-apruba ng guro" : "Hindi inaprubahan ang kahilingan"}</strong><p>${request.status === "pending" ? "Mabubuksan ang mga aralin at chat kapag inaprubahan ka." : "Kausapin ang guro o magpadala ng bagong kahilingan gamit ang tamang class code."}</p><button class="button secondary" type="button" data-join>${request.status === "pending" ? "Tingnan ang kahilingan" : "Magpadala ng kahilingan"}</button></div>`;
+    }
     return `
       <div class="st-row">
         <span class="st-row__icon">${icon("home")}</span>
@@ -99,7 +104,10 @@ function classSection({ state, note }) {
 }
 
 export async function renderAccount() {
+  let active = true;
+  onLeave(() => { active = false; });
   const profile = await loadProfile();
+  if (!active) return;
   const name = fullName(profile) || "Estudyante";
 
   content().innerHTML = `
@@ -150,7 +158,8 @@ export async function renderAccount() {
 
   const classBox = $("#account-class");
   const drawClass = async () => {
-    classBox.innerHTML = classSection(await leaveState());
+    const state = await leaveState();
+    if (active) classBox.innerHTML = classSection(state);
   };
   classBox.addEventListener("click", async (event) => {
     if (event.target.closest("[data-join]")) return openJoin("/account");
@@ -192,7 +201,7 @@ function showLeaveDialog(cancelling, onDone) {
       <p>${escapeHtml(
         cancelling
           ? `Mananatili ka sa ${className}.`
-          : `Kapag pumayag ang iyong guro, aalis ka sa ${className} at mabubura ang iyong progreso sa klaseng ito.`,
+          : `Kapag pumayag ang iyong guro, aalis ka sa ${className}. Itatabi ang iyong progreso. Maaari itong ibalik kapag inaprubahan ng guro ang muli mong pagsali sa parehong klase.`,
       )}</p>
       ${
         cancelling

@@ -29,6 +29,7 @@ import {
 import { openClassModal } from "./dashboard.js";
 import { hasUnreadChat, onChatSummaries } from "./messages.js";
 import { paginate } from "../../js/pagination.js";
+import { watchStudentRequestsBadge } from "./studentRequestsBadge.js";
 import {
   confirmCancelRequest,
   deletionBanner,
@@ -301,7 +302,7 @@ export async function renderClass(classId) {
   page(
     classroom.className,
     subtitle,
-    `<button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><span class="class-chat-button__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg></span>Class chat<span class="class-chat-button__badge" data-class-chat-badge hidden><span class="sr-only">New messages</span></span></button><button class="button secondary" id="view-students">Students${leaveCount ? `<span class="button-badge" title="${leaveCount} leave request${leaveCount === 1 ? "" : "s"}">${leaveCount}</span>` : ""}</button>${headerMenu(
+    `<button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><span class="class-chat-button__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg></span>Class chat<span class="class-chat-button__badge" data-class-chat-badge hidden><span class="sr-only">New messages</span></span></button><button class="button secondary class-students-button" id="view-students" type="button">Students<span class="class-students-button__dot" data-student-requests-dot aria-hidden="true" ${leaveCount ? "" : "hidden"}></span></button>${headerMenu(
       "More class options",
       `<button type="button" id="edit-class">Edit class</button><button type="button" class="danger" id="class-deletion">${classroom.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>`,
     )}<button class="button primary" id="add-lesson">+ Add lesson</button>`,
@@ -415,6 +416,7 @@ export async function renderClass(classId) {
   };
   showChatBadge();
   onChatSummaries(showChatBadge);
+  watchStudentRequestsBadge(classId, leaveCount);
   $("#edit-class").addEventListener("click", () => openClassModal(classroom));
   $("#class-deletion").addEventListener("click", () => {
     const refresh = () => renderClass(classId);

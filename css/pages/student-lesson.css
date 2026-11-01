@@ -634,6 +634,59 @@
   margin-bottom: 0;
 }
 
+.st-quiz__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem 0.5rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.st-quiz__back svg { width: 1.2rem; height: 1.2rem; }
+.st-quiz__back:hover { background: var(--surface-2); }
+.st-quiz__back:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.st-quiz__back:disabled { opacity: 0.55; cursor: wait; }
+
+.modal.st-quiz-exit-modal {
+  width: min(100%, 29rem);
+  padding: 2rem;
+  border-radius: 24px;
+}
+
+.st-quiz-exit-modal::before { display: none; }
+.st-quiz-exit { display: grid; gap: 0.75rem; text-align: left; }
+.st-quiz-exit__icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 0.35rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+  border-radius: 16px;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.st-quiz-exit__icon svg { width: 25px; height: 25px; }
+.st-quiz-exit .st-quiz-exit__eyebrow { margin: 0; color: var(--ink-3); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.st-quiz-exit h2 { margin: 0; font-size: 1.35rem; line-height: 1.35; }
+.st-quiz-exit p { margin: 0; color: var(--ink-2); font-size: 0.92rem; line-height: 1.7; }
+.st-quiz-exit__note { display: flex; align-items: center; gap: 0.6rem; margin: 0.35rem 0 0.5rem; padding: 0.8rem 1rem; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font-size: 0.83rem; }
+.st-quiz-exit__note svg { width: 17px; height: 17px; flex-shrink: 0; }
+.st-quiz-exit__actions { display: grid; gap: 0.65rem; margin-top: 0.3rem; }
+.st-quiz-exit__actions .button { min-height: 46px; width: 100%; white-space: normal; }
+.st-quiz-exit__actions [data-quiz-leave] { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 25%, var(--border)); }
+@media (max-width: 480px) {
+  .modal.st-quiz-exit-modal { padding: 1.5rem; }
+}
+
 .st-quiz__label {
   color: var(--st-pagsusulit);
   font-family: var(--font-display);

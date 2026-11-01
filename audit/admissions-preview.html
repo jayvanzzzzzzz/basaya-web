@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <base href="../" />
+  <title>BaSaya · Class admissions design preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/base/tokens.css" /><link rel="stylesheet" href="css/base/reset.css" /><link rel="stylesheet" href="css/base/typography.css" /><link rel="stylesheet" href="css/pages/class-admissions.css" />
+  <link rel="stylesheet" href="css/components/buttons.css" /><link rel="stylesheet" href="css/components/forms.css" /><link rel="stylesheet" href="css/components/class-deletion.css" />
+  <style>
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); }
+    .preview-rail { position: fixed; inset: 0 auto 0 0; width: 220px; padding: 30px 24px; border-right: 1px solid var(--border); background: var(--surface); }
+    .preview-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 45px; font-family: var(--font-display); font-size: 23px; font-weight: 700; }
+    .preview-brand img { width: 38px; height: 38px; object-fit: contain; }
+    .preview-rail small { color: var(--ink-3); font-size: 10px; letter-spacing: .13em; }
+    .preview-rail nav { display: grid; gap: 8px; margin-top: 18px; }
+    .preview-rail nav span { padding: 12px; border-radius: 9px; color: var(--ink-2); font-size: 12px; }
+    .preview-rail nav .active { background: var(--primary-soft); color: var(--primary-strong); font-weight: 600; }
+    .preview-main { max-width: 1420px; margin-left: 220px; padding: 30px 48px 70px; }
+    .preview-note { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 35px; padding-bottom: 18px; border-bottom: 1px solid var(--border); color: var(--ink-3); font-size: 10px; letter-spacing: .04em; }
+    .preview-note button { flex-shrink: 0; padding: 7px 11px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--ink-2); font-size: 11px; cursor: pointer; }
+    .preview-crumb { color: var(--ink-3); font-size: 11px; }
+    .preview-title { margin: 14px 0 8px; font-size: 30px; font-weight: 600; letter-spacing: -.04em; }
+    .preview-subtitle { margin-bottom: 27px; color: var(--ink-2); font-size: 12px; }
+    .preview-roster { padding: 22px 25px; border: 1px solid var(--border-strong); border-radius: 16px; background: var(--surface); }
+    .preview-roster h2 { margin: 8px 0; font-size: 18px; font-weight: 500; }
+    .preview-roster small { color: var(--ink-3); font-size: 11px; }
+    #preview-status { margin-block: 15px; color: var(--success); font-size: 12px; line-height: 1.6; }
+    .preview-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: #0008; }
+    .preview-modal__content { position: relative; width: min(100%, 560px); max-height: 90vh; overflow: auto; padding: 30px; border-radius: 18px; background: var(--surface); color: var(--ink); }
+    .preview-modal__close { position: absolute; top: 8px; right: 12px; padding: 5px 10px; border: 0; background: transparent; color: var(--ink-2); font-size: 22px; cursor: pointer; }
+    @media(max-width: 1000px) { .preview-rail { width: 180px; padding-inline: 16px; } .preview-main { margin-left: 180px; padding-inline: 25px; } }
+    @media(max-width: 650px) { .preview-rail { display: none; } .preview-main { margin-left: 0; padding: 18px 14px; } .preview-note { font-size: 9px; margin-bottom: 24px; } }
+  </style>
+  <script type="importmap">{"imports":{"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js":"./audit/admissions-preview-stubs.js","./js/firebase.js":"./audit/admissions-preview-stubs.js","./js/helpers.js":"./audit/admissions-preview-stubs.js","./js/api.js":"./audit/admissions-preview-stubs.js"}}</script>
+</head>
+<body>
+  <aside class="preview-rail"><div class="preview-brand"><img src="img/logo.png" alt="" />BaSaya</div><small>TEACHER WORKSPACE</small><nav><span>Overview</span><span class="active">Classrooms</span><span>Messages</span><span>Dictionary</span></nav></aside>
+  <main class="preview-main">
+    <div class="preview-note"><span>DESIGN PREVIEW · FICTIONAL DATA · Actions here do not affect your real class.</span><button id="preview-theme" type="button">Switch theme</button></div>
+    <p class="preview-crumb">Classrooms &nbsp; / &nbsp; Grade 4 — Rizal &nbsp; / &nbsp; Students</p>
+    <h1 class="preview-title">Students</h1><p class="preview-subtitle">Manage admissions and your classroom roster.</p>
+    <button class="button secondary class-students-button" type="button" id="view-students" style="margin-bottom:20px">Students<span class="class-students-button__dot" data-student-requests-dot aria-hidden="true" hidden></span></button>
+    <div id="admissions"></div><p id="preview-status" role="status"></p>
+    <section class="preview-roster"><small>CLASS ROSTER</small><h2>Everyone in this class</h2><small>24 enrolled students · Your existing roster stays below the approval section.</small></section>
+  </main>
+  <script type="module">
+    import { enrollmentSummary, joinRequestsPanel } from "./teacher/views/joinRequestsUi.js";
+    import { watchJoinRequests } from "./teacher/views/joinRequests.js";
+    import { requestRibbons, wireRequestRibbons } from "./teacher/views/requestRibbons.js";
+    import { leaveRequestsPanel, wireLeaveRequests } from "./teacher/views/leaveRequests.js";
+    import { watchStudentRequestsBadge } from "./teacher/views/studentRequestsBadge.js";
+    const classroom = { id: "preview-class", className: "Grade 4 — Rizal", classCode: "RZ4K8N" };
+    document.getElementById("admissions").innerHTML = enrollmentSummary(classroom, 24) + requestRibbons(2) + `<div id="request-panel-join" role="tabpanel" aria-labelledby="request-tab-join">${joinRequestsPanel(classroom, 24, { summary: false })}</div><div id="request-panel-leave" role="tabpanel" aria-labelledby="request-tab-leave" hidden>${leaveRequestsPanel()}</div>`;
+    wireRequestRibbons("preview-class");
+    wireLeaveRequests(classroom, [], () => {});
+    watchJoinRequests("preview-class", () => {});
+    watchStudentRequestsBadge("preview-class", 2);
+    document.getElementById("preview-theme").onclick = () => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; };
+  </script>
+</body>
+</html>

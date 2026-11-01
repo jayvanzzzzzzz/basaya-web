@@ -8,10 +8,10 @@ import {
   findLesson,
   loadLessonProgress,
   loadPronunciation,
-  refreshSummary,
   resumeOf,
   saveProgress,
   saveResume,
+  assessmentRequest,
 } from "../data.js";
 import { onLeave } from "../router.js";
 import { Microphone, browserRecognitionAvailable, listenWithBrowser, score, transcribe } from "../speech.js";
@@ -158,6 +158,7 @@ export async function renderPronunciation(lessonId) {
   let listening = null; // AbortController of the current attempt
   let advanceTimer = null;
   let saving = false;
+  let pendingRecording = null;
 
   onLeave(() => {
     // Never keep the mic or audio running after leaving.
@@ -347,6 +348,11 @@ export async function renderPronunciation(lessonId) {
 
   /** basaya-stt failed while online (limit or server): like the app, let the browser listen. */
   const switchToBrowser = () => {
+    if (!lesson.practice) {
+      idleUi();
+      showNote("info", "Hindi available ang pagsuri ng pagbigkas ngayon.", "Subukan muli mamaya upang maitala ang iyong sagot.");
+      return;
+    }
     if (!browserRecognitionAvailable()) {
       idleUi();
       showNote("info", "Hindi available ang pagsuri ng pagbigkas ngayon.", "Subukan ulit mamaya.");
@@ -372,10 +378,26 @@ export async function renderPronunciation(lessonId) {
     }
     listeningUi();
     listening = new AbortController();
-    const recording = await microphone.record(setLevel, listening.signal);
+    const recording = pendingRecording || await microphone.record(setLevel, listening.signal);
     if (!recording.wav) return noSpeech();
 
     thinkingUi();
+    if (!lesson.practice) {
+      pendingRecording ||= { ...recording, eventId: crypto.randomUUID() };
+      try {
+        const bytes = new Uint8Array(await recording.wav.arrayBuffer());
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+        const result = await assessmentRequest(lessonId, "speech", { part: "pronunciation", index, eventId: pendingRecording.eventId, audio: btoa(binary) });
+        pendingRecording = null;
+        if (result.noSpeech) noSpeech();
+        else handleScore(result);
+      } catch (error) {
+        idleUi();
+        showNote("info", "Hindi na-save ang iyong sagot.", error.message || "Pindutin muli ang mic upang maipasa ang recording.");
+      }
+      return;
+    }
     const result = await transcribe(recording.wav);
     if (result.text != null) {
       if (!result.text) noSpeech();
@@ -396,7 +418,11 @@ export async function renderPronunciation(lessonId) {
     processing = true;
     speaker.disabled = true;
     hideNote();
-    if (useBrowser || !Microphone.supported()) listenBrowser();
+    if (!lesson.practice && !Microphone.supported()) {
+      idleUi();
+      showNote("info", "Hindi suportado ang pag-record sa browser na ito.", "Gumamit ng browser na may microphone recording upang maitala ang iyong pagbigkas.");
+    }
+    else if (useBrowser || !Microphone.supported()) listenBrowser();
     else listenWhisper();
   });
 
@@ -408,7 +434,7 @@ export async function renderPronunciation(lessonId) {
     microphone?.close();
     microphone = null;
     try {
-      await saveProgress(
+      const result = await saveProgress(
         lessonId,
         {
           pronunciationFinished: true,
@@ -425,7 +451,7 @@ export async function renderPronunciation(lessonId) {
           extras: { eventuallyCorrect: correctCount, hardWords: [...hardWords] },
         },
       );
-      refreshSummary();
+      if (result) correctCount = result.score;
     } catch (error) {
       console.error("Failed to save pronunciation result", error);
       toast(

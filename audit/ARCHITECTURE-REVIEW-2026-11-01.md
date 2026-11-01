@@ -1,0 +1,49 @@
+# BaSaya architecture review — current working tree, 1 November 2026
+
+**Verdict:** The architecture is a suitable foundation for a classroom learning application. The choice of a static web frontend, native Kotlin Android client, shared Firebase data, Room/IndexedDB offline storage, and a small trusted API is reasonable. The main gaps are assessment trust, account isolation in one Android table, and reliable acknowledgement of offline results. A full rewrite is unnecessary.
+
+Reviewed `C:/xampp/htdocs/BaSaya-web` and `C:/Projects/BaSaya`, including existing uncommitted changes. This review adds only this report and `audit/architecture-boundaries.mjs`. It does not change application source or deploy anything. Earlier membership findings in `BASAYA-REVIEW-2026-11-01.md` describe older code; the current rules/API address them, as verified below.
+
+**What is working well**
+
+- The web has separate student, teacher, and admin entry points with shared utilities and scoring modules. Native Android has repositories, Room entities/DAOs, and independent scoring/completion helpers.
+- Membership is a trusted server operation. The API checks the student role, rate-limits code guesses, and uses transactions for requests and approval. Approval creates the roster, profile link, and chat notice atomically. Request IDs protect against stale decisions and duplicate notices.
+- Rules now require the teacher role to create/own a class. Student class membership requires both the server-owned profile link and roster. Students cannot write those membership fields or enroll themselves directly.
+- Explicit content downloads, cancellable downloads, cache refresh checks, and the browser's pending-save/error receipts provide a useful basis for offline learning.
+- Server-time schedule enforcement and separating practice from assessment are sound concepts. Their edge cases still need the changes below.
+
+**Findings, ordered by priority**
+
+1. **High — The client controls assessment results.** `firestore.rules:115` permits writes to an open progress document without validating fields, score ranges, or finalization. `firestore.rules:94` also allows student-written `skillSummary`. Local emulator reproductions accepted a quiz score of 999, then a score of -1 with completion reversed, and a forged summary. `firestore.rules:122` and `:126` permit approved members to read learning content and quiz answer documents, including unassigned content. This affects both clients because both use these rules. For trusted assessment, submit responses to a backend and derive/finalize results there; restrict answer-key access. An offline quiz with downloaded answer keys should be treated as a lower-trust learning activity. Field/type/bounds checks help immediately but cannot prove that a client-calculated score is earned.
+
+2. **High — Android crossword progress is not isolated by account.** `app/src/main/java/ph/basaya/app/data/entity/CrosswordProgress.kt:6` keys `game_progress` only by `lessonId`; `data/dao/CrosswordProgressDao.kt:15` reads it without a UID. `data/repository/CrosswordRepository.kt:138` returns early when any local record exists, before consulting the signed-in user. The logout path at `ui/fragment/ProfileFragment.kt:666` does not clear this table. Two students sharing a phone can therefore reuse each other's found words or level state. The same early return prevents reconciliation with newer remote crossword progress. Use at least `(userId, lessonId)` as the key and define enrollment/reset handling. Reconcile acknowledged remote state while preserving pending work. Verify account A → logout → account B on the same lesson, and web → Android continuation.
+
+3. **Medium — The assignment check fails open for unknown lessons.** `firestore.rules:59` permits progress when neither the canonical assessment link nor its practice link exists. The emulator accepted progress for an unassigned lesson. This weakens assignment enforcement even though reports may filter those documents. Migrate legacy auto-ID links and require an explicit valid assessment assignment. A missing assignment should deny writes.
+
+4. **Medium — Android completion can appear successful without accepted results.** `data/repository/QuizRepository.kt:95` starts an asynchronous write and only logs failures. `ui/quiz/QuizActivity.kt:424` queues completion, resume deletion, and skill results separately, then opens the completion screen. Its try/catch cannot catch a later failure from a function returning before acknowledgement. `data/progress/SkillProgressRepository.kt:59` similarly logs failed writes. With schedule checks at server request time, an offline result arriving after the deadline can be rejected. Add durable per-user pending/accepted/rejected state and visible recovery. Save related completion/skill/resume transitions together where feasible, and make retries idempotent. Clarify whether learners must reconnect before the deadline; the web already displays that restriction. If late offline submission should count, it needs an explicit assessment policy rather than trusting a device timestamp.
+
+5. **Medium — Web completion omits Bigkas.** `student/data.js:226` checks lecture, game, activity, and quiz, but omits `pronunciationFinished`. `student/views/home.js:58` uses this to display “Tapos na”, and `student/views/notifications.js:93` uses it to suppress reminders. The existing local audit reproduces disagreement with shared `lessonParts`. Use the shared completion calculation consistently, including skipped-part handling.
+
+6. **Medium — Android lesson loading breaks above 30 distinct content IDs.** `data/repository/LessonRepository.kt:136` puts all IDs into one `whereIn` query. The web already chunks its equivalent query in `student/data.js:154`. Chunk Android IDs and merge the snapshots; verify 0, 1, 30, and 31 IDs, including practice duplicates. Firebase documents a maximum of 30 equality clauses for this `in` query: https://firebase.google.com/docs/firestore/query-data/queries.
+
+7. **Medium, configuration-dependent — Speech authentication fails open when APP_KEY is absent.** `cloudflare/basaya-stt/src/index.js:32` checks an unauthenticated caller's key only when `env.APP_KEY` is truthy. The local stub reproduction reached the AI binding without any authentication when the secret was absent; it was rejected when the secret was configured. Production configuration was not inspected. Require successful authentication on every request. Prefer user authentication and per-user limits for Android too; an APK-embedded shared key is extractable. Preserve support for native requests without requiring browser Origin headers.
+
+**Maintainability assessment**
+
+Android currently combines repositories with substantial Activity/Fragment orchestration and direct Firebase access. For example, `DashboardActivity.kt` owns both UI behavior and Firestore reads/writes; `QuizActivity.kt` coordinates several persistence operations itself. This is workable at the current size, but screen lifecycle, sync errors, and testing become harder as it grows. Gradually move screen state and orchestration into ViewModels, keep persistence in repositories, and expose explicit loading/pending/success/failure states. Start with quiz completion and crossword state rather than converting every screen at once.
+
+The web has useful shared modules but duplicates some business rules across helpers, and all clients duplicate portions of the assessment model. Keep one documented schema and shared input/output fixtures for scoring, completion, deadlines, skipped parts, and practice behavior. JS and Kotlin can run those same fixtures without requiring a shared runtime. The existing Bigkas mismatch illustrates why this matters.
+
+Keep the current Firebase/serverless design. Centralize authoritative membership and assessment transitions in the API, retain client repositories/caches for learning and offline access, and add consistent error reporting. Extra services or a framework migration would not resolve the specific defects above.
+
+**Validation performed**
+
+- 134 existing web checks passed: offline 17, session restoration 9, download refresh/storage 18, pending join UI 9, join request UI/routing 18, leave request UI/badges 22, and emulator membership/security integration 41.
+- `node --experimental-vm-modules audit/verify-review.mjs`: 122 website JavaScript files parsed; reproduced Bigkas completion disagreement and anonymous speech access with missing APP_KEY using local stubs.
+- `node audit/architecture-boundaries.mjs <java> <emulator-jar>`: five defect reproductions succeeded (score/completion forgery, finalized overwrite, summary forgery, unassigned progress, unassigned answer read); two controls passed (student class creation and role escalation denied). Uses only a local demo Firebase emulator and synthetic identities.
+- Android `gradlew.bat --offline :app:testDebugUnitTest` succeeded. Tasks were up to date; existing XML reports contain 40 tests, zero failures and zero errors. This was not a fresh instrumentation/device run.
+- The UI suites were run with `--experimental-vm-modules`, required by their VM harness. Initial invocations without that flag failed in the harness; corrected invocations passed.
+
+Production Firestore rules, Vercel/Worker configuration, authenticated browser screens, a running Android device, release APK behavior, actual microphone recognition, and real cross-device/offline delivery were not verified. Static and emulator findings apply to the reviewed source, not a claim that production was exploited.
+
+**Recommended order:** Fix assessment trust and Android account isolation first. Then close the unassigned-lesson fallback and improve Android result acknowledgement/recovery. Correct completion/query/authentication defects, and gradually extract screen orchestration into ViewModels while adding cross-client contract fixtures.

@@ -9,6 +9,9 @@ import { renderStudentProgress } from "./views/studentProgress.js";
 import { renderClassReport } from "./views/classReport.js";
 import { leaveMessages, renderMessages, watchChatSummaries } from "./views/messages.js";
 import { renderDictionary } from "./views/dictionary.js";
+import { leaveJoinRequests } from "./views/joinRequests.js";
+import { leaveLeaveRequests } from "./views/leaveRequests.js";
+import { leaveStudentRequestsBadge } from "./views/studentRequestsBadge.js";
 
 let statsLoaded = false;
 
@@ -25,6 +28,9 @@ async function loadSidebarStats() {
 
 export async function renderRoute() {
   if (!state.user) return;
+  leaveJoinRequests();
+  leaveLeaveRequests();
+  leaveStudentRequestsBadge();
   shell();
   leaveMessages(); // stops the open chat's live listeners
   loadSidebarStats(); // fire-and-forget, doesn't block page render

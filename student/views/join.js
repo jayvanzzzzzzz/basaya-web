@@ -1,22 +1,11 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  query,
-  serverTimestamp,
-  where,
-  writeBatch,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "../../js/firebase.js";
-import { addJoinNotice } from "../../js/chat.js?v=removed-preview";
+import { requestClassJoin } from "../../js/api.js";
 import { $, escapeHtml, navigate } from "../../js/helpers.js";
 import { fieldError } from "../../js/field-errors.js";
-import { student, classId, fullName, loadClassLessons, loadProfile } from "../data.js";
-import { buddy, confetti, content, icon, setBuddyMood, shake } from "../ui.js";
+import { student, classId, fullName, loadProfile } from "../data.js";
+import { buddy, content, icon, setBuddyMood, shake } from "../ui.js";
+import { onLeave } from "../router.js";
 
-// "Sumali sa Klase" (the app's JoinClassActivity): the roster entry, the student's class
-// link and the chat's "… joined the class" notice are written together, so it's all or nothing.
+// A code submits a request. Only the teacher's server-side approval enrolls the student.
 
 // Where the close button and a finished join go: Home, or Account when opened from there.
 let returnTo = "/home";
@@ -36,26 +25,77 @@ export async function renderJoin() {
   }
 
   const name = fullName() || "Estudyante";
+  const request = student.profile.joinRequest;
+  if (request?.status === "pending") {
+    let active = true;
+    onLeave(() => { active = false; });
+    content().innerHTML = `
+      <section class="st-join st-join--pending" aria-labelledby="join-pending-title">
+        <header class="st-join-pending__header">
+          <span class="st-join-pending__mark" aria-hidden="true">${icon("clock")}</span>
+          <a class="st-icon-button st-join-pending__close" href="#${back}" aria-label="Isara">${icon("close")}</a>
+          <p class="st-join-pending__eyebrow">KAHILINGAN SA KLASE</p>
+          <h1 id="join-pending-title">Naghihintay ng pag-apruba</h1>
+          <p>Naipadala na ang iyong kahilingan.</p>
+        </header>
+        <div class="st-join-pending__card">
+          <div class="st-join-pending__card-heading"><span>Hiniling na klase</span><span class="st-join-pending__badge"><i aria-hidden="true"></i>Nakabinbin</span></div>
+          <h2>${escapeHtml(request.className || "Iyong klase")}</h2>
+          <p>Makakagamit ka ng mga aralin at class chat kapag inaprubahan ng guro.</p>
+          <div class="st-join-pending__note">${icon("info")}<span>Awtomatikong maa-update ang katayuan kapag may koneksyon.</span></div>
+          <div class="st-join-pending__actions">
+            <a class="button primary st-join-pending__home" href="#/home">${icon("home")}<span>Bumalik sa home screen</span></a>
+            <button class="st-icon-button st-join-pending__refresh" id="join-refresh" type="button" aria-label="I-refresh ang katayuan" title="I-refresh ang katayuan">${icon("refresh")}</button>
+          </div>
+          <p id="join-pending-status" class="st-join-pending__status" role="status" aria-live="polite"></p>
+        </div>
+      </section>`;
+    $("#join-refresh").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      if (button.disabled) return;
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      try {
+        await loadProfile();
+        if (!active || !button.isConnected) return;
+        await renderJoin();
+        const status = $("#join-pending-status");
+        if (status && !classId() && student.profile.joinRequest?.status === "pending") {
+          status.textContent = "Nakabinbin pa ang iyong kahilingan.";
+          $("#join-refresh")?.focus();
+        }
+      } catch {
+        if (active && button.isConnected) $("#join-pending-status").textContent = "Hindi ma-refresh ang katayuan. Suriin ang koneksyon at subukan muli.";
+      } finally {
+        if (button.isConnected) {
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+        }
+      }
+    });
+    return;
+  }
   content().innerHTML = `
     <section class="st-join">
       <header class="st-join__header">
         <a class="st-icon-button st-icon-button--light" href="#${back}" aria-label="Isara">${icon("close")}</a>
         ${buddy("happy", "st-join__buddy")}
         <h1>Sumali sa Klase</h1>
-        <p>Hingin sa iyong guro ang class code at ilagay ito rito.</p>
+        <p>Ilagay ang class code. Kailangan munang aprubahan ng guro ang iyong kahilingan.</p>
       </header>
       <div class="st-card st-join__account">
         <span class="st-avatar st-avatar--lg" aria-hidden="true">${escapeHtml(name.charAt(0).toUpperCase())}</span>
         <span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(student.email)}</small></span>
       </div>
       <form id="join-form" class="st-card st-join__form" novalidate>
+        ${request?.status === "declined" ? `<p class="form-error" role="status">Hindi inaprubahan ang iyong kahilingan sa ${escapeHtml(request.className)}. Kausapin ang guro o magpadala ng bagong kahilingan gamit ang tamang class code.</p>` : ""}
         <label>
           Class code mula sa guro
           <input id="join-code" class="st-code-input" type="text" inputmode="text" autocapitalize="characters"
             autocomplete="off" spellcheck="false" maxlength="12" placeholder="Halimbawa: ABC123" required />
         </label>
         <p id="join-error" class="form-error" role="alert"></p>
-        <button class="button primary st-wide" type="submit" id="join-submit">Sumali</button>
+        <button class="button primary st-wide" type="submit" id="join-submit">Ipadala ang kahilingan</button>
       </form>
     </section>`;
 
@@ -88,47 +128,24 @@ export async function renderJoin() {
     }
 
     submit.disabled = true;
-    submit.textContent = "Sumasali…";
+    submit.textContent = "Ipinapadala…";
     setBuddyMood(mascot, "thinking");
     try {
-      const profile = await loadProfile();
-      const snap = await getDocs(query(collection(db, "classes"), where("classCode", "==", code), limit(1)));
-      if (snap.empty) {
-        fail("Walang klaseng natagpuan sa code na ito. Tingnan muli ang code mula sa iyong guro.");
-        return;
-      }
-      const classDoc = snap.docs[0];
-      const className = classDoc.get("className") || "";
-
-      const rosterName = `${profile.lastName || ""}, ${profile.firstName || ""}`;
-      const batch = writeBatch(db);
-      batch.set(doc(db, "classes", classDoc.id, "students", student.uid), {
-        fullName: rosterName,
-        joinedAt: serverTimestamp(),
-      });
-      batch.update(doc(db, "users", student.uid), { classId: classDoc.id, className });
-      addJoinNotice(batch, classDoc.id, student.uid, rosterName);
-      await batch.commit();
-
-      student.profile.classId = classDoc.id;
-      student.profile.className = className;
-      await loadClassLessons().catch(() => {});
-
-      submit.textContent = `Yehey! Kasali ka na sa ${className}`;
-      setBuddyMood(mascot, "happy");
-      confetti({ count: 120 });
-      setTimeout(() => navigate(back), 1600);
+      const result = await requestClassJoin(code);
+      student.profile.joinRequest = result;
+      await loadProfile().catch(() => {});
+      await renderJoin();
       return;
     } catch (err) {
       console.error("Join class failed", err);
       fail(
-        err?.code === "permission-denied" ? "Hindi na-save. Subukan muli." : "May problema sa koneksyon. Subukan muli.",
+        err.message || "May problema sa koneksyon. Subukan muli.",
         false,
       );
     } finally {
-      if (!classId()) {
+      if (submit.isConnected && !classId()) {
         submit.disabled = false;
-        submit.textContent = "Sumali";
+        submit.textContent = "Ipadala ang kahilingan";
       }
     }
   });
