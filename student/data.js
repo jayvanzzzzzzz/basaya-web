@@ -333,6 +333,7 @@ export const isComplete = (lesson) =>
   lesson.lectureFinished &&
   (lesson.gameFinished || lesson.gameSkipped) &&
   (lesson.activityFinished || lesson.activitySkipped) &&
+  lesson.pronunciationFinished &&
   lesson.quizFinished;
 
 /** Open lessons, and closed ones the student finished (review only). */

@@ -57,14 +57,14 @@ function statusOf(lesson) {
   const game = lesson.gameFinished && !lesson.gameSkipped;
   const activity = lesson.activityFinished && !lesson.activitySkipped;
   if (isComplete(lesson)) return { key: "done", label: "Tapos na", icon: "check" };
-  if (lesson.lectureFinished || game || activity || lesson.quizFinished || lesson.started)
+  if (lesson.lectureFinished || game || activity || lesson.pronunciationFinished || lesson.quizFinished || lesson.started)
     return { key: "progress", label: "Nasa progreso", icon: "refresh" };
   return { key: "new", label: "Hindi pa nasisimulan", icon: "lock" };
 }
 
-/** Lecture, game and Gawain (unless skipped) and Pagsusulit, as on the app's card. */
+/** All five parts, excluding a game or Gawain the admin skipped. */
 function percentOf(lesson) {
-  const parts = [lesson.lectureFinished, lesson.quizFinished];
+  const parts = [lesson.lectureFinished, lesson.pronunciationFinished, lesson.quizFinished];
   if (!lesson.gameSkipped) parts.push(lesson.gameFinished);
   if (!lesson.activitySkipped) parts.push(lesson.activityFinished);
   return Math.floor((parts.filter(Boolean).length * 100) / parts.length);

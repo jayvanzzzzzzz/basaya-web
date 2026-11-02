@@ -40,6 +40,17 @@ export async function renderPronunciation(lessonId) {
     toast("Walang pronunciation activity para sa lesson na ito.");
     return navigate(pathUrl);
   }
+  if (!lesson.practice) {
+    try {
+      // Public resume snapshots can predate a reset or another device's answer.
+      const confirmed = await assessmentRequest(lessonId, "begin", { part: "pronunciation" });
+      if (confirmed.finished) return navigate(pathUrl);
+      progress.resume = { ...progress.resume, pronunciation: confirmed };
+    } catch (error) {
+      toast(error.message || "Hindi makuha ang iyong kasalukuyang salita. Subukan muli.");
+      return navigate(pathUrl);
+    }
+  }
 
   content().innerHTML = `
     <section class="st-pron">
@@ -66,12 +77,13 @@ export async function renderPronunciation(lessonId) {
       <div class="st-pron__mic-area">
         <span class="st-pron__ring" aria-hidden="true"></span>
         <span class="st-pron__ring st-pron__ring--two" aria-hidden="true"></span>
-        <button class="st-pron__mic" type="button" id="pron-mic" aria-label="Bigkasin ang salita">
+        <button class="st-pron__mic" type="button" id="pron-mic" aria-label="Hawakan upang magsalita, bitawan upang suriin" aria-pressed="false">
           ${icon("mic")}
           <span class="st-pron__spinner" aria-hidden="true"></span>
         </button>
       </div>
-      <p class="st-pron__hint" id="pron-hint">Pindutin ang mic at sabihin ang salita</p>
+      <div class="st-pron__wave" aria-hidden="true">${Array.from({ length: 9 }, (_, i) => `<i style="--i:${i};--weight:${1 - Math.abs(i - 4) / 5}"></i>`).join("")}</div>
+      <p class="st-pron__hint" aria-live="polite" id="pron-hint">Hawakan ang mic habang nagsasalita</p>
     </section>`;
 
   const words = activity.words;
@@ -152,6 +164,10 @@ export async function renderPronunciation(lessonId) {
         misses: Number(resume.misses) || 0,
       }
     : null;
+  let active = true;
+  let holding = false;
+  let release = null;
+  let pointerId = null;
   let processing = false;
   let useBrowser = false; // set once basaya-stt is unavailable (e.g. free daily limit)
   let microphone = null;
@@ -161,6 +177,11 @@ export async function renderPronunciation(lessonId) {
   let pendingRecording = null;
 
   onLeave(() => {
+    active = false;
+    holding = false;
+    window.removeEventListener("blur", cancelHold);
+    window.removeEventListener("focus", prepareMicrophone);
+    document.removeEventListener("visibilitychange", visibilityChanged);
     // Never keep the mic or audio running after leaving.
     listening?.abort();
     microphone?.close();
@@ -178,7 +199,10 @@ export async function renderPronunciation(lessonId) {
     setBuddyMood(mascot, "idle");
     setTalking(mascot, true);
   };
-  const setLevel = (level) => micArea.style.setProperty("--level", level.toFixed(3));
+  const setLevel = (level) => {
+    micArea.style.setProperty("--level", level.toFixed(3));
+    micArea.closest(".st-pron").style.setProperty("--voice", level.toFixed(3));
+  };
 
   const showNote = (tone, title, text = "") => {
     const note = $("#pron-note");
@@ -219,7 +243,7 @@ export async function renderPronunciation(lessonId) {
     updateLives(false);
     hideNote();
     setMood("idle");
-    $("#pron-hint").textContent = "Pindutin ang mic at sabihin ang salita";
+    $("#pron-hint").textContent = "Hawakan ang mic habang nagsasalita";
     const card = $("#pron-card");
     card.classList.remove("st-pron__word--in");
     void card.offsetWidth;
@@ -237,20 +261,22 @@ export async function renderPronunciation(lessonId) {
     micArea.classList.add("is-listening");
     micArea.classList.remove("is-thinking");
     setMood("happy");
-    $("#pron-hint").textContent = "Nakikinig ako… sabihin mo na!";
+    $("#pron-hint").textContent = "Bitawan upang suriin";
   };
   const thinkingUi = () => {
     micArea.classList.remove("is-listening");
     micArea.classList.add("is-thinking");
     setMood("thinking");
-    $("#pron-hint").textContent = "Sandali lang…";
+    $("#pron-hint").textContent = "Sinusuri ang pagbigkas…";
   };
   const idleUi = () => {
     processing = false;
+    holding = false;
+    micButton.setAttribute("aria-pressed", "false");
     micArea.classList.remove("is-listening", "is-thinking");
     setLevel(0);
     speaker.disabled = false;
-    $("#pron-hint").textContent = "Pindutin ang mic at sabihin ang salita";
+    $("#pron-hint").textContent = "Hawakan ang mic habang nagsasalita";
     setMood("idle");
   };
 
@@ -291,9 +317,18 @@ export async function renderPronunciation(lessonId) {
 
   const handleScore = (result) => {
     idleUi();
+    const confirmed = !lesson.practice && Number.isInteger(result.done);
+    if (confirmed) {
+      correctCount = result.correct;
+      firstTryCorrect = result.firstTryCorrect;
+      hardWords.clear();
+      result.hardWords.forEach(word => hardWords.add(word));
+    }
     if (result.band === "great" || result.band === "okay") {
-      correctCount += 1;
-      if (missesOnWord === 0) firstTryCorrect += 1;
+      if (!confirmed) {
+        correctCount += 1;
+        if (missesOnWord === 0) firstTryCorrect += 1;
+      }
       savePlace(index + 1);
       setEnabled(false);
       setMood("happy");
@@ -307,8 +342,8 @@ export async function renderPronunciation(lessonId) {
       return;
     }
     // Wrong answers only encourage; the misheard text is not shown.
-    lives -= 1;
-    missesOnWord += 1;
+    lives = confirmed ? (result.over ? 0 : result.lives) : lives - 1;
+    missesOnWord = confirmed ? (result.over ? MAX_LIVES : result.misses) : missesOnWord + 1;
     hardWords.add(words[index].word);
     updateLives(true);
     setMood("cheer");
@@ -334,10 +369,17 @@ export async function renderPronunciation(lessonId) {
   };
 
   // Listening
-  const listenBrowser = async () => {
+  const prepareMicrophone = () => {
+    if (!active || document.hidden || useBrowser || !Microphone.supported()) return;
+    microphone ||= new Microphone();
+    // Prime the audio pipeline before a hold. Idle audio is discarded.
+    microphone.open().catch(() => {});
+  };
+  const listenBrowser = async (attempt, released) => {
+    microphone?.close(); microphone = null;
     listeningUi();
-    listening = new AbortController();
-    const result = await listenWithBrowser(listening.signal);
+    const result = await listenWithBrowser(attempt.signal, released.signal);
+    if (!active || attempt.signal.aborted || result.cancelled) return;
     if (result.candidates?.length) handleScore(score(words[index].word, result.candidates, result.confidences));
     else if (result.unavailable) {
       idleUi();
@@ -359,13 +401,19 @@ export async function renderPronunciation(lessonId) {
       return;
     }
     useBrowser = true;
+    microphone?.close(); microphone = null;
     idleUi();
     showNote("info", "Sabihin mo ulit ang salita.", "Pindutin ulit ang mic.");
   };
 
-  const listenWhisper = async () => {
+  const listenWhisper = async (attempt, released) => {
     if (!microphone) microphone = new Microphone();
-    const opened = await microphone.open();
+    const currentMic = microphone;
+    const opened = await currentMic.open();
+    if (!active || !holding || attempt.signal.aborted) {
+      if (active && listening === attempt) idleUi();
+      return;
+    }
     if (opened === "denied") {
       idleUi();
       showNote("info", "Kailangan ng microphone permission para magamit ito.", "Payagan ang mikropono sa settings ng browser, saka subukan ulit.");
@@ -377,8 +425,12 @@ export async function renderPronunciation(lessonId) {
       return;
     }
     listeningUi();
-    listening = new AbortController();
-    const recording = pendingRecording || await microphone.record(setLevel, listening.signal);
+    let recording = pendingRecording;
+    if (recording) {
+      // A failed assessed submission must keep its original event ID and audio.
+      await new Promise(resolve => released.signal.aborted ? resolve() : released.signal.addEventListener("abort", resolve, { once: true }));
+    } else recording = await microphone.record(setLevel, attempt.signal, released.signal);
+    if (!active || attempt.signal.aborted || recording.cancelled) return;
     if (!recording.wav) return noSpeech();
 
     thinkingUi();
@@ -390,15 +442,38 @@ export async function renderPronunciation(lessonId) {
         for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
         const result = await assessmentRequest(lessonId, "speech", { part: "pronunciation", index, eventId: pendingRecording.eventId, audio: btoa(binary) });
         pendingRecording = null;
+        if (!active || attempt.signal.aborted) return;
         if (result.noSpeech) noSpeech();
         else handleScore(result);
       } catch (error) {
+        if (!active || attempt.signal.aborted) return;
+        if (error.status === 409 && ["Refresh the current pronunciation word.", "Submit the current item in order.", "This assessment part is already finalized."].includes(error.message)) {
+          try {
+            const confirmed = await assessmentRequest(lessonId, "begin", { part: "pronunciation" });
+            if (!active || attempt.signal.aborted) return;
+            pendingRecording = null;
+            clearTimeout(advanceTimer);
+            if (confirmed.finished) return navigate(pathUrl);
+            index = confirmed.done;
+            correctCount = confirmed.correct;
+            firstTryCorrect = confirmed.firstTryCorrect;
+            hardWords.clear();
+            confirmed.hardWords.forEach(word => hardWords.add(word));
+            restored = { lives: confirmed.lives, misses: confirmed.misses };
+            idleUi();
+            if (index >= words.length) return finish();
+            showWord();
+            showNote("info", "Na-update ang iyong progreso.", "Hawakan ang mic at bigkasin ang kasalukuyang salita.");
+            return;
+          } catch { /* Keep the original recording if refreshing also fails. */ }
+        }
         idleUi();
         showNote("info", "Hindi na-save ang iyong sagot.", error.message || "Pindutin muli ang mic upang maipasa ang recording.");
       }
       return;
     }
     const result = await transcribe(recording.wav);
+    if (!active || attempt.signal.aborted) return;
     if (result.text != null) {
       if (!result.text) noSpeech();
       else handleScore(score(words[index].word, [result.text]));
@@ -410,11 +485,15 @@ export async function renderPronunciation(lessonId) {
     }
   };
 
-  micButton.addEventListener("click", () => {
-    if (processing) return;
+  const startHold = () => {
+    if (processing || micButton.disabled || !active) return;
     player.pause();
     window.speechSynthesis?.cancel();
     if (!navigator.onLine) return offline();
+    holding = true;
+    release = new AbortController();
+    listening = new AbortController();
+    micButton.setAttribute("aria-pressed", "true");
     processing = true;
     speaker.disabled = true;
     hideNote();
@@ -422,8 +501,72 @@ export async function renderPronunciation(lessonId) {
       idleUi();
       showNote("info", "Hindi suportado ang pag-record sa browser na ito.", "Gumamit ng browser na may microphone recording upang maitala ang iyong pagbigkas.");
     }
-    else if (useBrowser || !Microphone.supported()) listenBrowser();
-    else listenWhisper();
+    else {
+      const attempt = listening;
+      const failed = () => { if (listening === attempt) recordingFailed(); };
+      if (useBrowser || !Microphone.supported()) listenBrowser(attempt, release).catch(failed);
+      else listenWhisper(attempt, release).catch(failed);
+    }
+  };
+  const recordingFailed = () => {
+    if (!active || listening?.signal.aborted) return;
+    microphone?.close(); microphone = null;
+    idleUi();
+    showNote("info", "Hindi magamit ang mikropono ngayon. Subukan muli.");
+  };
+  const finishHold = () => {
+    if (!holding) return;
+    holding = false;
+    micButton.setAttribute("aria-pressed", "false");
+    thinkingUi();
+    release?.abort();
+  };
+  const cancelHold = () => {
+    pointerId = null;
+    microphone?.close(); microphone = null;
+    if (!holding) return;
+    holding = false;
+    listening?.abort();
+    release?.abort();
+    microphone?.close(); microphone = null;
+    if (active) idleUi();
+  };
+  const visibilityChanged = () => { if (document.hidden) cancelHold(); else prepareMicrophone(); };
+  window.addEventListener("blur", cancelHold);
+  window.addEventListener("focus", prepareMicrophone);
+  document.addEventListener("visibilitychange", visibilityChanged);
+  micButton.addEventListener("blur", () => {
+    if (holding) { cancelHold(); prepareMicrophone(); }
+  });
+  micButton.addEventListener("contextmenu", event => event.preventDefault());
+  micButton.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || pointerId !== null || processing || micButton.disabled) return;
+    event.preventDefault();
+    pointerId = event.pointerId;
+    micButton.setPointerCapture(pointerId);
+    startHold();
+  });
+  micButton.addEventListener("pointerup", event => {
+    if (event.pointerId !== pointerId) return;
+    pointerId = null;
+    finishHold();
+  });
+  micButton.addEventListener("pointercancel", () => { pointerId = null; cancelHold(); });
+  micButton.addEventListener("lostpointercapture", () => { if (pointerId !== null) { pointerId = null; cancelHold(); } });
+  micButton.addEventListener("keydown", event => {
+    if (![" ", "Enter"].includes(event.key)) return;
+    event.preventDefault();
+    if (!event.repeat) startHold();
+  });
+  micButton.addEventListener("keyup", event => {
+    if (![" ", "Enter"].includes(event.key)) return;
+    event.preventDefault();
+    finishHold();
+  });
+  // Screen-reader activation provides an accessible start/stop alternative.
+  micButton.addEventListener("click", event => {
+    if (event.detail !== 0) return;
+    if (holding) finishHold(); else startHold();
   });
 
   // Finish
@@ -485,7 +628,10 @@ export async function renderPronunciation(lessonId) {
 
   // Every word was done before closing: only the result is left to save.
   if (index >= words.length) finish();
-  else showWord();
+  else {
+    showWord();
+    prepareMicrophone();
+  }
 }
 
 const heartIcon = () =>

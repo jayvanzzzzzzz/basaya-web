@@ -1,7 +1,7 @@
 import { auth } from "../js/firebase.js";
 
 // Pronunciation checking for the student website, ported from the Android app:
-// - record(): the app's VoiceRecorder.kt — 16 kHz mono WAV, stops after 0.8 s of quiet.
+// - record(): the app's VoiceRecorder.kt — 16 kHz mono WAV, records while held and finishes on release.
 // - transcribe(): the app's WhisperSttClient.kt — basaya-stt (Whisper, Tagalog). The website
 //   sends the student's Firebase sign-in token instead of the app's secret key.
 // - listenWithBrowser(): the fallback when basaya-stt is busy, like the app's switch to
@@ -18,54 +18,81 @@ const FRAME_SAMPLES = 320; // 20 ms
 const CALIBRATION_FRAMES = 10; // 200 ms
 const MIN_SPEECH_RMS = 0.015;
 const MIN_SPEECH_FRAMES = 4; // 80 ms, ignores clicks and bumps
-const END_SILENCE_FRAMES = 40; // 800 ms of quiet ends the word
-const PRE_ROLL_FRAMES = 15; // 300 ms
-const NO_SPEECH_TIMEOUT_FRAMES = 300; // 6 s
 const MAX_FRAMES = 350; // 7 s hard limit
 
-/** One microphone for the whole pronunciation screen, so the browser asks permission once. Create it inside a tap: iPhones only start audio from a user gesture. */
+/** Prepare one microphone for the screen; open() also resumes audio from a hold on browsers requiring a user gesture. */
 export class Microphone {
   constructor() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     this.context = AudioContextClass ? new AudioContextClass() : null;
     this.stream = null;
+    this.opening = null;
+    this.closed = false;
+    this.processAudio = null;
+    this.recordingId = 0;
   }
 
   static supported() {
-    return Boolean(navigator.mediaDevices?.getUserMedia && (window.AudioContext || window.webkitAudioContext));
+    return Boolean(navigator.mediaDevices?.getUserMedia && window.AudioWorkletNode && (window.AudioContext || window.webkitAudioContext));
   }
 
   /** Resolves "ok", "denied" or "unavailable". */
   async open() {
-    if (!this.context) return "unavailable";
-    if (this.context.state === "suspended") await this.context.resume().catch(() => {});
+    if (!this.context || this.closed) return "unavailable";
+    if (this.context.state === "suspended") this.context.resume().catch(() => {});
+    if (this.closed) return "unavailable";
     if (this.stream?.active) return "ok";
+    if (this.opening) return this.opening;
+    this.opening = this.prepare();
+    try { return await this.opening; }
+    finally { this.opening = null; }
+  }
+
+  async prepare() {
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
+      if (this.closed) {
+        stream.getTracks().forEach(track => track.stop());
+        return "unavailable";
+      }
+      this.stream = stream;
+      await this.context.audioWorklet.addModule(new URL("./microphone-worklet.js", import.meta.url));
+      if (this.closed) return "unavailable";
+      this.source = this.context.createMediaStreamSource(stream);
+      this.processor = new AudioWorkletNode(this.context, "pronunciation-microphone");
+      this.processor.port.onmessage = ({ data }) => {
+        if (data.id !== this.recordingId) return;
+        if (data.type === "audio") this.processAudio?.(data.samples);
+        if (data.type === "stopped") this.finishRecording?.();
+      };
+      this.source.connect(this.processor);
+      this.processor.connect(this.context.destination);
       return "ok";
     } catch (error) {
+      this.processor?.disconnect();
+      this.source?.disconnect();
+      this.stream?.getTracks().forEach(track => track.stop());
+      this.stream = null;
       return error?.name === "NotAllowedError" || error?.name === "SecurityError" ? "denied" : "unavailable";
     }
   }
 
   /**
-   * Listens until a word is said and followed by quiet. `onLevel(0..1)` drives the mic ring.
+   * Records until releaseSignal fires; silence never submits. `onLevel(0..1)` drives the mic ring.
    * Resolves { wav: Blob } or { noSpeech: true }. `signal` (AbortSignal) stops early.
    */
-  record(onLevel = () => {}, signal) {
+  record(onLevel = () => {}, signal, releaseSignal) {
     return new Promise((resolve) => {
-      const source = this.context.createMediaStreamSource(this.stream);
-      const processor = this.context.createScriptProcessor(4096, 1, 1);
+      const id = ++this.recordingId;
       const ratio = this.context.sampleRate / SAMPLE_RATE;
       const pcm = []; // Int16 frames at 16 kHz
       let pending = new Float32Array(0);
       let position = 0; // read position in the input stream, in input samples
+      let speechFrames = 0;
       let noiseFloor = 0;
       let calibrationFrames = 0;
-      let speechStartFrame = -1;
-      let lastSpeechFrame = -1;
       let frameIndex = 0;
       let smoothedLevel = 0;
       let done = false;
@@ -73,17 +100,27 @@ export class Microphone {
       const stop = (result) => {
         if (done) return;
         done = true;
-        processor.disconnect();
-        source.disconnect();
+        signal?.removeEventListener("abort", cancel);
+        releaseSignal?.removeEventListener("abort", release);
+        this.processAudio = null;
+        this.cancelRecording = null;
+        this.finishRecording = null;
+        this.processor?.port.postMessage({ type: "stop", id });
         onLevel(0);
         resolve(result);
       };
-      signal?.addEventListener("abort", () => stop({ noSpeech: true }), { once: true });
+      const cancel = () => stop({ cancelled: true });
+      this.cancelRecording = cancel;
+      this.finishRecording = () => stop(speechFrames >= MIN_SPEECH_FRAMES ? { wav: wavBlob(pcm) } : { noSpeech: true });
+      const release = () => this.processor.port.postMessage({ type: "stop", id });
+      signal?.addEventListener("abort", cancel, { once: true });
+      releaseSignal?.addEventListener("abort", release, { once: true });
+      if (signal?.aborted) { cancel(); return; }
+      if (releaseSignal?.aborted) { stop({ noSpeech: true }); return; }
 
-      processor.onaudioprocess = (event) => {
-        if (done) return;
+      this.processAudio = (input) => {
+        if (done || frameIndex >= MAX_FRAMES) return;
         // Append the new input, then cut it into 20 ms frames at 16 kHz (linear resampling).
-        const input = event.inputBuffer.getChannelData(0);
         const joined = new Float32Array(pending.length + input.length);
         joined.set(pending);
         joined.set(input, pending.length);
@@ -105,43 +142,33 @@ export class Microphone {
 
           // Learn the room's background noise from the first moments.
           if (calibrationFrames < CALIBRATION_FRAMES) {
-            noiseFloor = (noiseFloor * calibrationFrames + rms) / (calibrationFrames + 1);
+            noiseFloor = Math.min((noiseFloor * calibrationFrames + rms) / (calibrationFrames + 1), MIN_SPEECH_RMS / 4);
             calibrationFrames += 1;
           }
+          if (rms > MIN_SPEECH_RMS / 2) speechFrames += 1;
           const threshold = Math.max(noiseFloor * 3, MIN_SPEECH_RMS);
-          if (rms > threshold) {
-            if (speechStartFrame < 0) speechStartFrame = frameIndex;
-            lastSpeechFrame = frameIndex;
-          }
+
           const level = Math.max(0, Math.min(1, (rms - noiseFloor) / (threshold * 4)));
           smoothedLevel += (level - smoothedLevel) * (level > smoothedLevel ? 0.6 : 0.2);
           onLevel(smoothedLevel);
 
           frameIndex += 1;
-          const heardEnough =
-            speechStartFrame >= 0 &&
-            frameIndex - lastSpeechFrame > END_SILENCE_FRAMES &&
-            lastSpeechFrame - speechStartFrame >= MIN_SPEECH_FRAMES;
-          const waitedTooLong = speechStartFrame < 0 && frameIndex > NO_SPEECH_TIMEOUT_FRAMES;
-          if (heardEnough || waitedTooLong || frameIndex > MAX_FRAMES) {
-            if (speechStartFrame < 0) return stop({ noSpeech: true });
-            // Keep a little audio before the first sound so the start isn't clipped.
-            const frames = pcm.slice(Math.max(0, speechStartFrame - PRE_ROLL_FRAMES));
-            return stop({ wav: wavBlob(frames) });
-          }
+          if (frameIndex >= MAX_FRAMES) break; // Wait for release without growing the clip.
         }
         const keepFrom = Math.floor(position);
         pending = joined.slice(keepFrom);
         position -= keepFrom;
       };
-
-      source.connect(processor);
-      // Some browsers only run the processor while it is connected to the output.
-      processor.connect(this.context.destination);
+      this.processor.port.postMessage({ type: "start", id });
     });
   }
 
   close() {
+    this.closed = true;
+    this.cancelRecording?.();
+    this.processor?.disconnect();
+    this.processor?.port.close();
+    this.source?.disconnect();
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
     this.context?.close().catch(() => {});
@@ -206,7 +233,7 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const browserRecognitionAvailable = () => Boolean(Recognition);
 
 /** { candidates, confidences } | { noSpeech: true } | { unavailable: true }. */
-export function listenWithBrowser(signal) {
+export function listenWithBrowser(signal, releaseSignal) {
   return new Promise((resolve) => {
     if (!Recognition) return resolve({ unavailable: true });
     const recognizer = new Recognition();
@@ -214,26 +241,37 @@ export function listenWithBrowser(signal) {
     recognizer.maxAlternatives = 5;
     recognizer.interimResults = false;
     recognizer.continuous = false;
+    let pendingResult = null;
     let settled = false;
     const finish = (result) => {
       if (settled) return;
       settled = true;
+      signal?.removeEventListener("abort", cancel);
+      releaseSignal?.removeEventListener("abort", release);
       resolve(result);
     };
-    signal?.addEventListener("abort", () => {
-      recognizer.abort();
-      finish({ noSpeech: true });
-    });
+    const cancel = () => { recognizer.abort(); finish({ cancelled: true }); };
+    const release = () => {
+      if (pendingResult) finish(pendingResult);
+      else { try { recognizer.stop(); } catch { finish({ noSpeech: true }); } }
+    };
+    signal?.addEventListener("abort", cancel, { once: true });
+    releaseSignal?.addEventListener("abort", release, { once: true });
+    if (signal?.aborted || releaseSignal?.aborted) { finish({ cancelled: true }); return; }
     recognizer.onresult = (event) => {
       const alternatives = [...(event.results[0] || [])];
-      finish({
+      pendingResult = {
         candidates: alternatives.map((item) => item.transcript),
         confidences: alternatives.map((item) => item.confidence || 0.5),
-      });
+      };
+      if (releaseSignal?.aborted) finish(pendingResult);
     };
     recognizer.onerror = (event) =>
       finish(event.error === "not-allowed" || event.error === "service-not-allowed" ? { unavailable: true } : { noSpeech: true });
-    recognizer.onend = () => finish({ noSpeech: true });
+    recognizer.onend = () => {
+      pendingResult ||= { noSpeech: true };
+      if (releaseSignal?.aborted) finish(pendingResult);
+    };
     try {
       recognizer.start();
     } catch {

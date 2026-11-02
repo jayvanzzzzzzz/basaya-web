@@ -28,7 +28,10 @@ export async function submitSpeech(db, uid, body, authorization, recognize = rec
 async function recognizeAudio(wav, authorization) {
   try {
     const response = await fetch("https://basaya-stt.jayvanzsingca5.workers.dev/transcribe", {
-      method: "POST", headers: { "Content-Type": "audio/wav", Authorization: authorization },
+      // The worker's Firebase-token route requires an allowed origin, including
+      // requests forwarded by this server on behalf of native Android callers.
+      method: "POST", headers: { "Content-Type": "audio/wav", Authorization: authorization,
+        Origin: process.env.STT_ALLOWED_ORIGIN || "https://basaya.onrender.com" },
       body: wav, signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) throw new Error("Speech service unavailable");

@@ -151,7 +151,7 @@ export async function assessmentOperation(db, uid, body, speechEvidence = null) 
     }
     const { part, operation } = body;
     if (!["quiz", "activity", "game", "lecture", "pronunciation"].includes(part)) fail(400, "Invalid assessment part.");
-    if ((operation === "begin" && !["quiz", "game"].includes(part)) ||
+    if ((operation === "begin" && !["quiz", "game", "pronunciation"].includes(part)) ||
         (operation === "abandon" && part !== "quiz")) fail(400, "Invalid assessment start or exit.");
     if ((part === "game" && c.gameSkipped) || (part === "activity" && c.activitySkipped)) fail(403, "This part is skipped.");
     if (body.practice) {
@@ -165,6 +165,7 @@ export async function assessmentOperation(db, uid, body, speechEvidence = null) 
     const progress = saved.data() || {};
     if (saved.exists && ((progress.classId && progress.classId !== body.classId) || (progress.progressSession || "") !== body.progressSession)) fail(409, "Your class progress changed. Refresh the lessons.");
     if (part === "game" && operation === "begin" && progress.gameFinished) return { finished: true };
+    if (part === "pronunciation" && operation === "begin" && progress.pronunciationFinished) return { finished: true };
     if (part === "quiz" && !progress.lectureFinished && !body.practice) fail(403, "Finish the lecture first.");
     // Authority lives in a collection that was never client-writable, including
     // before rollout. A forged legacy assessmentState on progress is not evidence.
@@ -292,7 +293,7 @@ export async function assessmentOperation(db, uid, body, speechEvidence = null) 
           reply.explanation = page.explanation ?? c.activity.explanation ?? "";
         }
         reply.over = over;
-      } else if (operation !== "finish") fail(400, "Submit each attempt to the server.");
+      } else if (operation !== "finish" && !(part === "pronunciation" && operation === "begin")) fail(400, "Submit each attempt to the server.");
       resume = { done: state.done || 0, total, score: state.correct || 0, correct: state.correct || 0, firstTryCorrect: state.firstTryCorrect || 0, retries: state.retries || 0, lives: 3 - (state.misses || 0), misses: state.misses || 0, hardWords: state.hardWords || [] };
       reply = { ...reply, ...resume };
       if (operation === "finish") {

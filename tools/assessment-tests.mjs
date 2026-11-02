@@ -196,6 +196,59 @@ try {
     const result = await op("finish", { part: "pronunciation" }); assert.equal(result.score, 2);
     assert.equal((await read("users/student/assignedLessons/lesson")).skills.pagbigkas.correct, 1);
   });
+  await test("pronunciation begin restores trusted position and ignores stale public resume", async () => {
+    const lessonId = "pronunciation-resume";
+    await seed(`classes/a/classLessons/${lessonId}`, { lessonId });
+    await seed(`lessons/${lessonId}/pronunciation/content`, { words: ["bahay", "puno"] });
+    const progressPath = `users/student/assignedLessons/${lessonId}`;
+    await seed(progressPath, { classId: "a", progressSession: base.progressSession,
+      assessmentState: { pronunciation: { attemptId: "legacy", done: 1 } },
+      resume: { pronunciation: { done: 1, total: 2, correct: 1, lives: 3 } } });
+    await rejects(op("begin", { lessonId, part: "pronunciation", done: 2, correct: 99 }), 400);
+    const begin = () => op("begin", { lessonId, part: "pronunciation" });
+    assert.equal((await begin()).done, 0);
+    const wav = Buffer.alloc(64); wav.write("RIFF"); wav.write("WAVE", 8);
+    const speech = (index, text) => submitSpeech(db, "student", { ...base, lessonId, operation: "speech",
+      part: "pronunciation", index, eventId: `resume-${++event}`, audio: wav.toString("base64") },
+    "Bearer synthetic", async () => text);
+    await speech(0, "bata");
+    await db.doc(progressPath).update({ "resume.pronunciation.done": 1, "resume.pronunciation.lives": 3 });
+    const resumed = await begin();
+    assert.equal(resumed.done, 0);
+    assert.equal(resumed.lives, 2);
+    assert.equal(resumed.correct, 0);
+    await rejects(speech(1, "puno"), 409);
+    await speech(0, "bahay");
+    assert.equal((await begin()).done, 1);
+    assert.equal((await begin()).firstTryCorrect, 0);
+    await speech(1, "puno");
+    assert.equal((await begin()).done, 2);
+    await op("finish", { lessonId, part: "pronunciation" });
+    assert.equal((await begin()).finished, true);
+  });
+  await test("native speech forwarding preserves the token and supplies an allowed worker origin", async () => {
+    const lessonId = "native-speech";
+    await seed(`classes/a/classLessons/${lessonId}`, { lessonId });
+    await seed(`lessons/${lessonId}/pronunciation/content`, { words: ["bahay"] });
+    const wav = Buffer.alloc(64); wav.write("RIFF"); wav.write("WAVE", 8);
+    const originalFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async (url, options) => {
+      if (url !== "https://basaya-stt.jayvanzsingca5.workers.dev/transcribe") return originalFetch(url, options);
+      calls++;
+      assert.equal(options.headers.Authorization, "Bearer native-test-token");
+      assert.equal(options.headers.Origin, process.env.STT_ALLOWED_ORIGIN || "https://basaya.onrender.com");
+      assert.deepEqual(options.body, wav);
+      return new Response(JSON.stringify({ text: "bahay" }), { status: 200 });
+    };
+    try {
+      const result = await submitSpeech(db, "student", { ...base, lessonId, operation: "speech",
+        part: "pronunciation", index: 0, eventId: "native-recording", audio: wav.toString("base64") }, "Bearer native-test-token");
+      assert.equal(result.right, true);
+      assert.equal(result.done, 1);
+      assert.equal(calls, 1);
+    } finally { globalThis.fetch = originalFetch; }
+  });
   await test("crossword start uses validated state, preserves legacy results and supports gapped level IDs", async () => {
     const lessonId = "crossword-resume";
     await seed(`classes/a/classLessons/${lessonId}`, { lessonId });

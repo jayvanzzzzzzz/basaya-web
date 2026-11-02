@@ -77,6 +77,8 @@
 
 @media (min-width: 901px) {
   .auth-copy {
+    justify-content: flex-start;
+    padding-top: clamp(1.5rem, 3vw, 2.5rem);
     padding-bottom: calc(clamp(2rem, 5vw, 4.5rem) + 12rem);
   }
 }
