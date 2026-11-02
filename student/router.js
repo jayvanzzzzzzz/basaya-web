@@ -13,6 +13,7 @@ import { renderChat, watchChatBadge } from "./views/chat.js";
 import { renderNotifications, refreshBell } from "./views/notifications.js";
 import { renderAccount } from "./views/account.js";
 import { renderDictionary } from "./views/dictionary.js";
+import { renderAssistant } from "./views/assistant.js";
 
 // Hash routes: #/home #/join #/progress #/chat #/notifications #/account #/diksiyonaryo #/lesson/{id} #/lesson/{id}/{lecture|game|activity|pronunciation|quiz}
 
@@ -32,6 +33,7 @@ const PAGES = {
   notifications: renderNotifications,
   account: renderAccount,
   diksiyonaryo: renderDictionary,
+  assistant: renderAssistant,
 };
 
 /** Called by a screen that is leaving (stops audio, the mic, live listeners). */
@@ -140,7 +142,7 @@ async function drawRoute(flight) {
   // Lesson parts take the whole page (no top bar or bottom menu), like the app.
   const focus = section === "lesson" && part in PARTS;
   $("#app-view").classList.toggle("is-focus", focus);
-  $("#app-view").classList.toggle("is-chat", section === "chat");
+  $("#app-view").classList.toggle("is-chat", section === "chat" || section === "assistant");
   $$("[data-nav]").forEach((link) => {
     const active =
       link.dataset.nav === section ||

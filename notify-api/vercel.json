@@ -4,6 +4,7 @@
     "api/class-membership.js": { "maxDuration": 60 }
   },
   "rewrites": [
+    { "source": "/api/assistant", "destination": "/api/class-membership?operation=assistant" },
     { "source": "/api/assessment", "destination": "/api/class-membership?operation=assessment" },
     { "source": "/api/join-class", "destination": "/api/class-membership?operation=request" },
     { "source": "/api/review-join-requests", "destination": "/api/class-membership?operation=review" },

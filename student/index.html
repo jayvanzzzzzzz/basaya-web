@@ -56,6 +56,7 @@
     <link rel="stylesheet" href="../css/pages/messages.css" />
     <link rel="stylesheet" href="../css/pages/student-chat.css" />
     <link rel="stylesheet" href="../css/pages/student-dictionary.css" />
+    <link rel="stylesheet" href="../css/pages/student-assistant.css" />
     <link rel="stylesheet" href="../css/components/class-members.css" />
   </head>
   <body class="st-body">
@@ -66,11 +67,14 @@
 
     <div id="app-view" class="st-shell" hidden>
       <header class="st-topbar">
-        <a class="st-topbar__brand" href="#/home">
+        <a class="st-topbar__brand" href="#/home" aria-label="BaSaya home">
           <img src="../img/logo.png" alt="" />
           <span>BaSaya</span>
         </a>
         <div class="st-topbar__actions">
+          <a class="st-bell st-assistant-link" href="#/assistant" data-nav="assistant" aria-label="BaSaya AI Assistant" title="BaSaya Assistant">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="4" /><path d="M12 3v3M8 16h8M8 11h1m6 0h1" /></svg>
+          </a>
           <a class="st-bell" id="st-dict-link" href="#/diksiyonaryo" data-nav="diksiyonaryo" aria-label="Diksiyonaryo" title="Diksiyonaryo">
             <!-- Dictionary: thick book with A–Z thumb-index tabs (same as the app's ic_dictionary) -->
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 2.5H18v16H5.5A2.5 2.5 0 0 0 3 21V5a2.5 2.5 0 0 1 2.5-2.5Z" /><path d="M3 21a2.5 2.5 0 0 1 2.5-2.5H18v3H5.5" /><path d="M8 7h6M8 10.5h4" /><path class="st-dict-tabs" d="M18 4h2.6a.9.9 0 0 1 .9.9v1a.9.9 0 0 1-.9.9H18ZM18 9h2.6a.9.9 0 0 1 .9.9v1a.9.9 0 0 1-.9.9H18ZM18 14h2.6a.9.9 0 0 1 .9.9v1a.9.9 0 0 1-.9.9H18Z" /></svg>
@@ -109,6 +113,7 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
                 <span>Aking account</span>
               </a>
+              <a class="st-menu__item" href="#/assistant" role="menuitem"><span>BaSaya Assistant · AI Help</span></a>
               <button class="st-menu__item" id="st-install-app" type="button" role="menuitem">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
                 <span>Install BaSaya</span>

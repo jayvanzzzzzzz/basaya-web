@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+const url = "https://basaya-notify-api.vercel.app/api/assistant";
+const options = await fetch(url, { method: "OPTIONS", headers: { Origin: "http://localhost", "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,content-type" }, signal: AbortSignal.timeout(20000) });
+assert.equal(options.status, 204);
+assert.equal(options.headers.get("access-control-allow-origin"), "http://localhost");
+console.log("PASS: deployed assistant supports local website CORS preflight");
+const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Origin: "http://localhost" }, body: JSON.stringify({ question: "How to join?" }), signal: AbortSignal.timeout(20000) });
+assert.equal(response.status, 401);
+assert.equal(response.headers.get("cache-control"), "no-store");
+assert.equal((await response.json()).error, "Not signed in");
+console.log("PASS: deployed assistant route requires Firebase sign-in and disables caching");
+const get = await fetch(url, { signal: AbortSignal.timeout(20000) });
+assert.equal(get.status, 405);
+console.log("PASS: deployed assistant rejects unsupported HTTP methods");

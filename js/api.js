@@ -21,6 +21,8 @@ export async function postToApi(path, body, { signal } = {}) {
   if (!response.ok) {
     const error = new Error(result.error || `server error (${response.status})`);
     error.status = response.status;
+    error.code = result.code;
+    error.retryAt = result.retryAt;
     throw error;
   }
   return result;
