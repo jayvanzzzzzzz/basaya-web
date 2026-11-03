@@ -274,7 +274,7 @@ const chipHtml = (word) =>
   `<span class="word-chip" data-word-chip="${escapeHtml(word)}" tabindex="0">
     <span class="word-chip__text">${escapeHtml(word)}</span>
     <span class="word-chip__state" aria-hidden="true"></span>
-    <button type="button" class="word-chip__remove" data-remove-word aria-label="Remove ${escapeHtml(word)}">×</button>
+    <button type="button" class="word-chip__remove lesson-remove-button" data-remove-word aria-label="Remove ${escapeHtml(word)}" title="Remove ${escapeHtml(word)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
   </span>`;
 
 export function gameLevelHtml(level = {}) {
@@ -286,7 +286,7 @@ export function gameLevelHtml(level = {}) {
           <strong data-card-number>Level</strong>
           <span class="game-builder__status" data-level-status></span>
         </div>
-        <button type="button" class="text-button danger" data-remove-game-level>Remove</button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-game-level aria-label="Remove game level" title="Remove game level"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </header>
 
       <div class="game-builder__body">

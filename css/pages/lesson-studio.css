@@ -301,6 +301,54 @@
   gap: 0.8rem;
 }
 
+.pronunciation-word-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pronunciation-word-picker [data-ready-word].is-selected {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: #15803d;
+}
+
+.pronunciation-word-picker [data-ready-check][hidden] {
+  display: none;
+}
+
+[data-pronunciation-audio-status] {
+  grid-column: 1 / -1;
+}
+
+.pronunciation-sentence-field {
+  display: block;
+  position: relative;
+}
+
+.pronunciation-sentence-field textarea {
+  padding-bottom: 2rem;
+}
+
+.pronunciation-character-count {
+  position: absolute;
+  right: 0.85rem;
+  bottom: 0.65rem;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.pronunciation-remove-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
 .sentence-editor,
 .pronunciation-editor {
   display: grid;

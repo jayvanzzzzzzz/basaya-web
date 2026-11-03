@@ -177,3 +177,133 @@
   background: var(--danger-soft);
   color: var(--danger);
 }
+
+/* Consistent, quiet icon controls throughout the lesson editor. */
+:is(.lesson-add-button, .lesson-remove-button) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  transition: background-color 160ms ease;
+}
+
+.button.lesson-add-button,
+.link-button.lesson-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.875rem;
+  height: 2.875rem;
+  min-width: 2.875rem;
+  min-height: 2.875rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: none;
+  filter: none;
+}
+
+:is(.lesson-add-button, .lesson-remove-button) svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+  transition: transform 160ms ease;
+}
+
+.lesson-add-button svg {
+  width: 1.625rem;
+  height: 1.625rem;
+  stroke-width: 1.7;
+}
+
+.word-chip__remove.lesson-remove-button {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+}
+
+.button.lesson-add-button:not(:disabled):hover,
+.button.lesson-add-button:not(:disabled):focus-visible,
+.link-button.lesson-add-button:not(:disabled):hover,
+.link-button.lesson-add-button:not(:disabled):focus-visible {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.lesson-remove-button:not(:disabled):hover,
+.lesson-remove-button:not(:disabled):focus-visible {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is(.lesson-add-button, .lesson-remove-button):not(:disabled):hover svg,
+:is(.lesson-add-button, .lesson-remove-button):not(:disabled):focus-visible svg {
+  transform: translateY(-2px);
+}
+
+:is(.lesson-add-button, .lesson-remove-button):focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 3px;
+}
+
+.lesson-remove-button:focus-visible {
+  outline-color: #ef4444;
+}
+
+:is(.lesson-add-button, .lesson-remove-button)::after {
+  content: attr(aria-label);
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.4rem;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+}
+
+:is(.lesson-add-button, .lesson-remove-button):not(:disabled):hover::after,
+:is(.lesson-add-button, .lesson-remove-button):not(:disabled):focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+:is(.lesson-add-button, .lesson-remove-button)[hidden] {
+  display: none;
+}
+
+[data-add-lecture-page],
+.lesson-add-sentence-button,
+#add-page.lesson-add-page-button {
+  margin-left: auto;
+  justify-self: end;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.lesson-add-button, .lesson-remove-button),
+  :is(.lesson-add-button, .lesson-remove-button) svg,
+  :is(.lesson-add-button, .lesson-remove-button)::after {
+    transition: none;
+  }
+
+  :is(.lesson-add-button, .lesson-remove-button):not(:disabled):hover svg,
+  :is(.lesson-add-button, .lesson-remove-button):not(:disabled):focus-visible svg {
+    transform: none;
+  }
+}

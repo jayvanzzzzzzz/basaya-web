@@ -77,17 +77,17 @@ function editForm(lesson) {
 // full create-lesson builder
 function pageBlock(index) {
   return `<div class="card lecture-page" data-page>
-    <div class="section-title"><h4>Page ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger" data-remove-page>Remove page</button>` : ""}</div>
+    <div class="section-title"><h4>Page ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger lesson-remove-button" data-remove-page aria-label="Remove lecture page" title="Remove lecture page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>` : ""}</div>
     <div class="sentence-list">
-      <div class="sentence-row" data-sentence><input type="text" required data-missing="${MISSING.sentence}" placeholder="Sentence" /><button type="button" class="link-button danger" data-remove-sentence>✕</button></div>
+      <div class="sentence-row" data-sentence><input type="text" required data-missing="${MISSING.sentence}" placeholder="Sentence" /><button type="button" class="link-button danger lesson-remove-button" data-remove-sentence aria-label="Remove lecture sentence" title="Remove lecture sentence"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button></div>
     </div>
-    <button type="button" class="link-button" data-add-sentence>+ Add sentence</button>
+    <button type="button" class="link-button lesson-add-button lesson-add-sentence-button" data-add-sentence aria-label="Add lecture sentence" title="Add lecture sentence"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h16M3 10h13M3 15h8M3 20h8M16 17h7M19.5 13.5v7"/></svg></button>
   </div>`;
 }
 
 function questionBlock(index) {
   return `<div class="card quiz-question" data-question>
-    <div class="section-title"><h4>Question ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger" data-remove-question>Remove question</button>` : ""}</div>
+    <div class="section-title"><h4>Question ${index + 1}</h4>${index > 0 ? `<button type="button" class="link-button danger lesson-remove-button" data-remove-question aria-label="Remove quiz question" title="Remove quiz question"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>` : ""}</div>
     <label>Question<input type="text" required data-missing="${MISSING.question}" data-question-text placeholder="e.g. Ano ang pangngalan?" /></label>
     <div class="choice-list">
       ${[0, 1, 2]
@@ -116,11 +116,11 @@ function createForm() {
 
     <div class="section-title"><h3>Lecture pages</h3></div>
     <div id="lecture-pages">${pageBlock(0)}</div>
-    <button type="button" class="link-button" id="add-page">+ Add page</button>
+    <button type="button" class="link-button lesson-add-button lesson-add-page-button" id="add-page" aria-label="Add lecture page" title="Add lecture page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
 
     <div class="section-title"><h3>Quiz</h3></div>
     <div id="quiz-questions">${questionBlock(0)}</div>
-    <button type="button" class="link-button" id="add-question">+ Add question</button>
+    <button type="button" class="link-button lesson-add-button lesson-add-question-button" id="add-question" aria-label="Add quiz question" title="Add quiz question"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M8 11a2 2 0 0 1 4 0c0 1.5-2 1.5-2 3M10 17h.01M17 17h6M20 14v6"/></svg></button>
 
     <div class="section-title"><h3>Game</h3></div>
     <label>Number of levels
@@ -176,26 +176,26 @@ function wireCreateForm(modal, close, title) {
   });
 
   modal.addEventListener("click", (e) => {
-    if (e.target.matches("[data-add-sentence]")) {
+    if (e.target.closest("[data-add-sentence]")) {
       const page = e.target.closest("[data-page]");
       page
         .querySelector(".sentence-list")
         .insertAdjacentHTML(
           "beforeend",
-          `<div class="sentence-row" data-sentence><input type="text" required data-missing="${MISSING.sentence}" placeholder="Sentence" /><button type="button" class="link-button danger" data-remove-sentence>✕</button></div>`,
+          `<div class="sentence-row" data-sentence><input type="text" required data-missing="${MISSING.sentence}" placeholder="Sentence" /><button type="button" class="link-button danger lesson-remove-button" data-remove-sentence aria-label="Remove lecture sentence" title="Remove lecture sentence"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button></div>`,
         );
     }
-    if (e.target.matches("[data-remove-sentence]")) {
+    if (e.target.closest("[data-remove-sentence]")) {
       const list = e.target.closest(".sentence-list");
       if (list.querySelectorAll("[data-sentence]").length > 1)
         e.target.closest("[data-sentence]").remove();
       else toast("A page needs at least one sentence.");
     }
-    if (e.target.matches("[data-remove-page]")) {
+    if (e.target.closest("[data-remove-page]")) {
       e.target.closest("[data-page]").remove();
       renumberPages();
     }
-    if (e.target.matches("[data-remove-question]")) {
+    if (e.target.closest("[data-remove-question]")) {
       e.target.closest("[data-question]").remove();
       renumberQuestions();
     }

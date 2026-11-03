@@ -170,7 +170,8 @@ function pronunciationHtml(pronunciation) {
   const words = pronunciation?.words || [];
   if (!words.length) return emptyState("This lesson has no pronunciation words yet.");
   return `
-    ${sectionHead(pronunciation.title || "Pronunciation", pronunciation.instruction)}
+    ${sectionHead(pronunciation.title || "Pronunciation")}
+    ${(pronunciation.pages || []).length ? `<h4>Sentence pages</h4><ol class="lv-cards">${pronunciation.pages.map((page, index) => `<li class="lv-card"><span class="lv-card__label">Page ${index + 1}</span><div class="lv-line">${playButton(page.cloudAudio, `sentence ${index + 1}`)}<p>${escapeHtml(page.sentence)}</p></div></li>`).join("")}</ol><h4>Get Ready words</h4>` : ""}
     <ul class="lv-words">
       ${words
         .map(
@@ -258,7 +259,7 @@ function counts(sections) {
     (page.sentences || []).map((_, i) => page.cloudAudio?.[i]),
   );
   const words = sections.pronunciation?.words || [];
-  const clips = [...lectureSentences, ...words.map((_, i) => sections.pronunciation?.cloudAudio?.[i])];
+  const clips = [...lectureSentences, ...(sections.pronunciation?.pages || []).map(page => page.cloudAudio), ...words.map((_, i) => sections.pronunciation?.cloudAudio?.[i])];
   return {
     activity: sections.activityStatus?.completion === "skipped" ? 0 : sections.activity?.pages?.length || 0,
     lectures: sections.lectures?.pages?.length || 0,

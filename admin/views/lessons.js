@@ -40,12 +40,14 @@ import { openLessonViewer, loadLessonSections as getLessonSections } from "./les
 import { openDeleteLesson } from "./lessonDeletion.js";
 import { confirmDuplicateTitle, findDuplicate, sameTitle } from "./duplicateTitle.js";
 import { missingChecklist } from "./missingChecklist.js";
+import { mountPronunciationPages } from "./pronunciationPages.js";
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
+const PRONUNCIATION_INSTRUCTION = "Pindutin ang mikropono habang bumabasa";
 const MAX_AUDIO_GENERATIONS_PER_SENTENCE = 5;
 const LESSON_WORD_FIELDS =
-  "[data-pronunciation-text], [data-activity-words], [data-sentence-text], [data-question-text], [data-choice-text]";
+  "[data-pronunciation-text], [data-pronunciation-sentence], [data-activity-words], [data-sentence-text], [data-question-text], [data-choice-text]";
 const previews = new WeakMap();
 
 function lessonDifficultyMeta(level = "") {
@@ -365,7 +367,6 @@ const TITLE_DEFAULTS = {
   "[data-activity-title]": (title) => `PAGSASANAY: HANAPIN ANG ${title.toUpperCase()}`,
   "[data-activity-instruction]": (title) => `Pindutin at piliin ang salitang ${title.toLowerCase()} sa pangungusap.`,
   "[data-pronunciation-title]": (title) => `BIGKASIN ANG MGA ${title.toUpperCase()}`,
-  "[data-pronunciation-instruction]": () => "Pindutin ang mikropono at bigkasin nang malakas ang salita.",
 };
 
 /**
@@ -418,7 +419,7 @@ function studioHtml(lesson = {}, sections = {}) {
         <div class="lecture-page-navigation__controls">
           <h4 class="lecture-page-navigation__title">Lecture Pages <span class="lesson-subheading__count" data-lecture-page-count></span></h4>
           <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
-          <button type="button" class="button secondary small" data-add-lecture-page>+ Add page</button>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-lecture-page aria-label="Add lecture page" title="Add lecture page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
         </div>
       </div>
 
@@ -426,7 +427,7 @@ function studioHtml(lesson = {}, sections = {}) {
         <div class="lecture-page-navigation__controls">
           <h4 class="lecture-page-navigation__title">Game Levels <span class="lesson-subheading__count" data-game-level-count></span></h4>
           <div class="lecture-page-ribbons" data-game-level-ribbons aria-label="Game levels"></div>
-          <button type="button" class="button secondary small" data-add-game-level>+ Add level</button>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-level-button" data-add-game-level aria-label="Add game level" title="Add game level"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 8-4 8 4-8 4-8-4ZM3 11l8 4 5-2.5M3 16l8 4 2-1M17 18h6M20 15v6"/></svg></button>
         </div>
       </div>
 
@@ -486,7 +487,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
           <div class="lesson-subheading">
             <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
-            <button type="button" class="button secondary small" data-add-question>+ Add question</button>
+            <button type="button" class="button secondary small lesson-add-button lesson-add-question-button" data-add-question aria-label="Add quiz question" title="Add quiz question"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M8 11a2 2 0 0 1 4 0c0 1.5-2 1.5-2 3M10 17h.01M17 17h6M20 14v6"/></svg></button>
           </div>
           <div data-quiz-questions></div>
         </section>
@@ -516,7 +517,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
             <div class="lesson-subheading">
               <h4>Activity pages <span class="lesson-subheading__count" data-card-count></span></h4>
-              <button type="button" class="button secondary small" data-add-activity-page>+ Add page</button>
+              <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-activity-page aria-label="Add activity page" title="Add activity page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
             </div>
             <div data-activity-pages></div>
           </div>
@@ -527,16 +528,26 @@ function studioHtml(lesson = {}, sections = {}) {
             <span class="lesson-section-number">05</span>
             <div>
               <h3>Pronunciation practice</h3>
-              <p>Add practice words. Each word can use packaged audio or generated cloud audio.</p>
+              <p>Prepare Get Ready words, then model sentence reading with 1–5 sentence pages.</p>
             </div>
           </div>
 
           <label>Pronunciation title<input data-pronunciation-title value="${escapeHtml(sections.pronunciation?.title || "")}" placeholder="BIGKASIN ANG MGA PANGNGALAN" /></label>
-          <label>Instruction<textarea data-pronunciation-instruction placeholder="Pindutin ang mikropono at bigkasin nang malakas ang salita.">${escapeHtml(sections.pronunciation?.instruction || "")}</textarea></label>
 
+          <div data-pronunciation-legacy hidden>
+            <p class="muted">This lesson uses original word practice. Keep it, or switch to sentence pages. Switching replaces the word list when you save.</p>
+            <button type="button" class="button secondary small" data-enable-pronunciation-pages>Use sentence pages</button>
+          </div>
+          <div data-pronunciation-sentence-section>
+            <div class="lesson-subheading"><h4>Sentence pages</h4><button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-pronunciation-page aria-label="Add pronunciation page" title="Add pronunciation page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button></div>
+            <p class="muted">Up to 200 characters per page, including spaces and punctuation.</p>
+            <div class="sentence-builder" data-pronunciation-pages></div>
+            <p class="muted">Click a word to add it to Get Ready. Selected words turn green with a checkmark. Double-click a selected word to remove it.</p>
+            <div class="pronunciation-word-picker" data-pronunciation-word-picker></div>
+          </div>
           <div class="lesson-subheading">
-            <h4>Words <span class="lesson-subheading__count" data-card-count></span></h4>
-            <button type="button" class="button secondary small" data-add-pronunciation-word>+ Add word</button>
+            <h4>Get Ready words <span class="lesson-subheading__count" data-card-count></span></h4>
+            <button type="button" class="button secondary small lesson-add-button" data-add-pronunciation-word aria-label="Add Get Ready word" title="Add Get Ready word"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
           </div>
           <div data-pronunciation-words></div>
         </section>
@@ -584,7 +595,7 @@ function activityPageHtml(page = {}) {
     <article class="builder-card" data-activity-page data-correct-indices="${correctIndices}">
       <div class="builder-card__header">
         <strong data-card-number>Activity page</strong>
-        <button type="button" class="text-button danger" data-remove-activity-page>Remove</button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-activity-page aria-label="Remove activity page" title="Remove activity page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <label>
         Enter the sentence here
@@ -648,7 +659,7 @@ function lecturePageHtml(page = {}) {
     <article class="builder-card" data-lecture-page>
       <div class="builder-card__header">
         <strong data-lecture-page-title>Lecture page</strong>
-        <button type="button" class="text-button danger" data-remove-lecture-page>Remove</button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-page aria-label="Remove lecture page" title="Remove lecture page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <div class="sentence-builder" data-sentences>
         ${sentences
@@ -661,7 +672,7 @@ function lecturePageHtml(page = {}) {
           )
           .join("")}
       </div>
-      <button type="button" class="link-button" data-add-lecture-sentence>+ Add sentence</button>
+      <button type="button" class="link-button lesson-add-button lesson-add-sentence-button" data-add-lecture-sentence aria-label="Add lecture sentence" title="Add lecture sentence"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h16M3 10h13M3 15h8M3 20h8M16 17h7M19.5 13.5v7"/></svg></button>
     </article>
   `;
 }
@@ -676,7 +687,7 @@ function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null
       </label>
       <div class="audio-actions">
         <button type="button" class="button secondary small" data-generate-sentence-audio>Generate audio</button>
-        <button type="button" class="text-button danger" data-remove-lecture-sentence>Remove</button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-sentence aria-label="Remove lecture sentence" title="Remove lecture sentence"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <div class="audio-preview" data-audio-preview>
         ${audioUrl ? `<audio controls src="${escapeHtml(audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
@@ -726,12 +737,12 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
         </label>
         <div class="dict-missing" data-dict-missing role="status" hidden>
           <span data-dict-missing-text></span>
-          <button type="button" class="button secondary small" data-add-to-dictionary>+ Add it to the dictionary now</button>
+          <button type="button" class="button secondary small lesson-add-button" data-add-to-dictionary aria-label="Add word to dictionary" title="Add word to dictionary"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
         </div>
       </div>
       <div class="audio-actions">
         <button type="button" class="button secondary small" data-generate-pronunciation-audio>Generate audio</button>
-        <button type="button" class="text-button danger" data-remove-pronunciation-word>Remove</button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-pronunciation-word aria-label="Remove Get Ready word" title="Remove Get Ready word"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <div class="audio-preview" data-audio-preview>
         ${audioUrl ? `<audio controls src="${escapeHtml(audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
@@ -767,7 +778,7 @@ function questionHtml(question = {}) {
     <article class="builder-card" data-question>
       <div class="builder-card__header">
         <strong data-card-number>Quiz question</strong>
-        <button type="button" class="text-button danger" data-remove-question>Remove</button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-question aria-label="Remove quiz question" title="Remove quiz question"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <label>Question<textarea data-question-text placeholder="Write a question.">${escapeHtml(question.question || "")}</textarea></label>
 
@@ -882,7 +893,9 @@ const lessonWordKey = (word) => String(word ?? "").trim().toUpperCase();
 const duplicateWordFields = new WeakMap();
 
 function duplicateLessonWords(modal, skipGame) {
-  const entries = $$("[data-pronunciation-word]", modal).flatMap((row, index) => {
+  const sentenceMode = $('[data-panel="pronunciation"]', modal)?.dataset.pronunciationMode === "sentences";
+  // Get Ready deliberately repeats vocabulary from the other lesson sections.
+  const entries = (sentenceMode ? [] : $$("[data-pronunciation-word]", modal)).flatMap((row, index) => {
     const field = $("[data-pronunciation-text]", row);
     return [{ word: field.value, field, kind: "pronunciation", index }];
   });
@@ -1017,7 +1030,19 @@ function missingFields(modal, { skipActivity, skipGame }) {
   }
 
   need("Pronunciation", "Pronunciation title", "[data-pronunciation-title]");
-  need("Pronunciation", "Instruction", "[data-pronunciation-instruction]");
+  if ($('[data-panel="pronunciation"]', modal).dataset.pronunciationMode === "sentences") {
+    const pages = $$("[data-pronunciation-page]", modal);
+    if (!pages.length || pages.length > 5) add("Pronunciation", "Use 1-5 sentence pages", $('[data-add-pronunciation-page]', modal));
+    pages.forEach((row, index) => {
+      const field = $('[data-pronunciation-sentence]', row);
+      if (!field.value.trim()) add("Pronunciation", `Page ${index + 1}: write a sentence`, field);
+      else if (field.value.length > 200) add("Pronunciation", `Page ${index + 1}: use at most 200 characters`, field);
+      else {
+        const problem = lectureAudioProblem(row, field.value.trim());
+        if (problem) add("Pronunciation", `Page ${index + 1}: ${problem}`, field);
+      }
+    });
+  }
   const words = $$("[data-pronunciation-word]", modal);
   if (!words.length) add("Pronunciation", "Add at least one word", $("[data-add-pronunciation-word]", modal));
   words.forEach((row, index) => need("Pronunciation", `Word ${index + 1}`, "[data-pronunciation-text]", row));
@@ -1109,6 +1134,10 @@ async function openLessonModal(existing = null) {
       .map((item) => pronunciationWordHtml(item.word, item.audioRef, item.cloudAudio))
       .join("");
     $$("[data-pronunciation-word]", pronunciationWords).forEach((row) => refreshSyllablePreview(row));
+    const pronunciationPages = mountPronunciationPages(modal, sections.pronunciation, {
+      wordHtml: pronunciationWordHtml, refreshWord: refreshSyllablePreview,
+      previews, generate: createPreview, saveAudio: saveSpeech, audioProblem: lectureAudioProblem,
+    });
     quizQuestions.innerHTML = initialQuestions.map(questionHtml).join("");
     gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
 
@@ -1295,7 +1324,7 @@ async function openLessonModal(existing = null) {
 
       if (button.matches("[data-play-preview]")) {
         const row = button.closest(
-          "[data-lecture-sentence], [data-pronunciation-word]",
+          "[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]",
         );
         const preview = previews.get(row);
 
@@ -1552,6 +1581,7 @@ async function openLessonModal(existing = null) {
           activityPages,
           lecturePages,
           pronunciationWords,
+          pronunciationPages,
           quizQuestions,
           gameLevels,
           skipGame,
@@ -1589,7 +1619,7 @@ function editorSnapshot(form) {
     ),
     $$("[data-activity-page]", form).map((page) => page.dataset.correctIndices || ""),
     $$("[data-word-chip]", form).map((chip) => chip.dataset.wordChip),
-    $$("[data-lecture-sentence], [data-pronunciation-word]", form).map(
+    $$("[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]", form).map(
       (row) => previews.get(row)?.generationCount || 0,
     ),
   ]);
@@ -1724,7 +1754,8 @@ async function saveLesson(existing, values, elements) {
     doc(db, "lessons", lessonRef.id, "pronunciation", "content"),
     {
       title: $("[data-pronunciation-title]", document.body).value.trim(),
-      instruction: $("[data-pronunciation-instruction]", document.body).value.trim(),
+      instruction: PRONUNCIATION_INSTRUCTION,
+      ...await elements.pronunciationPages.read(lessonRef.id),
       words: pronunciation.words,
       audioRefs: pronunciation.audioRefs,
       cloudAudio: pronunciation.cloudAudio,
@@ -1840,7 +1871,7 @@ async function readPronunciation(container, lessonId) {
     audioRefs.push(row.dataset.audioRef || "");
 
     const preview = previews.get(row);
-    if (preview?.blob) {
+    if (preview?.blob && preview.text === word) {
       const uploaded = await saveSpeech({
         audio: preview.blob,
         lessonId,
