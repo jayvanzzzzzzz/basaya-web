@@ -344,7 +344,7 @@ export async function renderClass(classId) {
           <h2 id="class-lessons-title">Assigned lessons</h2>
           <p>Keep the class moving, one lesson at a time.</p>
         </div>
-        <button class="button secondary" id="add-lesson-inline" type="button">+ Add lesson</button>
+        <div class="audio-actions"><a class="button secondary" href="#/classes/${encodeURIComponent(classId)}/readings">Review readings</a><button class="button secondary" id="add-lesson-inline" type="button">+ Add lesson</button></div>
       </div>
       ${
         linkedLessons.length

@@ -47,6 +47,8 @@ function countLine(key, progress, counts) {
       ? `Pahina • ${progress.activityScore}/${progress.activityTotal}`
       : `${started("activity", counts.activity)}/${counts.activity} pages`;
   if (key === "pronunciation")
+    if (progress.fluency) return progress.pronunciationReviewStatus === 'pending' ? 'Naipasa • hinihintay ang guro' : progress.pronunciationReviewStatus === 'graded' ? `Puntos • ${progress.pronunciationScore}/${progress.pronunciationTotal}` : `Pahina ${progress.fluency.page + 1}/${progress.fluency.total}`;
+  if (key === "pronunciation")
     return progress.pronunciationTotal != null
       ? `Salita • ${progress.pronunciationScore}/${progress.pronunciationTotal}`
       : `${started("pronunciation", counts.pronunciation)}/${counts.pronunciation} salita`;
@@ -229,6 +231,10 @@ export async function renderLessonPath(lessonId) {
         secondary: "Isara",
       });
       if (answer === "primary") openLecture({ reviewing: true });
+      return;
+    }
+    if (key === 'pronunciation' && progress.fluency && finished.pronunciation) {
+      open(key, { reviewing: true });
       return;
     }
     if (finished[key]) {

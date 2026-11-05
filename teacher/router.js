@@ -12,6 +12,7 @@ import { renderDictionary } from "./views/dictionary.js";
 import { leaveJoinRequests } from "./views/joinRequests.js";
 import { leaveLeaveRequests } from "./views/leaveRequests.js";
 import { leaveStudentRequestsBadge } from "./views/studentRequestsBadge.js";
+import { renderFluencyReview } from './views/fluencyReview.js';
 
 let statsLoaded = false;
 
@@ -64,6 +65,8 @@ export async function renderRoute() {
       await renderStudentsPage(classId);
     } else if (/^\/classes\/[^/]+\/students\/[^/]+$/.test(route)) {
       await renderStudentProgress(classId, decodeURIComponent(route.split("/")[4]));
+    } else if (/^\/classes\/[^/]+\/readings$/.test(route)) {
+      await renderFluencyReview(classId);
     } else if (/^\/classes\/[^/]+\/report$/.test(route)) {
       await renderClassReport(classId);
     } else if (/^\/classes\/[^/]+\/add-lesson$/.test(route)) {

@@ -31,10 +31,11 @@ export async function renderPronunciation(lessonId) {
   const lesson = await findLesson(lessonId);
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
-  if (availability(lesson) !== "open" || lesson.pronunciationFinished) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
   const [activity, progress] = await Promise.all([loadPronunciation(lessonId), loadLessonProgress(lessonId)]);
+  if (activity?.pages?.length && (availability(lesson) === 'open' || progress.pronunciationFinished)) return (await import('./fluency.js')).renderFluency(lesson);
+  if (availability(lesson) !== 'open') return navigate(pathUrl);
   if (progress.pronunciationFinished) return navigate(pathUrl);
   if (!activity?.words.length) {
     toast("Walang pronunciation activity para sa lesson na ito.");

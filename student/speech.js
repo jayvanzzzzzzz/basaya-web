@@ -18,11 +18,11 @@ const FRAME_SAMPLES = 320; // 20 ms
 const CALIBRATION_FRAMES = 10; // 200 ms
 const MIN_SPEECH_RMS = 0.015;
 const MIN_SPEECH_FRAMES = 4; // 80 ms, ignores clicks and bumps
-const MAX_FRAMES = 350; // 7 s hard limit
 
 /** Prepare one microphone for the screen; open() also resumes audio from a hold on browsers requiring a user gesture. */
 export class Microphone {
-  constructor() {
+  constructor({ maxSeconds = 7 } = {}) {
+    this.maxFrames = Math.max(1, Math.min(45, maxSeconds)) * 50;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     this.context = AudioContextClass ? new AudioContextClass() : null;
     this.stream = null;
@@ -119,7 +119,7 @@ export class Microphone {
       if (releaseSignal?.aborted) { stop({ noSpeech: true }); return; }
 
       this.processAudio = (input) => {
-        if (done || frameIndex >= MAX_FRAMES) return;
+        if (done || frameIndex >= this.maxFrames) return;
         // Append the new input, then cut it into 20 ms frames at 16 kHz (linear resampling).
         const joined = new Float32Array(pending.length + input.length);
         joined.set(pending);
@@ -153,7 +153,7 @@ export class Microphone {
           onLevel(smoothedLevel);
 
           frameIndex += 1;
-          if (frameIndex >= MAX_FRAMES) break; // Wait for release without growing the clip.
+          if (frameIndex >= this.maxFrames) break; // Wait for release without growing the clip.
         }
         const keepFrom = Math.floor(position);
         pending = joined.slice(keepFrom);

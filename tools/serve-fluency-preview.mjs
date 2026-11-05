@@ -1,0 +1,24 @@
+// Synthetic, local-only visual fixture. No account, student data, or production requests.
+import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+const root = new URL('../', import.meta.url);
+const html = `<!doctype html><html lang="fil" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bigkas reading preview</title>${['base/tokens','base/reset','base/typography','base/animations','components/buttons','components/modal','components/toast','layout/student-shell','pages/student-lesson'].map(css=>`<link rel="stylesheet" href="/css/${css}.css">`).join('')}</head><body data-portal="student"><main id="page-content" style="min-height:100vh;background:var(--surface-2)"></main><script type="module">import {renderFluency} from '/student/views/fluency.js'; renderFluency({id:'fixture',title:'Ang aming tahanan',practice:false});</script></body></html>`;
+const session = `let state={revision:1,page:0,word:1,stage:new URLSearchParams(location.search).get('stage')||'words',status:'draft',clips:[null,null,null,null],pages:[{sentence:'Masayang nagbabasa ang mga bata sa silid-aklatan.',audioUrl:'/model.wav',words:[{word:'Masayang',audioUrl:'/model.wav'},{word:'nagbabasa',audioUrl:'/model.wav'},{word:'silid-aklatan',audioUrl:'/model.wav'}]},...Array.from({length:3},()=>({sentence:'Maliwanag ang aming tahanan.',audioUrl:'/model.wav',words:[]}))]}; if(state.stage==='preview')state.clips[0]={eventId:'fixture'};export async function openReading(){return{get state(){return state},pending:0,clip:()=>null,playback:async()=>'/model.wav',sync:async()=>{},act:async(op)=>{if(op==='word'){state.word++;if(state.word>=3)state.stage='sentence'}else if(op==='listen')state.stage='record';else if(op==='upload'){state.stage='preview';state.clips[0]={eventId:'fixture'}}else if(op==='next'){state.page++;state.stage='sentence'}},submit:async()=>{state.status='submitted'}}}`;
+const allowed=new Set(['js/helpers.js','student/ui.js','student/views/fluency.js']);
+const server=http.createServer(async(req,res)=>{
+  try{
+    const path=new URL(req.url,'http://fixture').pathname.slice(1); let data,type='text/javascript';
+    if(!path){data=html;type='text/html'}
+    else if(path==='student/fluencySession.js')data=session;
+    else if(path==='js/state.js')data='export const state={};';
+    else if(path==='student/data.js')data='export function invalidateStudentData(){};';
+    else if(path==='student/router.js')data='export const onLeave=()=>{};';
+    else if(path==='student/speech.js')data=`export class Microphone{async open(){return'ok'}record(level,cancel,release){return new Promise(resolve=>release.addEventListener('abort',()=>resolve({wav:new Blob(['fixture'])}),{once:true}))}close(){}}`;
+    else if(path==='model.wav'){
+      data=Buffer.alloc(16044);data.write('RIFF');data.writeUInt32LE(data.length-8,4);data.write('WAVEfmt ',8);data.writeUInt32LE(16,16);data.writeUInt16LE(1,20);data.writeUInt16LE(1,22);data.writeUInt32LE(16000,24);data.writeUInt32LE(32000,28);data.writeUInt16LE(2,32);data.writeUInt16LE(16,34);data.write('data',36);data.writeUInt32LE(16000,40);type='audio/wav';
+    } else if((allowed.has(path)||path.startsWith('css/')||path.startsWith('img/'))&&!path.split('/').some(part=>part==='..'||part.startsWith('.'))){data=await readFile(new URL(path,root));type=path.endsWith('.css')?'text/css':path.endsWith('.png')?'image/png':path.endsWith('.svg')?'image/svg+xml':'text/javascript'}
+    else{res.writeHead(404);res.end();return}
+    res.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'no-store'});res.end(data);
+  }catch(error){res.writeHead(500);res.end(error.message)}
+});
+server.listen(8794,'127.0.0.1',()=>console.log('Reading fixture: http://127.0.0.1:8794'));

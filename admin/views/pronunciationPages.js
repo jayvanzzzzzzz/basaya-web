@@ -31,6 +31,7 @@ function pageHtml(page = {}) {
     </div>
     <div class="audio-preview" data-audio-preview>${url ? `<audio controls src="${escapeHtml(url)}"></audio><small class="muted">Existing sentence audio</small>` : ""}</div>
     <small class="muted" data-pronunciation-audio-status role="status"></small>
+    <div class="pronunciation-word-picker" data-page-ready-picker></div>
   </div>`;
 }
 
@@ -46,14 +47,31 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
   list.innerHTML = (saved?.pages?.length ? saved.pages : [{}]).map(pageHtml).join("");
   const cache = new Map();
   const keyOf = word => word.toLocaleLowerCase("fil").replace(/’/g, "'");
-  const selected = new Set((saved?.pages?.length ? saved.words || [] : []).map(keyOf));
+  const selections = new WeakMap();
+  $$('[data-pronunciation-page]', list).forEach((row, index) => selections.set(row, new Set((saved?.pages?.[index]?.readyWords || (saved?.pages?.length ? saved.words || [] : [])).map(keyOf))));
+  $('[data-pronunciation-word-picker]', panel).hidden = true;
   const sentences = () => $$('[data-pronunciation-sentence]', list).map(field => field.value.trim());
   const sync = ({ renderPicker = true } = {}) => {
     if (panel.dataset.pronunciationMode !== "sentences") return;
     $$('[data-pronunciation-word]', wordList).forEach(row => cache.set(keyOf($('[data-pronunciation-text]', row).value), row));
     const words = readyWords(sentences());
-    const available = new Set(words.map(keyOf));
-    selected.forEach(key => { if (!available.has(key)) selected.delete(key); });
+    const selected = new Set();
+    $$('[data-pronunciation-page]', list).forEach(row => {
+      const pageWords = readyWords([$('[data-pronunciation-sentence]', row).value]);
+      let chosen = selections.get(row);
+      if (!chosen) { chosen = new Set(); selections.set(row, chosen); }
+      const available = new Set(pageWords.map(keyOf));
+      chosen.forEach(key => { if (!available.has(key)) chosen.delete(key); else selected.add(key); });
+      const picker = $('[data-page-ready-picker]', row);
+      if (renderPicker) picker.innerHTML = pageWords.map(word => `<button type="button" class="button secondary small" data-ready-word="${escapeHtml(keyOf(word))}"><span data-ready-check aria-hidden="true">&#10003; </span>${escapeHtml(word)}</button>`).join(' ');
+      $$('[data-ready-word]', picker).forEach(button => {
+        const added = chosen.has(button.dataset.readyWord);
+        button.setAttribute('aria-pressed', String(added));
+        button.classList.toggle('is-selected', added);
+        $('[data-ready-check]', button).hidden = !added;
+        button.title = added ? 'Added to this page. Double-click to remove.' : 'Click to add to this page’s Get Ready.';
+      });
+    });
     const rows = words.filter(word => selected.has(keyOf(word))).map(word => {
       const key = keyOf(word);
       let row = cache.get(key);
@@ -74,16 +92,6 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
       return row;
     });
     wordList.replaceChildren(...rows);
-    const picker = $('[data-pronunciation-word-picker]', panel);
-    if (renderPicker) picker.innerHTML = words.map(word =>
-      `<button type="button" class="button secondary small" data-ready-word="${escapeHtml(keyOf(word))}"><span data-ready-check aria-hidden="true">&#10003; </span>${escapeHtml(word)}</button>`).join(' ');
-    $$('[data-ready-word]', picker).forEach(button => {
-      const added = selected.has(button.dataset.readyWord);
-      button.setAttribute('aria-pressed', String(added));
-      button.classList.toggle('is-selected', added);
-      $('[data-ready-check]', button).hidden = !added;
-      button.title = added ? 'Added to Get Ready. Double-click to remove.' : 'Click to add to Get Ready.';
-    });
     $$('[data-pronunciation-page]', list).forEach((row, index, pages) => {
       $('[data-card-number]', row).textContent = `Page ${index + 1} of ${pages.length}`;
       $('[data-remove-pronunciation-page]', row).disabled = pages.length === 1;
@@ -110,7 +118,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     const button = event.target.closest('[data-ready-word]');
     if (!button) return;
     event.preventDefault();
-    selected.delete(button.dataset.readyWord);
+    selections.get(button.closest('[data-pronunciation-page]'))?.delete(button.dataset.readyWord);
     sync({ renderPicker: false });
   });
   panel.addEventListener('click', async event => {
@@ -134,7 +142,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
       sync();
     }
     if (button.matches('[data-ready-word]')) {
-      selected.add(button.dataset.readyWord);
+      selections.get(button.closest('[data-pronunciation-page]'))?.add(button.dataset.readyWord);
       sync({ renderPicker: false });
     }
     if (button.matches('[data-generate-pronunciation-sentence]')) {
@@ -158,7 +166,8 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
         const cloudAudio = preview?.blob
           ? { ...await saveAudio({ audio: preview.blob, lessonId, section: 'pronunciation', pageNumber: index + 1, sentenceIndex: 1 }), text: sentence, ...(preview.wordStarts ? { wordStarts: preview.wordStarts } : {}) }
           : JSON.parse(row.dataset.cloudAudio);
-        pages.push({ pageNumber: index + 1, sentence, cloudAudio });
+        const chosen = selections.get(row) || new Set();
+        pages.push({ pageNumber: index + 1, sentence, cloudAudio, readyWords: readyWords([sentence]).filter(word => chosen.has(keyOf(word))) });
       }
       return { formatVersion: 2, pages };
     },

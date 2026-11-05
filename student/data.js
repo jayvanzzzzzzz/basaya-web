@@ -17,6 +17,7 @@ import { db, offlineReady } from "../js/firebase.js";
 import { postToApi } from "../js/api.js";
 import { getDownload, putDownload, listDownloads, removeDownload, snapshotOf } from "./offlineStore.js";
 import { withDownloadAbort } from "./downloadCancellation.js";
+import { fluencyPages } from '../js/fluencyContent.js';
 import { summarize, resultsFrom, lessonParts, withMissed } from "../js/scoring.js";
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
@@ -520,6 +521,7 @@ export async function loadPronunciation(lessonId) {
   return {
     title: snap.get("title") || "",
     instruction: snap.get("instruction") || "",
+    pages: fluencyPages(snap.data()),
     words: words.map((word, index) => {
       const byText = cloud.find((entry) => entry?.text?.trim().toLowerCase() === word.trim().toLowerCase());
       const entry = byText || cloud[index];

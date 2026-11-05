@@ -36,7 +36,7 @@ async function contents(tx, db, lessonId, selected = parts) {
   };
 }
 
-async function context(tx, db, uid, body, { open = true, lesson = true } = {}) {
+export async function context(tx, db, uid, body, { open = true, lesson = true } = {}) {
   if (!id(uid) || !id(body.classId) || (lesson && !id(body.lessonId))) fail(400, "Invalid assessment request.");
   const userRef = db.doc(`users/${uid}`);
   const [user, roster, classroom, links] = await Promise.all([
