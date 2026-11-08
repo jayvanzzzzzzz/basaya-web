@@ -139,9 +139,17 @@ const server=http.createServer(async(req,res)=>{
       assert.deepEqual(await page.locator('.reading-lesson-table .reading-status').allTextContents(),['Upcoming','Reviewed']);
     }
     if(screen==='students'){
-      assert.deepEqual(await page.locator('.reading-student-identity strong').allTextContents(),['Ana Santos','Juan Dela Cruz'],'Only pending students, names ascending even with unequal review counts');
+      const filteredNames=()=>page.locator('.reading-student-row:not([hidden]):not([data-paged-out]) .reading-student-identity strong').allTextContents();
+      await page.locator('[data-reading-filter="clear"]').click();
+      assert.deepEqual(await filteredNames(),['Mia Reyes']);
+      await page.locator('[data-reading-filter="urgent"]').click();
+      assert.deepEqual(await filteredNames(),['Juan Dela Cruz']);
+      await page.locator('[data-reading-filter="pending"]').click();
+      assert.deepEqual(await filteredNames(),['Ana Santos','Juan Dela Cruz']);
+      await page.locator('[data-reading-filter="all"]').click();
+      assert.deepEqual(await page.locator('.reading-student-identity strong').allTextContents(),['Ana Santos','Juan Dela Cruz','Mia Reyes'],'All enrolled students, sorted by name');
       assert.equal(await page.locator('.reading-student-dot.is-pending').count(),2);
-      assert.equal(await page.locator('.reading-student-dot:not(.is-pending)').count(),0);
+      assert.equal(await page.locator('.reading-student-dot:not(.is-pending)').count(),1);
       assert.equal(await page.locator('.reading-student-dot.is-urgent').count(),1);
       assert.equal(await page.locator('.reading-deadline-note:not([hidden])').textContent(),'Due within 48 hours');
       assert.equal(await page.locator('.reading-student-dot').first().evaluate(el=>getComputedStyle(el).animationName),'reading-status-pulse');
@@ -247,24 +255,24 @@ const server=http.createServer(async(req,res)=>{
   assert.ok(await page.getByText('Reviewed',{exact:true}).count());
   await page.emulateMedia({reducedMotion:'reduce'});
   await route('');
-  assert.deepEqual(await page.locator('.reading-student-identity strong').allTextContents(),['Juan Dela Cruz'],'Reviewed students leave the pending queue');
+  assert.deepEqual(await page.locator('.reading-student-identity strong').allTextContents(),['Ana Santos','Juan Dela Cruz','Mia Reyes'],'Reviewed students remain visible');
   assert.equal(await page.locator('.reading-student-dot').first().evaluate(el=>getComputedStyle(el).animationName),'none');
   const back=page.locator('#page-header .header-actions a');await back.hover();await tooltip.waitFor();
   assert.equal(await tooltip.evaluate(el=>getComputedStyle(el).animationName),'none');
   await page.goto(url+'?many');await page.waitForFunction(()=>window.ready);
   const shown=page.locator('.reading-student-row:not([data-paged-out])');
   const ordered=await page.locator('.reading-student-identity strong').allTextContents();
-  assert.equal(ordered.length,25);
+  assert.equal(ordered.length,26);
   assert.equal(await shown.count(),10);
   assert.equal(await page.getByRole('button',{name:'Previous page'}).isDisabled(),true);
   await page.getByRole('button',{name:'Next page'}).click();assert.equal(await shown.count(),10);
   assert.equal(await shown.first().locator('strong').textContent(),ordered[10]);
-  await page.getByRole('button',{name:'Page 3',exact:true}).click();assert.equal(await shown.count(),5);
+  await page.getByRole('button',{name:'Page 3',exact:true}).click();assert.equal(await shown.count(),6);
   assert.equal(await page.getByRole('button',{name:'Next page'}).isDisabled(),true);
   await page.getByRole('button',{name:'Page 1',exact:true}).focus();await page.keyboard.press('Enter');
   assert.equal(await shown.first().locator('strong').textContent(),'Ana Santos');
   await page.getByRole('combobox',{name:'Rows per page'}).selectOption('20');assert.equal(await shown.count(),20);
-  await page.getByRole('button',{name:'Next page'}).click();assert.equal(await shown.count(),5);
+  await page.getByRole('button',{name:'Next page'}).click();assert.equal(await shown.count(),6);
   await page.getByRole('combobox',{name:'Rows per page'}).selectOption('10');assert.equal(await shown.count(),10);
   for(const mode of ['light','dark']){
     if(await page.evaluate(()=>document.documentElement.dataset.theme)!==mode)await page.locator('[data-theme-toggle]').click();
@@ -280,9 +288,14 @@ const server=http.createServer(async(req,res)=>{
   assert.equal(await page.locator('.pagination').count(),0);
   await page.screenshot({path:path.join(artifacts,'empty-dark.png'),fullPage:true});
   await page.goto(url+'?cleared');await page.waitForFunction(()=>window.ready);
-  assert.equal(await page.locator('.reading-student-row').count(),0);
-  assert.equal(await page.locator('.pagination').count(),0);
-  assert.equal(await page.getByRole('heading',{name:'No pending reviews'}).count(),1);
+  assert.equal(await page.locator('.reading-student-row').count(),3);
+  assert.equal(await page.locator('.reading-student-dot.is-pending').count(),0);
+  assert.equal(await page.locator('.reading-student-table .reading-status.is-clear').count(),3);
+  await page.locator('[data-reading-filter="urgent"]').click();
+  assert.equal(await page.locator('.reading-filter-empty').isVisible(),true);
+  assert.equal(await page.locator('.pagination').isVisible(),false);
+  await page.locator('[data-reading-filter="all"]').click();
+  assert.equal(await page.locator('.reading-filter-empty').isVisible(),false);
   await page.goto(url+'?error');await page.waitForFunction(()=>window.ready);
   assert.equal(await page.getByRole('button',{name:'Try again'}).count(),1);
   await page.screenshot({path:path.join(artifacts,'error-dark.png'),fullPage:true});

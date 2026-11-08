@@ -298,11 +298,21 @@ body:has(.reading-review) .site-footer__links button { font-size: .75rem; white-
 .reading-student-dot.is-pending.is-urgent { --reading-dot: #c3384d; }
 :root[data-theme="dark"] .reading-student-dot.is-pending.is-urgent { --reading-dot: #ff879c; }
 .reading-dot-legend { display: flex; flex-wrap: wrap; gap: .65rem 1.75rem; padding: 0 0 1rem; color: var(--ink-2); font-size: .8125rem; line-height: 1.7; }
+.reading-filter-ribbon { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; margin: 0 0 1.25rem; border-bottom: 1px solid var(--border); }
+.reading-review .reading-filter-ribbon button { display: inline-flex; align-items: center; gap: .65rem; min-height: 48px; padding: .75rem .15rem; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--ink-3); box-shadow: none; font-size: .875rem; font-weight: 500; line-height: 1.6; transition: color 180ms ease, border-color 180ms ease; }
+.reading-review .reading-filter-ribbon button:hover { color: var(--primary); background: var(--primary-soft); transform: none; }
+.reading-review .reading-filter-ribbon button[aria-pressed="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.reading-filter-count { display: inline-grid; place-items: center; min-width: 1.5rem; padding: .05rem .35rem; border-radius: .35rem; background: var(--reading-tint); color: var(--ink-2); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.reading-filter-empty { padding: 1.5rem; text-align: center; color: var(--ink-3); font-size: .875rem; }
+.reading-review .reading-student-row[hidden] { display: none !important; }
 .reading-dot-legend > span { display: flex; align-items: baseline; gap: .6rem; min-width: 0; }
 .reading-dot-legend__marker { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #bd6717; }
 .reading-dot-legend__marker.is-urgent { background: #c3384d; }
+.reading-dot-legend__marker.is-clear { background: var(--success); }
+.reading-review .reading-student-table .reading-status.is-clear { color: var(--success); }
 :root[data-theme="dark"] .reading-dot-legend__marker { background: #e3ac62; }
 :root[data-theme="dark"] .reading-dot-legend__marker.is-urgent { background: #ff879c; }
+:root[data-theme="dark"] .reading-dot-legend__marker.is-clear { background: var(--success); }
 @keyframes reading-status-pulse {
   0%, 100% { transform: scale(.85); box-shadow: 0 0 0 0 transparent; }
   45% { transform: scale(1.2); box-shadow: 0 0 0 4px color-mix(in srgb, var(--reading-dot) 50%, transparent); }

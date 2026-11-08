@@ -123,7 +123,7 @@ const exactTitles=await titleRoster.readingLessonTitles(['actual','actual','miss
 assert.deepEqual(JSON.parse(JSON.stringify(exactTitles)),{actual:'Mga Idyoma'});
 assert.deepEqual(titleReads.sort(),['lessons/actual','lessons/missing','lessons/unavailable']);
 await review.renderFluencyReview('class');
-assert.equal(document.querySelectorAll('.reading-row').length,2,'Only students with pending reviews appear in the queue');
+assert.equal(document.querySelectorAll('.reading-row').length,3,'All enrolled students appear, including those without submissions');
 assert.equal($('#reading-grade'),null,'The student directory never opens grading automatically');
 assert.match(document.querySelector('.reading-row').textContent,/1 lesson to review/,'Only the newest attempt counts');
 await review.renderFluencyReview('class','a');
@@ -174,7 +174,7 @@ assert.equal(window.location.hash,'#/classes/class/readings/a','Saving returns t
 await review.renderFluencyReview('class','a');
 assert.match($('#reading-review').textContent,/Reviewed/);
 await review.renderFluencyReview('class');
-assert.equal([...document.querySelectorAll('.reading-row')].some(row=>row.textContent.includes('A student')),false,'A graded student leaves the pending queue');
+assert.equal([...document.querySelectorAll('.reading-row')].some(row=>row.textContent.includes('A student')),true,'A graded student stays visible in the roster');
 const reviewNow=1800000000000, window48=48*3600000;
 assert.equal(review.lessonReviewState(false,reviewNow+window48,reviewNow).label,'Due soon');
 assert.equal(review.lessonReviewState(false,reviewNow+window48+1,reviewNow).label,'Upcoming');
@@ -186,7 +186,7 @@ const queueRows=queueReaders.map(({uid})=>({uid,lessonId:uid,status:uid==='clear
 queueRows.push({uid:'mixed',lessonId:'edge',status:'submitted'},{uid:'far',lessonId:'overdue',status:'graded'});
 const queueLinks=[{id:'far',dueAt:{toMillis:()=>reviewNow+window48+1}},{id:'far__practice',lessonId:'far',mode:'practice',dueAt:reviewNow+1},{id:'edge',dueAt:reviewNow+window48},{id:'overdue',dueAt:reviewNow-1},{id:'mixed',dueAt:reviewNow+72*3600000}];
 const deadlineQueue=review.readingReviewQueue(queueReaders,queueRows,queueLinks,reviewNow);
-assert.deepEqual([...deadlineQueue].map(row=>row.uid),['edge','far','mixed','overdue','unscheduled']);
+assert.deepEqual([...deadlineQueue].map(row=>row.uid),['cleared','edge','far','mixed','overdue','unscheduled']);
 assert.equal(deadlineQueue.find(row=>row.uid==='far').urgent,false,'Beyond 48 hours stays orange; graded lessons do not affect urgency');
 assert.equal(deadlineQueue.find(row=>row.uid==='edge').urgent,true,'Exactly 48 hours is red');
 assert.equal(deadlineQueue.find(row=>row.uid==='overdue').urgent,true,'Overdue readings remain red');

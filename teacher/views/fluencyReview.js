@@ -117,7 +117,7 @@ export function readingReviewQueue(roster, rows, links = [], now = Date.now()) {
       .map(link => Number(link.dueAt?.toMillis?.() ?? link.dueAt) || 0).filter(value => value > 0));
     const deadline = deadlines.length ? Math.min(...deadlines) : null;
     return { ...student, pending: pending.length, total: submissions.length, deadline, urgent: deadline != null && deadline <= now + REVIEW_WINDOW };
-  }).filter(student => student.pending > 0)
+  })
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
 }
 
@@ -159,7 +159,7 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
     const back = $('#page-header .header-actions a');
     if (back) iconControl(back, 'back', back.getAttribute('aria-label') || back.textContent.trim());
     target.querySelectorAll('button, .reading-grade__actions a').forEach(control => {
-      if (control.hasAttribute('data-grade-drawer-control')) return;
+      if (control.hasAttribute('data-grade-drawer-control') || control.hasAttribute('data-reading-filter')) return;
       const label = control.textContent.trim();
       const icon = control.matches('[type="submit"]') ? 'save' : control.hasAttribute('data-review-play-all') ? 'play' : control.tagName === 'A' ? 'back' : 'retry';
       iconControl(control, icon, label);
@@ -198,9 +198,9 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
         <thead><tr role="row"><th scope="col">Student</th><th scope="col">Submitted</th><th scope="col">Review status</th><th scope="col"><span class="sr-only">Open readings</span></th></tr></thead>
         <tbody>${students.map(item => `
           <tr class="reading-row reading-student-row" role="row" data-review-deadline="${item.deadline || ''}">
-            <th scope="row" role="rowheader"><div class="reading-student-identity"><span class="reading-student-dot is-pending${item.urgent ? ' is-urgent' : ''}" aria-hidden="true"></span><span class="reading-row__body"><strong>${escapeHtml(item.name)}</strong></span></div></th>
+            <th scope="row" role="rowheader"><div class="reading-student-identity"><span class="reading-student-dot${item.pending ? ' is-pending' : ''}${item.urgent ? ' is-urgent' : ''}" aria-hidden="true"></span><span class="reading-row__body"><strong>${escapeHtml(item.name)}</strong></span></div></th>
             <td class="reading-student-submitted" role="cell"><span class="reading-mobile-label" aria-hidden="true">Submitted</span><span class="reading-submitted__value">${item.total ? `<b>${item.total}</b> <span>${item.total === 1 ? 'lesson' : 'lessons'}</span>` : 'No submissions'}</span></td>
-            <td class="reading-student-status" role="cell"><span class="reading-mobile-label" aria-hidden="true">Review status</span><span class="reading-student-review-state"><span class="reading-status">${plural(item.pending, 'lesson')} to review</span><span class="reading-deadline-note" ${item.urgent ? '' : 'hidden'}>${item.urgent ? item.deadline <= Date.now() ? 'Overdue' : 'Due within 48 hours' : ''}</span></span></td>
+            <td class="reading-student-status" role="cell"><span class="reading-mobile-label" aria-hidden="true">Review status</span><span class="reading-student-review-state"><span class="reading-status${item.pending ? '' : ' is-clear'}">${item.pending ? `${plural(item.pending, 'lesson')} to review` : 'No pending reviews'}</span><span class="reading-deadline-note" ${item.urgent ? '' : 'hidden'}>${item.urgent ? item.deadline <= Date.now() ? 'Overdue' : 'Due within 48 hours' : ''}</span></span></td>
             <td class="reading-student-open" role="cell"><a class="reading-icon-button" href="${studentUrl(item.uid)}" aria-label="Open readings for ${escapeHtml(item.name)}" data-floating-tooltip="Open readings for ${escapeHtml(item.name)}" data-reading-tooltip>${reviewIcon('open')}</a></td>
           </tr>`).join('')}</tbody>
       </table>` : '';
@@ -216,15 +216,20 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
     else target.querySelector('.reading-directory__heading p')?.remove();
     if (!student && students.length) target.querySelector('.reading-directory__heading').insertAdjacentHTML('afterend', `
       <div class="reading-dot-legend" role="group" aria-label="Review deadline colors">
+        <span><i class="reading-dot-legend__marker is-clear" aria-hidden="true"></i>Green: no pending reviews</span>
         <span><i class="reading-dot-legend__marker" aria-hidden="true"></i>Orange: due in more than 48 hours or no deadline</span>
         <span><i class="reading-dot-legend__marker is-urgent" aria-hidden="true"></i>Red: due within 48 hours or overdue</span>
       </div>`);
     clearInterval(deadlineTimer);
+    let refreshFilters = () => {};
     target.querySelectorAll('.reading-lesson-row').forEach(row => paintLessonDeadline(row));
     if (count) deadlineTimer = setInterval(() => {
       if (document.visibilityState === 'hidden') return;
       if (student) target.querySelectorAll('.reading-lesson-row').forEach(row => paintLessonDeadline(row));
-      else target.querySelectorAll('.reading-student-row').forEach(row => paintReviewDeadline(row));
+      else {
+        target.querySelectorAll('.reading-student-row').forEach(row => paintReviewDeadline(row));
+        refreshFilters();
+      }
     }, 60000);
     target.removeAttribute('aria-busy');
     const pending = (student ? lessons : rows).filter(row => row.status === 'submitted').length;
@@ -234,17 +239,36 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
       </div>`);
     refineControls();
     if (!student && students.length) {
+      const filters = [['all', 'All students'], ['pending', 'Needs review'], ['urgent', 'Due soon / overdue'], ['clear', 'No pending reviews']];
+      target.querySelector('.reading-directory__heading').insertAdjacentHTML('afterend', `<div class="reading-filter-ribbon" role="group" aria-label="Filter students by review status">${filters.map(([key, label]) => `<button type="button" data-reading-filter="${key}" aria-pressed="${key === 'all'}"><span>${label}</span><span class="reading-filter-count" data-filter-count="${key}"></span></button>`).join('')}</div>`);
+      target.querySelector('.reading-directory__rows').insertAdjacentHTML('afterend', '<p class="reading-filter-empty" role="status" hidden>No students match this filter.</p>');
+      let activeFilter = 'all';
+      const studentRows = [...target.querySelectorAll('.reading-student-row')];
+      const matches = (row, key) => key === 'all' || (key === 'pending' ? !!row.querySelector('.is-pending') : key === 'urgent' ? !!row.querySelector('.is-pending.is-urgent') : !row.querySelector('.is-pending'));
       const decoratePagination = () => target.querySelectorAll('.pagination__button--nav').forEach(button => {
         button.querySelectorAll('span').forEach(span => span.remove());
         button.setAttribute('data-reading-tooltip', '');
         button.setAttribute('data-floating-tooltip', button.getAttribute('aria-label'));
       });
-      paginate({
+      const pagination = paginate({
         rows: () => [...target.querySelectorAll('.reading-student-row')],
         after: target.querySelector('.reading-directory__rows'),
         label: ['student', 'students'],
         onChange: decoratePagination,
       });
+      refreshFilters = (reset = false) => {
+        studentRows.forEach(row => { row.hidden = !matches(row, activeFilter); });
+        target.querySelectorAll('[data-reading-filter]').forEach(button => {
+          button.setAttribute('aria-pressed', String(button.dataset.readingFilter === activeFilter));
+          button.querySelector('[data-filter-count]').textContent = String(studentRows.filter(row => matches(row, button.dataset.readingFilter)).length);
+        });
+        target.querySelector('.reading-filter-empty').hidden = studentRows.some(row => !row.hidden);
+        if (reset) pagination.reset(); else pagination.refresh();
+      };
+      target.querySelectorAll('[data-reading-filter]').forEach(button => button.addEventListener('click', () => {
+        activeFilter = button.dataset.readingFilter; refreshFilters(true);
+      }));
+      refreshFilters();
       decoratePagination();
     }
     // Older API responses omit page counts. Read the recorded attempt, rather
