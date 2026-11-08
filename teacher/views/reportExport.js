@@ -29,27 +29,38 @@ export const today = () =>
   new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 
 /** Adds "Print / PDF" and "Export Excel" to the page header's actions. */
-export function addExportActions({ excel }) {
+export function addExportActions({ excel, iconOnly = false }) {
   const actions = $("#page-header .header-actions");
   if (!actions) return;
   actions.insertAdjacentHTML(
     "afterbegin",
-    `<button class="button secondary report-action" id="print-report" type="button" title="Print, or choose “Save as PDF” as the printer">${ICON_PRINT}<span>Print / PDF</span></button>
-     <button class="button secondary report-action" id="export-excel" type="button" title="Download an Excel file (.xlsx)">${ICON_SHEET}<span>Export Excel</span></button>`,
+    `<button class="button secondary report-action${iconOnly ? " report-action--icon" : ""}" id="print-report" type="button" aria-label="Print / PDF"${iconOnly ? ' data-report-tooltip="Print / PDF"' : ' title="Print, or choose Save as PDF as the printer"'}>${ICON_PRINT}<span${iconOnly ? ' class="rp-action-label"' : ""}>Print / PDF</span></button>
+     <button class="button secondary report-action${iconOnly ? " report-action--icon" : ""}" id="export-excel" type="button" aria-label="Export Excel"${iconOnly ? ' data-report-tooltip="Export Excel"' : ' title="Download an Excel file (.xlsx)"'}>${ICON_SHEET}<span${iconOnly ? ' class="rp-action-label"' : ""}>Export Excel</span></button>
+     ${iconOnly ? '<span class="rp-sr-only" id="report-export-status" role="status"></span>' : ""}`,
   );
   $("#print-report").addEventListener("click", () => window.print());
   $("#export-excel").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     const label = button.querySelector("span");
     button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.setAttribute("aria-label", "Preparing Excel export");
+    if (iconOnly) button.dataset.reportTooltip = "Preparing Excel…";
+    const status = $("#report-export-status");
+    if (status) status.textContent = "Preparing Excel export…";
     label.textContent = "Preparing…";
     try {
       await excel();
+      if (status) status.textContent = "Excel file ready. Download started.";
     } catch (error) {
       console.error("Excel export failed:", error);
       toast("We couldn't create the Excel file. Check your connection and try again.");
+      if (status) status.textContent = "Excel export failed. Please try again.";
     } finally {
       button.disabled = false;
+      button.removeAttribute("aria-busy");
+      button.setAttribute("aria-label", "Export Excel");
+      if (iconOnly) button.dataset.reportTooltip = "Export Excel";
       label.textContent = "Export Excel";
     }
   });

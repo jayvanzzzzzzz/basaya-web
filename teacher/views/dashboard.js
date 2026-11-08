@@ -37,14 +37,6 @@ import { watchTeacherTooltips } from './classActions.js';
 // Scores stay on the Class Report, which loads each student's progress.
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const TINTS = 4;
-
-/** A steady colour (0–3) per class, so its tile looks the same every visit. */
-const tintOf = (id) => [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % TINTS;
-
-/** "4R" for Grade 4 – Rizal. */
-const badgeOf = (classroom) =>
-  `${classroom.gradeLevel || ""}${(classroom.section || classroom.className || "?").trim().charAt(0)}`.toUpperCase();
 
 const dueDay = (millis) => new Date(millis).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 const dueTime = (millis) => new Date(millis).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -204,12 +196,11 @@ export async function renderDashboard() {
                     <button type="button" class="danger" data-delete="${escapeHtml(c.id)}">${c.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>
                   </div>
                 </div>
-                <div class="class-card__heading">
-                  <span class="class-card__badge" data-tint="${tintOf(c.id)}" aria-hidden="true">${escapeHtml(badgeOf(c))}</span>
-                  ${deletionChip(c)}
-                </div>
                 <div class="class-card__body">
-                  <h3><a href="#/classes/${encodeURIComponent(c.id)}">${escapeHtml(className)}</a></h3>
+                  <div class="class-card__heading">
+                    <h3><a href="#/classes/${encodeURIComponent(c.id)}">${escapeHtml(className)}</a></h3>
+                    ${deletionChip(c)}
+                  </div>
                   <p>${escapeHtml(c.description || "A space for lessons, progress, and classroom learning.")}</p>
                   <div class="class-card__meta" data-class-meta="${escapeHtml(c.id)}"></div>
                 </div>

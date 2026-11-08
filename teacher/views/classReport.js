@@ -161,9 +161,12 @@ export async function renderClassReport(classId) {
       ],
     },
   );
+  $("#page-header h1").insertAdjacentHTML("afterend",
+    `<div class="rp-class-context">${escapeHtml(classroom.className)}</div>`);
+  $("#page-header .page-header__text > p").textContent = "Achievement, participation, and learning support at a glance.";
 
   if (!students.length) {
-    $("#page-content").innerHTML = `<section class="card empty">
+    $("#page-content").innerHTML = `<section class="report-page rp-panel rp-empty-state">
       <h3>No students yet</h3>
       <p>The report fills in once students join with the class code and start their lessons.</p>
       <code>${escapeHtml(classroom.classCode || "—")}</code>
@@ -179,7 +182,7 @@ export async function renderClassReport(classId) {
   );
   const report = classReport(entries);
   const remarks = classRemarks(report, entries, lessons);
-  addExportActions({ excel: () => exportClassExcel(classroom, entries, report) });
+  addExportActions({ excel: () => exportClassExcel(classroom, entries, report), iconOnly: true });
 
   const pct = (value) => (value == null ? "—" : `${value}%`);
   const studentHref = (student) =>
@@ -210,28 +213,28 @@ export async function renderClassReport(classId) {
           <span class="rp-skill__icon">${skillIcon(skill.key)}</span>
           <span><strong>${escapeHtml(skill.name)}</strong><small>${escapeHtml(skill.detail)}</small></span>
         </span></th>
-        <td class="rp-num"><b>${scoredSkill ? pct(skill.average) : "—"}</b></td>
+        <td class="rp-num"><b${skill.average == null ? ' aria-label="No average available"' : ""}>${scoredSkill ? pct(skill.average) : "—"}</b></td>
         <td>${scoredSkill ? remarkChip(skill.remark) : '<span class="remark remark--info">Completion only</span>'}</td>
         <td class="rp-dist">${
           scoredSkill
             ? `<div class="dist-bar" aria-hidden="true">${bar || '<i class="dist-bar__part dist-bar__part--no-data" style="flex:1"></i>'}</div>
                <ul class="dist-legend">${bands
-                 .map(([key, label]) => `<li><i class="dist-dot dist-dot--${key}"></i>${skill.distribution[key]} ${label}</li>`)
-                 .join("")}</ul>`
+                 .map(([key, label]) => `<li><i class="dist-dot dist-dot--${key}" aria-hidden="true"></i><b>${skill.distribution[key]}</b> ${label}</li>`)
+                 .join("")}</ul>${bands.length ? "" : '<span class="rp-muted">No results available</span>'}`
             : `<span class="rp-muted">${lekturaRead} of ${report.readableStudents} students read every lecture so far.</span>`
         }</td>
         <td class="rp-num">${
           scoredSkill
-            ? `${skill.scoredStudents}<span class="rp-muted"> / ${report.readableStudents}</span>`
+            ? `<span class="rp-participation" aria-label="${skill.scoredStudents} of ${report.readableStudents} students with results"><strong>${skill.scoredStudents}</strong><span aria-hidden="true">/</span><span>${report.readableStudents}</span></span>`
             : '<span class="rp-muted">—</span>'
         }</td>
         <td class="rp-help">${
           flagged.length
-            ? `${flagged
+            ? `<span class="rp-help__count">${flagged.length} ${flagged.length === 1 ? "student" : "students"}</span>${flagged
                 .slice(0, 3)
                 .map((student) => `<a href="${studentHref(student)}">${escapeHtml(student.name)}</a>`)
                 .join("")}${flagged.length > 3 ? `<span class="rp-muted">+${flagged.length - 3} more</span>` : ""}`
-            : '<span class="rp-muted">None</span>'
+            : '<span class="rp-help__empty"><span aria-hidden="true">—</span> None flagged</span>'
         }</td>
       </tr>`;
     })
@@ -304,7 +307,7 @@ export async function renderClassReport(classId) {
       ])}
 
       <section class="rp-kpis" aria-label="Class summary">
-        <div class="rp-kpi">
+        <div class="rp-kpi rp-kpi--primary">
           <span class="rp-kpi__label">Overall class score</span>
           <span class="rp-kpi__value">${pct(report.overall)}</span>
           <span class="rp-kpi__foot">${remarkChip(report.overallRemark)}</span>
@@ -326,12 +329,14 @@ export async function renderClassReport(classId) {
         </div>
       </section>
 
-      <section class="rp-panel">
+      <section class="rp-panel rp-panel--skills" aria-labelledby="skill-performance-title">
         <header class="rp-panel__head">
-          <div><h2>Skill performance</h2><p>Class average per skill, and how students are spread across the remarks.</p></div>
-          ${remarkLegend()}
+          <div><span class="rp-eyebrow">Learning overview</span><h2 id="skill-performance-title">Skill performance</h2><p>Compare achievement, participation, and where support is needed.</p></div>
         </header>
-        <div class="rp-table-wrap"><table class="rp-table rp-table--skills">
+        <p class="rp-scroll-hint">Scroll across to view all skill results <span aria-hidden="true">→</span></p>
+        <div class="rp-table-wrap" tabindex="0" role="region" aria-label="Skill performance table, scroll horizontally for all columns"><table class="rp-table rp-table--skills">
+          <caption class="rp-sr-only">Average scores and student distributions by skill. With results counts use students whose progress is available.</caption>
+          <colgroup><col class="rp-col-skill"><col class="rp-col-average"><col class="rp-col-remark"><col class="rp-col-distribution"><col class="rp-col-results"><col class="rp-col-help"></colgroup>
           <thead><tr>
             <th scope="col">Skill</th>
             <th scope="col" class="rp-num">Average</th>
@@ -342,6 +347,7 @@ export async function renderClassReport(classId) {
           </tr></thead>
           <tbody>${skillRows}</tbody>
         </table></div>
+        <footer class="rp-table-guide">${remarkLegend()}<p>Distributions include students with available progress. Not enough data is separate from scored performance; lecture is completion only.</p></footer>
       </section>
 
       <div class="rp-columns">
@@ -363,7 +369,7 @@ export async function renderClassReport(classId) {
         <header class="rp-panel__head">
           <div><h2>Students</h2><p>Scores are first-try accuracy. Students who need help are listed first.</p></div>
         </header>
-        <div class="rp-table-wrap"><table class="rp-table report-table">
+        <div class="rp-table-wrap" tabindex="0" role="region" aria-label="Student results table, scroll horizontally for all columns"><table class="rp-table report-table">
           <thead><tr>
             <th scope="col">Student</th>
             ${scoredSkills.map((skill) => `<th scope="col" class="rp-score">${escapeHtml(skill.name)}</th>`).join("")}

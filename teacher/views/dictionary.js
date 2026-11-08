@@ -77,14 +77,15 @@ function actionsHtml(entry, includeEdit = true, includeDelete = true) {
 }
 
 function rowHtml(entry) {
-  const first = [entry.senses[0]?.pos, entry.senses[0]?.definitions[0]].filter(Boolean).join(" · ");
+  const first = entry.senses[0]?.definitions[0] || "";
   const actions = actionsHtml(entry, false, !isAdmin());
   return `
     <div class="lesson-row dict-row" data-key="${escapeHtml(entry.key)}">
       <button type="button" class="dict-row__text" data-act="open">
-        <h3>${escapeHtml(entry.accent || entry.word)} <span class="dict-syllables">${escapeHtml(syllablesOf(entry))}</span></h3>
-        <p>${escapeHtml(first)}</p>
-        <div class="lesson-meta">${tagsHtml(entry)}</div>
+        <span class="dict-row__identity"><strong>${escapeHtml(entry.accent || entry.word)}</strong><span class="dict-syllables">${escapeHtml(syllablesOf(entry))}</span></span>
+        <span class="dict-row__definition">${entry.senses[0]?.pos ? `<span class="dict-pos">${escapeHtml(entry.senses[0].pos)}</span>` : ""}<span>${escapeHtml(first)}</span></span>
+        <span class="lesson-meta">${tagsHtml(entry)}</span>
+        <span class="dict-row__open" aria-hidden="true">↗</span>
       </button>
       ${actions ? `<div class="dict-row__actions">${actions}</div>` : ""}
     </div>`;
@@ -99,7 +100,7 @@ function entryHtml(entry) {
         <div>
           <div class="dict-entry__word">
             <h2 tabindex="-1">${escapeHtml(entry.accent || entry.word)}</h2>
-            <button type="button" class="icon-button dict-speak" data-act="speak" aria-label="Play “${escapeHtml(entry.accent || entry.word)}”">${SPEAKER_ICON}</button>
+            <button type="button" class="icon-button dict-speak dict-action" data-act="speak" aria-label="Play “${escapeHtml(entry.accent || entry.word)}”">${SPEAKER_ICON}<span aria-hidden="true">Play pronunciation</span></button>
           </div>
           <p class="dict-entry__syllables">${escapeHtml(syllablesOf(entry))}</p>
           <div class="lesson-meta">${tagsHtml(entry)}</div>
@@ -357,18 +358,22 @@ export async function renderDictionary() {
   page(
     "Dictionary",
     "Tagalog words students can look up, explained in Filipino",
-    `<button class="button primary" id="dict-add">+ Add word</button>`,
+    `<button class="button primary" id="dict-add"><span aria-hidden="true">+</span> Add word</button>`,
   );
   $("#page-content").innerHTML = `
+    <section class="dict-library" aria-label="Dictionary workspace">
+    <div class="dict-intro">
+      <div><p class="dict-eyebrow">LANGUAGE RESOURCES / DIKSIYONARYO</p><h2>A growing library of Filipino words.</h2><p>Explore meanings, listen to pronunciation, and refine the words your students learn.</p></div>
+      <div class="dict-total"><strong id="dict-total">—</strong><span>words in the library</span></div>
+    </div>
     <div class="card dict-teacher">
       <div class="dict-toolbar">
-        <label class="student-search">
-          <span class="sr-only">Search the dictionary</span>
-          <span aria-hidden="true">⌕</span>
-          <input id="dict-search" type="search" placeholder="Search a word, e.g. bahay" autocomplete="off" maxlength="${MAX_WORD}" />
+        <label class="dict-search-field">
+          <span>Find a word</span>
+          <span class="dict-search-control"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="dict-search" type="search" placeholder="Start typing, e.g. bahay" autocomplete="off" maxlength="${MAX_WORD}" /></span>
         </label>
         <label class="dict-filter">
-          <span class="sr-only">Show</span>
+          <span>Word collection</span>
           <select id="dict-filter">
             <option value="all">All words</option>
             <option value="teacher">Added or changed by teachers</option>
@@ -376,12 +381,12 @@ export async function renderDictionary() {
         </label>
       </div>
       <nav class="dict-letters" aria-label="Letters">
-        <button type="button" data-letter="" class="is-active">All</button>
-        ${LETTERS.map((l) => `<button type="button" data-letter="${l}">${l.toUpperCase()}</button>`).join("")}
+        <button type="button" data-letter="" class="is-active" aria-pressed="true">All</button>
+        ${LETTERS.map((l) => `<button type="button" data-letter="${l}" aria-pressed="false">${l.toUpperCase()}</button>`).join("")}
       </nav>
       <div id="dict-results" aria-live="polite"><p class="dict-empty">Loading…</p></div>
     </div>
-    <p class="dict-credit">Most words come from <a href="https://tl.wiktionary.org/" target="_blank" rel="noopener">Tagalog Wiktionary</a> (CC BY-SA 4.0).</p>`;
+    <footer class="dict-footer"><p class="dict-credit">Most words come from <a href="https://tl.wiktionary.org/" target="_blank" rel="noopener">Tagalog Wiktionary</a> (CC BY-SA 4.0).</p><p>Thoughtful words. Meaningful learning.</p></footer></section>`;
 
   const input = $("#dict-search");
   const filter = $("#dict-filter");
@@ -413,7 +418,7 @@ export async function renderDictionary() {
     }
     const heading = text ? `Words starting with “${text}”` : filter.value === "all" ? "All words, A to Z" : filter.selectedOptions[0].textContent;
     results.innerHTML = `
-      <h2 class="dict-heading">${escapeHtml(heading)} · ${matches.length.toLocaleString()}</h2>
+      <div class="dict-results-head"><h2 class="dict-heading">${escapeHtml(heading)}</h2><span>${matches.length.toLocaleString()} ${matches.length === 1 ? "word" : "words"}</span></div>
       <div class="list">${matches.map(rowHtml).join("")}</div>`;
     paginate({
       rows: () => $$(".dict-row", results),
@@ -435,9 +440,10 @@ export async function renderDictionary() {
     results.innerHTML = `<p class="dict-empty">Loading…</p>`;
     try {
       everything = await allWords();
+      $("#dict-total").textContent = everything.length.toLocaleString();
     } catch (error) {
       console.error(error);
-      results.innerHTML = `<p class="dict-empty">Couldn't load the dictionary. Try again.</p>`;
+      results.innerHTML = `<p class="dict-empty" role="alert">Couldn't load the dictionary. Check your connection. <button type="button" class="button secondary small" data-retry>Try again</button></p>`;
       return;
     }
     const entry = focusWord && everything.find((e) => e.key === normalizeWord(focusWord));
@@ -446,7 +452,11 @@ export async function renderDictionary() {
   };
 
   const setLetter = (letter) =>
-    $$(".dict-letters [data-letter]").forEach((b) => b.classList.toggle("is-active", b.dataset.letter === letter));
+    $$(".dict-letters [data-letter]").forEach((b) => {
+      const active = b.dataset.letter === letter;
+      b.classList.toggle("is-active", active);
+      b.setAttribute("aria-pressed", String(active));
+    });
 
   const afterSave = (word) => load(word);
 
@@ -473,6 +483,7 @@ export async function renderDictionary() {
   });
 
   results.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-retry]")) return load();
     if (event.target.closest("[data-add-typed]")) {
       openWordModal(null, afterSave);
       $("#dict-word-form [name=word]").value = input.value.trim();

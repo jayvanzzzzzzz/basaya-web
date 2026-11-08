@@ -10,10 +10,7 @@ import {
   studentRemarks,
 } from "./progressData.js";
 import {
-  scoreRing,
-  sparkline,
   remarkChip,
-  trendBadge,
   scoreCell,
   remarksList,
   remarkLegend,
@@ -31,6 +28,11 @@ import {
   fileName,
   dateStamp,
 } from "./reportExport.js";
+import { watchTeacherTooltips } from './classActions.js';
+import { paginate } from '../../js/pagination.js';
+
+const reportIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8ZM14 2v6h6M8 15v3M12 12v6M16 14v4"/></svg>';
+const meter = (value, label) => `<span class="sp-meter" role="img" aria-label="${escapeHtml(label)}"><i style="width:${value == null ? 0 : Math.max(0, Math.min(100, value))}%"></i></span>`;
 
 const STATUS = {
   done: ["done", "Finished"],
@@ -71,6 +73,18 @@ function personalDetails(profile) {
 }
 
 const TRENDS = { UP: "Improving", DOWN: "Slipping", STEADY: "Steady" };
+
+const SKILL_PARTS = { talasalitaan: 'game', pagkilala: 'activity', pagbigkas: 'pronunciation', pagsusulit: 'quiz' };
+// Completion flags are independent of scores: missed deadlines can have scores,
+// while a submitted recording can be finished but still awaiting a grade.
+function skillCompletion(progress, key) {
+  const rows = progress.perLesson.filter(row =>
+    row.status !== 'scheduled' && row.status !== 'before-joining' &&
+    !(key === 'talasalitaan' && row.lesson.gameSkipped) &&
+    !(key === 'pagkilala' && row.lesson.activitySkipped));
+  const done = rows.filter(row => row.parts.parts[SKILL_PARTS[key]] === true).length;
+  return { done, total: rows.length, notStarted: rows.length > 0 && rows.every(row => row.status === 'not-started') };
+}
 
 /** Explains a score from a part left unfinished at the deadline. */
 const missedCell = (row, skill, cell) =>
@@ -217,9 +231,9 @@ export async function renderStudentProgress(classId, studentId) {
   });
 
   page(
-    student.name,
-    joined ? `Joined ${joined}` : "",
-    `<button class="button secondary" id="open-class-report">Class Report</button>`,
+    "Student progress",
+    `Learning record for ${classroom.className}`,
+    `<button class="button secondary sp-action" id="open-class-report" type="button" aria-label="Class report" data-teacher-tooltip data-floating-tooltip="Class report">${reportIcon}</button>`,
     {
       crumbs: [
         { label: "Classrooms", href: "#/dashboard" },
@@ -233,14 +247,15 @@ export async function renderStudentProgress(classId, studentId) {
   );
 
   if (progress.error) {
-    $("#page-content").innerHTML = `<section class="card empty">
+    $("#page-content").innerHTML = `<div class="student-progress-workspace"><section class="sp-unavailable" role="status">
       <h3>Progress isn't available</h3>
       <p>${
         progress.error === "moved"
           ? "This student has joined another class, so their progress can't be shown here. You can remove them from this class on the Students page."
           : "We couldn't load this student's progress. Check your connection and try again."
       }</p>
-    </section>`;
+    </section></div>`;
+    watchTeacherTooltips();
     return;
   }
 
@@ -250,47 +265,38 @@ export async function renderStudentProgress(classId, studentId) {
   const remarks = studentRemarks(progress);
 
   addExportActions({
+    iconOnly: true,
     excel: () => exportStudentExcel({ classroom, student, profile, progress, joined }),
   });
+  document.querySelectorAll('#print-report, #export-excel').forEach(button => {
+    button.classList.add('sp-action');
+    button.setAttribute('data-teacher-tooltip', '');
+    button.dataset.floatingTooltip = button.getAttribute('aria-label');
+  });
+  watchTeacherTooltips();
 
-  const skillCards = SKILLS.map((skill, index) => {
+  const skillRows = SKILLS.map((skill) => {
     const summary = progress.summary.skills[skill.key];
     // The lecture has no score — show lectures finished like the app.
     if (skill.key === "pagUnawa" && summary.lessons === 0) {
       const percent = lectures.total ? Math.round((lectures.done * 100) / lectures.total) : null;
-      return `<article class="skill-card" style="--skill:${skill.color}; --i:${index}">
-        <header class="skill-card__head">
-          <span class="skill-card__icon">${skillIcon(skill.key)}</span>
-          <div><h3>${escapeHtml(skill.name)}</h3><p>${escapeHtml(skill.detail)}</p></div>
-        </header>
-        <div class="skill-card__meter">
-          ${scoreRing(percent, { color: skill.color, label: `${lectures.done}/${lectures.total}`, sub: "lectures" })}
-          <div class="skill-card__verdict">
-            <span class="remark remark--info">Completion only</span>
-            <small>No comprehension score yet</small>
-          </div>
-        </div>
-        <footer class="skill-card__foot"><span>Lectures finished</span></footer>
-      </article>`;
+      return `<tr class="sp-skill-row sp-skill-row--lecture">
+        <th scope="row"><div class="sp-skill-identity"><span class="sp-skill-icon">${skillIcon(skill.key)}</span><div><strong>${escapeHtml(skill.name)}</strong><small>${lectures.done} of ${lectures.total} open lectures completed</small></div></div></th>
+        <td><div class="sp-score"><strong>${lectures.done}<small> / ${lectures.total}</small></strong>${meter(percent, percent == null ? 'No lectures open yet' : `${percent}% of lectures finished`)}</div></td>
+        <td><span class="remark remark--info">Completion only</span><small class="sp-cell-note">Lectures are not scored.</small></td>
+      </tr>`;
     }
-    return `<article class="skill-card${summary.needsHelp ? " skill-card--alert" : ""}" style="--skill:${skill.color}; --i:${index}">
-      ${summary.needsHelp ? '<span class="skill-card__flag">Needs help</span>' : ""}
-      <header class="skill-card__head">
-        <span class="skill-card__icon">${skillIcon(skill.key)}</span>
-        <div><h3>${escapeHtml(skill.name)}</h3><p>${escapeHtml(skill.detail)}</p></div>
-      </header>
-      <div class="skill-card__meter">
-        ${scoreRing(summary.score, { color: skill.color, unit: "" })}
-        <div class="skill-card__verdict">
-          ${remarkChip(summary.level)}
-          ${trendBadge(summary.trend) || `<small>${summary.lessons ? "Trend after 3 lessons" : "No results yet"}</small>`}
-        </div>
-      </div>
-      ${sparkline(summary.lessonScores, skill.color)}
-      <footer class="skill-card__foot">
-        <span>${summary.lessons} ${summary.lessons === 1 ? "lesson" : "lessons"} · ${summary.items} ${summary.items === 1 ? "item" : "items"}</span>
-      </footer>
-    </article>`;
+    const completion = skillCompletion(progress, skill.key);
+    const awaitingResults = summary.score == null && completion.done > 0;
+    const emptyLabel = awaitingResults ? 'Awaiting results' : completion.notStarted ? 'Not started' : 'No results yet';
+    const assessment = summary.score == null
+      ? `<span class="remark remark--no-data">${completion.total ? emptyLabel : 'No open activities'}</span>`
+      : remarkChip(summary.level);
+    return `<tr class="sp-skill-row" data-skill="${skill.key}">
+      <th scope="row"><div class="sp-skill-identity"><span class="sp-skill-icon">${skillIcon(skill.key)}</span><div><strong>${escapeHtml(skill.name)}</strong><small>${completion.total ? `${completion.done} of ${completion.total} open ${completion.total === 1 ? 'activity' : 'activities'} completed` : 'No open activities'}</small></div></div></th>
+      <td><div class="sp-score${summary.score == null ? ' sp-score--empty' : ''}"><strong>${summary.score == null ? '—' : `${summary.score}<small>%</small>`}</strong>${summary.score == null ? `<small>${completion.total ? emptyLabel : 'No results yet'}</small>` : meter(summary.score, `${summary.score}% first-try accuracy`)}</div></td>
+      <td>${assessment}${summary.needsHelp ? '<span class="sp-help-flag">Needs help</span>' : ''}</td>
+    </tr>`;
   }).join("");
 
   const statusChip = (status) => {
@@ -302,9 +308,9 @@ export async function renderStudentProgress(classId, studentId) {
     .map(
       (row) => `<tr>
         <td><span class="lesson-index">${String(row.lesson.number).padStart(2, "0")}</span></td>
-        <td class="lesson-name">${escapeHtml(row.lesson.title)}</td>
+        <th scope="row" class="lesson-name">${escapeHtml(row.lesson.title)}</th>
         <td>${statusChip(row.status)}</td>
-        <td class="score-cell ${row.lectureDone ? "score-cell--check" : "score-cell--empty"}">${row.lectureDone ? "✓" : "—"}</td>
+        <td class="score-cell ${row.lectureDone ? "score-cell--check" : "score-cell--empty"}"><span aria-hidden="true">${row.lectureDone ? "✓" : "—"}</span><span class="sr-only">${row.lectureDone ? 'Lecture finished' : 'Lecture not finished'}</span></td>
         ${missedCell(row, "talasalitaan", scoreCell(row.skills.talasalitaan, { skipped: row.lesson.gameSkipped }))}
         ${missedCell(row, "pagkilala", scoreCell(row.skills.pagkilala, { skipped: row.lesson.activitySkipped }))}
         ${missedCell(row, "pagbigkas", scoreCell(row.skills.pagbigkas))}
@@ -314,7 +320,7 @@ export async function renderStudentProgress(classId, studentId) {
     .join("");
 
   $("#page-content").innerHTML = `
-    <div class="progress-page">
+    <div class="progress-page student-progress-workspace">
       ${printMeta("Student Progress Report", [
         classroom.className,
         `Teacher: ${teacherName()}`,
@@ -322,53 +328,37 @@ export async function renderStudentProgress(classId, studentId) {
       ])}
       <section class="progress-overview">
         <article class="progress-identity">
-          <span class="progress-identity__avatar">${escapeHtml(initials(student.name))}</span>
+          <span class="progress-identity__avatar" aria-hidden="true">${escapeHtml(initials(student.name))}</span>
           <div>
             <h2>${escapeHtml(student.name)}</h2>
+            ${joined ? `<p class="sp-joined">Joined ${escapeHtml(joined)}</p>` : ''}
             <p>Last active · <strong>${escapeHtml(relativeTime(progress.lastActive))}</strong></p>
             <p class="progress-identity__details">${personalDetails(profile)}</p>
           </div>
         </article>
         <article class="progress-stat">
-          ${scoreRing(completion.percent, { color: "#24994a", size: 76, stroke: 8, label: `${completion.done}/${completion.total}` })}
-          <div><strong>Lessons finished</strong><span>${completion.total ? `${completion.percent}% of open lessons` : "No lessons open yet"}</span></div>
+          <div><span class="sp-stat-label">Lessons finished</span><strong class="sp-stat-value">${completion.done}<small> / ${completion.total}</small></strong>${meter(completion.percent, `${completion.done} of ${completion.total} open lessons finished`)}<span>${completion.total ? `${completion.percent}% of open lessons` : "No lessons open yet"}</span></div>
         </article>
         <article class="progress-stat${needsHelp.length ? " progress-stat--alert" : ""}">
-          <span class="progress-stat__big">${needsHelp.length}</span>
-          <div><strong>${needsHelp.length === 1 ? "Skill needs" : "Skills need"} help</strong>
+          <div><span class="sp-stat-label">${needsHelp.length === 1 ? "Skill needs" : "Skills need"} help</span><strong class="sp-stat-value">${needsHelp.length}</strong>
             <span>${needsHelp.length ? needsHelp.map((key) => SKILLS.find((skill) => skill.key === key).name).join(", ") : "Nothing flagged right now"}</span>
           </div>
         </article>
       </section>
 
-      <section class="progress-section">
+      <section class="progress-section progress-panel sp-skills" aria-labelledby="sp-skills-title">
         <div class="progress-section__head">
-          <div><span class="eyebrow">Skills</span><h2>How they're doing</h2></div>
-          ${remarkLegend()}
+          <div><span class="eyebrow">Learning profile</span><h2 id="sp-skills-title">Skill performance</h2><p class="sp-section-description">Accuracy and assessment, supported by lesson evidence.</p></div>
         </div>
-        <div class="skill-grid">${skillCards}</div>
+        <p class="sp-scroll-hint">Scroll across to compare all skill details.</p>
+        <div class="sp-table-wrap" role="region" aria-label="Skill performance" tabindex="0"><table class="sp-skill-table"><caption class="sr-only">Skill results; lecture measures completion only. Missing results are not failing scores.</caption><thead><tr><th scope="col">Skill &amp; evidence</th><th scope="col">Current result</th><th scope="col">Assessment</th></tr></thead><tbody>${skillRows}</tbody></table></div>
+        <div class="sp-legend">${remarkLegend()}<p>Results reflect recorded work and may change as more activities are completed. — means no result recorded; missing results are not failing scores.</p><p>Completion counts open activities, excluding skipped activities and lessons closed before joining. Missed deadlines may contribute scores without completed work. A remark may require more lesson evidence.</p></div>
       </section>
 
-      <div class="progress-columns">
         <section class="progress-section progress-panel">
           <div class="progress-section__head"><div><span class="eyebrow">Remarks</span><h2>Teacher notes</h2></div></div>
           ${remarksList(remarks)}
         </section>
-        <section class="progress-section progress-panel">
-          <div class="progress-section__head"><div><span class="eyebrow">Pronunciation</span><h2>Words to practice</h2></div></div>
-          ${
-            progress.hardWords.length
-              ? `<div class="word-chips">${progress.hardWords
-                  .map(
-                    (item, index) =>
-                      `<span class="word-chip" style="--i:${index}">${escapeHtml(item.word)}${item.count > 1 ? `<b>×${item.count}</b>` : ""}</span>`,
-                  )
-                  .join("")}</div>
-                <p class="progress-panel__hint">Words missed at least once in pronunciation practice.</p>`
-              : '<p class="progress-panel__empty">No difficult words recorded yet.</p>'
-          }
-        </section>
-      </div>
 
       <section class="progress-section progress-panel">
         <div class="progress-section__head">
@@ -377,18 +367,36 @@ export async function renderStudentProgress(classId, studentId) {
         </div>
         ${
           lessons.length
-            ? `<div class="progress-table-wrap"><table class="progress-table">
+            ? `<p class="sp-scroll-hint">Scroll across to see every activity result.</p><div class="progress-table-wrap" role="region" aria-label="Lesson breakdown" tabindex="0"><table class="progress-table">
+                <caption class="sr-only">First-try accuracy by lesson and activity</caption>
                 <thead><tr>
                   <th scope="col">#</th><th scope="col">Lesson</th><th scope="col">Status</th>
                   <th scope="col">Lecture</th><th scope="col">Vocabulary</th><th scope="col">Word Recognition</th>
                   <th scope="col">Pronunciation</th><th scope="col">Comprehension</th>
                 </tr></thead>
                 <tbody>${lessonRows}</tbody>
-              </table></div>`
+              </table></div><p class="sp-table-key">— No result recorded · Skipped activities are not scored. Unfinished items after a deadline count as wrong.</p>`
             : '<p class="progress-panel__empty">No lessons assigned to this class yet.</p>'
         }
       </section>
       ${printSignature()}
     </div>`;
+
+  if (progress.perLesson.length) {
+    const labelPagination = () => {
+      document.querySelectorAll('.student-progress-workspace .pagination__button--nav').forEach(button => {
+        button.setAttribute('data-teacher-tooltip', '');
+        button.dataset.floatingTooltip = button.getAttribute('aria-label');
+      });
+    };
+    paginate({
+      rows: () => [...document.querySelectorAll('.student-progress-workspace .progress-table tbody tr')],
+      after: $('.student-progress-workspace .progress-table-wrap'),
+      label: ['lesson', 'lessons'],
+      pageSizes: Array.from({ length: Math.max(5, Math.ceil(progress.perLesson.length / 5)) }, (_, index) => (index + 1) * 5),
+      onChange: labelPagination,
+    });
+    labelPagination();
+  }
 }
 

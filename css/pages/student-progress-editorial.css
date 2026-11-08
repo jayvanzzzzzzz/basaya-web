@@ -1,0 +1,149 @@
+﻿/* Individual learning record; existing theme persistence and scoring are unchanged. */
+body:has(.student-progress-workspace) {
+ --bg:#f8f5ec; --ink:#20243a; --ink-2:#50586b; --ink-3:#626b7b; --primary:#1f2559; --primary-strong:#1f2559;
+ --primary-soft:#eae7f8; --primary-softer:#f1eff8; --primary-ring:#8175ac; --border:#dedee5; --border-strong:#d1d2de;
+ --surface:#fffdf7; --surface-2:#f3f1f7; --surface-3:#e8e8ed; --sp-paper:rgba(255,253,247,.88);
+ --success:#296841; --success-soft:#ddf3e4; --warning:#87520d; --warning-soft:#fcf0d8; --danger:#a62f43; --danger-soft:#fbe7eb; --info:#305e9d; --info-soft:#eaf2ff;
+}
+:root[data-theme="dark"] body:has(.student-progress-workspace) {
+ --bg:#181d2a; --ink:#eeeef5; --ink-2:#c3c8d6; --ink-3:#abb3c4; --primary:#c0bcf1; --primary-strong:#c0bcf1;
+ --primary-soft:#303447; --primary-softer:#272d3d; --primary-ring:#a69bd5; --border:#3c4558; --border-strong:#505b70;
+ --surface:#242c3b; --surface-2:#293244; --surface-3:#394256; --sp-paper:rgba(36,44,59,.94);
+ --success:#93d6aa; --success-soft:#203b30; --warning:#e3b574; --warning-soft:#3b3327; --danger:#ffa3b2; --danger-soft:#422c3b; --info:#a9cbff; --info-soft:#253951;
+}
+body:has(.student-progress-workspace) .sidebar { background:#1f2559; }
+:root[data-theme="dark"] body:has(.student-progress-workspace) .sidebar { background:#141a30; }
+body:has(.student-progress-workspace) .page-header { min-height:0; padding:1.5rem 0; margin:0; border:0; border-bottom:1px solid var(--border); border-radius:0; background:none; box-shadow:none; overflow:visible; gap:1rem; }
+body:has(.student-progress-workspace) .page-header::before,body:has(.student-progress-workspace) .page-header::after,body:has(.student-progress-workspace) :is(.page-header__art,.page-header__icon) { display:none; }
+body:has(.student-progress-workspace) .page-header h1 { color:var(--ink); font-size:clamp(1.8rem,3vw,2.4rem); font-weight:600; letter-spacing:-.045em; }
+body:has(.student-progress-workspace) .page-header p { color:var(--ink-3); max-width:44rem; font-size:.875rem; line-height:1.7; overflow-wrap:anywhere; }
+body:has(.student-progress-workspace) .page-header__crumbs ol { flex-wrap:wrap; }
+body:has(.student-progress-workspace) .header-actions { position:static; align-self:flex-end; flex-wrap:wrap; gap:.5rem; }
+body:has(.student-progress-workspace) .header-actions .sp-action { display:inline-grid; place-items:center; width:44px; min-width:44px; height:44px; padding:0; border:1px solid var(--border-strong); border-radius:.6rem; background:var(--sp-paper); color:var(--ink-2); box-shadow:none; transition:background 200ms,transform 200ms,border-color 200ms; }
+body:has(.student-progress-workspace) .sp-action svg { width:19px; height:19px; }
+body:has(.student-progress-workspace) .sp-action:hover:not(:disabled) { background:var(--primary-soft); border-color:var(--primary-ring); transform:translateY(-2px); }
+body:has(.student-progress-workspace) .sp-action:disabled { opacity:.45; cursor:wait; }
+body:has(.student-progress-workspace) .sp-action > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+body:has(.student-progress-workspace) :is(.sp-action,#report-export-status)::after { display:none; }
+body:has(.student-progress-workspace) .sp-action:focus-visible,.student-progress-workspace [tabindex="0"]:focus-visible { outline:2px solid var(--primary-ring); outline-offset:3px; }
+body:has(.student-progress-workspace) .floating-tooltip { background:var(--ink); color:var(--bg); border-color:transparent; font-size:.8rem; animation:sp-tooltip-in 180ms ease-out; }
+body:has(.student-progress-workspace) .page-header-bar { background:var(--surface); border-color:var(--border); }
+body:has(.student-progress-workspace) .site-footer__links button { color:var(--ink-2); }
+.student-progress-workspace { grid-template-columns:minmax(0,1fr); gap:1.75rem; min-width:0; padding-top:1.5rem; }
+.student-progress-workspace .eyebrow { color:var(--ink-3); font-size:.75rem; font-weight:600; letter-spacing:.1em; }
+.student-progress-workspace .eyebrow::before { display:none; }
+.student-progress-workspace .progress-overview { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr) minmax(0,1fr); gap:0; border:1px solid var(--border); border-radius:.85rem; background:var(--sp-paper); overflow:hidden; }
+.student-progress-workspace :is(.progress-identity,.progress-stat) { min-width:0; padding:1.5rem; border:0; border-radius:0; background:none; box-shadow:none; animation:none; }
+.student-progress-workspace .progress-stat { border-left:1px solid var(--border); align-items:center; }
+.student-progress-workspace .progress-identity { align-items:flex-start; gap:1rem; }
+.student-progress-workspace .progress-identity > div { min-width:0; overflow-wrap:anywhere; }
+.student-progress-workspace .progress-identity__avatar { width:48px; height:48px; border-radius:.75rem; background:var(--primary-soft); color:var(--primary); font-size:1rem; font-weight:500; box-shadow:none; }
+.student-progress-workspace .progress-identity h2 { margin:0 0 .6rem; font-size:1.2rem; line-height:1.5; font-weight:500; letter-spacing:-.035em; }
+.student-progress-workspace .progress-identity p { font-size:.78rem; line-height:1.8; }
+.student-progress-workspace .progress-identity .sp-joined { margin-bottom:.25rem; }
+.student-progress-workspace .progress-stat > div { width:100%; gap:.5rem; }
+.student-progress-workspace .progress-stat .sp-stat-label { color:var(--ink-3); font:500 .75rem var(--font-body); }
+.student-progress-workspace .progress-stat .sp-stat-value { color:var(--ink); font-size:2.1rem; font-weight:500; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.sp-stat-value small { font-size:1rem; color:var(--ink-3); letter-spacing:0; }
+.student-progress-workspace .progress-stat--alert .sp-stat-value { color:var(--danger); }
+.sp-meter { display:block; width:100%; height:4px; border-radius:4px; background:var(--surface-3); overflow:hidden; }
+.sp-meter i { display:block; height:100%; background:var(--success); border-radius:inherit; transition:width 200ms ease-out; }
+.student-progress-workspace .progress-section { min-width:0; grid-template-columns:minmax(0,1fr); gap:1.2rem; }
+.student-progress-workspace .progress-panel,.sp-unavailable { padding:1.5rem; border:1px solid var(--border); border-radius:.85rem; background:var(--sp-paper); box-shadow:0 3px 12px #14193106; }
+.student-progress-workspace .progress-section__head h2 { margin-top:.35rem; font-size:1.2rem; font-weight:500; letter-spacing:-.035em; }
+.sp-section-description { margin:.5rem 0 0; color:var(--ink-3); font-size:.8rem; }
+.sp-table-wrap { position:relative; overflow:auto; max-width:100%; min-width:0; }
+.sp-skill-table { border-collapse:collapse; width:100%; min-width:560px; table-layout:fixed; text-align:left; }
+.sp-skill-table thead th { padding:.85rem .75rem; border-bottom:1px solid var(--border); color:var(--ink-3); background:var(--primary-softer); font:600 .75rem var(--font-body); }
+.sp-skill-table thead th:first-child { width:45%; }
+.sp-skill-table thead th:nth-child(2) { width:23%; }
+.sp-skill-table :is(td,tbody th) { padding:1.1rem .75rem; border-bottom:1px solid var(--border); vertical-align:middle; text-align:left; }
+.sp-skill-table tbody tr:last-child :is(th,td) { border-bottom:0; }
+.sp-skill-row { transition:background-color 200ms; }
+.sp-skill-row:hover { background:var(--primary-softer); }
+.sp-skill-identity { display:flex; gap:.75rem; align-items:center; }
+.sp-skill-icon { display:grid; place-items:center; width:36px; height:36px; flex:0 0 36px; border:1px solid var(--border); border-radius:.6rem; color:var(--primary); background:var(--primary-soft); }
+.sp-skill-icon svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round; }
+.sp-skill-identity strong { display:block; font:600 .85rem/1.6 var(--font-body); }
+.sp-skill-identity small,.sp-score > small,.sp-cell-note { display:block; color:var(--ink-3); font:400 .75rem/1.7 var(--font-body); }
+.sp-skill-identity small:last-child { margin-top:.25rem; }
+.sp-score { display:grid; gap:.65rem; max-width:100px; }
+.sp-score > strong { color:var(--ink); font:500 1.5rem var(--font-display); font-variant-numeric:tabular-nums; letter-spacing:-.04em; }
+.sp-score strong small { color:var(--ink-3); font-size:.85rem; letter-spacing:0; }
+.sp-score .sp-meter i { background:var(--primary); }
+.sp-cell-note { margin-top:.4rem; }
+.sp-help-flag { display:block; margin-top:.5rem; color:var(--danger); font-size:.75rem; font-weight:600; }
+.sp-legend { border-top:1px solid var(--border); padding-top:1rem; }
+.student-progress-workspace .remark-legend { justify-content:flex-start; }
+.student-progress-workspace :is(.remark,.trend,.remark-legend > span) { font-size:.75rem; line-height:1.6; }
+.student-progress-workspace .remark { border-radius:.35rem; white-space:normal; }
+.student-progress-workspace .remark--very-good { color:var(--success); background:var(--success-soft); }
+.student-progress-workspace .remark--good,.student-progress-workspace .remark--info { color:var(--info); background:var(--info-soft); }
+.student-progress-workspace .remark--fair { color:var(--warning); background:var(--warning-soft); }
+.student-progress-workspace .remark--poor { color:var(--danger); background:var(--danger-soft); }
+.student-progress-workspace .remark--no-data { color:var(--ink-2); background:var(--surface-2); }
+.student-progress-workspace .trend--up { color:var(--success); }
+.student-progress-workspace .trend--down { color:var(--danger); }
+.student-progress-workspace .trend--steady { color:var(--ink-2); }
+.sp-legend > p,.sp-table-key { margin:.75rem 0 0; color:var(--ink-3); font-size:.75rem; line-height:1.8; }
+.student-progress-workspace .progress-columns { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:1.25rem; }
+.student-progress-workspace .remarks-list { gap:0; }
+.student-progress-workspace .remarks-list__item { margin-inline:-.5rem; padding:1rem .5rem; border:0; border-bottom:1px solid var(--border); border-radius:.5rem; background:none; animation:none; transition:background-color 200ms ease-out,transform 200ms ease-out; }
+.student-progress-workspace .remarks-list__item:last-child { border-bottom:0; padding-bottom:0; }
+.student-progress-workspace .remarks-list__icon { width:30px; height:30px; border-radius:.5rem; background:var(--tone-soft); }
+.student-progress-workspace .remarks-list strong { font-size:.85rem; line-height:1.6; }
+.student-progress-workspace .remarks-list p { font-size:.8rem; line-height:1.8; overflow-wrap:anywhere; }
+@media screen and (hover:hover) and (pointer:fine) {
+ .student-progress-workspace .remarks-list__item:hover { background:var(--primary-softer); transform:translateY(-1px); }
+}
+@media (prefers-reduced-motion:reduce) {
+ .student-progress-workspace .remarks-list__item:hover { transform:none; }
+}
+.student-progress-workspace .word-chip { border:1px solid var(--border); border-radius:.5rem; background:var(--primary-softer); font-size:.8rem; font-weight:500; animation:none; overflow-wrap:anywhere; max-width:100%; }
+.student-progress-workspace .word-chip b { font-size:.75rem; }
+.student-progress-workspace :is(.progress-panel__hint,.progress-panel__empty) { font-size:.8rem; line-height:1.8; }
+.student-progress-workspace .progress-table-wrap { position:relative; max-width:100%; min-width:0; margin:0; }
+.student-progress-workspace .progress-table { min-width:940px; border-collapse:collapse; border-spacing:0; table-layout:fixed; }
+.student-progress-workspace .progress-table thead th { padding:.85rem .6rem; background:var(--primary-softer); border:0; border-bottom:1px solid var(--border); border-radius:0; font-size:.75rem; letter-spacing:0; text-transform:none; white-space:normal; text-align:center; }
+.student-progress-workspace .progress-table thead th:first-child { width:44px; }
+.student-progress-workspace .progress-table thead th:nth-child(2) { width:24%; text-align:left; }
+.student-progress-workspace .progress-table thead th:nth-child(3) { width:17%; }
+.student-progress-workspace .progress-table tbody :is(th,td) { padding:1rem .6rem; border:0; border-bottom:1px solid var(--border); border-radius:0; background:none; font-size:.8rem; transition:background 200ms; }
+.student-progress-workspace .progress-table tbody tr:nth-child(even) td { background:none; }
+.student-progress-workspace .progress-table tbody th { color:var(--ink); font:500 .85rem/1.7 var(--font-body); text-transform:none; letter-spacing:0; white-space:normal; overflow-wrap:anywhere; }
+.student-progress-workspace .progress-table tbody tr:hover :is(th,td) { background:var(--primary-softer); }
+.student-progress-workspace .progress-table td.score-cell--very-good { color:var(--success); }
+.student-progress-workspace .progress-table td.score-cell--good { color:var(--info); }
+.student-progress-workspace .progress-table td.score-cell--fair { color:var(--warning); }
+.student-progress-workspace .progress-table td.score-cell--poor { color:var(--danger); }
+.student-progress-workspace .lesson-index { width:auto; background:none; color:var(--ink-3); font-size:.75rem; font-weight:500; }
+.student-progress-workspace .status-chip { padding:.2rem .45rem; border-radius:.35rem; font-size:.75rem; line-height:1.6; white-space:normal; }
+.student-progress-workspace :is(.status-chip--idle,.status-chip--scheduled,.status-chip--before) { color:var(--ink-2); }
+.sp-scroll-hint { display:none; margin:0; color:var(--ink-3); font-size:.75rem; }
+.student-progress-workspace .pagination { margin:0; padding:1rem 0 0; border:0; border-top:1px solid var(--border); border-radius:0; background:none; animation:none; }
+.student-progress-workspace .pagination__button { min-width:44px; min-height:44px; border-radius:.5rem; box-shadow:none; transition:background 200ms,border-color 200ms,transform 200ms; }
+.student-progress-workspace .pagination__button[aria-current="page"] { background:var(--primary); color:var(--surface); box-shadow:none; animation:none; }
+.student-progress-workspace .pagination__button--nav span { display:none; }
+.student-progress-workspace .pagination__size select { min-height:44px; background-color:var(--surface); color:var(--ink); }
+.student-progress-workspace .pagination :is(button,select):focus-visible { outline:2px solid var(--primary-ring); outline-offset:3px; }
+@supports (backdrop-filter:blur(12px)) { .student-progress-workspace :is(.progress-overview,.progress-panel) { backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); } }
+@keyframes sp-tooltip-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@media (max-width:1000px) { .student-progress-workspace .progress-overview { grid-template-columns:1fr 1fr; } .student-progress-workspace .progress-identity { grid-column:1/-1; border-bottom:1px solid var(--border); } .student-progress-workspace .progress-stat:nth-child(2) { border-left:0; } }
+@media (max-width:760px) { .student-progress-workspace { gap:1.25rem; } .student-progress-workspace .progress-columns { grid-template-columns:minmax(0,1fr); } .student-progress-workspace :is(.progress-panel,.progress-stat,.progress-identity) { padding:1.1rem; } .sp-scroll-hint { display:block; } body:has(.student-progress-workspace) .header-actions { align-self:flex-start; } .student-progress-workspace .progress-identity { gap:.75rem; } }
+@media (prefers-reduced-motion:reduce) { .student-progress-workspace *,body:has(.student-progress-workspace) :is(.sp-action,.floating-tooltip) { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+@media print {
+ body:has(.student-progress-workspace) .page-header { padding:0 0 .6rem; }
+ body:has(.student-progress-workspace) .page-header h1 { font-size:18pt; }
+ .student-progress-workspace { padding:0; gap:1rem; }
+ .student-progress-workspace :is(.progress-overview,.progress-panel) { background:white; backdrop-filter:none; padding:.7rem; box-shadow:none; }
+ .student-progress-workspace .progress-overview { grid-template-columns:minmax(0,1.6fr) 1fr 1fr; padding:0; }
+ .student-progress-workspace .progress-identity { grid-column:auto; border-bottom:0; }
+ .student-progress-workspace :is(.progress-stat,.progress-identity) { padding:.7rem; }
+ .sp-table-wrap,.student-progress-workspace .progress-table-wrap { overflow:visible; }
+ .student-progress-workspace :is(.sp-skill-table,.progress-table) { min-width:0; width:100%; }
+ .student-progress-workspace .progress-table :is(th,td) { padding:.45rem .25rem; font-size:8pt; }
+ .student-progress-workspace .sp-skill-table :is(th,td) { padding:.55rem .3rem; }
+ .student-progress-workspace .progress-table thead th:first-child { width:20px; }
+ .sp-scroll-hint { display:none; }
+ .sp-skill-table tr { break-inside:avoid; }
+}

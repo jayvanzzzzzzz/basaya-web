@@ -1,0 +1,52 @@
+[
+  {
+    "theme": "light",
+    "name": "desktop",
+    "issues": []
+  },
+  {
+    "theme": "light",
+    "name": "laptop",
+    "issues": []
+  },
+  {
+    "theme": "light",
+    "name": "tablet",
+    "issues": []
+  },
+  {
+    "theme": "light",
+    "name": "mobile",
+    "issues": []
+  },
+  {
+    "theme": "light",
+    "name": "small-mobile",
+    "issues": []
+  },
+  {
+    "theme": "dark",
+    "name": "desktop",
+    "issues": []
+  },
+  {
+    "theme": "dark",
+    "name": "laptop",
+    "issues": []
+  },
+  {
+    "theme": "dark",
+    "name": "tablet",
+    "issues": []
+  },
+  {
+    "theme": "dark",
+    "name": "mobile",
+    "issues": []
+  },
+  {
+    "theme": "dark",
+    "name": "small-mobile",
+    "issues": []
+  }
+]

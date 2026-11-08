@@ -1,0 +1,4 @@
+{
+  "checks": "10 responsive/theme screenshots; search, pagination, progress/readings/messages routing, notifications, removal cancel/focus trap/error/success callback, request tabs, saved theme, reduced motion, empty state, ownership redirect",
+  "errors": []
+}

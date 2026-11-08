@@ -643,3 +643,14 @@
     animation: none;
   }
 }
+/* Native date/time controls need more room than half of a compact dialog. */
+#schedule-form .form-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#schedule-form .form-grid > label,
+#schedule-form input[type="datetime-local"] {
+  min-width: 0;
+  max-width: 100%;
+}
+

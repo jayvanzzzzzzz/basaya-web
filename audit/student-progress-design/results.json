@@ -1,0 +1,7 @@
+{
+  "live": {
+    "skipped": true
+  },
+  "errors": [],
+  "checks": "Responsive light/dark 320–1440; contrast and clipping; real scoring/remarks; missing results and completion-only lecture; skip/missed statuses; tooltips/focus; XLSX five worksheets; PDF; export failure; class report routing; theme persistence; reduced motion; no data/empty/unavailable; ownership and membership redirects"
+}
