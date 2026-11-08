@@ -10,6 +10,7 @@ export function fluencyPages(content = {}) {
       pageNumber: index + 1,
       sentence: page.sentence.trim(),
       audioUrl: /^https:\/\//.test(page.cloudAudio?.audioUrl || '') ? page.cloudAudio.audioUrl : '',
+      wordStarts: validWordStarts(page.cloudAudio?.wordStarts, page.sentence),
       words: wordsIn(page.sentence).filter(word => selected.has(wordKey(word))).map(word => {
         const at = globalWords.findIndex(value => wordKey(value) === wordKey(word));
         const clip = (content.cloudAudio || []).find(value => wordKey(value?.text || '') === wordKey(word)) || content.cloudAudio?.[at];
@@ -17,4 +18,8 @@ export function fluencyPages(content = {}) {
       }),
     };
   });
+}
+
+function validWordStarts(starts, text) {
+  return Array.isArray(starts) && starts.length === text.trim().split(/\s+/).length && starts.every((time, i) => Number.isFinite(time) && time >= 0 && (!i || time >= starts[i - 1])) ? starts : null;
 }

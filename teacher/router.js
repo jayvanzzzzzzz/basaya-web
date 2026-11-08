@@ -1,6 +1,6 @@
 import { $, currentRoute, navigate, shell, empty } from "../js/helpers.js";
 import { state, getTeacherLessons, getAllLessons, getTeacherClasses } from "../js/state.js";
-import { renderDashboard } from "./views/dashboard.js";
+import { renderDashboard, leaveDashboardMenus } from "./views/dashboard.js";
 import { renderAccountSettings } from "./views/accountSettings.js";
 import { renderClass } from "./views/classPage.js";
 import { renderAddLessonPage } from "./views/addLesson.js";
@@ -13,6 +13,9 @@ import { leaveJoinRequests } from "./views/joinRequests.js";
 import { leaveLeaveRequests } from "./views/leaveRequests.js";
 import { leaveStudentRequestsBadge } from "./views/studentRequestsBadge.js";
 import { renderFluencyReview } from './views/fluencyReview.js';
+import { leaveStudentNotifications } from './views/studentNotifications.js';
+import { leaveTeacherTooltips } from './views/classActions.js';
+import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
 
 let statsLoaded = false;
 
@@ -29,9 +32,13 @@ async function loadSidebarStats() {
 
 export async function renderRoute() {
   if (!state.user) return;
+  leaveDashboardNotifications();
+  leaveDashboardMenus();
   leaveJoinRequests();
   leaveLeaveRequests();
   leaveStudentRequestsBadge();
+  leaveStudentNotifications();
+  leaveTeacherTooltips();
   shell();
   leaveMessages(); // stops the open chat's live listeners
   loadSidebarStats(); // fire-and-forget, doesn't block page render
@@ -65,8 +72,9 @@ export async function renderRoute() {
       await renderStudentsPage(classId);
     } else if (/^\/classes\/[^/]+\/students\/[^/]+$/.test(route)) {
       await renderStudentProgress(classId, decodeURIComponent(route.split("/")[4]));
-    } else if (/^\/classes\/[^/]+\/readings$/.test(route)) {
-      await renderFluencyReview(classId);
+    } else if (/^\/classes\/[^/]+\/readings(?:\/[^/]+){0,2}$/.test(route)) {
+      const segments = route.split('/');
+      await renderFluencyReview(classId, segments[4] ? decodeURIComponent(segments[4]) : null, segments[5] ? decodeURIComponent(segments[5]) : null);
     } else if (/^\/classes\/[^/]+\/report$/.test(route)) {
       await renderClassReport(classId);
     } else if (/^\/classes\/[^/]+\/add-lesson$/.test(route)) {

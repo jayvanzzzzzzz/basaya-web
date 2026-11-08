@@ -6,18 +6,21 @@ import { fluencyOperation } from '../notify-api/lib/fluency.js';
 import { validateFluencyAudio, fluencyPlaybackUrl } from '../notify-api/lib/fluencyStorage.js';
 import { fluencyPages } from '../js/fluencyContent.js';
 import { advanceReading } from '../student/fluencyStore.js';
+import { assessmentOperation } from '../notify-api/lib/assessments.js';
 import worker from '../cloudflare/readings/src/index.js';
 const require = createRequire(new URL('../notify-api/package.json', import.meta.url));
 const { initializeApp, deleteApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 const emulator = await startFirestoreTestServer(...process.argv.slice(2));
 process.env.FIRESTORE_EMULATOR_HOST = emulator.host;
 const app = initializeApp({ projectId: emulator.project });
 const db = getFirestore(app);
 const base = { classId: 'a', lessonId: 'lesson', progressSession: 'session-a' };
 const clips = new Map();
-const storage = { put: async (key, bytes) => clips.set(key, bytes), playback: key => `https://private.test/${key}` };
-const call = (operation, extra = {}, uid = 'student') => fluencyOperation(db, uid, { ...base, operation: `fluency-${operation}`, ...extra }, storage);
+let transcript='May', recognitionCalls=0, recognitionFails=false;
+const storage = { put: async (key, bytes) => clips.set(key, bytes), playback: key => `https://private.test/${key}`,
+  recognize:async(_bytes,authorization)=>{recognitionCalls++;assert.equal(authorization,'Bearer synthetic');if(recognitionFails)throw Object.assign(new Error('Speech unavailable'),{status:503});return transcript;} };
+const call = (operation, extra = {}, uid = 'student', includeRecognizedText = false) => fluencyOperation(db, uid, { ...base, operation: `fluency-${operation}`, ...(operation==='word'?{audio:wav().toString('base64')}:{}), ...extra }, storage,'Bearer synthetic',{includeRecognizedText});
 const seed = (path, data) => db.doc(path).set(data);
 function wav(silence = false) {
   const bytes = Buffer.alloc(32044); bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length-8,4); bytes.write('WAVEfmt ',8); bytes.writeUInt32LE(16,16); bytes.writeUInt16LE(1,20); bytes.writeUInt16LE(1,22); bytes.writeUInt32LE(16000,24); bytes.writeUInt32LE(32000,28); bytes.writeUInt16LE(2,32); bytes.writeUInt16LE(16,34); bytes.write('data',36); bytes.writeUInt32LE(32000,40);
@@ -25,7 +28,10 @@ function wav(silence = false) {
   return bytes;
 }
 let state;
-const act = async (operation, extra={}) => state = await call(operation, { revision: state.revision, page: state.page, word: state.word, eventId: randomUUID(), ...extra });
+const act = async (operation, extra={}) => {
+  if(operation==='word')transcript=state.pages[state.page].words[state.word].word;
+  return state = await call(operation, { revision: state.revision, page: state.page, word: state.word, eventId: randomUUID(), ...extra });
+};
 try {
   await seed('users/student', { role:'student',classId:'a',progressSession:'session-a',firstName:'Synthetic reader' });
   await seed('users/other', { role:'student',classId:'b' });
@@ -41,12 +47,47 @@ try {
   await seed('lessons/lesson/pronunciation/content',content);
   assert.deepEqual(fluencyPages(content).map(page=>page.words.map(word=>word.word)),[['May','bahay'],['Malaki']]);
   state = await call('begin');
+  assert.equal(state.wordVerification,1,'API advertises strict Get Ready verification before clients send audio');
   assert.equal(state.stage,'words');
   await assert.rejects(act('next'),error=>error.status===409);
+  const attempt=()=>({revision:state.revision,page:0,word:0,eventId:randomUUID()});
+  transcript='puno';
+  const wrong=await call('word',attempt());
+  assert.equal(wrong.wordAccepted,false);assert.equal(wrong.word,0);assert.equal(wrong.revision,0);
+  assert.equal(wrong.speechDiagnostic,undefined,'Responses no longer include diagnostic transcripts');
+  transcript='Maitim ang budi.';
+  const rejected=await call('word',{...attempt(),speechDebug:true});
+  assert.equal(rejected.speechDiagnostic,undefined,'Old debug flags cannot expose recognized text');
+  assert.equal(rejected.wordAccepted,false);assert.equal(rejected.word,0);assert.equal(rejected.revision,0);
+  const debug=await call('word',attempt(),'student',true);
+  assert.equal(debug.speechDiagnostic.expectedWord,'May');
+  assert.equal(debug.speechDiagnostic.recognizedText,transcript);
+  assert.equal(debug.speechDiagnostic.checker,'compound-v1');
+  assert.equal(debug.wordAccepted,false);assert.equal(debug.word,0);assert.equal(debug.revision,0);
+  const attempts=await db.collection('users/student/fluencyAttempts').get();
+  assert.equal(JSON.stringify(attempts.docs.map(doc=>doc.data())).includes(transcript),false,'Diagnostic transcript is not saved in the attempt');
+  transcript='puno';
+  for(let retry=0;retry<5;retry++) {
+    const rejected=await call('word',attempt());
+    assert.equal(rejected.wordAccepted,false);assert.equal(rejected.word,0);assert.equal(rejected.revision,0);
+  }
+  transcript='';
+  const silent=await call('word',attempt());
+  assert.equal(silent.noSpeech,true);assert.equal(silent.word,0);
+  recognitionFails=true;
+  await assert.rejects(call('word',attempt()),error=>error.status===503);
+  recognitionFails=false;
+  assert.equal((await call('begin')).word,0,'Service failure never advances Get Ready');
+  await assert.rejects(call('word',{...attempt(),audio:undefined,wordAccepted:true}),error=>error.status===400);
+  assert.equal(clips.size,0,'Word attempts are checked, not uploaded as teacher recordings');
+  transcript='May';
   const first = {revision:state.revision,page:0,word:0,eventId:randomUUID()};
   state=await call('word',first);
+  assert.equal(state.wordAccepted,true);
   assert.equal(state.word,1);
+  const callsBeforeRetry=recognitionCalls;
   assert.deepEqual(await call('word',first),state,'Lost-response retry must not consume the next word');
+  assert.equal(recognitionCalls,callsBeforeRetry,'Accepted retry does not transcribe twice');
   assert.equal((await call('begin')).word,1,'Resume at second word of first page');
   await seed('lessons/lesson/pronunciation/content',{...content,pages:[{sentence:'Changed after assignment.'}]});
   assert.equal((await call('begin')).pages[0].sentence,'May bahay.','Assigned reading snapshot remains stable');
@@ -61,11 +102,20 @@ try {
   assert.equal(state.revision,uploadedRevision,'Upload retry is idempotent');
   await act('next'); assert.equal(state.page,1); assert.equal(state.word,0);
   await act('word'); await act('listen'); await act('upload',{audio:wav().toString('base64')});
+  // An older word-based result must not survive a new teacher-reviewed submission.
+  await seed('users/student/assignedLessons/lesson', { skills: { pagbigkas: { correct: 0, attempts: 12, items: 12 }, pagsusulit: { correct: 4, attempts: 5, items: 5 } } });
   await act('submit'); assert.equal(state.status,'submitted');
   const progress=(await db.doc('users/student/assignedLessons/lesson').get()).data();
   assert.equal(progress.pronunciationFinished,true);
   assert.equal(progress.pronunciationReviewStatus,'pending');
   assert.equal(progress.pronunciationScore,undefined,'Pending teacher grade must not become zero');
+  assert.equal(progress.skills.pagbigkas,undefined,'Submission removes a stale pronunciation result');
+  assert.equal(progress.skills.pagsusulit.correct,4,'Other skill results are preserved');
+  await db.doc('classes/a/classLessons/lesson').update({dueAt:Timestamp.fromMillis(Date.now()-1000)});
+  const pendingSummary=(await assessmentOperation(db,'student',{...base,operation:'summary'})).summary;
+  assert.equal(pendingSummary.skills.pagbigkas.score,null,'Deadline does not turn awaiting review into zero');
+  assert.equal((await call('begin')).status,'submitted','Recording remains accessible after closing');
+  await assert.rejects(act('submit'),error=>error.status===403,'Closing does not allow student resubmission');
   await assert.rejects(call('begin',{},'other'),error=>error.status===403);
   await assert.rejects(call('list',{},'stranger'),error=>error.status===403);
   const rows=(await call('list',{},'teacher')).submissions;
@@ -76,12 +126,44 @@ try {
   await call('grade',{submissionId,grade:{accuracy:4,smoothness:3,expression:3},feedback:'Keep reading!'},'teacher');
   assert.equal((await call('begin')).grade.accuracy,4);
   assert.equal((await db.doc('users/student/assignedLessons/lesson').get()).get('skills.pagbigkas.correct'),10);
+  assert.equal((await assessmentOperation(db,'student',{...base,operation:'summary'})).summary.skills.pagbigkas.score,83,'Teacher grading after closing updates the average');
   await seed('classes/a/classLessons/lesson__practice',{lessonId:'lesson',mode:'practice'});
   const practice={practice:true,entryId:'lesson__practice'};
   let p=await call('begin',practice);
   for(const operation of ['listen','upload','submit']) p=await call(operation,{...practice,revision:p.revision,page:p.page,eventId:randomUUID(),...(operation==='upload'?{audio:wav().toString('base64')}:{})});
   assert.equal(p.status,'submitted');
   assert.equal((await call('begin',practice)).status,'draft','Practice can be repeated on reentry');
+  await seed('classes/a/classLessons/eight',{lessonId:'eight'});
+  await seed('lessons/eight/pronunciation/content',{words:[],pages:Array.from({length:8},(_,i)=>({sentence:`Pagbasa bilang ${i+1}.`,readyWords:[],cloudAudio:{audioUrl:`https://model/${i}`}}))});
+  let eight=await call('begin',{lessonId:'eight'});
+  assert.equal(eight.pages.length,8);
+  const eightAct=async(operation,extra={})=>eight=await call(operation,{lessonId:'eight',revision:eight.revision,page:eight.page,eventId:randomUUID(),...extra});
+  for(let i=0;i<8;i++) {
+    await eightAct('listen');await eightAct('upload',{audio:wav().toString('base64')});
+    await eightAct(i===7?'submit':'next');
+  }
+  assert.equal(eight.status,'submitted');assert.equal(eight.clips.filter(Boolean).length,8);
+  await seed('classes/a/classLessons/nine',{lessonId:'nine'});
+  await seed('lessons/nine/pronunciation/content',{pages:Array.from({length:9},()=>({sentence:'Sobra na.',readyWords:[]}))});
+  await assert.rejects(call('begin',{lessonId:'nine'}),error=>error.status===409);
+  await seed('classes/a/classLessons/strict',{lessonId:'strict'});
+  await seed('lessons/strict/pronunciation/content',{words:['magandang'],pages:[{sentence:'Magandang umaga.',readyWords:['magandang']}]});
+  const strict=await call('begin',{lessonId:'strict'});
+  transcript='magandamg';
+  const near=await call('word',{lessonId:'strict',revision:strict.revision,page:0,word:0,eventId:randomUUID()});
+  assert.equal(near.wordAccepted,false,'A fuzzy near-match does not pass a long Get Ready word');
+  await seed('classes/a/classLessons/compound',{lessonId:'compound'});
+  await seed('lessons/compound/pronunciation/content',{words:['maitim-ang-budhi'],pages:[{sentence:'Siya ay maitim-ang-budhi.',readyWords:['maitim-ang-budhi']}]});
+  let compound=await call('begin',{lessonId:'compound'});
+  for(const heard of ['maitim','ang budhi','maitim budhi','maitim ang buti','maitim ang budddhi','maitim ang budi']) {
+    transcript=heard;
+    const result=await call('word',{lessonId:'compound',revision:compound.revision,page:0,word:0,eventId:randomUUID()});
+    assert.equal(result.wordAccepted,false,heard);assert.equal(result.word,0);assert.equal(result.revision,compound.revision);
+  }
+  transcript='Maitim ang buddhi';
+  compound=await call('word',{lessonId:'compound',revision:compound.revision,page:0,word:0,eventId:randomUUID(),speechDebug:true});
+  assert.equal(compound.wordAccepted,true,'The actual recognizer output advances the complete compound');
+  assert.equal(compound.stage,'sentence');assert.equal(compound.speechDiagnostic,undefined);
   assert.throws(()=>validateFluencyAudio(wav(true).toString('base64')),/Wala akong narinig/);
   assert.throws(()=>validateFluencyAudio('invalid'),error=>error.status===400);
   const initial={revision:0,page:0,word:0,stage:'words',status:'draft',pages:fluencyPages(content),clips:[null,null]};
@@ -94,5 +176,9 @@ try {
   assert.equal((await worker.fetch(new Request(signed.replace('signature=','signature=0')),env)).status,403);
   assert.equal((await worker.fetch(new Request('https://private.example/'+storageKey),env)).status,403);
   assert.equal((await worker.fetch(new Request('https://private.example/'+storageKey,{method:'PUT',body:wav()}),env)).status,403);
+  const eighthKey=storageKey.replace('/0/','/7/');
+  assert.equal((await worker.fetch(new Request(fluencyPlaybackUrl(eighthKey)),env)).status,200,'The eighth recording is playable');
+  const ninthKey=storageKey.replace('/0/','/8/');
+  assert.equal((await worker.fetch(new Request(fluencyPlaybackUrl(ninthKey)),env)).status,404,'The recording store rejects a ninth page');
   console.log('PASS: page-specific words, exact resume, frozen text, stage gates, idempotent uploads, final submission, teacher authorization, manual grading, pending scores, silence rejection, private playback');
 } finally { await deleteApp(app); await emulator.stop(); }

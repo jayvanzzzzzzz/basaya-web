@@ -1,5 +1,9 @@
 // Fictional preview data only. This module never imports Firebase or contacts the API.
 export const db = {};
+export const state = { user: { uid: 'preview-teacher' } };
+export const lastRead = () => 0;
+export const Timestamp = { fromMillis: value => value };
+export const postToApi = async () => ({ submissions: [] });
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const escapeHtml = (value = "") => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 export const collection = (_, ...parts) => ({ path: parts.join("/") });

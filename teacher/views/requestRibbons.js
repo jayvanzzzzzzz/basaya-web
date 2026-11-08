@@ -1,4 +1,7 @@
 const activeByClass = new Map();
+export function setRequestTab(classId, kind) {
+  if (kind === 'join' || kind === 'leave') activeByClass.set(classId, kind);
+}
 export function requestRibbons(leaveCount = 0) {
   return `<div class="request-ribbons" role="tablist" aria-label="Student requests">
     <button id="request-tab-join" class="request-ribbon request-ribbon--join" type="button" role="tab" aria-selected="true" aria-controls="request-panel-join" tabindex="0" data-request-tab="join">

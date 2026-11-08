@@ -3,6 +3,7 @@ import { allowCors, requireUser } from "../lib/http.js";
 import { AssessmentError, assessmentOperation } from "../lib/assessments.js";
 import { submitSpeech } from "../lib/assessmentSpeech.js";
 import { fluencyOperation } from "../lib/fluency.js";
+import { dictionaryAudioOperation } from '../lib/dictionaryAudio.js';
 
 export default async function handler(req, res) {
   allowCors(req, res);
@@ -12,8 +13,11 @@ export default async function handler(req, res) {
   try {
     const uid = await requireUser(req, res);
     if (!uid) return;
-    const result = req.body?.operation?.startsWith('fluency-')
-      ? await fluencyOperation(db(), uid, req.body)
+    const localSpeechDebug = req.body?.speechDebug === true && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(req.headers.origin || '');
+    const result = typeof req.body?.operation === 'string' && req.body.operation.startsWith('dictionary-audio-')
+      ? await dictionaryAudioOperation(db(), uid, req.body)
+      : req.body?.operation?.startsWith('fluency-')
+      ? await fluencyOperation(db(), uid, req.body, undefined, req.headers.authorization, { includeRecognizedText: localSpeechDebug })
       : req.body?.operation === "speech"
       ? await submitSpeech(db(), uid, req.body, req.headers.authorization)
       : await assessmentOperation(db(), uid, req.body);

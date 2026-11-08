@@ -11,6 +11,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { generateSpeech, saveSpeech } from "../../js/tts.js";
+import { postToApi } from '../../js/api.js';
+import { attachFloatingTooltips } from '../../js/floatingTooltip.js';
+import { setButtonSaving } from '../../js/buttonSaving.js';
 import { state, getAllLessons } from "../../js/state.js";
 import {
   $,
@@ -431,6 +434,14 @@ function studioHtml(lesson = {}, sections = {}) {
         </div>
       </div>
 
+      <div class="lecture-page-navigation" data-pronunciation-page-navigation hidden>
+        <div class="lecture-page-navigation__controls">
+          <h4 class="lecture-page-navigation__title">Pronunciation Pages <span class="lesson-subheading__count" data-pronunciation-page-count></span></h4>
+          <div class="lecture-page-ribbons" data-pronunciation-page-ribbons aria-label="Pronunciation pages"></div>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-pronunciation-page aria-label="Add pronunciation page" title="Add pronunciation page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+        </div>
+      </div>
+
       <form id="lesson-form" novalidate>
         <section class="lesson-step active" data-panel="basics">
           <div class="lesson-section-intro">
@@ -528,7 +539,7 @@ function studioHtml(lesson = {}, sections = {}) {
             <span class="lesson-section-number">05</span>
             <div>
               <h3>Pronunciation practice</h3>
-              <p>Prepare Get Ready words, then model sentence reading with 1–5 sentence pages.</p>
+              <p>Prepare Get Ready words, then model sentence reading with 1–8 pronunciation pages.</p>
             </div>
           </div>
 
@@ -539,7 +550,6 @@ function studioHtml(lesson = {}, sections = {}) {
             <button type="button" class="button secondary small" data-enable-pronunciation-pages>Use sentence pages</button>
           </div>
           <div data-pronunciation-sentence-section>
-            <div class="lesson-subheading"><h4>Sentence pages</h4><button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-pronunciation-page aria-label="Add pronunciation page" title="Add pronunciation page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button></div>
             <p class="muted">Up to 200 characters per page, including spaces and punctuation.</p>
             <div class="sentence-builder" data-pronunciation-pages></div>
             <p class="muted">Click a word to add it to Get Ready. Selected words turn green with a checkmark. Double-click a selected word to remove it.</p>
@@ -737,7 +747,7 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
         </label>
         <div class="dict-missing" data-dict-missing role="status" hidden>
           <span data-dict-missing-text></span>
-          <button type="button" class="button secondary small lesson-add-button" data-add-to-dictionary aria-label="Add word to dictionary" title="Add word to dictionary"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="button secondary small lesson-add-button" data-add-to-dictionary data-floating-tooltip aria-label="Add word to dictionary"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11a2 2 0 0 1 2 2v6M5 3a2 2 0 0 0-2 2v13a3 3 0 0 0 3 3h6M5 3v14M3 18a2 2 0 0 1 2-2h7M8 7h6M8 10h4M18 14v8M14 18h8"/></svg></button>
         </div>
       </div>
       <div class="audio-actions">
@@ -1032,7 +1042,7 @@ function missingFields(modal, { skipActivity, skipGame }) {
   need("Pronunciation", "Pronunciation title", "[data-pronunciation-title]");
   if ($('[data-panel="pronunciation"]', modal).dataset.pronunciationMode === "sentences") {
     const pages = $$("[data-pronunciation-page]", modal);
-    if (!pages.length || pages.length > 5) add("Pronunciation", "Use 1-5 sentence pages", $('[data-add-pronunciation-page]', modal));
+    if (!pages.length || pages.length > 8) add("Pronunciation", "Use 1-8 pronunciation pages", $('[data-add-pronunciation-page]', modal));
     pages.forEach((row, index) => {
       const field = $('[data-pronunciation-sentence]', row);
       if (!field.value.trim()) add("Pronunciation", `Page ${index + 1}: write a sentence`, field);
@@ -1072,6 +1082,7 @@ async function openLessonModal(existing = null) {
   let mayLeave = async () => true;
 
   openModal(studioHtml(existing || {}, sections), (modal, close) => {
+    const disposeTooltips = attachFloatingTooltips(modal);
     const activityPages = $("[data-activity-pages]", modal);
     const lecturePages = $("[data-lecture-pages]", modal);
     const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
@@ -1092,10 +1103,16 @@ async function openLessonModal(existing = null) {
     // Closing the editor stops whatever is still playing.
     new MutationObserver((_, observer) => {
       if (modal.isConnected) return;
+      disposeTooltips();
       stopOtherAudio(null);
+      $$("[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]", modal).forEach(row => {
+        const preview = previews.get(row);
+        if (preview?.objectUrl) URL.revokeObjectURL(preview.objectUrl);
+      });
       observer.disconnect();
     }).observe(document.body, { childList: true, subtree: true });
     const pronunciationWords = $("[data-pronunciation-words]", modal);
+    const saveState = { lessonId: existing?.id || '', dictionaryMissing: [] };
     const quizQuestions = $("[data-quiz-questions]", modal);
     const gameLevels = $("[data-game-levels]", modal);
     const skipGame = $("[data-skip-game]", modal);
@@ -1196,7 +1213,7 @@ async function openLessonModal(existing = null) {
     // "Page 2 of 5" on each card and the total in its list's heading, redone as cards come and go.
     const numberCards = (list, cardSelector, label, countSelector) => {
       const update = () => {
-        const cards = $$(cardSelector, list);
+        const cards = $$(cardSelector, list).filter(card => list !== pronunciationWords || !card.hidden);
         cards.forEach((card, index) => {
           $("[data-card-number]", card).textContent = `${label} ${index + 1} of ${cards.length}`;
         });
@@ -1258,6 +1275,7 @@ async function openLessonModal(existing = null) {
       );
       lecturePageNavigation.hidden = step !== "lectures";
       gameLevelNavigation.hidden = step !== "game";
+      pronunciationPages.setVisible(step === 'pronunciation');
     };
 
     $$(".lesson-tab", modal).forEach((button) => {
@@ -1273,6 +1291,7 @@ async function openLessonModal(existing = null) {
         renderLecturePageRibbons();
       }
       const { target } = item;
+      pronunciationPages.reveal(target);
       const targetLevel = target.closest("[data-game-level]");
       if (targetLevel) {
         activeGameLevel = $$("[data-game-level]", gameLevels).indexOf(targetLevel);
@@ -1513,6 +1532,7 @@ async function openLessonModal(existing = null) {
 
     $("#lesson-form", modal).addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (event.currentTarget.dataset.saving === 'true') return;
 
       // Nothing is saved until every part is filled in (a skipped Gawain or game aside).
       // Game levels commit half-typed words and show their issues; questions without a
@@ -1532,7 +1552,7 @@ async function openLessonModal(existing = null) {
 
       // Another lesson already has this title? Ask before saving (edits that keep their own title aren't asked again).
       const form = event.currentTarget;
-      const submit = event.submitter;
+      const submit = event.submitter || form.querySelector('button[type="submit"]');
       const titleInput = form.elements.title;
       const duplicate = findDuplicate(titleInput.value, state.allLessons, existing?.id);
       if (duplicate && !(existing && sameTitle(existing.title, titleInput.value))) {
@@ -1572,8 +1592,8 @@ async function openLessonModal(existing = null) {
         }
       }
 
-      submit.disabled = true;
-      submit.textContent = "Saving…";
+      form.dataset.saving = 'true';
+      setButtonSaving(submit, true);
 
       try {
         const values = Object.fromEntries(new FormData(form));
@@ -1582,13 +1602,16 @@ async function openLessonModal(existing = null) {
           lecturePages,
           pronunciationWords,
           pronunciationPages,
+          saveState,
           quizQuestions,
           gameLevels,
           skipGame,
           skipActivity,
         });
 
-        toast(existing ? "Lesson updated." : "Lesson published.");
+        toast(saveState.dictionaryMissing.length
+          ? `Lesson saved. Add ${saveState.dictionaryMissing.join(', ')} to the dictionary, then save again to share their audio.`
+          : existing ? "Lesson updated." : "Lesson published.");
         close();
         await renderLessons();
 
@@ -1597,8 +1620,8 @@ async function openLessonModal(existing = null) {
         console.error(error);
         toast(error.message || "Could not save the lesson.");
       } finally {
-        submit.disabled = false;
-        submit.textContent = existing ? "Save changes" : "Publish lesson";
+        delete form.dataset.saving;
+        setButtonSaving(submit, false);
       }
     });
 
@@ -1619,6 +1642,9 @@ function editorSnapshot(form) {
     ),
     $$("[data-activity-page]", form).map((page) => page.dataset.correctIndices || ""),
     $$("[data-word-chip]", form).map((chip) => chip.dataset.wordChip),
+    $$("[data-pronunciation-page]", form).map(page =>
+      $$("[data-ready-word]", page).filter(button => button.getAttribute('aria-pressed') === 'true').map(button => button.dataset.readyWord),
+    ),
     $$("[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]", form).map(
       (row) => previews.get(row)?.generationCount || 0,
     ),
@@ -1717,6 +1743,7 @@ async function createPreview(button, row, text) {
 }
 
 async function saveLesson(existing, values, elements) {
+  if (elements.saveState) elements.saveState.dictionaryMissing = [];
   const rootData = {
     title: values.title.trim(),
     description: values.description.trim(),
@@ -1726,14 +1753,15 @@ async function saveLesson(existing, values, elements) {
 
   let lessonRef;
 
-  if (existing) {
-    lessonRef = doc(db, "lessons", existing.id);
+  if (existing || elements.saveState?.lessonId) {
+    lessonRef = doc(db, "lessons", existing?.id || elements.saveState.lessonId);
     await updateDoc(lessonRef, rootData);
   } else {
     lessonRef = await addDoc(collection(db, "lessons"), {
       ...rootData,
       createdAt: serverTimestamp(),
     });
+    if (elements.saveState) elements.saveState.lessonId = lessonRef.id;
   }
 
   const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages);
@@ -1767,6 +1795,15 @@ async function saveLesson(existing, values, elements) {
   });
 
   await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked);
+
+  if (pronunciation.cloudAudio.some(audio => audio?.storageKey)) {
+    try {
+      const result = await postToApi('assessment', { operation: 'dictionary-audio-sync', lessonId: lessonRef.id });
+      if (elements.saveState) elements.saveState.dictionaryMissing = result.missing || [];
+    } catch (error) {
+      throw new Error(`The lesson was saved, but dictionary audio could not be updated. Save again to retry. ${error.message}`);
+    }
+  }
 
   return lessonRef.id;
 }
@@ -1872,7 +1909,7 @@ async function readPronunciation(container, lessonId) {
 
     const preview = previews.get(row);
     if (preview?.blob && preview.text === word) {
-      const uploaded = await saveSpeech({
+      const uploaded = preview.uploaded?.lessonId === lessonId ? preview.uploaded : await saveSpeech({
         audio: preview.blob,
         lessonId,
         section: "pronunciation",
@@ -1880,13 +1917,14 @@ async function readPronunciation(container, lessonId) {
         sentenceIndex: index + 1,
       });
 
+      preview.uploaded = { ...uploaded, lessonId };
+
       cloudAudio.push({
         audioUrl: uploaded.audioUrl,
         storageKey: uploaded.storageKey,
         text: word,
       });
 
-      URL.revokeObjectURL(preview.objectUrl);
     } else {
       cloudAudio.push(existingCloudAudio(row, word));
     }

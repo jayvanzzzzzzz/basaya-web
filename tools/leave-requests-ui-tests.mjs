@@ -65,14 +65,19 @@ async function badge() {
   const context = vm.createContext({ document });
   const subscriptions = [];
   const module = (exports) => new vm.SyntheticModule(Object.keys(exports), function () { for (const [key, value] of Object.entries(exports)) this.setExport(key, value); }, { context });
-  const sdk = module({ collection: (_, ...parts) => ({ path: parts.join("/") }), query: (ref) => ref, where: () => ({}), limit: () => ({}), onSnapshot: (ref, callback, error) => { const sub = { ref, callback, error, stopped: false }; subscriptions.push(sub); return () => { sub.stopped = true; }; } });
-  const database = module({ db: {} });
-  const controller = new vm.SourceTextModule(await source("studentRequestsBadge.js"), { context }); await controller.link((name) => name.includes("gstatic") ? sdk : database); await controller.evaluate();
+  const notices = module({ watchStudentNotifications: (classId, onChange) => {
+    let active=true,joins=false,leaves=false;
+    const paint=()=>{if(active)onChange({joins,hasPending:joins||leaves,hasMessages:false,hasReadings:false,byStudent:new Map([['student',{leave:leaves}]])})};
+    const join={ref:{path:`classes/${classId}/joinRequests`},callback:snapshot=>{joins=!snapshot.empty;paint()},stopped:false};
+    const leave={ref:{path:`classes/${classId}/students`},callback:snapshot=>{leaves=Boolean(snapshot.docs.length);paint()},stopped:false};
+    subscriptions.push(join,leave);paint();return()=>{active=false;join.stopped=leave.stopped=true};
+  } });
+  const controller = new vm.SourceTextModule(await source("studentRequestsBadge.js"), { context }); await controller.link(() => notices); await controller.evaluate();
   controller.namespace.watchStudentRequestsBadge("a");
   return { document, subscriptions, dot: document.querySelector("[data-student-requests-dot]"), emitJoin: (count) => subscriptions.at(-2).callback({ empty: count === 0 }), emitLeave: (count) => subscriptions.at(-1).callback({ docs: Array.from({ length: count }, () => ({ get: () => ({ reason: "leave" }) })) }), controller: controller.namespace };
 }
 await check("red dot is hidden with no active request", async () => { const h = await badge(); h.emitJoin(0); h.emitLeave(0); assert.equal(h.dot.hidden, true); h.controller.leaveStudentRequestsBadge(); });
-await check("join requests show the red dot without a leave request", async () => { const h = await badge(); h.emitJoin(1); h.emitLeave(0); assert.equal(h.dot.hidden, false); assert.match(h.document.querySelector("button").getAttribute("aria-label"), /pending join or leave/); h.controller.leaveStudentRequestsBadge(); });
+await check("join requests show the red dot without a leave request", async () => { const h = await badge(); h.emitJoin(1); h.emitLeave(0); assert.equal(h.dot.hidden, false); assert.match(h.document.querySelector("button").getAttribute("aria-label"), /pending join/); h.controller.leaveStudentRequestsBadge(); });
 await check("leave requests show the red dot without a join request", async () => { const h = await badge(); h.emitJoin(0); h.emitLeave(1); assert.equal(h.dot.hidden, false); h.controller.leaveStudentRequestsBadge(); });
 await check("resolving one kind keeps the dot until both are clear", async () => { const h = await badge(); h.emitJoin(1); h.emitLeave(1); h.emitJoin(0); assert.equal(h.dot.hidden, false); h.emitLeave(0); assert.equal(h.dot.hidden, true); h.controller.leaveStudentRequestsBadge(); });
 await check("changing classes disposes both old badge listeners", async () => { const h = await badge(); h.controller.watchStudentRequestsBadge("b"); assert.ok(h.subscriptions.slice(0, 2).every((sub) => sub.stopped)); assert.ok(h.subscriptions.slice(2).every((sub) => sub.ref.path.startsWith("classes/b/"))); h.controller.leaveStudentRequestsBadge(); });

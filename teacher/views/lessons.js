@@ -6,6 +6,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
+import { setButtonSaving } from '../../js/buttonSaving.js';
 import { state, getTeacherLessons } from "../../js/state.js";
 import { $, $$, escapeHtml, toast, page, empty, openModal } from "../../js/helpers.js";
 import { renderRoute } from "../router.js";
@@ -206,6 +207,7 @@ function wireCreateForm(modal, close, title) {
   $("#lesson-form", modal).onsubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
+    if (form.dataset.saving === 'true') return;
     const values = Object.fromEntries(new FormData(form));
 
     // collect + validate lecture pages
@@ -247,6 +249,9 @@ function wireCreateForm(modal, close, title) {
       levels.push({ level: i + 1, order: i + 1, words });
     }
 
+    const submit = e.submitter || form.querySelector('.modal-actions .button.primary');
+    form.dataset.saving = 'true';
+    setButtonSaving(submit, true);
     try {
       const lessonRef = await addDoc(collection(db, "lessons"), {
         title: values.title,
@@ -278,6 +283,9 @@ function wireCreateForm(modal, close, title) {
       await renderRoute();
     } catch (err) {
       toast(err.message);
+    } finally {
+      delete form.dataset.saving;
+      setButtonSaving(submit, false);
     }
   };
 }
@@ -286,7 +294,12 @@ function wireEditForm(modal, close, existing) {
   $("[data-close]", modal).onclick = close;
   $("#lesson-form", modal).onsubmit = async (e) => {
     e.preventDefault();
-    const values = Object.fromEntries(new FormData(e.currentTarget));
+    const form = e.currentTarget;
+    if (form.dataset.saving === 'true') return;
+    const values = Object.fromEntries(new FormData(form));
+    const submit = e.submitter || form.querySelector('.modal-actions .button.primary');
+    form.dataset.saving = 'true';
+    setButtonSaving(submit, true);
     try {
       await updateDoc(doc(db, "lessons", existing.id), {
         ...values,
@@ -297,6 +310,9 @@ function wireEditForm(modal, close, existing) {
       await renderRoute();
     } catch (err) {
       toast(err.message);
+    } finally {
+      delete form.dataset.saving;
+      setButtonSaving(submit, false);
     }
   };
 }

@@ -4,7 +4,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const objectKey = url.pathname.slice(1);
-    if (!/^student-readings\/[A-Za-z0-9_-]{1,128}\/[a-f0-9]{64}\/[0-4]\/[a-f0-9-]{36}\.wav$/.test(objectKey)) return new Response('Not found', { status: 404 });
+    if (!/^student-readings\/[A-Za-z0-9_-]{1,128}\/[a-f0-9]{64}\/[0-7]\/[a-f0-9-]{36}\.wav$/.test(objectKey)) return new Response('Not found', { status: 404 });
     if (!env.READINGS_STORAGE_SECRET) return new Response('Unavailable', { status: 503 });
     if (request.method === 'PUT') {
       // Constant-time verification of the API-only upload credential.

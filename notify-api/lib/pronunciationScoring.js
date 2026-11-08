@@ -4,6 +4,35 @@ const normalize = (text) =>
 /** Tagalog speakers (and recognizers) freely swap o/u and e/i ("puno"/"punu", "babae"/"babai"), so treat those vowels as the same sound when comparing. */
 const loose = (text) => text.replace(/o/g, "u").replace(/e/g, "i");
 
+/** Get Ready requires the whole word/compound in order. Allow one extra
+ * repeated consonant from recognition (budhi -> buddhi), never a missing
+ * letter, a substituted consonant, a repeated vowel, or several slips.
+ * Complete adjacent token spans handle spaces/hyphens and split words while
+ * avoiding partial matches inside a different word. Legacy grading stays below.
+ */
+export function matchesGetReadyWord(targetWord, transcript) {
+  const target = loose(normalize(targetWord));
+  if (!target) return false;
+  const words = (transcript.match(/[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*/gu) || []).map(word => loose(normalize(word))).filter(Boolean);
+  const matches = heard => {
+    if (heard === target) return true;
+    if (heard.length !== target.length + 1) return false;
+    for (let i = 1; i < heard.length; i++) {
+      if (heard[i] === heard[i - 1] && /[bcdfghjklmnpqrstvwxyz]/.test(heard[i]) && heard.slice(0, i) + heard.slice(i + 1) === target) return true;
+    }
+    return false;
+  };
+  for (let start = 0; start < words.length; start++) {
+    let heard = '';
+    for (let end = start; end < words.length; end++) {
+      heard += words[end];
+      if (heard.length > target.length + 1) break;
+      if (matches(heard)) return true;
+    }
+  }
+  return false;
+}
+
 /** The recognizer may hear extra words ("ang bahay") or split one ("ba hay"). */
 function candidateVariants(candidate) {
   const words = candidate.trim().toLowerCase().split(/[\s-]+/).map(normalize).filter(Boolean);

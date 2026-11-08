@@ -1,6 +1,6 @@
 import { $, $$, escapeHtml, safeHttpUrl, toast } from "../../js/helpers.js";
 
-export const MAX_PRONUNCIATION_PAGES = 5;
+export const MAX_PRONUNCIATION_PAGES = 8;
 export const MAX_PRONUNCIATION_CHARACTERS = 200;
 
 // Keep spelling from the first occurrence; punctuation and case do not create duplicates.
@@ -40,6 +40,9 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
   const list = $('[data-pronunciation-pages]', panel);
   const wordList = $('[data-pronunciation-words]', panel);
   const sentenceSection = $('[data-pronunciation-sentence-section]', panel);
+  const navigation = $('[data-pronunciation-page-navigation]', modal);
+  const ribbons = $('[data-pronunciation-page-ribbons]', modal);
+  let activePage = 0;
   const legacy = Boolean(saved?.words?.length && !saved?.pages?.length);
   panel.dataset.pronunciationMode = legacy ? "legacy" : "sentences";
   sentenceSection.hidden = legacy;
@@ -51,6 +54,40 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
   $$('[data-pronunciation-page]', list).forEach((row, index) => selections.set(row, new Set((saved?.pages?.[index]?.readyWords || (saved?.pages?.length ? saved.words || [] : [])).map(keyOf))));
   $('[data-pronunciation-word-picker]', panel).hidden = true;
   const sentences = () => $$('[data-pronunciation-sentence]', list).map(field => field.value.trim());
+  function showPage(index = activePage) {
+    const pages = $$('[data-pronunciation-page]', list);
+    activePage = Math.min(Math.max(index, 0), Math.max(pages.length - 1, 0));
+    if (ribbons.children.length !== pages.length) ribbons.innerHTML = pages.map((_, i) =>
+      `<button type="button" class="lecture-page-ribbon" data-pronunciation-page-ribbon="${i}" aria-controls="pronunciation-page-${i}">Page ${i + 1}</button>`).join('');
+    $$('[data-pronunciation-page-ribbon]', ribbons).forEach((button, i) => {
+      button.classList.toggle('active', i === activePage);
+      button.setAttribute('aria-current', i === activePage ? 'page' : 'false');
+    });
+    const currentRibbon = ribbons.children[activePage];
+    if (currentRibbon && ribbons.clientWidth) {
+      const bounds = ribbons.getBoundingClientRect(), current = currentRibbon.getBoundingClientRect();
+      if (current.right > bounds.right) ribbons.scrollLeft += current.right - bounds.right;
+      else if (current.left < bounds.left) ribbons.scrollLeft += current.left - bounds.left;
+    }
+    pages.forEach((row, i) => {
+      row.id = `pronunciation-page-${i}`;
+      if (i !== activePage) row.querySelectorAll('audio').forEach(audio => audio.pause());
+      row.hidden = i !== activePage;
+    });
+    $('[data-pronunciation-page-count]', modal).textContent = `(${pages.length})`;
+    const chosen = selections.get(pages[activePage]) || new Set();
+    const visibleWords = [];
+    $$('[data-pronunciation-word]', wordList).forEach(row => {
+      row.hidden = panel.dataset.pronunciationMode === 'sentences' && !chosen.has(keyOf($('[data-pronunciation-text]', row).value));
+      if (!row.hidden) visibleWords.push(row);
+    });
+    visibleWords.forEach((row, i) => {
+      const number = $('[data-card-number]', row);
+      if (number) number.textContent = `Word ${i + 1} of ${visibleWords.length}`;
+    });
+    const count = $('[data-card-count]', panel);
+    if (count) count.textContent = `(${visibleWords.length})`;
+  }
   const sync = ({ renderPicker = true } = {}) => {
     if (panel.dataset.pronunciationMode !== "sentences") return;
     $$('[data-pronunciation-word]', wordList).forEach(row => cache.set(keyOf($('[data-pronunciation-text]', row).value), row));
@@ -103,8 +140,9 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
       const problem = text ? audioProblem(row, text) : '';
       $('[data-pronunciation-audio-status]', row).textContent = problem ? `Please ${problem}.` : '';
     });
-    $('[data-add-pronunciation-page]', panel).disabled = list.children.length >= MAX_PRONUNCIATION_PAGES;
+    $('[data-add-pronunciation-page]', modal).disabled = list.children.length >= MAX_PRONUNCIATION_PAGES;
     $('[data-add-pronunciation-word]', panel).hidden = true;
+    showPage();
   };
   sync();
   panel.addEventListener('input', event => {
@@ -121,26 +159,32 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     selections.get(button.closest('[data-pronunciation-page]'))?.delete(button.dataset.readyWord);
     sync({ renderPicker: false });
   });
-  panel.addEventListener('click', async event => {
+  modal.addEventListener('click', async event => {
     const button = event.target.closest('button');
     if (!button) return;
     if (button.matches('[data-enable-pronunciation-pages]')) {
       panel.dataset.pronunciationMode = 'sentences';
       sentenceSection.hidden = false;
       $('[data-pronunciation-legacy]', panel).hidden = true;
+      navigation.hidden = false;
       sync();
     }
     if (button.matches('[data-add-pronunciation-page]')) {
-      if (list.children.length >= MAX_PRONUNCIATION_PAGES) return toast('Use at most 5 sentence pages.');
+      if (list.children.length >= MAX_PRONUNCIATION_PAGES) return toast('Use at most 8 pronunciation pages.');
       list.insertAdjacentHTML('beforeend', pageHtml());
+      activePage = list.children.length - 1;
       sync();
       list.lastElementChild.querySelector('textarea').focus();
     }
     if (button.matches('[data-remove-pronunciation-page]') && list.children.length > 1) {
-      button.closest('[data-pronunciation-page]').querySelectorAll('audio').forEach(audio => audio.pause());
-      button.closest('[data-pronunciation-page]').remove();
+      const removed = button.closest('[data-pronunciation-page]');
+      const removedIndex = $$('[data-pronunciation-page]', list).indexOf(removed);
+      removed.querySelectorAll('audio').forEach(audio => audio.pause());
+      removed.remove();
+      if (removedIndex < activePage) activePage--;
       sync();
     }
+    if (button.matches('[data-pronunciation-page-ribbon]')) showPage(Number(button.dataset.pronunciationPageRibbon));
     if (button.matches('[data-ready-word]')) {
       selections.get(button.closest('[data-pronunciation-page]'))?.add(button.dataset.readyWord);
       sync({ renderPicker: false });
@@ -155,8 +199,22 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     }
   });
   return {
+    setVisible(on) { navigation.hidden = !on || panel.dataset.pronunciationMode === 'legacy'; },
+    reveal(target) {
+      const page = target.closest('[data-pronunciation-page]');
+      if (page) showPage($$('[data-pronunciation-page]', list).indexOf(page));
+      else {
+        const row = target.closest('[data-pronunciation-word]');
+        if (row) {
+          const key = keyOf($('[data-pronunciation-text]', row).value);
+          const index = $$('[data-pronunciation-page]', list).findIndex(page => selections.get(page)?.has(key));
+          if (index >= 0) showPage(index);
+        }
+      }
+    },
     async read(lessonId) {
       if (panel.dataset.pronunciationMode === 'legacy') return {};
+      if (list.children.length < 1 || list.children.length > MAX_PRONUNCIATION_PAGES) throw new Error('Use 1-8 pronunciation pages.');
       const pages = [];
       for (const [index, row] of $$('[data-pronunciation-page]', list).entries()) {
         if ($('[data-pronunciation-sentence]', row).value.length > MAX_PRONUNCIATION_CHARACTERS) throw new Error(`Pronunciation page ${index + 1} exceeds 200 characters.`);

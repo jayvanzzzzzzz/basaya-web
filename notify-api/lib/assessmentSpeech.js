@@ -11,6 +11,14 @@ export async function submitSpeech(db, uid, body, authorization, recognize = rec
   if (request.part !== "pronunciation") throw new AssessmentError(400, "Invalid speech request.");
   const checked = await assessmentOperation(db, uid, { ...request, operation: "speech-check" });
   if (checked.replay) return checked.replay;
+  await enforceSpeechLimit(db, uid);
+  const text = await recognize(wav, authorization);
+  if (!text.trim()) return { noSpeech: true };
+  const verdict = score(checked.word, [text.slice(0, 256)]);
+  return assessmentOperation(db, uid, { ...request, operation: "answer" }, { index: request.index, band: verdict.band });
+}
+
+export async function enforceSpeechLimit(db, uid) {
   await db.runTransaction(async tx => {
     const ref = db.doc(`assessmentSpeechLimits/${uid}`);
     const snap = await tx.get(ref);
@@ -19,13 +27,9 @@ export async function submitSpeech(db, uid, body, authorization, recognize = rec
     if (attempts.length >= 300) throw new AssessmentError(429, "Too many recordings. Please try again later.");
     tx.set(ref, { attempts: [...attempts, now], expiresAt: Timestamp.fromMillis(now + 3600000) });
   });
-  const text = await recognize(wav, authorization);
-  if (!text.trim()) return { noSpeech: true };
-  const verdict = score(checked.word, [text.slice(0, 256)]);
-  return assessmentOperation(db, uid, { ...request, operation: "answer" }, { index: request.index, band: verdict.band });
 }
 
-async function recognizeAudio(wav, authorization) {
+export async function recognizeAudio(wav, authorization) {
   try {
     const response = await fetch("https://basaya-stt.jayvanzsingca5.workers.dev/transcribe", {
       // The worker's Firebase-token route requires an allowed origin, including

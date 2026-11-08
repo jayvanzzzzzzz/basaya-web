@@ -46,8 +46,10 @@ function countLine(key, progress, counts) {
     return progress.activityTotal != null
       ? `Pahina • ${progress.activityScore}/${progress.activityTotal}`
       : `${started("activity", counts.activity)}/${counts.activity} pages`;
-  if (key === "pronunciation")
-    if (progress.fluency) return progress.pronunciationReviewStatus === 'pending' ? 'Naipasa • hinihintay ang guro' : progress.pronunciationReviewStatus === 'graded' ? `Puntos • ${progress.pronunciationScore}/${progress.pronunciationTotal}` : `Pahina ${progress.fluency.page + 1}/${progress.fluency.total}`;
+  if (key === "pronunciation" && progress.pronunciationReviewStatus === "pending")
+    return "Awaiting teacher review";
+  if (key === "pronunciation" && progress.fluency)
+    return progress.pronunciationReviewStatus === 'graded' ? `Puntos • ${progress.pronunciationScore}/${progress.pronunciationTotal}` : `Pahina ${progress.fluency.page + 1}/${progress.fluency.total}`;
   if (key === "pronunciation")
     return progress.pronunciationTotal != null
       ? `Salita • ${progress.pronunciationScore}/${progress.pronunciationTotal}`

@@ -1,5 +1,6 @@
 import { auth } from "./firebase.js";
 import { toast } from "./helpers.js";
+import { postToApi } from './api.js';
 
 const WORKER_URL = "https://basaya-tts.jayvanzsingca5.workers.dev";
 
@@ -118,6 +119,19 @@ async function playUrl(url) {
 
 /** Plays a dictionary word, making its audio first if nobody has tapped it yet. */
 export async function playDictionaryWord(entry) {
+  const cacheKey = `basaya-dictionary-audio:${entry.key}:${spokenText(entry)}`;
+  let sharedUrl = null;
+  try {
+    const result = await postToApi('assessment', { operation: 'dictionary-audio-resolve', key: entry.key }, { signal: AbortSignal.timeout(8000) });
+    sharedUrl = result.audioUrl || null;
+    try { if (sharedUrl) localStorage.setItem(cacheKey, sharedUrl); else localStorage.removeItem(cacheKey); } catch {}
+  } catch {
+    try { sharedUrl = localStorage.getItem(cacheKey); } catch {}
+  }
+  if (sharedUrl?.startsWith(`${WORKER_URL}/audio/lessons/`)) {
+    try { return await playUrl(sharedUrl); }
+    catch (error) { if (error.name === 'NotAllowedError') throw error; }
+  }
   try {
     return await playUrl(await savedWordUrl(entry));
   } catch (error) {

@@ -619,6 +619,22 @@
   padding: 0.2rem 0;
 }
 
+@media (max-width: 650px) {
+  [data-pronunciation-page-navigation] .lecture-page-navigation__controls {
+    flex-wrap: wrap;
+  }
+
+  [data-pronunciation-page-navigation] .lecture-page-navigation__title {
+    flex: 1 1 0;
+    white-space: normal;
+  }
+
+  [data-pronunciation-page-ribbons] {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
 .lecture-page-ribbon {
   flex: 0 0 auto;
   padding: 0.45rem 0.85rem;

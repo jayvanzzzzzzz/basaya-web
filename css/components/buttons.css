@@ -31,6 +31,31 @@
   flex: 0 0 auto;
 }
 
+.button__saving-spinner {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-saving-rotate 700ms linear infinite;
+}
+
+.button.is-saving:disabled {
+  opacity: 1;
+  filter: none;
+  cursor: progress;
+}
+
+@keyframes button-saving-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button__saving-spinner { animation: none; }
+}
+
 .button:active:not(:disabled) {
   transform: translateY(3px);
 }
@@ -277,6 +302,43 @@
   transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
 }
 
+.lesson-add-button[data-floating-tooltip]::after {
+  content: none;
+  display: none;
+}
+
+.teacher-class-actions { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; flex-shrink: 0; }
+.teacher-class-action { position: relative; }
+.teacher-notification-dot { display: inline-block; width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #e34f68; box-shadow: 0 0 0 3px color-mix(in srgb, #e34f68 12%, var(--surface)); }
+.teacher-notification-dot[hidden] { display: none; }
+.teacher-class-action > .teacher-notification-dot { position: absolute; top: 5px; right: 5px; }
+.student-notification-dot { margin-left: .65rem; vertical-align: middle; cursor: help; }
+.student-notification-dot:focus-visible { outline: 2px solid var(--primary); outline-offset: 5px; }
+
+.floating-tooltip {
+  position: fixed;
+  z-index: 2147483000;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.floating-tooltip[hidden] {
+  display: none;
+}
+
 :is(.lesson-add-button, .lesson-remove-button):not(:disabled):hover::after,
 :is(.lesson-add-button, .lesson-remove-button):not(:disabled):focus-visible::after {
   opacity: 1;
@@ -289,6 +351,7 @@
 }
 
 [data-add-lecture-page],
+[data-add-pronunciation-page],
 .lesson-add-sentence-button,
 #add-page.lesson-add-page-button {
   margin-left: auto;

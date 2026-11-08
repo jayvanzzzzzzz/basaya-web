@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
-import { $, escapeHtml, toast, notify, navigate, page, headerMenu, openModal } from "../../js/helpers.js";
+import { $, escapeHtml, toast, notify, navigate, page, headerMenu, openModal as openBaseModal } from "../../js/helpers.js";
 import { clearFieldError, fieldError } from "../../js/field-errors.js";
 import { removeClassLesson } from "../../js/api.js";
 import {
@@ -30,6 +30,7 @@ import { openClassModal } from "./dashboard.js";
 import { hasUnreadChat, onChatSummaries } from "./messages.js";
 import { paginate } from "../../js/pagination.js";
 import { watchStudentRequestsBadge } from "./studentRequestsBadge.js";
+import { addLessonAction, reviewReadingsAction, watchTeacherTooltips } from './classActions.js';
 import {
   confirmCancelRequest,
   deletionBanner,
@@ -38,6 +39,77 @@ import {
 } from "./classDeletion.js";
 
 const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Closed" };
+
+// One rounded, lightly duotone icon vocabulary for classroom controls.
+const classIcon = body => `<svg class="class-control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const CLASS_ICONS = {
+  report: '<path class="class-icon-tint" d="M5 3.5h10l4 4V21H5z"/><path d="M14 3.5V8h5M8.5 17v-3m3.5 3v-6m3.5 6v-4"/>',
+  chat: '<path class="class-icon-tint" d="M4 4.5h16v12H9l-5 4z"/><path d="M4 13V7a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 7v7a2.5 2.5 0 0 1-2.5 2.5H9l-5 4v-4M8 9h8m-8 4h5"/>',
+  students: '<circle class="class-icon-tint" cx="9" cy="8" r="3.5"/><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3.3 3.3 0 0 1 0 6.5M18 14a5 5 0 0 1 3 4.6V20"/>',
+  add: '<path class="class-icon-tint" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H15v16H6.5A2.5 2.5 0 0 0 4 21z"/><path d="M15 10V3H6.5A2.5 2.5 0 0 0 4 5.5V19a2 2 0 0 0 2 2h6M7.5 7h4M18 13v8m-4-4h8"/>',
+  edit: '<path class="class-icon-tint" d="m14 4 6 6-10 10H4v-6z"/><path d="m12 6 6 6M4 14l10-10a2.8 2.8 0 0 1 4 0l2 2a2.8 2.8 0 0 1 0 4L10 20H4z"/>',
+  delete: '<path class="class-icon-tint" d="m6 7 1 14h10l1-14z"/><path d="M4 7h16M9 7V3h6v4M6 7l1 14h10l1-14m-8 4v6m4-6v6"/>',
+  copy: '<rect class="class-icon-tint" x="8" y="8" width="12" height="13" rx="2.5"/><rect x="8" y="8" width="12" height="13" rx="2.5"/><path d="M15 5V3H4v13h1"/>',
+  readings: '<path class="class-icon-tint" d="M3 11h4v7H3zm14 0h4v7h-4z"/><path d="M4 11a8 8 0 0 1 16 0M3 11h4v7H3zm14 0h4v7h-4zM20 18a3 3 0 0 1-3 3h-4M10 8v7m3-9v11"/>',
+  review: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
+};
+
+function refineClassControls() {
+  const controls = [
+    ['#class-report', 'Class report', 'report'], ['#class-chat', 'Class chat', 'chat'],
+    ['#view-students', 'Students', 'students'], ['#add-lesson', 'Add lesson', 'add'],
+    ['#add-lesson-inline', 'Add lesson', 'add'], ['#add-lesson-empty', 'Choose a lesson', 'add'],
+    ['#edit-class', 'Edit class', 'edit'],
+    ['#class-deletion', $('#class-deletion').textContent.trim(), 'delete'],
+    ['.teacher-class-actions a', 'Review readings', 'readings'],
+    ['.class-grading-notice a', 'Review readings', 'readings'],
+  ];
+  controls.forEach(([selector, label, icon]) => {
+    const control = $(selector);
+    if (!control) return;
+    const badges = [...control.querySelectorAll('[data-class-chat-badge], [data-student-requests-dot], [data-reading-notice-dot], [data-grading-count]')];
+    control.innerHTML = CLASS_ICONS[icon] ? classIcon(CLASS_ICONS[icon]) : '';
+    control.append(...badges);
+    control.classList.add('class-icon-control');
+    control.setAttribute('aria-label', label);
+    control.dataset.teacherTooltip = '';
+    control.dataset.floatingTooltip = label;
+  });
+  const code = $('.class-overview__code');
+  code.querySelector('.code-stub__hint').classList.add('sr-only');
+  code.insertAdjacentHTML('beforeend', classIcon(CLASS_ICONS.copy));
+  // The sticky header proxy is created before these controls are decorated.
+  const proxy = $('.page-header-bar__action');
+  if (proxy) {
+    proxy.innerHTML = classIcon(CLASS_ICONS.add);
+    proxy.classList.add('class-icon-control');
+    proxy.setAttribute('aria-label', 'Add lesson');
+    proxy.dataset.teacherTooltip = ''; proxy.dataset.floatingTooltip = 'Add lesson';
+  }
+}
+
+// Keep dialog keyboard behavior local to classroom dialogs.
+function openModal(html, mount) {
+  const previous = document.activeElement;
+  openBaseModal(html, (backdrop, baseClose) => {
+    const dialog = backdrop.querySelector('[role="dialog"]');
+    const heading = dialog.querySelector('h2');
+    if (heading) { heading.id ||= 'class-dialog-title'; dialog.setAttribute('aria-labelledby', heading.id); }
+    const close = () => { baseClose(); if (previous?.isConnected) previous.focus(); };
+    backdrop.querySelector('.modal-close').addEventListener('click', close);
+    backdrop.addEventListener('click', event => { if (event.target === backdrop) close(); });
+    backdrop.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); return; }
+      if (event.key !== 'Tab') return;
+      const items = [...dialog.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter(el => el.getClientRects().length);
+      const first = items[0], last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
+    mount?.(backdrop, close);
+    (dialog.querySelector('input:not([type="hidden"]), select, textarea, [data-cancel]') || backdrop.querySelector('.modal-close')).focus();
+  });
+}
 
 function scheduleMarkup(link) {
   const status = scheduleStatus(link);
@@ -305,21 +377,33 @@ export async function renderClass(classId) {
     `<button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><span class="class-chat-button__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg></span>Class chat<span class="class-chat-button__badge" data-class-chat-badge hidden><span class="sr-only">New messages</span></span></button><button class="button secondary class-students-button" id="view-students" type="button">Students<span class="class-students-button__dot" data-student-requests-dot aria-hidden="true" ${leaveCount ? "" : "hidden"}></span></button>${headerMenu(
       "More class options",
       `<button type="button" id="edit-class">Edit class</button><button type="button" class="danger" id="class-deletion">${classroom.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>`,
-    )}<button class="button primary" id="add-lesson">+ Add lesson</button>`,
+    )}${addLessonAction('add-lesson')}`,
     { crumbs: [{ label: "Classrooms", href: "#/dashboard" }] },
   );
   $("#page-header").classList.add("teacher-class-header");
+  $("#page-header .page-header__top").insertAdjacentHTML("beforeend", '<span class="class-workspace-label">Class workspace</span>');
   $("#page-content").classList.add("teacher-class-page");
   $("#page-content").innerHTML = `
     ${deletionBanner(classroom)}
+    <section class="class-grading-notice" data-grading-notice aria-label="Readings awaiting grading" hidden>
+      <div class="class-grading-notice__copy" role="status" aria-live="polite" aria-atomic="true">
+        <span class="class-grading-notice__label">Reading review</span>
+        <div class="class-grading-notice__headline">
+          <h2 data-grading-total></h2>
+          <a class="button primary" href="#/classes/${encodeURIComponent(classId)}/readings">Review readings<span class="class-grading-notice__count" data-grading-count aria-hidden="true" hidden></span></a>
+        </div>
+        <p class="class-grading-notice__deadline" data-grading-deadline hidden></p>
+        <p class="class-grading-notice__error" data-grading-error hidden>Reading counts could not be updated. Open Review readings to check.</p>
+      </div>
+    </section>
     <section class="class-overview" aria-label="Class overview">
       <div class="class-overview__identity">
-        <span class="class-overview__eyebrow">Classroom overview</span>
-        <div class="class-overview__code code-stub code-stub--on-canvas" title="Tap to copy">
+        <div><span class="class-overview__eyebrow">Your classroom</span><p class="class-overview__details">${escapeHtml([classroom.gradeLevel ? `Grade ${classroom.gradeLevel}` : '', classroom.section ? `Section ${classroom.section}` : ''].filter(Boolean).join(' · ') || 'A shared space for learning')}</p></div>
+        <button type="button" class="class-overview__code code-stub code-stub--on-canvas" aria-label="Copy class code" data-floating-tooltip="Copy class code" data-teacher-tooltip ${classroom.classCode ? '' : 'disabled'}>
           <span class="code-stub__label">Class code</span>
           <code>${escapeHtml(classroom.classCode || "—")}</code>
           <span class="code-stub__hint">Copy</span>
-        </div>
+        </button>
       </div>
       <div class="grid stats class-overview__stats" aria-label="Class statistics">
         <div class="card stat class-overview__stat">
@@ -344,17 +428,17 @@ export async function renderClass(classId) {
           <h2 id="class-lessons-title">Assigned lessons</h2>
           <p>Keep the class moving, one lesson at a time.</p>
         </div>
-        <div class="audio-actions"><a class="button secondary" href="#/classes/${encodeURIComponent(classId)}/readings">Review readings</a><button class="button secondary" id="add-lesson-inline" type="button">+ Add lesson</button></div>
+        <div class="teacher-class-actions">${reviewReadingsAction(classId)}${addLessonAction('add-lesson-inline')}</div>
       </div>
       ${
         linkedLessons.length
           ? `<div class="class-lesson-tabs" role="tablist" aria-label="Filter lessons">${LESSON_TABS.map(
               ({ key, label }) => `
-                <button class="class-lesson-tab${key === activeTab ? " is-active" : ""}" type="button" role="tab" data-lesson-tab="${key}" aria-selected="${key === activeTab}">
+                <button class="class-lesson-tab${key === activeTab ? " is-active" : ""}" type="button" role="tab" id="lesson-tab-${key}" aria-controls="class-lesson-panel" tabindex="${key === activeTab ? 0 : -1}" data-lesson-tab="${key}" aria-selected="${key === activeTab}">
                   ${label}<span class="class-lesson-tab__count">${tabCount[key]}</span>
                 </button>`,
             ).join("")}</div>
-            <div class="class-lessons__list stagger-in">${linkedLessons
+            <div id="class-lesson-panel" role="tabpanel" aria-labelledby="lesson-tab-${activeTab}" tabindex="0" class="class-lessons__list">${linkedLessons
               .map(
                 ({ link, lesson, number }) => `
                   <article class="class-lesson" data-tab="${scheduleStatus(link) === "closed" ? "closed" : "open"}">
@@ -404,6 +488,7 @@ export async function renderClass(classId) {
       }
     </section>
   `;
+  refineClassControls();
   wireDeletionBanner(classroom, () => renderClass(classId));
   $("#class-report").addEventListener("click", () =>
     navigate(`/classes/${encodeURIComponent(classId)}/report`),
@@ -416,7 +501,34 @@ export async function renderClass(classId) {
   };
   showChatBadge();
   onChatSummaries(showChatBadge);
-  watchStudentRequestsBadge(classId, leaveCount);
+  watchStudentRequestsBadge(classId, leaveCount, links);
+  // Reuse body-level tooltips, including actions near scrolling/viewport edges.
+  document.querySelectorAll('.teacher-class-header .header-menu__toggle, .teacher-class-page .class-lesson__actions button, .sidebar .theme-toggle, .sidebar .account-menu__toggle, .sidebar .main-nav a').forEach(button => {
+    button.dataset.teacherTooltip = '';
+    button.dataset.floatingTooltip = button.getAttribute('aria-label') || button.querySelector('strong')?.textContent || button.textContent.trim();
+    button.removeAttribute('title');
+  });
+  const classMenu = $('.teacher-class-header .header-menu__toggle');
+  classMenu.addEventListener('click', () => {
+    requestAnimationFrame(() => {
+      if (classMenu.getAttribute('aria-expanded') === 'true') $('.header-menu__popup button')?.focus();
+    });
+  });
+  $('.teacher-class-header .header-menu').addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.preventDefault(); event.stopPropagation();
+      $('.teacher-class-header .header-menu__popup').hidden = true;
+      classMenu.setAttribute('aria-expanded', 'false');
+      classMenu.focus(); return;
+    }
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = [...document.querySelectorAll('.teacher-class-header .header-menu__popup button')];
+    if (classMenu.getAttribute('aria-expanded') !== 'true') return;
+    event.preventDefault();
+    const index = items.indexOf(document.activeElement);
+    items[event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+  });
+  watchTeacherTooltips();
   $("#edit-class").addEventListener("click", () => openClassModal(classroom));
   $("#class-deletion").addEventListener("click", () => {
     const refresh = () => renderClass(classId);
@@ -440,7 +552,9 @@ export async function renderClass(classId) {
         const active = button.dataset.lessonTab === tab;
         button.classList.toggle("is-active", active);
         button.setAttribute("aria-selected", String(active));
+        button.tabIndex = active ? 0 : -1;
       });
+      $('#class-lesson-panel').setAttribute('aria-labelledby', `lesson-tab-${tab}`);
       none.hidden = tabCount[tab] > 0;
       none.textContent = tab === "closed" ? "No closed lessons." : "No open lessons.";
     };
@@ -453,6 +567,15 @@ export async function renderClass(classId) {
         pager.reset();
       }),
     );
+    $('.class-lesson-tabs').addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const tabs = [...document.querySelectorAll('[data-lesson-tab]')];
+      const index = tabs.indexOf(document.activeElement);
+      const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      next.click();
+    });
   }
   const findLinked = (linkId) => linkedLessons.find(({ link }) => link.id === linkId);
   document.querySelectorAll("[data-unlink]").forEach((b) =>

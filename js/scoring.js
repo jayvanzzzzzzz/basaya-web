@@ -140,6 +140,9 @@ export function resultsFrom(progressDocs) {
   const results = Object.fromEntries(SKILLS.map(({ key }) => [key, []]));
   progressDocs.forEach((doc) => {
     SKILLS.forEach(({ key }) => {
+      // A submitted recording is complete, but has no grade until the teacher reviews it.
+      // Ignore any older word-based score still stored on the progress document.
+      if (key === "pagbigkas" && doc.pronunciationReviewStatus === "pending") return;
       const parsed =
         parseRecord(doc.id, doc.skills?.[key]) ||
         (key === "pagsusulit" ? legacyQuiz(doc.id, doc) : null);
@@ -177,14 +180,16 @@ export const MISSABLE_PARTS = [
  * Returns new results; each changed or added one has `missed: true`.
  */
 export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now()) {
+  const pending = new Set(progressDocs.filter(doc => doc.pronunciationReviewStatus === "pending").map(doc => doc.id));
   const results = Object.fromEntries(
-    SKILLS.map(({ key }) => [key, [...(resultsBySkill[key] || [])]]),
+    SKILLS.map(({ key }) => [key, (resultsBySkill[key] || []).filter(result => key !== "pagbigkas" || !pending.has(result.lessonId))]),
   );
   const docs = new Map(progressDocs.map((doc) => [doc.id, doc]));
   lessons.forEach((lesson) => {
     if (lesson.dueAt == null || lesson.dueAt >= now) return;
     const doc = docs.get(lesson.id) || {};
     MISSABLE_PARTS.forEach((part) => {
+      if (part.skill === "pagbigkas" && pending.has(lesson.id)) return;
       if (part.skipped && lesson[part.skipped] === true) return;
       if (doc[part.finished] === true) return;
       const items = Number(lesson.items?.[part.skill]) || 0;

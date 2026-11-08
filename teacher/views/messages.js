@@ -15,7 +15,8 @@ import {
   watchRecent,
   watchState,
 } from "../../js/chat.js?v=removed-preview";
-import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.js";
+import { LABELS, openClassMembers } from "../../js/classMembers.js";
+import { attachFloatingTooltips } from "../../js/floatingTooltip.js";
 
 // Messages: one group chat per class with its students (#/messages/<classId>).
 // The class list shows each chat's last message and an unread dot; the sidebar shows how
@@ -116,16 +117,20 @@ function shortTime(millis) {
 
 /** A stable hue per name, so each student keeps their avatar color. */
 const hueOf = (text) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 360, 7);
+const classInitials = (name) => initials(name.replace(/\s+[—–-]\s+/g, " "));
 
+// Inline Lucide icons, using the portal's existing SVG delivery convention.
 const ICONS = {
-  send: '<path d="M4.5 12 20 4.5 13.5 20l-2.2-6.3L4.5 12Z" /><path d="m11.3 13.7 4-4" />',
-  back: '<path d="m15 18-6-6 6-6" />',
-  trash: '<path d="M4 7h16M10 11v6m4-6v6M5 7l1 13h12l1-13M9 7V4h6v3" />',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  back: '<path d="m12 19-7-7 7-7M5 12h14"/>',
+  trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
   join: '<path d="M15 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1" /><circle cx="8.5" cy="8" r="3.5" /><path d="M19 8v6m3-3h-6" />',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />',
   chat: '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" />',
   up: '<path d="m6 15 6-6 6 6" />',
   down: '<path d="m6 9 6 6 6-6" />',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  close: '<path d="m18 6-12 12M6 6l12 12"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
@@ -133,9 +138,17 @@ const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name
 
 let openClassId = null;
 let stopChat = () => {};
+let stopTooltips = () => {};
+let stopMembersDialog = () => {};
 
 /** Called by the router before any page renders: closes live listeners of the open chat. */
 export function leaveMessages() {
+  stopTooltips();
+  stopTooltips = () => {};
+  stopMembersDialog();
+  stopMembersDialog = () => {};
+  // Keep the visible page styled while the next route loads. page() clears
+  // these presentation classes synchronously when its replacement is ready.
   stopChat();
   stopChat = () => {};
   openClassId = null;
@@ -145,7 +158,7 @@ export function leaveMessages() {
 
 function classListHtml(activeId) {
   if (!state.classes.length) {
-    return `<div class="inbox-empty-list">${icon("chat")}<p>Create a class to start a class chat.</p></div>`;
+    return `<div class="inbox-empty-list">${icon("chat")}<p>Create a class to start a class chat.</p><a class="button primary" href="#/dashboard">Go to classes</a></div>`;
   }
   return state.classes
     .map((classroom) => {
@@ -159,16 +172,16 @@ function classListHtml(activeId) {
             `${summary.lastRole === "teacher" && summary.lastSenderName === myName() ? "You" : summary.lastSenderName}: ${summary.lastText || "Message removed"}`;
       const name = classroom.className || "Untitled class";
       return `<a class="inbox-class${classroom.id === activeId ? " is-active" : ""}${unread ? " is-unread" : ""}"
-          href="#/messages/${encodeURIComponent(classroom.id)}" ${classroom.id === activeId ? 'aria-current="page"' : ""}>
-        <span class="inbox-class__avatar" style="--h:${hueOf(name)}">${escapeHtml(initials(name))}</span>
+          href="#/messages/${encodeURIComponent(classroom.id)}" aria-label="${escapeHtml(name)}${summary && !summary.open ? ', closed' : ''}${unread ? ', new messages' : ''}. ${escapeHtml(preview)}" title="${escapeHtml(name)}" ${classroom.id === activeId ? 'aria-current="page"' : ""}>
+        <span class="inbox-class__avatar" style="--h:${hueOf(name)}" aria-hidden="true">${escapeHtml(classInitials(name))}</span>
         <span class="inbox-class__text">
           <span class="inbox-class__top">
             <strong>${escapeHtml(name)}</strong>
-            <time>${escapeHtml(shortTime(summary?.lastAt))}</time>
+            <time${summary?.lastAt ? ` datetime="${new Date(summary.lastAt).toISOString()}"` : ""}>${escapeHtml(shortTime(summary?.lastAt))}</time>
           </span>
           <span class="inbox-class__preview">
             ${summary && !summary.open ? `<span class="inbox-class__closed">${icon("lock")}Closed</span>` : ""}
-            <span>${escapeHtml(preview)}</span>
+            <span title="${escapeHtml(preview)}">${escapeHtml(preview)}</span>
           </span>
         </span>
         ${unread ? '<span class="inbox-class__dot" aria-label="New messages"></span>' : ""}
@@ -188,15 +201,19 @@ export async function renderMessages(classId) {
     return navigate(`/messages/${encodeURIComponent(state.classes[0].id)}`);
   }
 
-  page("Messages", "One group chat per class, with you and your students");
+  page("Messages", "A shared space for every class conversation.");
+  $("#page-header .page-header__icon")?.remove();
+  $("#page-header").classList.add("teacher-messages-header");
+  $("#page-content").classList.add("teacher-messages");
   $("#page-content").innerHTML = `
     <div class="inbox${classroom ? " has-chat" : ""}">
       <aside class="inbox-list" aria-label="Class chats">
-        <div class="inbox-list__head"><span>Class chats</span><b>${state.classes.length}</b></div>
-        <nav class="inbox-list__items" data-class-list>${classListHtml(classId)}</nav>
+        <div class="inbox-list__head"><div><span class="inbox-eyebrow">Your teaching space</span><h2>Class conversations <b aria-label="${state.classes.length} classes">${state.classes.length}</b></h2></div></div>
+        <nav class="inbox-list__items" data-class-list aria-label="Class conversations">${classListHtml(classId)}</nav>
+        <p class="inbox-list__note">${icon("chat")}A space to learn, ask, and connect.</p>
       </aside>
       <section class="chat" data-chat aria-label="Class chat">
-        ${classroom ? chatShellHtml(classroom) : `<div class="chat-placeholder">${icon("chat")}<h2>Pick a class</h2><p>Choose a class to read and send messages.</p></div>`}
+        ${classroom ? chatShellHtml(classroom) : `<div class="chat-placeholder">${icon("chat")}<span class="inbox-eyebrow">Class conversations</span><h2>${state.classes.length ? "Start with a class" : "Your conversations start here"}</h2><p>${state.classes.length ? "Choose a class to read and send messages." : "Create a class to connect with your students."}</p>${!state.classes.length ? '<a class="button primary" href="#/dashboard">Go to classes</a>' : ''}</div>`}
       </section>
     </div>`;
 
@@ -204,6 +221,20 @@ export async function renderMessages(classId) {
     const list = $("[data-class-list]");
     if (list) list.innerHTML = classListHtml(classId);
   });
+  // Mobile navigation hides its text visually; give those links explicit names.
+  const navLabels = [...document.querySelectorAll('.main-nav [data-nav]')].map(link => {
+    const previous = link.getAttribute('aria-label');
+    link.setAttribute('aria-label', link.querySelector('strong')?.textContent || link.textContent.trim());
+    return { link, previous };
+  });
+  const disposeTooltips = attachFloatingTooltips(document.body, '.teacher-messages [data-floating-tooltip], .messages-members-dialog [data-floating-tooltip], body:has(.teacher-messages) :is([data-theme-toggle], #account-menu-toggle, .main-nav [data-nav])');
+  stopTooltips = () => {
+    disposeTooltips();
+    navLabels.forEach(({ link, previous }) => {
+      if (previous === null) link.removeAttribute('aria-label');
+      else link.setAttribute('aria-label', previous);
+    });
+  };
   if (classroom) openChat(classroom);
 }
 
@@ -211,18 +242,19 @@ function chatShellHtml(classroom) {
   const name = classroom.className || "Untitled class";
   return `
     <header class="chat-head">
-      <a class="chat-head__back" href="#/messages" aria-label="All class chats">${icon("back")}</a>
-      <span class="inbox-class__avatar" style="--h:${hueOf(name)}">${escapeHtml(initials(name))}</span>
+      <a class="chat-head__back chat-icon" href="#/messages" aria-label="All class chats" data-floating-tooltip>${icon("back")}</a>
+      <span class="inbox-class__avatar" style="--h:${hueOf(name)}" aria-hidden="true">${escapeHtml(classInitials(name))}</span>
       <div class="chat-head__text">
         <h2>${escapeHtml(name)}</h2>
         <span data-chat-status>Class group chat</span>
       </div>
-      ${membersButton(LABELS.en)}
+      <button type="button" class="chat-info chat-icon" data-members aria-haspopup="dialog" aria-label="Class members" data-floating-tooltip>${icon("info")}</button>
       <label class="chat-switch" title="When closed, students can read but not send">
-        <input type="checkbox" data-chat-open checked />
+        <input type="checkbox" data-chat-open checked aria-label="Allow students to send messages" aria-describedby="chat-permissions" />
         <span class="chat-switch__track" aria-hidden="true"><span></span></span>
-        <span class="chat-switch__label" data-chat-open-label>Open</span>
+        <span class="chat-switch__text"><span class="chat-switch__caption">Student chat</span><span class="chat-switch__label" data-chat-open-label>Open</span></span>
       </label>
+      <span id="chat-permissions" class="sr-only">When closed, students can read but cannot send. Teachers can still send messages.</span>
     </header>
     <div class="chat-closed" data-chat-closed hidden>
       ${icon("lock")}
@@ -231,23 +263,25 @@ function chatShellHtml(classroom) {
     </div>
     <div class="chat-scroll" data-chat-scroll>
       <div class="chat-older" data-older hidden>
-        <button type="button" class="chat-older__button" data-load-older>${icon("up")}Load older messages</button>
+        <button type="button" class="chat-older__button chat-icon" data-load-older aria-label="Load older messages" data-floating-tooltip>${icon("up")}</button>
       </div>
       <ol class="chat-messages" data-messages aria-live="polite">
         <li class="chat-loading" aria-label="Loading messages"><span></span><span></span><span></span></li>
       </ol>
       <div class="chat-jump" data-jump hidden>
-        <button type="button" class="chat-jump__button" data-jump-button aria-label="Go to newest message" title="Go to newest message">
+        <button type="button" class="chat-jump__button chat-icon" data-jump-button aria-label="Go to newest message" data-floating-tooltip>
           ${icon("down")}<span class="chat-jump__count" data-jump-count hidden></span>
         </button>
       </div>
     </div>
-    <form class="chat-composer" data-composer>
-      <textarea rows="1" maxlength="${TEACHER_MAX}" placeholder="Message ${escapeHtml(name)}…" aria-label="Message" data-input></textarea>
-      <span class="chat-composer__count" data-count hidden></span>
-      <button type="submit" class="chat-composer__send" aria-label="Send" data-send disabled>${icon("send")}</button>
-    </form>
-    <p class="chat-hint">Enter to send · Shift + Enter for a new line · Students can send up to ${STUDENT_MAX} characters, one message every 5 seconds.</p>`;
+    <div class="chat-compose-area">
+      <form class="chat-composer" data-composer>
+        <textarea rows="1" maxlength="${TEACHER_MAX}" placeholder="Message your class…" aria-label="Message ${escapeHtml(name)}" aria-describedby="chat-compose-help chat-send-error" data-input></textarea>
+        <button type="submit" class="chat-composer__send chat-icon" aria-label="Send message" data-floating-tooltip data-send disabled>${icon("send")}</button>
+      </form>
+      <div class="chat-compose-meta"><p class="chat-hint" id="chat-compose-help"><span class="chat-hint__keyboard">Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line</span><span class="chat-hint__mobile">Messages are shared with your class.</span><span class="sr-only"> Students can send up to ${STUDENT_MAX} characters, one message every 5 seconds.</span></p><span class="chat-composer__count" data-count hidden></span></div>
+      <p class="chat-send-error" id="chat-send-error" role="status" aria-live="polite" data-send-error></p>
+    </div>`;
 }
 
 function messageHtml(message, previous, delivery) {
@@ -277,11 +311,10 @@ function messageHtml(message, previous, delivery) {
       ${grouped || mine ? "" : `<span class="chat-msg__name">${escapeHtml(name)}${message.role === "teacher" ? '<b class="chat-msg__role">Teacher</b>' : ""}</span>`}
       <div class="chat-msg__bubble">
         <p>${escapeHtml(message.text)}</p>
-        ${message.pending ? "" : `<time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time>`}
       </div>
-      ${status ? `<span class="chat-msg__status">${status === "sending" ? "Sending…" : "Sent"}</span>` : ""}
+      <div class="chat-msg__meta">${message.pending ? "" : `<time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time>`}${status ? `<span class="chat-msg__status">${status === "sending" ? "Sending…" : "Sent"}</span>` : ""}</div>
     </div>
-    <button type="button" class="chat-msg__remove" data-remove="${escapeHtml(message.id)}" aria-label="Remove this message" title="Remove for everyone">${icon("trash")}</button>
+    <button type="button" class="chat-msg__remove chat-icon" data-remove="${escapeHtml(message.id)}" aria-label="Remove for everyone" data-floating-tooltip>${icon("trash")}</button>
   </li>`;
 }
 
@@ -341,7 +374,7 @@ function openChat(classroom) {
   };
   scroller.addEventListener("scroll", updateJump, { passive: true });
   $("[data-jump-button]", root).addEventListener("click", () =>
-    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" }),
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "auto" : "smooth" }),
   );
 
   const stopRecent = watchRecent(
@@ -397,7 +430,8 @@ function openChat(classroom) {
     const oldest = older[0] || recent[0];
     if (!oldest) return;
     button.disabled = true;
-    button.lastChild.textContent = "Loading…";
+    button.setAttribute("aria-label", "Loading older messages");
+    button.setAttribute("aria-busy", "true");
     try {
       const page = await loadOlder(classId, oldest);
       older = [...page.messages, ...older];
@@ -408,20 +442,26 @@ function openChat(classroom) {
       toast("Couldn't load older messages.");
     } finally {
       button.disabled = false;
-      button.lastChild.textContent = "Load older messages";
+      button.setAttribute("aria-label", "Load older messages");
+      button.removeAttribute("aria-busy");
     }
   });
 
+  const clearRemoveConfirmation = () => {
+    list.querySelectorAll('.is-confirming').forEach(row => {
+      row.classList.remove('is-confirming');
+      row.querySelector('[data-remove]')?.setAttribute('aria-label', 'Remove for everyone');
+    });
+  };
   // Remove a message (for everyone)
   list.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-remove]");
     if (!button) return;
     const row = button.closest(".chat-msg");
     if (!row.classList.contains("is-confirming")) {
-      list.querySelectorAll(".is-confirming").forEach((item) => item.classList.remove("is-confirming"));
+      clearRemoveConfirmation();
       row.classList.add("is-confirming");
       button.setAttribute("aria-label", "Click again to remove");
-      button.title = "Click again to remove";
       return;
     }
     button.disabled = true;
@@ -438,18 +478,44 @@ function openChat(classroom) {
       button.disabled = false;
     }
   });
-  list.addEventListener("mouseleave", () =>
-    list.querySelectorAll(".is-confirming").forEach((item) => item.classList.remove("is-confirming")),
-  );
+  list.addEventListener("mouseleave", clearRemoveConfirmation);
+  list.addEventListener("keydown", event => {
+    if (event.key === 'Escape') clearRemoveConfirmation();
+  });
 
-  $("[data-members]", root).addEventListener("click", () =>
+  $("[data-members]", root).addEventListener("click", () => {
     openClassMembers({
       classId,
       className: classroom.className || "Untitled class",
       meId: state.user.uid,
       labels: LABELS.en,
-    }),
-  );
+    });
+    // Keep the shared members implementation; scope dialog polish and keyboard focus to this page.
+    const backdrop = document.querySelector('.modal-backdrop:last-child');
+    if (!backdrop) return;
+    const modal = backdrop.querySelector('.modal');
+    modal.classList.add('messages-members-dialog');
+    const closeButton = modal.querySelector('.modal-close');
+    closeButton.innerHTML = icon('close');
+    closeButton.setAttribute('data-floating-tooltip', '');
+    closeButton.setAttribute('aria-label', 'Close class members');
+    const trap = event => {
+      if (event.key !== 'Tab') return;
+      const controls = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled), a[href]')].filter(el => el.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    modal.addEventListener('keydown', trap);
+    const observer = new MutationObserver(() => {
+      if (!backdrop.isConnected) {
+        observer.disconnect();
+        if (root.isConnected) $('[data-members]', root).focus();
+      }
+    });
+    observer.observe(document.body, { childList: true });
+    stopMembersDialog = () => { observer.disconnect(); backdrop.remove(); };
+  });
 
   // Open / close
   const toggleOpen = async (open) => {
@@ -480,7 +546,7 @@ function openChat(classroom) {
     if (send.dataset.left !== String(Math.max(left, 0))) {
       send.dataset.left = String(Math.max(left, 0));
       send.innerHTML = left > 0 ? `<span class="chat-composer__wait">${left}</span>` : icon("send");
-      send.setAttribute("aria-label", left > 0 ? `Send in ${left} seconds` : "Send");
+      send.setAttribute("aria-label", left > 0 ? `Send in ${left} seconds` : "Send message");
     }
     count.hidden = input.value.length < TEACHER_MAX - 200;
     count.textContent = `${input.value.length}/${TEACHER_MAX}`;
@@ -513,6 +579,7 @@ function openChat(classroom) {
     event.preventDefault();
     const text = input.value.trim();
     if (!text || Date.now() < cooldownUntil) return;
+    $("[data-send-error]", root).textContent = "";
     input.value = "";
     startCooldown();
     scroller.scrollTop = scroller.scrollHeight;
@@ -525,6 +592,7 @@ function openChat(classroom) {
       stopCooldown();
       input.value = text;
       update();
+      $("[data-send-error]", root).textContent = "Couldn't send. Your message is restored. Check your connection and try again.";
       toast("Couldn't send. Check your connection and try again.");
     }
   });

@@ -26,8 +26,11 @@ import {
   deletionChip,
   openRequestDeletionModal,
 } from "./classDeletion.js";
-import { chatDot, hasUnreadChat, onChatSummaries } from "./messages.js";
+import { hasUnreadChat, onChatSummaries } from "./messages.js";
+import { attentionMarkup, watchDashboardNotifications } from './dashboardNotifications.js';
+import { setRequestTab } from './requestRibbons.js';
 import { greeting } from "../../js/teacherTitle.js";
+import { watchTeacherTooltips } from './classActions.js';
 
 // ---------- At a glance + "Due this week" ----------
 // Cheap reads only: a student count per class and its lesson links (for deadlines).
@@ -120,14 +123,59 @@ function fillOverview(overview) {
 
 const countUnreadChats = () => state.classes.filter((classroom) => hasUnreadChat(classroom.id)).length;
 
+let stopCardMenus;
+export function leaveDashboardMenus() { stopCardMenus?.(); stopCardMenus = null; }
+
 export async function renderDashboard() {
+  leaveDashboardMenus();
   await getTeacherClasses();
+  const notices = new Map();
+  const expanded = new Set();
+  const closeCardMenus = () => {
+    expanded.clear();
+    document.querySelectorAll('.class-attention[open]').forEach(details => {
+      details.open = false;
+      details.querySelector('summary').setAttribute('aria-expanded', 'false');
+    });
+    document.querySelectorAll('[data-menu]').forEach(popup => { popup.hidden = true; });
+    document.querySelectorAll('[data-menu-toggle]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+  };
+  const notificationMarkup = classroom => attentionMarkup(classroom.id, notices.get(classroom.id) || { className: classroom.className }, hasUnreadChat(classroom.id), expanded.has(classroom.id));
+  const paintNotice = classId => {
+    const classroom = state.classes.find(item => item.id === classId);
+    const host = [...document.querySelectorAll('[data-class-attention]')].find(item => item.dataset.classAttention === classId);
+    if (!classroom || !host) return;
+    // Keep the summary focused and its disclosure open during live updates.
+    const focused = host.contains(document.activeElement);
+    const requestKind = document.activeElement?.dataset?.requestKind;
+    const href = document.activeElement?.getAttribute('href');
+    host.innerHTML = notificationMarkup(classroom);
+    const details = host.querySelector('details');
+    if (!details) expanded.delete(classId);
+    else {
+      const summary = details.querySelector('summary');
+      summary.setAttribute('aria-expanded', String(details.open));
+      summary.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const opening = !details.open;
+        closeCardMenus();
+        details.open = opening;
+        summary.setAttribute('aria-expanded', String(opening));
+        if (opening) expanded.add(classId);
+      });
+      if (focused) {
+        const link = [...host.querySelectorAll('a')].find(item => item.getAttribute('href') === href && item.dataset.requestKind === requestKind);
+        (link || host.querySelector('summary'))?.focus();
+      }
+    }
+  };
   page(
     "Your classrooms",
     state.classes.length
       ? `You have ${state.classes.length} ${state.classes.length === 1 ? "class" : "classes"}. Open one to see its lessons and progress.`
       : "Create your first class to start adding lessons.",
-    `<button class="button primary" id="new-class">+ New class</button>`,
+    `<button class="button primary" id="new-class" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Create class</button>`,
   );
   const pageHeader = $("#page-header");
   pageHeader.classList.add("teacher-dashboard-header");
@@ -144,10 +192,11 @@ export async function renderDashboard() {
           .map(
             (c) => {
               const className = c.className || "Untitled class";
-              return `<a class="card class-card" href="#/classes/${encodeURIComponent(c.id)}">
+              return `<article class="card class-card" data-class-open="${escapeHtml(c.id)}">
                 <div class="class-card__glow" aria-hidden="true"></div>
                 <div class="class-card-menu">
-                  <button type="button" class="icon-button--menu" data-menu-toggle="${escapeHtml(c.id)}" aria-label="Class options" aria-haspopup="true" aria-expanded="false">
+                  <div data-class-attention="${escapeHtml(c.id)}"></div>
+                  <button type="button" class="icon-button--menu" data-menu-toggle="${escapeHtml(c.id)}" aria-label="Options for ${escapeHtml(className)}" data-teacher-tooltip aria-haspopup="true" aria-expanded="false">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>
                   </button>
                   <div class="class-card-menu-popup" data-menu="${escapeHtml(c.id)}" hidden>
@@ -158,26 +207,38 @@ export async function renderDashboard() {
                 <div class="class-card__heading">
                   <span class="class-card__badge" data-tint="${tintOf(c.id)}" aria-hidden="true">${escapeHtml(badgeOf(c))}</span>
                   ${deletionChip(c)}
-                  <span data-chat-dot="${escapeHtml(c.id)}">${chatDot(c.id)}</span>
                 </div>
                 <div class="class-card__body">
-                  <h3>${escapeHtml(className)}</h3>
+                  <h3><a href="#/classes/${encodeURIComponent(c.id)}">${escapeHtml(className)}</a></h3>
                   <p>${escapeHtml(c.description || "A space for lessons, progress, and classroom learning.")}</p>
                   <div class="class-card__meta" data-class-meta="${escapeHtml(c.id)}"></div>
                 </div>
-                <div class="class-card__code code-stub code-stub--on-paper" title="Tap to copy">
+                <div class="class-card__code">
                   <span class="code-stub__label">Class code</span>
                   <code>${escapeHtml(c.classCode || "—")}</code>
-                  <span class="code-stub__hint">Copy</span>
+                  <button type="button" class="class-card__copy code-stub" aria-label="Copy class code for ${escapeHtml(className)}" data-teacher-tooltip ${c.classCode ? '' : 'disabled'}>
+                    <code class="sr-only">${escapeHtml(c.classCode || '')}</code>
+                    <span class="code-stub__hint sr-only" role="status">Copy</span>
+                    <svg class="class-card__copy-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M15 8V4H4v11h4" /></svg>
+                  </button>
                 </div>
-                <span class="class-card__open">Open classroom <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></span>
-              </a>`;
+                <a class="class-card__open" href="#/classes/${encodeURIComponent(c.id)}">Open classroom <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></a>
+              </article>`;
             },
           )
           .join("")}</div>`
-      : `<p class="muted">No classes match your search.</p>`;
+      : `<p class="muted" role="status">No classes match your search. Try a different name or section.</p>`;
 
   const wireCardMenus = () => {
+    document.querySelectorAll('[data-class-open]').forEach(card => {
+      card.addEventListener('click', event => {
+        const request = event.target.closest('[data-request-kind]');
+        if (request) setRequestTab(card.dataset.classOpen, request.dataset.requestKind);
+        if (event.target.closest('a, button, details, .code-stub')) return;
+        navigate(`/classes/${encodeURIComponent(card.dataset.classOpen)}`);
+      });
+      paintNotice(card.dataset.classOpen);
+    });
     // Open/close the ⋮ popup for each card, without triggering the card's own navigation.
     document.querySelectorAll("[data-menu-toggle]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -188,21 +249,38 @@ export async function renderDashboard() {
           (menu) => menu.dataset.menu === id,
         );
         if (!popup) return;
-        // Close any other open menus first.
-        document
-          .querySelectorAll(".class-card-menu-popup")
-          .forEach((p) => {
-            if (p !== popup) {
-              p.hidden = true;
-              p
-                .closest(".class-card-menu")
-                ?.querySelector("[data-menu-toggle]")
-                ?.setAttribute("aria-expanded", "false");
-            }
-          });
-        popup.hidden = !popup.hidden;
+        const opening = popup.hidden;
+        closeCardMenus();
+        popup.hidden = !opening;
         btn.setAttribute("aria-expanded", String(!popup.hidden));
+        if (!popup.hidden) {
+          popup.querySelector('button')?.focus();
+        }
       });
+    });
+
+    document.querySelectorAll('.class-card-menu').forEach(menu => {
+      menu.onkeydown = event => {
+        const popup = menu.querySelector('[data-menu]');
+        const details = menu.querySelector('.class-attention[open]');
+        if (event.key !== 'Escape' || (popup.hidden && !details)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const toggle = details?.querySelector('summary') || menu.querySelector('[data-menu-toggle]');
+        closeCardMenus();
+        toggle.focus();
+      };
+      menu.onfocusout = event => {
+        if (menu.contains(event.relatedTarget)) return;
+        menu.querySelector('[data-menu]').hidden = true;
+        menu.querySelector('[data-menu-toggle]').setAttribute('aria-expanded', 'false');
+        const details = menu.querySelector('.class-attention');
+        if (details) {
+          details.open = false;
+          details.querySelector('summary').setAttribute('aria-expanded', 'false');
+          expanded.delete(menu.closest('[data-class-open]').dataset.classOpen);
+        }
+      };
     });
 
     // Edit Class
@@ -225,22 +303,7 @@ export async function renderDashboard() {
       });
     });
 
-    // Clicking anywhere outside an open menu closes it.
-    document.addEventListener(
-      "click",
-      () => {
-        document
-          .querySelectorAll(".class-card-menu-popup")
-          .forEach((p) => {
-            p.hidden = true;
-            p
-              .closest(".class-card-menu")
-              ?.querySelector("[data-menu-toggle]")
-              ?.setAttribute("aria-expanded", "false");
-          });
-      },
-      { once: true },
-    );
+
   };
 
   $("#page-content").classList.add("teacher-dashboard");
@@ -260,8 +323,8 @@ export async function renderDashboard() {
     <section class="class-directory" aria-label="Your classrooms">
       <div class="class-directory__toolbar">
         <div class="class-directory__heading">
-          <span class="class-directory__eyebrow">Learning spaces</span>
-          <h2>Made for your classroom</h2>
+          <span class="class-directory__eyebrow">Your teaching space</span>
+          <h2>Classroom directory</h2>
           <p>Open a class to manage its students, lessons, and progress.</p>
         </div>
         <span class="class-directory__count">
@@ -289,7 +352,7 @@ export async function renderDashboard() {
       }
     </section>
     <section class="dash-due" aria-labelledby="dash-due-title">
-      <h2 id="dash-due-title">Due this week</h2>
+      <div class="dash-due__heading"><span class="class-directory__eyebrow">Looking ahead</span><h2 id="dash-due-title">Due this week</h2><p>Assessment deadlines in the next 7 days.</p></div>
       <ul class="dash-due__list" data-due-list>
         <li class="dash-due__empty">Loading deadlines…</li>
       </ul>
@@ -297,10 +360,24 @@ export async function renderDashboard() {
     </div>
   `;
 
+  document.querySelectorAll('.sidebar button[aria-label]').forEach(button => button.setAttribute('data-teacher-tooltip', ''));
+  watchTeacherTooltips();
   wireCardMenus();
+  const dismissCardMenus = event => {
+    if (!event.target.closest('.class-card-menu') || event.target.closest('.class-attention a')) closeCardMenus();
+  };
+  document.addEventListener('click', dismissCardMenus);
+  stopCardMenus = () => document.removeEventListener('click', dismissCardMenus);
+  const dashboardRoot = $('#class-grid-container');
+  if (state.classes.length) watchDashboardNotifications(state.classes, (classId, notice) => {
+    if (!dashboardRoot?.isConnected) return;
+    notices.set(classId, notice);
+    paintNotice(classId);
+  });
   let overview = null;
   if (state.classes.length)
     loadOverview(state.classes).then((rows) => {
+      if (!dashboardRoot?.isConnected) return;
       overview = rows;
       fillOverview(rows);
     });
@@ -321,11 +398,9 @@ export async function renderDashboard() {
     if (overview) fillOverview(overview);
   });
 
-  // "New messages" dots follow the class chats live.
+  // The attention badge follows class chats live.
   onChatSummaries(() => {
-    document.querySelectorAll("[data-chat-dot]").forEach((dot) => {
-      dot.innerHTML = chatDot(dot.dataset.chatDot);
-    });
+    state.classes.forEach(classroom => paintNotice(classroom.id));
     const chats = document.querySelector('[data-stat="chats"]');
     if (chats) chats.textContent = countUnreadChats();
   });

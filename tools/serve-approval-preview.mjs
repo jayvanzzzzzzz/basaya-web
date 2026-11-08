@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml" };
-const allowed = (name) => /^(css\/|img\/)/.test(name) || ["audit/admissions-preview.html", "audit/admissions-preview-stubs.js", "teacher/views/joinRequests.js", "teacher/views/joinRequestsUi.js", "teacher/views/requestRibbons.js", "teacher/views/leaveRequests.js", "teacher/views/leaveRequestsUi.js", "teacher/views/studentRequestsBadge.js"].includes(name);
+const allowed = (name) => /^(css\/|img\/)/.test(name) || ["audit/admissions-preview.html", "audit/admissions-preview-stubs.js", "teacher/views/joinRequests.js", "teacher/views/joinRequestsUi.js", "teacher/views/requestRibbons.js", "teacher/views/leaveRequests.js", "teacher/views/leaveRequestsUi.js", "teacher/views/studentRequestsBadge.js", "teacher/views/studentNotifications.js"].includes(name);
 const server = http.createServer(async (req, res) => {
   try {
     const name = decodeURIComponent(new URL(req.url, "http://127.0.0.1").pathname).replace(/^\/+/, "") || "audit/admissions-preview.html";

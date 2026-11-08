@@ -56,6 +56,11 @@ class ReadingSession(private val context: Context, private val lessonId: String)
 
     suspend fun open() {
         if (file.baseFile.exists()) draft = withContext(Dispatchers.IO) { JsonParser.parseString(file.openRead().bufferedReader().use { it.readText() }).asJsonObject }
+        if (draft.has("state") && draft.getAsJsonArray("queue").any { it.asJsonObject.text("operation") == "word" }) {
+            val accepted = send("begin")
+            withContext(Dispatchers.IO) { File(directory, "backup-${System.currentTimeMillis()}.json").writeText(draft.toString()) }
+            draft.add("state", accepted); draft.add("queue", JsonArray()); save()
+        }
         if (!draft.has("state")) {
             val state = send("begin")
             draft = fields("state" to state, "queue" to emptyList<Any>(), "clips" to emptyMap<String, String>())
@@ -73,6 +78,7 @@ class ReadingSession(private val context: Context, private val lessonId: String)
     }
 
     suspend fun act(operation: String, wav: ByteArray? = null) {
+        require(operation != "word") { "Kailangang masuri muna ang pagbigkas ng salita." }
         val before = draft.deepCopy()
         val eventId = UUID.randomUUID().toString()
         val current = state
@@ -90,11 +96,6 @@ class ReadingSession(private val context: Context, private val lessonId: String)
         }
         draft.getAsJsonArray("queue").add(item)
         when (operation) {
-            "word" -> {
-                val word = current.number("word") + 1
-                current.addProperty("word", word)
-                if (word >= current.getAsJsonArray("pages")[page].asJsonObject.getAsJsonArray("words").size()) current.addProperty("stage", "sentence")
-            }
             "listen" -> current.addProperty("stage", "record")
             "upload" -> {
                 current.addProperty("stage", "preview")
@@ -128,8 +129,40 @@ class ReadingSession(private val context: Context, private val lessonId: String)
         save()
     }
 
+    suspend fun checkWord(wav: ByteArray): JsonObject {
+        sync()
+        check(state.text("stage") == "words") { "Na-update ang iyong progreso. Sundin ang kasalukuyang pahina." }
+        // The older API consumes attempts without recognizing speech. Probe it
+        // before sending audio, including when a draft has cached a newer API.
+        val ready=send("begin")
+        requireWordVerification(ready)
+        if(ready.number("revision") != state.number("revision") || ready.number("page") != state.number("page") || ready.number("word") != state.number("word") || ready.text("stage") != state.text("stage")) {
+            refresh()
+            throw IllegalStateException("Na-update ang iyong progreso. Pakinggan at bigkasin ang kasalukuyang salita.")
+        }
+        val extra = fields("revision" to state.number("revision"), "page" to state.number("page"), "word" to state.number("word"),
+            "eventId" to UUID.randomUUID().toString(), "audio" to Base64.encodeToString(wav, Base64.NO_WRAP))
+        val accepted = try { send("word", extra) }
+        catch (error: AssessmentFailure) {
+            if (error.status == 409) {
+                refresh()
+                throw IllegalStateException("Na-update ang iyong progreso. Pakinggan at bigkasin ang kasalukuyang salita.")
+            }
+            throw error
+        }
+        requireWordVerification(accepted)
+        check(accepted.get("wordAccepted")?.let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean } == true) { "Hindi makumpirma ang pagbigkas. Subukan muli." }
+        if (accepted.flag("wordAccepted")) { draft.add("state", accepted); save() }
+        return accepted
+    }
+
+    private fun requireWordVerification(response:JsonObject) {
+        check(response.get("wordVerification")?.let { it.isJsonPrimitive && it.asJsonPrimitive.isNumber && it.asInt == 1 } == true) { "Hindi pa handa ang pagsuri ng pagbigkas. Subukan muli mamaya." }
+    }
+
     suspend fun refresh() = lock.withLock {
         val accepted = send("begin")
+        if(state.text("stage") == "words") requireWordVerification(accepted)
         withContext(Dispatchers.IO) { File(directory, "backup-${System.currentTimeMillis()}.json").writeText(draft.toString()) }
         draft.add("state", accepted); draft.add("queue", JsonArray()); save()
     }
@@ -155,7 +188,7 @@ class ReadingSession(private val context: Context, private val lessonId: String)
                 .header("Authorization", "Bearer $token").post(body.toString().toRequestBody("application/json".toMediaType())).build()
             http.newCall(request).execute().use { response ->
                 val json = runCatching { JsonParser.parseString(response.body?.string().orEmpty()).asJsonObject }.getOrNull()
-                if (!response.isSuccessful) error(json?.text("error").orEmpty().ifBlank { "Hindi ma-upload. Naka-save ang draft sa device." })
+                if (!response.isSuccessful) throw AssessmentFailure(response.code, json?.text("error").orEmpty().ifBlank { "Hindi ma-upload. Naka-save ang draft sa device." })
                 json ?: error("Hindi makumpirma ang tugon. Subukan muli.")
             }
         }

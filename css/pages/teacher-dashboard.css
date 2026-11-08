@@ -185,6 +185,44 @@
   letter-spacing: -0.02em;
 }
 
+.class-card__body h3 a { color: inherit; text-decoration: none; }
+.class-card__body h3 a:hover { color: var(--primary); }
+.class-card__open { text-decoration: none; }
+[data-class-attention]:empty { display: none; }
+.teacher-dashboard .class-card-menu { display: flex; align-items: center; gap: .5rem; }
+.teacher-dashboard .class-card__heading { padding-right: 6.25rem; }
+.teacher-dashboard .class-card:has(.class-attention[open]) { z-index: 5; }
+.class-attention summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.class-attention summary:hover,
+.class-attention[open] summary { background: color-mix(in srgb, var(--warning) 18%, var(--surface)); border-color: var(--warning); }
+.class-attention summary::-webkit-details-marker { display: none; }
+.class-attention summary:focus-visible,
+.class-attention a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+.class-attention__dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 0 2px var(--surface); }
+.class-attention summary svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.class-attention ul { position: absolute; top: calc(100% + .45rem); right: 0; z-index: 20; width: 18rem; max-width: calc(100vw - 5rem); max-height: min(26rem, 65vh); overflow-y: auto; margin: 0; padding: .35rem .75rem; list-style: none; border: 1px solid var(--border); border-radius: .65rem; background: var(--dash-paper-strong, var(--surface)); box-shadow: var(--shadow); transform-origin: top right; animation: menuIn var(--dur) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .class-attention summary { transition: none; } .class-attention ul { animation: none; } }
+.class-attention a { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .65rem 0; color: var(--ink); font-size: .875rem; font-weight: 600; line-height: 1.5; text-decoration: none; }
+.class-attention a:hover { color: var(--primary); text-decoration: underline; }
+.class-attention a.class-attention__urgent { color: var(--warning); font-weight: 700; }
+.class-attention__error { padding: .65rem 0; color: var(--ink); font-size: .875rem; font-weight: 600; line-height: 1.5; }
+
 .class-card__body p {
   display: -webkit-box;
   margin: 0.35rem 0 0;

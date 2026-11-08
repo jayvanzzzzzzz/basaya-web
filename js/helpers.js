@@ -207,11 +207,13 @@ export function page(title, subtitle, actions = "", { crumbs = [] } = {}) {
     "teacher-dashboard-header",
     "teacher-class-header",
     "teacher-add-lesson-header",
+    "teacher-messages-header",
   );
   $("#page-content").classList.remove(
     "teacher-dashboard",
     "teacher-class-page",
     "teacher-add-lesson-page",
+    "teacher-messages",
   );
   const scope =
     document.body.dataset.portal === "admin"

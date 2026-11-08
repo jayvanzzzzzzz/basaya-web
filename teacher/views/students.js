@@ -13,10 +13,13 @@ import { leaveChip, leaveRequestsPanel, wireLeaveRequests, leaveLeaveRequests, p
 import { enrollmentSummary, joinRequestsPanel } from "./joinRequestsUi.js";
 import { watchJoinRequests, leaveJoinRequests } from "./joinRequests.js";
 import { requestRibbons, wireRequestRibbons } from "./requestRibbons.js";
+import { leaveStudentNotifications, watchStudentNotifications } from './studentNotifications.js';
+import { watchTeacherTooltips } from './classActions.js';
 
 export async function renderStudentsPage(classId) {
   leaveJoinRequests();
   leaveLeaveRequests();
+  leaveStudentNotifications();
   const classDoc = await getDoc(doc(db, "classes", classId));
   if (!classDoc.exists() || classDoc.data().teacherId !== state.user.uid) {
     return navigate("/dashboard");
@@ -55,7 +58,7 @@ export async function renderStudentsPage(classId) {
           <div class="student-directory__identity">
             <div class="student-avatar" aria-hidden="true">${escapeHtml(initial)}</div>
             <div>
-              <h3>${escapeHtml(name)}${leaveChip(student)}</h3>
+              <h3>${escapeHtml(name)}<span class="teacher-notification-dot student-notification-dot" data-student-notice="${escapeHtml(student.id)}" data-teacher-tooltip data-floating-tooltip="Student updates" tabindex="0" role="img" aria-label="Student updates" hidden></span>${leaveChip(student)}</h3>
             </div>
           </div>
           <div class="student-directory__actions">
@@ -64,6 +67,8 @@ export async function renderStudentsPage(classId) {
             </button>
             <div class="class-card-menu-popup" data-student-menu hidden>
               <button type="button" data-view-progress="${escapeHtml(student.id)}">View progress</button>
+              <button type="button" data-review-student="${escapeHtml(student.id)}" hidden>Review readings</button>
+              <button type="button" data-message-student="${escapeHtml(student.id)}" hidden>Read class messages</button>
               <button class="danger" type="button" data-remove-student="${escapeHtml(student.id)}">Remove from class</button>
             </div>
           </div>
@@ -86,6 +91,7 @@ export async function renderStudentsPage(classId) {
             <input id="student-search" type="search" placeholder="Search by name" autocomplete="off" />
           </label>
         </div>
+        <p class="muted" id="student-notification-status" role="status" hidden></p>
         <div class="student-directory__list stagger-in">${rows}</div>
         <p id="student-no-results" class="student-directory__empty" hidden>No students match that search.</p>
       </section>`
@@ -98,6 +104,22 @@ export async function renderStudentsPage(classId) {
       </section>`);
 
   wireRequestRibbons(classId);
+  watchTeacherTooltips();
+  watchStudentNotifications(classId, notice => {
+    const status = $('#student-notification-status');
+    if (status) { status.hidden = !(notice.readingError || notice.messageError || notice.membershipError); status.textContent = status.hidden ? '' : 'Some notification updates are unavailable. Refresh to check.'; }
+    document.querySelectorAll('[data-student-notice]').forEach(dot => {
+      const item = notice.byStudent.get(dot.dataset.studentNotice);
+      dot.hidden = !item?.labels.length;
+      dot.setAttribute('aria-label', item?.labels.join(' · ') || 'No pending updates');
+      dot.dataset.floatingTooltip = item?.labels.join(' · ') || '';
+      const row = dot.closest('[data-student]');
+      row.querySelector('[data-review-student]').hidden = !item?.readings;
+      row.querySelector('[data-message-student]').hidden = !item?.messages;
+    });
+  }, students);
+  document.querySelectorAll('[data-review-student]').forEach(button => button.addEventListener('click', () => navigate(`/classes/${encodeURIComponent(classId)}/readings/${encodeURIComponent(button.dataset.reviewStudent)}`)));
+  document.querySelectorAll('[data-message-student]').forEach(button => button.addEventListener('click', () => navigate(`/messages/${encodeURIComponent(classId)}`)));
   const refreshStudents = () => {
     if (location.hash === `#/classes/${encodeURIComponent(classId)}/students`) return renderStudentsPage(classId);
   };

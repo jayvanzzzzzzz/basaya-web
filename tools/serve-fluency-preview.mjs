@@ -4,12 +4,12 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const html = `<!doctype html><html lang="fil" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bigkas reading preview</title>${['base/tokens','base/reset','base/typography','base/animations','components/buttons','components/modal','components/toast','layout/student-shell','pages/student-lesson'].map(css=>`<link rel="stylesheet" href="/css/${css}.css">`).join('')}</head><body data-portal="student"><main id="page-content" style="min-height:100vh;background:var(--surface-2)"></main><script type="module">import {renderFluency} from '/student/views/fluency.js'; renderFluency({id:'fixture',title:'Ang aming tahanan',practice:false});</script></body></html>`;
 const session = `let state={revision:1,page:0,word:1,stage:new URLSearchParams(location.search).get('stage')||'words',status:'draft',clips:[null,null,null,null],pages:[{sentence:'Masayang nagbabasa ang mga bata sa silid-aklatan.',audioUrl:'/model.wav',words:[{word:'Masayang',audioUrl:'/model.wav'},{word:'nagbabasa',audioUrl:'/model.wav'},{word:'silid-aklatan',audioUrl:'/model.wav'}]},...Array.from({length:3},()=>({sentence:'Maliwanag ang aming tahanan.',audioUrl:'/model.wav',words:[]}))]}; if(state.stage==='preview')state.clips[0]={eventId:'fixture'};export async function openReading(){return{get state(){return state},pending:0,clip:()=>null,playback:async()=>'/model.wav',sync:async()=>{},act:async(op)=>{if(op==='word'){state.word++;if(state.word>=3)state.stage='sentence'}else if(op==='listen')state.stage='record';else if(op==='upload'){state.stage='preview';state.clips[0]={eventId:'fixture'}}else if(op==='next'){state.page++;state.stage='sentence'}},submit:async()=>{state.status='submitted'}}}`;
-const allowed=new Set(['js/helpers.js','student/ui.js','student/views/fluency.js']);
+const allowed=new Set(['js/helpers.js','student/ui.js','student/views/fluency.js','student/readAlong.js']);
 const server=http.createServer(async(req,res)=>{
   try{
     const path=new URL(req.url,'http://fixture').pathname.slice(1); let data,type='text/javascript';
     if(!path){data=html;type='text/html'}
-    else if(path==='student/fluencySession.js')data=session;
+    else if(path==='student/fluencySession.js')data=session.replace('sync:async()=>{},','sync:async()=>{},checkWord:async()=>{if(new URLSearchParams(location.search).get("check")==="wait")await new Promise(resolve=>{window.finishWordCheck=resolve});state.word++;if(state.word>=3)state.stage="sentence";return{wordAccepted:true}},');
     else if(path==='js/state.js')data='export const state={};';
     else if(path==='student/data.js')data='export function invalidateStudentData(){};';
     else if(path==='student/router.js')data='export const onLeave=()=>{};';

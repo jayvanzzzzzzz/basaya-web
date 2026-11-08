@@ -1,0 +1,92 @@
+[
+  {
+    "theme": "light",
+    "viewport": "desktop",
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "viewport": "laptop",
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "viewport": "tablet",
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "viewport": "mobile",
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "viewport": "small-mobile",
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "state": "tooltip",
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "dialog": 1440,
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "dialog": 320,
+    "textIssues": []
+  },
+  {
+    "theme": "light",
+    "state": "closed",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "viewport": "desktop",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "viewport": "laptop",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "viewport": "tablet",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "viewport": "mobile",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "viewport": "small-mobile",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "state": "tooltip",
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "dialog": 1440,
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "dialog": 320,
+    "textIssues": []
+  },
+  {
+    "theme": "dark",
+    "state": "closed",
+    "textIssues": []
+  }
+]

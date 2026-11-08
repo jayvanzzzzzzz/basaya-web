@@ -3,16 +3,18 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { AssessmentError, context, assessmentOperation } from './assessments.js';
 import { fluencyPages } from './fluencyContent.js';
 import { validateFluencyAudio, putFluencyAudio, fluencyPlaybackUrl } from './fluencyStorage.js';
+import { enforceSpeechLimit, recognizeAudio } from './assessmentSpeech.js';
+import { matchesGetReadyWord } from './pronunciationScoring.js';
 
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const fail = (status, message) => { throw new AssessmentError(status, message); };
 const keyFor = body => hash([body.classId, body.progressSession, body.lessonId, body.practice ? body.entryId : '']);
 const stamp = () => Timestamp.now();
 const nextStage = page => page.words.length ? 'words' : 'sentence';
-const view = state => ({ revision: state.revision, pages: state.pages, page: state.page, word: state.word, stage: state.stage, status: state.status, clips: (state.clips || []).map(clip => clip ? { eventId: clip.eventId, duration: clip.duration } : null), grade: state.grade || null, feedback: state.feedback || '' });
+const view = state => ({ wordVerification: 1, revision: state.revision, pages: state.pages, page: state.page, word: state.word, stage: state.stage, status: state.status, clips: (state.clips || []).map(clip => clip ? { eventId: clip.eventId, duration: clip.duration } : null), grade: state.grade || null, feedback: state.feedback || '' });
 const publicProgress = state => ({ page: state.page, word: state.word, stage: state.stage, total: state.pages.length, status: state.status, revision: state.revision });
 
-export async function fluencyOperation(db, uid, body, storage = { put: putFluencyAudio, playback: fluencyPlaybackUrl }) {
+export async function fluencyOperation(db, uid, body, storage = { put: putFluencyAudio, playback: fluencyPlaybackUrl }, authorization = '', diagnostics = {}) {
   if (!body || !/^fluency-(begin|word|listen|upload|next|submit|list|play|play-own|grade)$/.test(body.operation)) fail(400, 'Invalid reading request.');
   if (['fluency-list', 'fluency-play', 'fluency-grade'].includes(body.operation)) return teacherOperation(db, uid, body, storage);
   const attemptId = keyFor(body);
@@ -30,11 +32,34 @@ export async function fluencyOperation(db, uid, body, storage = { put: putFluenc
     let state = saved.data();
     if (!state) {
       const pages = fluencyPages(content.data());
-      if (!pages.length || pages.length > 5 || pages.some(p => p.sentence.length > 200)) fail(409, 'This lesson has no valid reading pages.');
+      if (!pages.length || pages.length > 8 || pages.some(p => p.sentence.length > 200)) fail(409, 'This lesson has no valid reading pages.');
       state = { classId: body.classId, progressSession: body.progressSession, lessonId: body.lessonId, uid, practice: Boolean(body.practice), revision: 0, pages, page: 0, word: 0, stage: nextStage(pages[0]), status: 'draft', clips: pages.map(() => null), title: content.get('title') || 'Bigkas' };
     }
     return { ctx, saved, state };
   };
+  let wordProof = null;
+  if (body.operation === 'fluency-word') {
+    if (!/^[a-f0-9-]{36}$/i.test(body.eventId || '')) fail(400, 'Submit a recorded Get Ready word.');
+    const wav = validateFluencyAudio(body.audio);
+    if (wav.length > 224044) fail(400, 'Bigkasin ang isang salita lamang, hanggang 7 segundo.');
+    const audioHash = hash(wav.toString('base64'));
+    const { state } = await db.runTransaction(tx => authorize(tx));
+    if (state.lastWord?.eventId === body.eventId) {
+      if (state.lastWord.audioHash !== audioHash || state.lastWord.page !== body.page || state.lastWord.word !== body.word) fail(409, 'This recording ID is already used.');
+      return { ...view(state), wordAccepted: true };
+    }
+    if (state.status !== 'draft' || state.stage !== 'words' || state.page !== body.page || state.word !== body.word || state.revision !== body.revision) fail(409, 'Your reading progress changed. Reopen this activity.');
+    await enforceSpeechLimit(db, uid);
+    const text = await (storage.recognize || recognizeAudio)(wav, authorization);
+    const expectedWord = state.pages[state.page].words[state.word].word;
+    const recognizedText = text.slice(0, 256);
+    const diagnostic = diagnostics.includeRecognizedText === true ? { speechDiagnostic: { expectedWord, recognizedText, checker: 'compound-v1' } } : {};
+    if (!text.trim()) return { ...view(state), ...diagnostic, wordAccepted: false, noSpeech: true, feedback: 'Wala akong narinig. Hawakan muli ang mic at bigkasin ang salita.' };
+    if (!matchesGetReadyWord(expectedWord, recognizedText)) {
+      return { ...view(state), ...diagnostic, wordAccepted: false, feedback: 'Pakinggan muli ang salita, pagkatapos ay subukan ulit. Kaya mo iyan!' };
+    }
+    wordProof = { eventId: body.eventId, page: body.page, word: body.word, audioHash };
+  }
   // Upload only after authorizing the student and current page. Never accept a storage key from clients.
   if (bytes) {
     const checked = await db.runTransaction(tx => authorize(tx));
@@ -59,12 +84,12 @@ export async function fluencyOperation(db, uid, body, storage = { put: putFluenc
       if (state.practice && state.status === 'submitted') {
         state.status = 'draft'; state.page = 0; state.word = 0;
         state.stage = nextStage(state.pages[0]); state.clips = state.pages.map(() => null);
-        state.revision++; state.lastEventId = '';
+        state.revision++; state.lastEventId = ''; state.lastWord = null;
         tx.set(ref, { ...state, updatedAt: stamp() });
       } else if (!saved.exists) tx.set(ref, { ...state, updatedAt: stamp() });
       return view(state);
     }
-    if (body.eventId && state.lastEventId === body.eventId) return view(state);
+    if (body.eventId && state.lastEventId === body.eventId) return { ...view(state), ...(body.operation === 'fluency-word' ? { wordAccepted: true } : {}) };
     if (state.status !== 'draft') {
       if (body.operation === 'fluency-submit' && ['submitted', 'graded'].includes(state.status)) return view(state);
       fail(409, 'This reading has already been submitted.');
@@ -72,7 +97,9 @@ export async function fluencyOperation(db, uid, body, storage = { put: putFluenc
     if (body.operation === 'fluency-upload' && state.clips[state.page]?.eventId === body.eventId && state.clips[state.page]?.digest === digest) return view(state);
     if (state.revision !== body.revision || state.page !== body.page) fail(409, 'Your reading progress changed. Reopen this activity.');
     if (body.operation === 'fluency-word') {
+      if (!wordProof) fail(400, 'Submit recorded audio to check this word.');
       if (state.stage !== 'words' || state.word !== body.word) fail(409, 'Complete the current Get Ready word.');
+      state.lastWord = wordProof;
       state.word++;
       if (state.word >= state.pages[state.page].words.length) state.stage = 'sentence';
     } else if (body.operation === 'fluency-listen') {
@@ -95,9 +122,9 @@ export async function fluencyOperation(db, uid, body, storage = { put: putFluenc
     tx.set(ref, { ...state, updatedAt: stamp() });
     if (!state.practice) tx.set(progressRef, {
       classId: body.classId, progressSession: body.progressSession, fluency: publicProgress(state), updatedAt: stamp(),
-      ...(state.status === 'submitted' ? { pronunciationFinished: true, pronunciationReviewStatus: 'pending', pronunciationScore: FieldValue.delete(), pronunciationTotal: FieldValue.delete() } : {}),
+      ...(state.status === 'submitted' ? { pronunciationFinished: true, pronunciationReviewStatus: 'pending', pronunciationScore: FieldValue.delete(), pronunciationTotal: FieldValue.delete(), skills: { pagbigkas: FieldValue.delete() } } : {}),
     }, { merge: true });
-    return view(state);
+    return { ...view(state), ...(body.operation === 'fluency-word' ? { wordAccepted: true } : {}) };
   });
 }
 
@@ -107,7 +134,7 @@ async function teacherOperation(db, uid, body, storage) {
   if (profile.get('role') !== 'teacher' || classroom.get('teacherId') !== uid) fail(403, 'Only this class teacher can review readings.');
   const submissions = db.collection(`classes/${body.classId}/fluencySubmissions`);
   if (body.operation === 'fluency-list') {
-    const snap = await submissions.limit(100).get();
+    const snap = await submissions.get();
     const rows = await Promise.all(snap.docs.map(async doc => {
       const row = doc.data();
       const student = await db.doc(`users/${row.uid}`).get();
