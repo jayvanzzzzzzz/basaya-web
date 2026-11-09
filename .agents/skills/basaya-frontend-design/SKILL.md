@@ -85,7 +85,7 @@ Avoid turning the application into a childish interface or a generic corporate d
 
 | Academic Navy | #1F2559 | Primary brand identity |
 
-| Soft Cream | #F8F5EC | Main page background |
+| Pure White | #FFFFFF | Main page background (light theme) |
 
 | Muted Lavender | #EAE7F8 | Secondary tinted surfaces |
 

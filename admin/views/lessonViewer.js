@@ -11,6 +11,7 @@ import { crosswordHtml, splitLevel } from "./gameLevels.js";
 // pill (admin-lessons.css) and crossword (game-levels.css).
 
 const SINGLE_SECTIONS = ["activity", "lectures", "pronunciation", "quiz"];
+let viewerInstance = 0;
 
 /** Every section of a lesson, read from its subcollections. */
 export async function loadLessonSections(lessonId) {
@@ -85,7 +86,7 @@ const answersOf = (question) =>
 function playButton(cloudAudio, label, legacyName = "") {
   const url = safeHttpUrl(cloudAudio?.audioUrl);
   if (url) {
-    return `<button type="button" class="lv-play" data-audio="${escapeHtml(url)}" aria-label="Play ${escapeHtml(label)}">
+    return `<button type="button" class="lv-play" data-audio="${escapeHtml(url)}" data-tooltip="Play audio" aria-label="Play ${escapeHtml(label)}">
       ${icon(ICON_PLAY)}<span class="lv-play__ring" aria-hidden="true"></span>
     </button>`;
   }
@@ -277,6 +278,7 @@ function frameHtml(lesson, editable) {
     <div class="lesson-viewer">
       <header class="lv-hero">
         <div class="lv-hero__text">
+          ${!editable ? '<span class="lv-eyebrow">Lesson collection / Preview</span>' : ""}
           <div class="lv-hero__tags">
             <span class="admin-lesson-difficulty ${meta.className}"><span aria-hidden="true"></span>${meta.label}</span>
             <span class="lv-readonly">${icon(ICON_EYE)}Read only</span>
@@ -317,19 +319,41 @@ function frameHtml(lesson, editable) {
  *   Without `onEdit` there is no "Edit lesson" button.
  */
 export function openLessonViewer(lesson, { loadSections = loadLessonSections, onEdit } = {}) {
+  const opener = document.activeElement;
   openModal(frameHtml(lesson, Boolean(onEdit)), (backdrop, close) => {
     const modal = backdrop.querySelector(".modal");
     modal.classList.add("lesson-viewer-modal");
+    if (!onEdit) modal.classList.add("lesson-preview-modal");
+    const instance = `lesson-viewer-${++viewerInstance}`;
+    const title = modal.querySelector(".lv-hero h2");
+    title.id = `${instance}-title`;
+    modal.setAttribute("aria-labelledby", title.id);
+    const dismissButton = modal.querySelector(".modal-close");
+    dismissButton.setAttribute("aria-label", "Close lesson preview");
+    dismissButton.dataset.tooltip = "Close preview";
     const body = $("[data-body]", modal);
+    body.id = `${instance}-panel`;
+    body.setAttribute("role", "tabpanel");
+    body.setAttribute("tabindex", "0");
+    body.setAttribute("aria-busy", "true");
     const player = new Audio();
     let playing = null; // the button whose clip is playing
     let queue = [];
 
     // ── Audio: one clip at a time; "Play page" queues a page's sentences ──
     const setPlaying = (button) => {
+      if (playing) {
+        playing.setAttribute("aria-label", playing.dataset.playLabel);
+        playing.dataset.tooltip = "Play audio";
+      }
       playing?.classList.remove("is-playing");
       playing?.closest(".lv-line, .lv-wordcard")?.classList.remove("is-playing");
       playing = button;
+      if (button) {
+        button.dataset.playLabel ||= button.getAttribute("aria-label");
+        button.setAttribute("aria-label", button.dataset.playLabel.replace(/^Play /, "Pause "));
+        button.dataset.tooltip = "Pause audio";
+      }
       button?.classList.add("is-playing");
       button?.closest(".lv-line, .lv-wordcard")?.classList.add("is-playing");
     };
@@ -362,12 +386,35 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
       if (!backdrop.isConnected) {
         stop();
         watcher.disconnect();
+        if (opener?.isConnected && !document.querySelector(".modal-backdrop")) opener.focus({ preventScroll: true });
       }
     });
     watcher.observe(document.body, { childList: true });
 
     // ── Tabs ──
     const tabs = $$(".lv-tab", modal);
+    tabs.forEach((tab) => {
+      tab.id = `${instance}-${tab.dataset.tab}`;
+      tab.setAttribute("aria-controls", body.id);
+    });
+    body.setAttribute("aria-labelledby", tabs[0].id);
+    tabs[0].focus({ preventScroll: true });
+    backdrop.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+      }
+      if (event.key === "Tab") {
+        const controls = [...modal.querySelectorAll('button:not(:disabled), [href], [tabindex="0"]')]
+          .filter((control) => control.getClientRects().length);
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault(); last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault(); first?.focus();
+        }
+      }
+    });
     let sections = null;
     const render = {
       activity: () => activityHtml(sections.activity, sections.activityStatus),
@@ -382,10 +429,11 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
         const active = tab.dataset.tab === id;
         tab.setAttribute("aria-selected", String(active));
         tab.tabIndex = active ? 0 : -1;
+        if (active) body.setAttribute("aria-labelledby", tab.id);
         if (active && focus) tab.focus();
       });
       if (!sections) return;
-      body.innerHTML = `<section class="lv-section" role="tabpanel">${render[id]()}</section>`;
+      body.innerHTML = `<section class="lv-section">${render[id]()}</section>`;
       body.scrollTop = 0;
     };
     tabs.forEach((tab, index) => {
@@ -429,6 +477,8 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
     // ── Load the content ──
     loadSections(lesson.id)
       .then((loaded) => {
+        if (!backdrop.isConnected) return;
+        body.setAttribute("aria-busy", "false");
         sections = loaded;
         const c = counts(sections);
         $("[data-stats]", modal).innerHTML = [
@@ -454,6 +504,7 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
       })
       .catch((error) => {
         console.error(error);
+        body.setAttribute("aria-busy", "false");
         body.innerHTML = emptyState("We couldn't load this lesson's content. Close and try again.");
       });
   });

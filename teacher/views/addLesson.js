@@ -77,14 +77,14 @@ export async function renderAddLessonPage(classId) {
   $("#page-content").classList.add("teacher-add-lesson-page");
 
   $("#page-content").innerHTML = state.allLessons.length
-    ? `<form id="link-form" class="lesson-picker">
+    ? `<div class="lesson-workspace"><form id="link-form" class="lesson-picker">
         <div class="lesson-picker__toolbar">
           <div>
-            <span class="lesson-picker__eyebrow">Your collection</span>
+            <span class="lesson-picker__eyebrow">01 / Lesson collection</span>
             <h2>Choose what to teach</h2>
             <p>Select one or more lessons to add to this class.</p>
           </div>
-          <span class="lesson-picker__count"><strong>${state.allLessons.length}</strong> ${state.allLessons.length === 1 ? "lesson" : "lessons"}</span>
+          <span class="lesson-picker__count"><strong>${state.allLessons.length}</strong> in collection</span>
         </div>
         <label class="lesson-picker__search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
@@ -123,17 +123,27 @@ export async function renderAddLessonPage(classId) {
                   ${assignedChips(l.id)}
                 </span>
               </label>
-              <button type="button" class="lesson-picker__preview" data-view="${escapeHtml(l.id)}" aria-label="Preview ${escapeHtml(l.title)}">${EYE_ICON}Preview</button>
+              <button type="button" class="lesson-picker__preview" data-view="${escapeHtml(l.id)}" aria-label="Preview ${escapeHtml(l.title)}">${EYE_ICON}<span class="lesson-picker__tooltip" aria-hidden="true">Preview lesson</span></button>
             </article>`;
           })
           .join("")}
           <p class="lesson-picker__no-results" id="lesson-no-results" hidden>No lessons match your search.</p>
         </div>
         <div class="lesson-picker__footer">
-          <span class="lesson-picker__selected"><strong id="lesson-selected-count">0</strong> selected</span>
+          <div class="lesson-picker__selection"><span class="lesson-picker__selected" role="status" aria-live="polite"><strong id="lesson-selected-count">0</strong> selected</span><small>Next: lesson type &amp; schedule</small></div>
           <button class="button primary" type="submit" id="add-selected-lessons" disabled>Add selected lessons</button>
         </div>
-      </form>`
+      </form><aside class="lesson-guide" aria-labelledby="lesson-guide-title">
+        <span class="lesson-picker__eyebrow">For your classroom</span>
+        <h2 id="lesson-guide-title">${escapeHtml(classroom.className)}</h2>
+        <p>A thoughtful lesson starts with the right material.</p>
+        <ol class="lesson-guide__steps">
+          <li><span>01</span><div><strong>Choose your lessons</strong><p>Browse by level or preview the material before selecting.</p></div></li>
+          <li><span>02</span><div><strong>Decide how students learn</strong><p>Add as an assessment for recorded scores, or practice for unlimited retries.</p></div></li>
+          <li><span>03</span><div><strong>Set the right time</strong><p>Open right away or choose an opening date and deadline.</p></div></li>
+        </ol>
+        <div class="lesson-guide__note">${CHECK_ICON}<p>Already added? The labels on each lesson show how it is used in this class.</p></div>
+      </aside></div>`
     : `<section class="lesson-picker__empty">
         <div class="lesson-picker__empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></div>
         <span class="lesson-picker__eyebrow">Your collection is ready</span>

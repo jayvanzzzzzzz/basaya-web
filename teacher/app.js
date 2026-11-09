@@ -9,6 +9,7 @@ import { state } from "../js/state.js";
 import { rememberAccount } from "../js/recent-accounts.js";
 import { $, setLoading, shell, toast } from "../js/helpers.js";
 import { renderRoute } from "./router.js";
+import { confirmTeacherLogout } from "../js/teacher-logout.js";
 // Every form's required fields show their own message instead of the browser bubble.
 import "../js/field-errors.js";
 
@@ -36,16 +37,25 @@ document.addEventListener("click", async (event) => {
   }
 });
 
-$("#logout-button").addEventListener("click", async () => {
-  rememberAccount(auth.currentUser, state.profile || {});
-  sessionStorage.setItem("basayaSignedOut", "true");
+$("#logout-button").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  if (button.disabled) return;
+  button.disabled = true;
   try {
-    await signOut(auth);
-    window.location.replace("../index.html");
-  } catch (error) {
-    sessionStorage.removeItem("basayaSignedOut");
-    console.error("Teacher sign-out failed:", error);
-    toast("Could not sign out. Please try again.");
+    if (!await confirmTeacherLogout()) return;
+    rememberAccount(auth.currentUser, state.profile || {});
+    sessionStorage.setItem("basayaSignedOut", "true");
+    try {
+      await signOut(auth);
+      window.location.replace("../index.html");
+    } catch (error) {
+      sessionStorage.removeItem("basayaSignedOut");
+      console.error("Teacher sign-out failed:", error);
+      toast("Could not sign out. Please try again.");
+    }
+  } finally {
+    button.disabled = false;
+    button.focus({ preventScroll: true });
   }
 });
 window.addEventListener("hashchange", renderRoute);

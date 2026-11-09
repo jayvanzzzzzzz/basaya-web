@@ -11,17 +11,27 @@ import { $, setLoading, shell, toast } from "../js/helpers.js";
 import { renderRoute } from "./router.js";
 // Every form's required fields show their own message instead of the browser bubble.
 import "../js/field-errors.js";
+import { confirmTeacherLogout } from '../js/teacher-logout.js';
 
-$("#logout-button").addEventListener("click", async () => {
-  rememberAccount(auth.currentUser, state.profile || {});
-  sessionStorage.setItem("basayaSignedOut", "true");
+$("#logout-button").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  if (button.disabled) return;
+  button.disabled = true;
   try {
-    await signOut(auth);
-    window.location.replace("../index.html");
-  } catch (error) {
-    sessionStorage.removeItem("basayaSignedOut");
-    console.error("Admin sign-out failed:", error);
-    toast("Could not sign out. Please try again.");
+    if (!await confirmTeacherLogout({ eyebrow: 'Your admin workspace', description: 'You’ll return to the sign-in page. Sign in again whenever you’re ready to manage your school.' })) return;
+    rememberAccount(auth.currentUser, state.profile || {});
+    sessionStorage.setItem("basayaSignedOut", "true");
+    try {
+      await signOut(auth);
+      window.location.replace("../index.html");
+    } catch (error) {
+      sessionStorage.removeItem("basayaSignedOut");
+      console.error("Admin sign-out failed:", error);
+      toast("Could not sign out. Please try again.");
+    }
+  } finally {
+    button.disabled = false;
+    button.focus({ preventScroll: true });
   }
 });
 window.addEventListener("hashchange", renderRoute);

@@ -167,7 +167,7 @@ export async function renderDashboard() {
     state.classes.length
       ? `You have ${state.classes.length} ${state.classes.length === 1 ? "class" : "classes"}. Open one to see its lessons and progress.`
       : "Create your first class to start adding lessons.",
-    `<button class="button primary" id="new-class" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Create class</button>`,
+    `<button class="button primary create-class-button" id="new-class" type="button" aria-label="Create class" data-floating-tooltip="Create class" data-teacher-tooltip><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 19H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7M8 19v2m-2 0h7M7 8h9M7 12h5M18 15v6m-3-3h6" /></svg></button>`,
   );
   const pageHeader = $("#page-header");
   pageHeader.classList.add("teacher-dashboard-header");

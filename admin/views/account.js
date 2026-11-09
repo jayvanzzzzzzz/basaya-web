@@ -8,6 +8,7 @@ import { $, escapeHtml, page, toast } from "../../js/helpers.js";
 import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { requestAdminPasswordChange, sendResetLink } from "../../js/api.js";
 import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
+import { syncThemeButtons } from '../../js/theme.js';
 
 // #/settings: the admin's own password. Unlike a teacher's, a new admin password
 // doesn't apply right away: notify-api emails the admin an Approve link first
@@ -32,6 +33,19 @@ export function renderAccount() {
         <span class="account-settings__status"><span></span>Admin account</span>
       </header>
 
+      <section class="account-settings__card admin-appearance" aria-labelledby="admin-appearance-title">
+        <span class="account-settings__eyebrow">Make it yours</span>
+        <h3 id="admin-appearance-title">Appearance</h3>
+        <p>A comfortable view for every school day.</p>
+        <div class="theme-options" role="group" aria-labelledby="admin-appearance-title">
+          <button class="theme-options__button" type="button" data-theme-choice="light" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><span>Light</span>
+          </button>
+          <button class="theme-options__button" type="button" data-theme-choice="dark" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg><span>Dark</span>
+          </button>
+        </div>
+      </section>
       <div class="account-settings__grid">
         <section class="account-settings__card account-settings__card--password">
           <div class="account-settings__card-heading">
@@ -94,6 +108,7 @@ export function renderAccount() {
     </section>
   `;
 
+  syncThemeButtons();
   const form = $("#admin-password-form");
   const sent = $("#admin-password-sent");
   watchPasswordRules(form.elements.newPassword, form.querySelector(".password-rules"));

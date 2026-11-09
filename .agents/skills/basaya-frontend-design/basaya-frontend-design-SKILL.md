@@ -85,7 +85,7 @@ Avoid turning the application into a childish interface or a generic corporate d
 
 | Academic Navy | #1F2559 | Primary brand identity |
 
-| Soft Cream | #F8F5EC | Main page background |
+| Pure White | #FFFFFF | Main page background (light theme) |
 
 | Muted Lavender | #EAE7F8 | Secondary tinted surfaces |
 
@@ -372,7 +372,7 @@ BaSaya already has a dark mode theme. **Every redesign must support BOTH the exi
 - Use shared **semantic tokens** for backgrounds, surfaces, borders, text, muted text, accents, shadows, focus rings, tooltips, and input states.
 - Define appropriate light and dark values under the project's **existing** theme selectors. Avoid scattering hard-coded light colors through components.
 - Both themes must preserve the same Contemporary Editorial Academic identity, recognizable navy-inspired branding, spacing, typography, and visual hierarchy.
-- The light theme may use warm cream bases and softly tinted bright glass surfaces; the dark theme should use layered deep navy/slate surfaces, NOT pure black everywhere.
+- The light theme uses pure white (#FFFFFF) page backgrounds and may use softly tinted bright glass surfaces; the dark theme should use layered deep navy/slate surfaces, NOT pure black everywhere.
 - Muted lavender, sky, mint, and gold accents should be adjusted for dark-mode contrast rather than reused at the same light-mode brightness.
 
 Illustrative CSS pattern **only** (adapt to the project's actual selectors and tokens):
@@ -380,7 +380,7 @@ Illustrative CSS pattern **only** (adapt to the project's actual selectors and t
 ```css
 :root {
   color-scheme: light;
-  --page-bg: #F8F5EC;
+  --page-bg: #FFFFFF;
   --surface: rgba(255, 255, 255, 0.68);
   --surface-strong: rgba(255, 255, 255, 0.88);
   --text-primary: #20243A;

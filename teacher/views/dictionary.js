@@ -358,7 +358,9 @@ export async function renderDictionary() {
   page(
     "Dictionary",
     "Tagalog words students can look up, explained in Filipino",
-    `<button class="button primary" id="dict-add"><span aria-hidden="true">+</span> Add word</button>`,
+    document.body.dataset.portal === 'admin'
+      ? `<button class="button primary admin-add-button" id="dict-add" type="button" aria-label="Add word"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11a2 2 0 0 1 2 2v7M5 3a2 2 0 0 0-2 2v13a3 3 0 0 0 3 3h8M5 3v14M3 18a2 2 0 0 1 2-2h7M8 7h6M8 10h4M18 15v6m-3-3h6"/></svg></button>`
+      : `<button class="button primary" id="dict-add"><span aria-hidden="true">+</span> Add word</button>`,
   );
   $("#page-content").innerHTML = `
     <section class="dict-library" aria-label="Dictionary workspace">

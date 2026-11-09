@@ -37,12 +37,15 @@ body:has(.teacher-messages) {
   --msg-rail: rgba(29, 36, 53, .88);
   --msg-canvas: #1a2131;
   --msg-bubble: rgba(43, 54, 76, .9);
-  --msg-selected: rgba(110, 104, 167, .25);
+  --msg-selected: #303e50;
+  --msg-hover: #263344;
+  --msg-state-ink: #edf0f8;
+  --msg-state-accent: #a7bed5;
   --msg-avatar-saturation: 24%;
   --msg-avatar-lightness: 25%;
   --msg-avatar-ink-lightness: 83%;
   --msg-outgoing: #4e5294;
-  --msg-action: #7064b8;
+  --msg-action: #425c76;
   --msg-tooltip: rgba(46, 55, 78, .98);
   --msg-tooltip-ink: #f1efff;
 }
@@ -88,9 +91,9 @@ body:has(.teacher-messages) .content { padding-top: 1.6rem; }
 .teacher-messages .inbox-list__head b { display: inline-grid; min-width: 1.5rem; height: 1.5rem; padding: .1rem .4rem; place-items: center; color: var(--ink-2); background: var(--msg-selected); font-size: .75rem; font-weight: 600; }
 .teacher-messages .inbox-list__items { gap: .3rem; padding: .3rem .65rem 1rem; flex: 1; scrollbar-gutter: stable; }
 .teacher-messages .inbox-class { gap: .7rem; padding: .9rem .65rem; border-radius: 10px; min-height: 5.1rem; transition: background-color 200ms ease, transform 200ms ease; }
-.teacher-messages .inbox-class:hover { background: color-mix(in srgb, var(--msg-selected) 60%, transparent); transform: translateX(2px); }
+.teacher-messages .inbox-class:hover { background: var(--msg-hover, color-mix(in srgb, var(--msg-selected) 60%, transparent)); transform: translateX(2px); }
 .teacher-messages .inbox-class.is-active { background: var(--msg-selected); box-shadow: none; }
-.teacher-messages .inbox-class.is-active::before { top: 1.2rem; bottom: 1.2rem; left: -.15rem; width: 3px; border-radius: 3px; background: var(--primary); }
+.teacher-messages .inbox-class.is-active::before { top: 1.2rem; bottom: 1.2rem; left: -.15rem; width: 3px; border-radius: 3px; background: var(--msg-state-accent, var(--primary)); }
 .teacher-messages .inbox-class__avatar { width: 2.7rem; height: 2.7rem; border-radius: 12px; color: hsl(var(--h) 34% var(--msg-avatar-ink-lightness)); background: hsl(var(--h) var(--msg-avatar-saturation) var(--msg-avatar-lightness)); font-size: .8125rem; box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent); }
 .teacher-messages .inbox-class__text { gap: .35rem; }
 .teacher-messages .inbox-class__top { flex-wrap: wrap; gap: .2rem .5rem; }
@@ -177,7 +180,7 @@ body:has(.teacher-messages) .content { padding-top: 1.6rem; }
 }
 .teacher-messages .chat-head__back { display: none; }
 .teacher-messages .chat-icon svg, .messages-members-dialog .modal-close svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; transition: transform 200ms ease; }
-.teacher-messages .chat-icon:hover:not(:disabled), .messages-members-dialog .modal-close:hover { background: var(--msg-selected); border-color: var(--border); color: var(--primary); transform: translateY(-1px); }
+.teacher-messages .chat-icon:hover:not(:disabled), .messages-members-dialog .modal-close:hover { background: var(--msg-selected); border-color: var(--border); color: var(--msg-state-ink, var(--primary)); transform: translateY(-1px); }
 .teacher-messages .chat-icon:hover:not(:disabled) svg { transform: scale(1.06); }
 .teacher-messages .chat-icon:active:not(:disabled), .messages-members-dialog .modal-close:active { transform: translateY(0) scale(.97); }
 .teacher-messages :is(button, a):focus-visible, .messages-members-dialog :is(button, input):focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

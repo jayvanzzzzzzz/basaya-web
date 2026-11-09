@@ -122,7 +122,7 @@ export async function renderLessons() {
   page(
     "Lessons",
     [`${lessons.length} ${lessons.length === 1 ? "lesson" : "lessons"}`],
-    '<button class="button primary" id="add-lesson">+ Add lesson</button>',
+    '<button class="button primary admin-add-button" id="add-lesson" type="button" aria-label="Add lesson"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M18 15v6m-3-3h6"/></svg></button>',
   );
 
   const pageContent = $("#page-content");

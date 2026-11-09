@@ -72,7 +72,10 @@
     <link rel="stylesheet" href="../css/pages/messages-editorial.css" />
     <link rel="stylesheet" href="../css/pages/students-editorial.css" />
     <link rel="stylesheet" href="../css/pages/student-progress-editorial.css" />
+    <link rel="stylesheet" href="../css/layout/teacher-sidebar.css?v=teacher-white-restored-20261109" />
+    <link rel="stylesheet" href="../css/pages/account-editorial.css" />
     <link rel="stylesheet" href="../css/layout/print.css" />
+    <link rel="stylesheet" href="../css/components/teacher-logout.css" />
   </head>
   <body>
     <div id="loading-screen" class="loading-screen teacher-loading" role="status" aria-live="polite">
@@ -105,10 +108,10 @@
     </div>
 
     <div id="app-view" class="app-shell" hidden>
-      <aside class="sidebar">
-        <a class="brand" href="#/dashboard">
-          <img src="../img/logo.png" alt="BaSaya" class="brand-logo" />
-          BaSaya
+      <aside class="sidebar teacher-sidebar">
+        <a class="teacher-profile" href="#/settings" aria-label="Open account settings">
+          <span id="teacher-avatar" class="teacher-profile__avatar" aria-hidden="true">T</span>
+          <span class="teacher-profile__identity"><small><span class="teacher-status-dot" aria-hidden="true"></span>Teacher</small><strong id="teacher-summary">Teacher</strong></span>
         </a>
         <nav class="main-nav main-nav--admin" aria-label="Main navigation">
           <a href="#/dashboard" data-nav="classes">
@@ -141,34 +144,10 @@
           </a>
         </nav>
 
-        <div id="teacher-stats" class="code-stub code-stub--sidebar">
-          <span class="code-stub__label">At a glance</span>
-          <span id="teacher-stats-text">—</span>
-        </div>
-
-        <div class="sidebar-bottom">
-          <div class="account-menu">
-            <button
-              id="account-menu-toggle"
-              class="account-menu__toggle"
-              type="button"
-              aria-label="Sign out" title="Sign out"
-              aria-haspopup="true"
-              aria-expanded="false"
-            >
-              <span id="teacher-summary" class="teacher-summary"></span>
-              <span class="account-menu__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg></span>
-            </button>
-            <div class="account-menu__popup" hidden>
-              <button id="logout-button" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
-                <span>Sign out</span>
-              </button>
-            </div>
-          </div>
-          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
-            <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
-            <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
+        <div class="sidebar-bottom teacher-sidebar__bottom">
+          <button id="logout-button" class="teacher-logout" type="button" title="Log out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+            <span>Log out</span>
           </button>
         </div>
       </aside>

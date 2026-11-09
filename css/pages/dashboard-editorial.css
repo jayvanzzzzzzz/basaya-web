@@ -41,6 +41,26 @@ body:has(.teacher-dashboard) {
   --dash-tint: #262733;
   --dash-positive: #93d6aa;
 }
+body:has(.teacher-dashboard) .page-header-bar .create-class-button {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 48px; height: 48px; min-width: 48px; padding: 0;
+  border: 1px solid color-mix(in srgb, var(--dash-action) 80%, var(--border));
+  border-radius: 12px; background: var(--dash-action); color: var(--dash-action-ink);
+  box-shadow: none;
+  transition: background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+}
+body:has(.teacher-dashboard) .page-header-bar .create-class-button svg {
+  display: block; width: 25px; height: 25px;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 180ms ease;
+}
+body:has(.teacher-dashboard) .page-header-bar .create-class-button:hover:not(:disabled) {
+  background: var(--dash-action-hover); color: var(--dash-action-ink); filter: none;
+  transform: translateY(-2px); box-shadow: 0 6px 14px -10px var(--dash-action);
+}
+body:has(.teacher-dashboard) .page-header-bar .create-class-button:hover:not(:disabled) svg { transform: scale(1.06); }
+body:has(.teacher-dashboard) .page-header-bar .create-class-button:active:not(:disabled) { transform: translateY(0); }
 body:has(.teacher-dashboard) .sidebar { background: var(--dash-nav); }
 body:has(.teacher-dashboard) .sidebar .theme-toggle { min-width: 44px; min-height: 44px; background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.16); color: #eeeef8; box-shadow: none; }
 body:has(.teacher-dashboard) .sidebar .theme-toggle:hover { background: rgba(255,255,255,.14); border-color: #bcb7ee; }
@@ -90,6 +110,25 @@ body:has(.teacher-dashboard) .main-nav a.active::before { background: #f6d36a; }
 .page-header.teacher-dashboard-header .button.primary:hover:not(:disabled),
 :root[data-theme="dark"] .page-header.teacher-dashboard-header .button.primary:hover:not(:disabled) { background: var(--dash-action-hover); color: var(--dash-action-ink); filter: none; transform: translateY(-2px); }
 .teacher-dashboard-header .button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.page-header.teacher-dashboard-header #new-class {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 48px; height: 48px; min-width: 48px; padding: 0;
+  border: 1px solid color-mix(in srgb, var(--dash-action) 80%, var(--border));
+  border-radius: 12px;
+  transition: background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+}
+.teacher-dashboard-header #new-class svg {
+  display: block; width: 25px; height: 25px; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 180ms ease;
+}
+.page-header.teacher-dashboard-header #new-class:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -8px var(--dash-action);
+}
+.teacher-dashboard-header #new-class:hover svg { transform: scale(1.04); }
+.page-header.teacher-dashboard-header #new-class:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
 
 .teacher-dashboard { gap: 2rem; padding-top: 1.5rem; }
 .teacher-dashboard .dash-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: .3rem 0 1.6rem; border-bottom: 1px solid var(--border); }
@@ -208,6 +247,8 @@ body:has(.teacher-dashboard) :is(button, a, input, summary, select):focus-visibl
 }
 @media (prefers-reduced-motion: reduce) {
   body:has(.teacher-dashboard) *, body:has(.teacher-dashboard) *::before, body:has(.teacher-dashboard) *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  body:has(.teacher-dashboard) .page-header-bar .create-class-button:hover:not(:disabled),
+  body:has(.teacher-dashboard) .page-header-bar .create-class-button:hover:not(:disabled) svg,
   .teacher-dashboard .class-card:hover, .teacher-dashboard .class-card:hover .class-card__open svg,
   .page-header.teacher-dashboard-header .button.primary:hover:not(:disabled) { transform: none; }
 }

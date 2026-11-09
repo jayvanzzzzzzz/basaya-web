@@ -1,0 +1,177 @@
+/* Admin-only presentation. The teacher portal uses the same editorial palette. */
+body[data-portal="admin"] {
+  --bg: #fff; --ink: #20243a; --ink-2: #50586b; --ink-3: #626b7b;
+  --primary: #1f2559; --primary-strong: #1f2559; --primary-soft: #eae7f8; --primary-softer: #f4f2fb; --primary-ring: #736b9c;
+  --border: #dddde3; --border-strong: #b7b7c6;
+  --surface: #fff; --surface-2: #f8f9fc; --surface-3: #efedf6; --surface-glass: rgba(255,255,255,.94);
+  --admin-paper: rgba(255,255,255,.76); --admin-tint: #efedf6;
+  --admin-action: #1f2559; --admin-action-hover: #33396c; --admin-action-ink: #fff;
+  --nav-bg: #1f2559; --warning: #87520d; --table-row-alt: #fafafe; --table-row-hover: #f1eff9;
+  --lip: 0 0 0 transparent; --lip-hover: 0 0 0 transparent;
+  --brand-gradient: linear-gradient(var(--admin-action),var(--admin-action));
+  --hero-gradient: linear-gradient(#1f2559,#1f2559);
+}
+:root[data-theme="dark"] body[data-portal="admin"] {
+  --bg: #191a20; --ink: #eeeef4; --ink-2: #c1c3d0; --ink-3: #a9aebb;
+  --primary: #c0bcf1; --primary-strong: #c0bcf1; --primary-soft: #303044; --primary-softer: #292938; --primary-ring: #9d98c8;
+  --border: #3c3e4b; --border-strong: #686a7e;
+  --surface: #272831; --surface-2: #24252d; --surface-3: #303044; --surface-glass: rgba(39,40,49,.94);
+  --admin-paper: rgba(39,40,49,.9); --admin-tint: #303044;
+  --admin-action: #c0bcf1; --admin-action-hover: #d4d0ff; --admin-action-ink: #191a20;
+  --nav-bg: #151a35; --warning: #e3ac62; --table-row-alt: #252630; --table-row-hover: #303044;
+}
+body[data-portal="admin"] .content { padding: clamp(1.4rem,3vw,2.6rem); min-width: 0; }
+body[data-portal="admin"] .sidebar { padding: 1.4rem .9rem; background: var(--nav-bg); }
+.admin-profile { display: flex; align-items: center; gap: .85rem; padding: .8rem .6rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,.13); color: #fff; }
+.admin-profile__avatar { display: grid; place-items: center; flex: 0 0 48px; width: 48px; height: 48px; border-radius: 50%; background: #e2dcf6; color: #1f2559; font-size: 1rem; font-weight: 700; }
+.admin-profile__avatar { background: transparent; border-radius: 0; }
+.admin-profile__avatar img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.admin-profile__identity { display: grid; gap: .35rem; min-width: 0; }
+.admin-profile__identity small { display: flex; align-items: center; gap: .7rem; color: #ffffff; font-size: .85rem; font-weight: 700; letter-spacing: .1em; line-height: 1.5; text-transform: uppercase; }
+.admin-profile__identity strong { font-size: .88rem; line-height: 1.5; overflow-wrap: anywhere; }
+.admin-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #55dc91; animation: admin-status-pulse 1.6s ease-out infinite; }
+@keyframes admin-status-pulse { 0% { box-shadow: 0 0 0 0 rgba(85,220,145,.6); } 80%,100% { box-shadow: 0 0 0 7px rgba(85,220,145,0); } }
+body[data-portal="admin"] .sidebar > .brand { padding: .25rem .7rem; font-size: 1rem; opacity: .9; }
+body[data-portal="admin"] .sidebar > .brand .brand-logo { width: 28px; height: 28px; }
+body[data-portal="admin"] .main-nav { gap: .4rem; }
+body[data-portal="admin"] .main-nav a { min-height: 58px; padding: .75rem .8rem; border-radius: 10px; transition: background-color 200ms, color 200ms; }
+body[data-portal="admin"] .main-nav a:hover > span:first-child { transform: none; }
+body[data-portal="admin"] .main-nav a.active { background: rgba(255,255,255,.11); }
+body[data-portal="admin"] .main-nav a.active::before { background: #f6d36a; }
+body[data-portal="admin"] .main-nav [data-nav="settings"] { margin-top: .8rem; border-top: 1px solid rgba(255,255,255,.13); border-radius: 0 0 10px 10px; padding-top: 1rem; }
+body[data-portal="admin"] .account-menu__toggle { border-color: rgba(255,255,255,.14); border-radius: 10px; background: rgba(255,255,255,.05); min-height: 48px; }
+.admin-signout-label { display: none; }
+body[data-portal="admin"] .sidebar-bottom { display: block; }
+.admin-logout { display: flex; align-items: center; gap: .8rem; width: 100%; min-height: 44px; padding: .65rem .85rem; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--nav-ink); font: inherit; font-size: .875rem; font-weight: 600; text-align: left; cursor: pointer; transition: background-color 200ms, color 200ms; }
+.admin-logout svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.admin-logout:hover { background: var(--nav-hover); color: #fff; }
+body[data-portal="admin"] .theme-toggle { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); color: #eeeef8; box-shadow: none; }
+body[data-portal="admin"] .page-header { min-height: 0; padding: .7rem 0 1.8rem; margin-bottom: 1.8rem; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
+body[data-portal="admin"] .page-header__art, body[data-portal="admin"] .page-header__icon { display: none; }
+body[data-portal="admin"] .page-header h1 { color: var(--ink); font-size: clamp(1.8rem,2.6vw,2.65rem); font-weight: 600; letter-spacing: -.045em; }
+body[data-portal="admin"] .page-header__scope { color: var(--ink-3); background: transparent; border: 0; padding: 0; letter-spacing: .14em; }
+body[data-portal="admin"] .page-header__scope { display: none; }
+body[data-portal="admin"] .page-header__top:not(:has(.page-header__crumbs)) { display: none; }
+body[data-portal="admin"] .page-header__meta li { border: 0; background: var(--admin-tint); color: var(--ink-2); font-size: .72rem; }
+body[data-portal="admin"] .button { border-radius: 9px; box-shadow: none; transition: transform 200ms, background-color 200ms, border-color 200ms; }
+body[data-portal="admin"] .button.primary { background: var(--admin-action); color: var(--admin-action-ink); border-color: var(--admin-action); }
+body[data-portal="admin"] .button.primary:hover:not(:disabled) { background: var(--admin-action-hover); color: var(--admin-action-ink); transform: translateY(-2px); filter: none; box-shadow: none; }
+body[data-portal="admin"] .button.secondary { background: var(--admin-paper); border-color: var(--border-strong); color: var(--primary); }
+body[data-portal="admin"] .button.secondary:hover:not(:disabled) { background: var(--primary-soft); box-shadow: none; transform: translateY(-2px); }
+body[data-portal="admin"] .button:active:not(:disabled) { transform: none; }
+body[data-portal="admin"] .button.admin-add-button {
+  display: inline-grid; place-items: center; flex: 0 0 48px;
+  width: 48px; height: 48px; min-width: 48px; padding: 0;
+  border-radius: 12px; border: 1px solid var(--admin-action);
+}
+body[data-portal="admin"] .admin-add-button svg {
+  display: block; width: 25px; height: 25px; fill: none;
+  stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 180ms ease;
+}
+body[data-portal="admin"] .admin-add-button:hover:not(:disabled) svg { transform: scale(1.06); }
+body[data-portal="admin"] :is(.teacher-directory,.admin-class-directory,.admin-lesson-directory) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+body[data-portal="admin"] :is(.teacher-directory__intro,.admin-class-directory__intro,.admin-lesson-directory__intro) { padding: 0 0 1.5rem; background: none; }
+body[data-portal="admin"] :is(.teacher-directory__intro,.admin-class-directory__intro,.admin-lesson-directory__intro) h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -.025em; }
+body[data-portal="admin"] :is(.teacher-directory__intro,.admin-class-directory__intro,.admin-lesson-directory__intro) p { font-size: .8rem; line-height: 1.7; }
+body[data-portal="admin"] :is(.teacher-directory__eyebrow,.admin-class-directory__eyebrow,.admin-lesson-directory__eyebrow) { color: var(--ink-3); font-size: .62rem; }
+body[data-portal="admin"] :is(.teacher-directory__count,.admin-class-directory__count,.admin-lesson-directory__total) { border-radius: 8px; padding: .3rem .65rem; gap: .4rem; background: var(--admin-paper); box-shadow: none; }
+body[data-portal="admin"] :is(.teacher-directory__count,.admin-class-directory__count,.admin-lesson-directory__total):hover { transform: none; box-shadow: none; }
+body[data-portal="admin"] :is(.teacher-directory__count,.admin-class-directory__count,.admin-lesson-directory__total) strong { min-width: 0; height: auto; padding: .2rem; border-radius: 0; color: var(--ink); background: transparent; box-shadow: none; }
+body[data-portal="admin"] .admin-directory-search { margin: 0 0 1.3rem; border-radius: 9px; background: var(--admin-paper); }
+body[data-portal="admin"] :is(.teacher-table-wrap,.admin-class-table-wrap,.admin-lesson-table-wrap) { padding: 0; }
+body[data-portal="admin"] :is(.teacher-table,.admin-class-table,.admin-lesson-table) { border-spacing: 0; border: 1px solid var(--border); border-radius: 12px; }
+body[data-portal="admin"] :is(.teacher-table,.admin-class-table,.admin-lesson-table) th { padding: 1rem; background: var(--admin-tint); color: var(--ink-2); font-size: .6rem; letter-spacing: .1em; }
+body[data-portal="admin"] :is(.teacher-table,.admin-class-table,.admin-lesson-table) td { padding: 1rem; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; font-size: .8rem; background: var(--admin-paper); box-shadow: none; }
+body[data-portal="admin"] :is(.teacher-table,.admin-class-table,.admin-lesson-table) tr:last-child td { border-bottom: 0; }
+body[data-portal="admin"] :is(.teacher-table,.admin-class-table,.admin-lesson-table) tbody tr:nth-child(even) td { background: var(--table-row-alt); }
+body[data-portal="admin"] :is(.teacher-table,.admin-class-table,.admin-lesson-table) tbody tr:hover td { background: var(--table-row-hover); transform: none; box-shadow: none; }
+body[data-portal="admin"] .teacher-table__avatar { border-radius: 10px; background: var(--admin-tint); color: var(--primary); box-shadow: none; }
+body[data-portal="admin"] :is(.teacher-table__menu-toggle,.admin-class-menu-toggle,.admin-lesson-menu-toggle) { width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 9px; background: var(--admin-paper); color: var(--ink-2); box-shadow: none; }
+body[data-portal="admin"] :is(.teacher-table__menu-toggle,.admin-class-menu-toggle,.admin-lesson-menu-toggle):hover { background: var(--primary-soft); color: var(--primary); transform: none; }
+body[data-portal="admin"] :is(.teacher-table__menu-popup,.admin-class-menu-popup,.admin-lesson-menu-popup) { border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
+body[data-portal="admin"] :is(.teacher-table__menu-popup,.admin-class-menu-popup,.admin-lesson-menu-popup) button { min-height: 44px; }
+body[data-portal="admin"] :is(.student-ribbon,.admin-class-filter,.filter-tab) { min-height: 44px; border-radius: 8px; box-shadow: none; transition: background-color 200ms, border-color 200ms; }
+body[data-portal="admin"] :is(.student-ribbon[aria-pressed="true"],.admin-class-filter.is-active,.filter-tab.active) { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-ring); }
+body[data-portal="admin"] :is(.admin-lesson-filters,.admin-class-filters) { margin: .8rem 0 1rem; max-width: 100%; border-radius: 9px; background: var(--admin-paper); }
+body[data-portal="admin"] .admin-lesson-filter { min-height: 44px; box-shadow: none; animation: none; }
+body[data-portal="admin"] .admin-lesson-filter.is-active { background: var(--primary-soft); color: var(--primary); }
+body[data-portal="admin"] .admin-lesson-search { margin: 0 0 1rem; background: var(--admin-paper); border-radius: 9px; }
+body[data-portal="admin"] .pagination { margin: 1rem 0 0; padding: .8rem 1rem; background: var(--admin-paper); border-radius: 10px; }
+body[data-portal="admin"] .pagination__button { min-width: 44px; height: 44px; border-radius: 8px; box-shadow: none; }
+body[data-portal="admin"] .pagination__button[aria-current="page"] { background: var(--admin-action); color: var(--admin-action-ink); border-color: var(--admin-action); animation: none; }
+body[data-portal="admin"] .pagination__button:hover:not(:disabled) { box-shadow: none; }
+body[data-portal="admin"] .lesson-studio__heading { background: var(--nav-bg); border-bottom: 1px solid rgba(255,255,255,.15); }
+body[data-portal="admin"] .lesson-studio__heading::before, body[data-portal="admin"] .lesson-studio__heading::after { display: none; }
+body[data-portal="admin"] .lesson-studio__heading h2 { color: #fff; text-shadow: none; }
+body[data-portal="admin"] :is(input,select,textarea) { border-width: 1px; border-color: var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--ink); }
+body[data-portal="admin"] input:not([type="checkbox"]):not([type="radio"]), body[data-portal="admin"] select { min-height: 46px; }
+body[data-portal="admin"] input::placeholder, body[data-portal="admin"] textarea::placeholder { color: var(--ink-3); opacity: 1; }
+body[data-portal="admin"] .modal { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-lg); }
+body[data-portal="admin"] .modal h2 { font-size: 1.4rem; font-weight: 600; }
+body[data-portal="admin"] .title-chips__chip span { min-height: 44px; display: inline-flex; align-items: center; border-radius: 8px; border-width: 1px; }
+body[data-portal="admin"] .empty-state { border: 1px dashed var(--border-strong); border-radius: 14px; background: var(--admin-paper); box-shadow: none; }
+body[data-portal="admin"] .account-settings { grid-template-columns: minmax(200px,.38fr) minmax(0,1fr); grid-template-rows: auto 1fr; gap: 2rem; align-items: start; }
+body[data-portal="admin"] .account-settings__hero { flex-direction: column; align-items: flex-start; padding: .5rem 0; gap: 1rem; border: 0; border-radius: 0; background: none; box-shadow: none; overflow-wrap: anywhere; }
+body[data-portal="admin"] .account-settings__hero-icon { width: 48px; height: 48px; flex-basis: 48px; border-radius: 12px; color: var(--primary); background: var(--admin-tint); box-shadow: none; animation: none; }
+body[data-portal="admin"] .account-settings__status { margin: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--admin-tint); color: var(--ink-2); }
+body[data-portal="admin"] .account-settings__status > span { background: #259a58; animation: admin-status-pulse 1.6s ease-out infinite; }
+body[data-portal="admin"] .account-settings__grid { grid-template-columns: minmax(0,1fr); min-width: 0; }
+body[data-portal="admin"] .account-settings__hero { grid-column: 1; grid-row: 1; }
+body[data-portal="admin"] .account-settings__grid { grid-column: 2; grid-row: 1 / span 2; }
+body[data-portal="admin"] .admin-appearance { grid-column: 1; grid-row: 2; padding: 1.2rem; background: var(--admin-tint); }
+.admin-appearance h3 { margin: 0; font-size: .95rem; }
+.admin-appearance > p { margin: .45rem 0 1.2rem; color: var(--ink-3); font-size: .77rem; line-height: 1.6; }
+body[data-portal="admin"] .theme-options { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr 1fr; width: 224px; max-width: 100%; padding: 5px; border: 1px solid var(--border-strong); border-radius: .8rem; background: var(--admin-paper); }
+body[data-portal="admin"] .theme-options::before { content: ''; position: absolute; z-index: -1; top: 5px; bottom: 5px; left: 5px; width: calc((100% - 10px) / 2); border: 1px solid var(--admin-action); border-radius: .55rem; background: var(--admin-action); transform: translateX(0); transition: transform 320ms cubic-bezier(.22,1,.36,1), background-color 220ms ease; }
+:root[data-theme="dark"] body[data-portal="admin"] .theme-options::before { transform: translateX(100%); }
+body[data-portal="admin"] .theme-options__button { display: flex; align-items: center; justify-content: center; gap: .5rem; min-width: 0; min-height: 44px; padding: .6rem .4rem; border: 1px solid transparent; border-radius: .55rem; background: transparent; color: var(--ink-2); font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; transition: color 180ms, transform 150ms; }
+body[data-portal="admin"] .theme-options__button svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+body[data-portal="admin"] .theme-options__button[aria-pressed="true"] { color: var(--admin-action-ink); }
+body[data-portal="admin"] .theme-options__button:active { transform: scale(.96); }
+body[data-portal="admin"] .theme-options__button[aria-pressed="true"] svg { animation: admin-theme-enter 320ms ease-out; }
+@keyframes admin-theme-enter { from { transform: rotate(-35deg) scale(.7); opacity: .4; } to { transform: none; opacity: 1; } }
+body[data-portal="admin"] .account-settings__card { border-radius: 14px; background: var(--admin-paper); box-shadow: none; }
+body[data-portal="admin"] .account-settings__card:focus-within { transform: none; box-shadow: none; }
+body[data-portal="admin"] .account-settings__card-heading { background: transparent; padding: 1.4rem; }
+body[data-portal="admin"] .account-settings__step { border-radius: 10px; background: var(--admin-tint); color: var(--primary); }
+body[data-portal="admin"] .account-settings__card:focus-within .account-settings__step { transform: none; }
+body[data-portal="admin"] .account-settings__form-footer { flex-wrap: wrap; }
+body[data-portal="admin"] .floating-tooltip { background: var(--ink); color: var(--bg); border: 0; animation: admin-tooltip-in 160ms ease-out; }
+@keyframes admin-tooltip-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+body[data-portal="admin"] :is(button,a,input,select,textarea,summary):focus-visible { outline: 2px solid var(--primary-ring); outline-offset: 3px; }
+body[data-portal="admin"] .sidebar :is(a,button):focus-visible { outline-color: #f6d36a; }
+body[data-portal="admin"] #page-content > * { animation: none; }
+@media (max-width: 1000px) {
+  body[data-portal="admin"] .account-settings { grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto auto; }
+  body[data-portal="admin"] .account-settings__grid { grid-column: 1; grid-row: 2; }
+  body[data-portal="admin"] .admin-appearance { grid-column: 1; grid-row: 3; }
+}
+@media (max-width: 900px) {
+  body[data-portal="admin"] :is(.teacher-table-wrap,.admin-class-table-wrap,.admin-lesson-table-wrap) { overflow-x: auto; padding-bottom: .5rem; }
+}
+@media (max-width: 860px) {
+  body[data-portal="admin"] .sidebar { flex-wrap: wrap; gap: .4rem; padding: .6rem .75rem; }
+  .admin-profile { flex: 1 0 calc(100% - 120px); padding: .5rem; border: 0; }
+  .admin-profile__avatar { flex-basis: 40px; width: 40px; height: 40px; }
+  body[data-portal="admin"] .sidebar > .brand { margin: 0; }
+  body[data-portal="admin"] .sidebar .main-nav { flex: 1 1 100%; width: 100%; overflow-x: auto; border-top: 1px solid rgba(255,255,255,.12); padding-top: .5rem; }
+  body[data-portal="admin"] .main-nav a { flex: 0 0 44px; min-height: 44px; padding: .6rem; }
+  body[data-portal="admin"] .main-nav [data-nav="settings"] { margin: 0; padding: .6rem; border: 0; border-radius: 10px; }
+  body[data-portal="admin"] .sidebar-bottom { width: 100%; padding-top: .5rem; }
+  body[data-portal="admin"] .account-menu { flex: 1; }
+  body[data-portal="admin"] .account-menu__toggle { width: 100%; }
+  body[data-portal="admin"] .admin-signout-label { display: inline; font-size: .78rem; color: #eeeef8; }
+  body[data-portal="admin"] .content { padding: 1.4rem 1rem; }
+  body[data-portal="admin"] .page-header { padding-bottom: 1.4rem; gap: 1rem; }
+}
+@media (max-width: 480px) {
+  body[data-portal="admin"] :is(.teacher-directory__intro,.admin-class-directory__intro,.admin-lesson-directory__intro) { gap: .75rem; align-items: flex-start; }
+  body[data-portal="admin"] :is(.teacher-directory__intro,.admin-class-directory__intro,.admin-lesson-directory__intro) p { font-size: .76rem; }
+  body[data-portal="admin"] .account-settings__form-footer { flex-direction: column; align-items: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-portal="admin"] *, body[data-portal="admin"] *::before, body[data-portal="admin"] *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  body[data-portal="admin"] .button:hover:not(:disabled) { transform: none; }
+  body[data-portal="admin"] .admin-add-button:hover:not(:disabled) svg { transform: none; }
+}

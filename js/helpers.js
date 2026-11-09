@@ -190,6 +190,23 @@ document.addEventListener("keydown", (event) => {
 export function shell(summaryId = "teacher-summary", fallbackName = "Teacher") {
   $("#app-view").hidden = false;
   const summary = $(`#${summaryId}`);
+  if (summary.closest(".teacher-profile")) {
+    const name = state.profile?.displayName || state.user?.displayName || fallbackName;
+    summary.textContent = name;
+    summary.title = name;
+    const avatar = $("#teacher-avatar");
+    avatar.textContent = initials(name);
+    const photoURL = state.profile?.photoURL || state.user?.photoURL;
+    if (photoURL && /^https:\/\//i.test(photoURL)) {
+      const photo = document.createElement("img");
+      photo.alt = "";
+      photo.referrerPolicy = "no-referrer";
+      photo.addEventListener("error", () => { avatar.textContent = initials(name); }, { once: true });
+      photo.src = photoURL;
+      avatar.replaceChildren(photo);
+    }
+    return;
+  }
   summary.textContent = state.user?.email || displayName(fallbackName);
   summary.title = summary.textContent;
 }
@@ -268,7 +285,12 @@ function syncHeaderBar(title) {
   const proxy = document.createElement("button");
   proxy.type = "button";
   proxy.className = "button primary small page-header-bar__action";
-  proxy.textContent = primary.textContent.trim();
+  proxy.innerHTML = primary.innerHTML;
+  for (const attribute of ['aria-label', 'data-floating-tooltip', 'data-teacher-tooltip']) {
+    if (primary.hasAttribute(attribute)) proxy.setAttribute(attribute, primary.getAttribute(attribute));
+  }
+  if (primary.classList.contains('create-class-button')) proxy.classList.add('create-class-button');
+  if (primary.classList.contains('admin-add-button')) proxy.classList.add('admin-add-button');
   proxy.addEventListener("click", () => primary.click());
   headerBar.firstElementChild.append(proxy);
 }

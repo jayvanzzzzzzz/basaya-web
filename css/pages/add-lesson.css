@@ -1,4 +1,39 @@
 /* ADD LESSON — pick lessons, set a schedule, add to class */
+/* Route-local palette also follows the settings dialog into the modal portal. */
+body:has(.teacher-add-lesson-page) {
+  --bg: #f8f5ec;
+  --ink: #20243a;
+  --ink-2: #50586b;
+  --ink-3: #626b7b;
+  --primary: #1f2559;
+  --primary-strong: #33396c;
+  --primary-soft: #eae7f8;
+  --primary-softer: #f2f0f8;
+  --primary-ring: rgba(31,37,89,.22);
+  --border: #dddde3;
+  --border-strong: #b7b9c7;
+  --lesson-paper: rgba(255,255,255,.76);
+  --lesson-action: #1f2559;
+  --lesson-action-ink: #fff;
+  --success: #296841;
+}
+:root[data-theme="dark"] body:has(.teacher-add-lesson-page) {
+  --bg: #191a20;
+  --ink: #eeeef4;
+  --ink-2: #c1c3d0;
+  --ink-3: #a9aebb;
+  --primary: #c0bcf1;
+  --primary-strong: #d4d0ff;
+  --primary-soft: #303044;
+  --primary-softer: #282935;
+  --primary-ring: rgba(192,188,241,.3);
+  --border: #3c3e4b;
+  --border-strong: #777c91;
+  --lesson-paper: rgba(39,40,49,.94);
+  --lesson-action: #c0bcf1;
+  --lesson-action-ink: #191a20;
+  --success: #93d6aa;
+}
 .teacher-add-lesson-page {
   display: grid;
   gap: 1.25rem;
@@ -493,4 +528,107 @@
     animation-duration: 1.6s !important;
     animation-iteration-count: infinite !important;
   }
+}
+
+/* Editorial lesson workspace. Scoped specificity keeps shared directory rules intact. */
+.page-header.teacher-add-lesson-header {
+  padding: 1.25rem 0 1.6rem;
+  margin-bottom: 1.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.teacher-add-lesson-header .page-header__art,
+.teacher-add-lesson-header .page-header__icon { display: none; }
+.teacher-add-lesson-header h1 { font-size: clamp(1.7rem, 3vw, 2.25rem); letter-spacing: -.045em; }
+.lesson-workspace { display: grid; grid-template-columns: minmax(0,1fr) 16rem; gap: 2rem; align-items: start; }
+.teacher-add-lesson-page .lesson-picker {
+  min-width: 0;
+  border-radius: 16px;
+  background: var(--lesson-paper);
+  box-shadow: 0 8px 24px -22px rgba(31,37,89,.25);
+}
+.teacher-add-lesson-page .lesson-picker__toolbar { padding: 1.5rem; gap: 1rem; align-items: start; }
+.teacher-add-lesson-page .lesson-picker__toolbar h2 { margin-top: .45rem; font-size: 1.25rem; letter-spacing: -.035em; }
+.teacher-add-lesson-page .lesson-picker__toolbar p { font-size: .82rem; line-height: 1.6; }
+.teacher-add-lesson-page .lesson-picker__eyebrow { color: var(--ink-3); font-size: .65rem; letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
+.teacher-add-lesson-page .lesson-picker__eyebrow::before { display: none; }
+.teacher-add-lesson-page .lesson-picker__count { gap: .25rem; padding: .2rem 0; border: 0; border-radius: 0; background: none; box-shadow: none; font-size: .7rem; color: var(--ink-3); }
+.teacher-add-lesson-page .lesson-picker__count strong { min-width: 0; height: auto; padding: 0; background: none; color: var(--ink); font-size: .85rem; }
+.teacher-add-lesson-page .lesson-picker__search { margin: 0 1.5rem 1rem; min-height: 48px; border-radius: 10px; background: var(--surface); box-shadow: none; }
+.teacher-add-lesson-page .lesson-picker__search input { min-width: 0; font-size: .85rem; }
+.teacher-add-lesson-page .lesson-picker__ribbons { flex-wrap: wrap; overflow: visible; margin: 0 1.5rem; padding: 0 0 1.1rem; gap: .4rem; }
+.teacher-add-lesson-page .lesson-picker__ribbon { min-height: 40px; padding: .4rem .65rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink-2); font-size: .75rem; }
+.teacher-add-lesson-page .lesson-picker__ribbon:hover { background: var(--surface-3); border-color: var(--border); }
+.teacher-add-lesson-page .lesson-picker__ribbon[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 20%, transparent); box-shadow: none; }
+.teacher-add-lesson-page .lesson-picker__ribbon-count,
+.teacher-add-lesson-page .lesson-picker__ribbon[aria-pressed="true"] .lesson-picker__ribbon-count { min-width: 1.4rem; padding: .1rem .3rem; background: var(--surface); color: var(--ink-2); font-size: .65rem; }
+.teacher-add-lesson-page .lesson-picker__list { gap: 0; padding: 0 1.5rem; }
+.teacher-add-lesson-page .lesson-picker__row { position: relative; padding: 1.2rem .6rem; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; gap: .7rem; }
+.teacher-add-lesson-page .lesson-picker__row:hover { background: var(--primary-softer); transform: none; box-shadow: none; }
+.teacher-add-lesson-page .lesson-picker__row:has(input:checked:not(:disabled)) { background: var(--primary-soft); box-shadow: inset 3px 0 var(--primary); }
+.teacher-add-lesson-page .lesson-picker__row.is-assigned { background: var(--surface-2); }
+.teacher-add-lesson-page .lesson-picker__choice { gap: .85rem; padding: .2rem 0; }
+.teacher-add-lesson-page .lesson-picker__check { width: 1.25rem; height: 1.25rem; border-width: 1.5px; border-radius: 5px; margin-top: .15rem; }
+.teacher-add-lesson-page .lesson-picker__choice input:checked + .lesson-picker__check { background: var(--lesson-action); color: var(--lesson-action-ink); box-shadow: none; transform: none; }
+.teacher-add-lesson-page .lesson-picker__choice input:checked + .lesson-picker__check svg { animation: none; }
+.teacher-add-lesson-page .lesson-picker__choice input:disabled + .lesson-picker__check { background: var(--surface-3); border-color: var(--border-strong); color: var(--ink-2); }
+.teacher-add-lesson-page .lesson-picker__details { gap: .35rem; }
+.teacher-add-lesson-page .lesson-picker__details > strong { overflow: visible; overflow-wrap: anywhere; font-size: .92rem; line-height: 1.5; }
+.teacher-add-lesson-page .lesson-picker__meta { flex-wrap: wrap; font-size: .72rem; color: var(--ink-2); }
+.teacher-add-lesson-page .lesson-picker__description { display: block; overflow: visible; overflow-wrap: anywhere; font-size: .77rem; line-height: 1.65; }
+.teacher-add-lesson-page .lesson-picker__preview { position: relative; width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 10px; background: var(--surface); color: var(--ink-2); }
+.lesson-picker__tooltip { position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 10; padding: .45rem .65rem; border-radius: 6px; background: var(--ink); color: var(--bg); font-size: .7rem; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity 160ms, transform 160ms; }
+.lesson-picker__preview:hover .lesson-picker__tooltip,
+.lesson-picker__preview:focus-visible .lesson-picker__tooltip { opacity: 1; transform: translateY(0); }
+.teacher-add-lesson-page .lesson-picker__footer { bottom: .75rem; padding: .9rem 1.1rem; margin: .5rem .75rem .75rem; border-radius: 12px; background: var(--lesson-paper); box-shadow: 0 8px 24px -16px rgba(31,37,89,.3); }
+.lesson-picker__selection { display: grid; gap: .25rem; }
+.lesson-picker__selection small { font-size: .65rem; color: var(--ink-3); }
+.teacher-add-lesson-page .lesson-picker__selected { color: var(--ink-2); font-size: .78rem; }
+body:has(.teacher-add-lesson-page) .button.primary { background: var(--lesson-action); color: var(--lesson-action-ink); box-shadow: none; white-space: normal; }
+body:has(.teacher-add-lesson-page) .button.primary:hover:not(:disabled) { background: var(--lesson-action); filter: brightness(1.12); }
+.teacher-add-lesson-page :is(button, a):focus-visible,
+body:has(.teacher-add-lesson-page) .lesson-add-form input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.teacher-add-lesson-page .pagination { margin: .75rem 1.5rem; }
+.teacher-add-lesson-page .pagination__button[aria-current="page"] { background: var(--lesson-action); color: var(--lesson-action-ink); box-shadow: none; }
+body:has(.teacher-add-lesson-page) .modal:has(.lesson-add-form)::before { background: var(--primary); }
+.lesson-guide { padding: 1.4rem 0; min-width: 0; }
+.lesson-guide h2 { font-size: 1.1rem; margin: .6rem 0; line-height: 1.5; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.lesson-guide > p { font-size: .8rem; color: var(--ink-3); line-height: 1.7; }
+.lesson-guide__steps { list-style: none; padding: 1.25rem 0 0; margin: 1.25rem 0; border-top: 1px solid var(--border); display: grid; gap: 1.5rem; }
+.lesson-guide__steps li { display: flex; gap: .8rem; }
+.lesson-guide__steps li > span { padding-top: .15rem; font-size: .68rem; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+.lesson-guide__steps strong { font-size: .77rem; color: var(--ink); }
+.lesson-guide__steps p { margin: .35rem 0 0; font-size: .75rem; line-height: 1.75; color: var(--ink-3); }
+.lesson-guide__note { display: flex; gap: .65rem; border-top: 1px solid var(--border); padding-top: 1.2rem; }
+.lesson-guide__note svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: var(--primary); stroke-width: 1.5; }
+.lesson-guide__note p { margin: 0; color: var(--ink-3); font-size: .72rem; line-height: 1.7; }
+.teacher-add-lesson-page .lesson-picker__empty { padding: 3rem 1.5rem; background: var(--lesson-paper); border: 1px solid var(--border); box-shadow: none; }
+body:has(.teacher-add-lesson-page) .lesson-add-form { gap: 1.5rem; }
+body:has(.teacher-add-lesson-page) :is(.lesson-mode__options, .lesson-schedule) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+body:has(.teacher-add-lesson-page) .lesson-mode__option { padding: 1rem; border-radius: 10px; gap: .65rem; }
+body:has(.teacher-add-lesson-page) .lesson-mode__option small { color: var(--ink-2); font-size: .75rem; line-height: 1.6; margin-top: .25rem; }
+body:has(.teacher-add-lesson-page) .lesson-schedule__hint { line-height: 1.7; }
+body:has(.teacher-add-lesson-page) .lesson-schedule input { width: 100%; min-width: 0; min-height: 44px; }
+@media (max-width: 1150px) {
+  .lesson-workspace { grid-template-columns: minmax(0,1fr); }
+  .lesson-guide { display: none; }
+}
+@media (max-width: 600px) {
+  .teacher-add-lesson-page .lesson-picker__toolbar { padding: 1.15rem; flex-direction: column; gap: .5rem; }
+  .teacher-add-lesson-page .lesson-picker__search { margin: 0 1rem .75rem; }
+  .teacher-add-lesson-page .lesson-picker__ribbons { margin: 0 1rem; gap: .25rem; }
+  .teacher-add-lesson-page .lesson-picker__list { padding: 0 .65rem; }
+  .teacher-add-lesson-page .lesson-picker__row { padding: 1rem .35rem; }
+  .teacher-add-lesson-page .lesson-picker__choice { gap: .6rem; }
+  .teacher-add-lesson-page .lesson-picker__footer { align-items: stretch; flex-direction: column; gap: .75rem; padding: .85rem; margin: .5rem; }
+  .lesson-picker__selection { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .teacher-add-lesson-page .lesson-picker__footer .button { width: 100%; min-height: 46px; }
+  .teacher-add-lesson-page .pagination { margin: .75rem; }
+  body:has(.teacher-add-lesson-page) :is(.lesson-mode__options, .lesson-schedule) { grid-template-columns: minmax(0,1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .teacher-add-lesson-page *, body:has(.teacher-add-lesson-page) .lesson-add-form * { animation: none !important; transition: none !important; }
 }

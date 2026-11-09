@@ -30,6 +30,19 @@ const fullNameOf = (student) =>
 
 const studentName = (student) => fullNameOf(student) || student.email || "this student";
 
+function classLabel(classroom) {
+  const name = (classroom.className || "").trim();
+  const section = (classroom.section || "").trim();
+  if (!name) return section;
+  if (!section) return name;
+  const normalize = value => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const nameKey = normalize(name);
+  const sectionKey = normalize(section);
+  return !sectionKey || nameKey === sectionKey || nameKey.endsWith(` ${sectionKey}`)
+    ? name
+    : `${name} · ${section}`;
+}
+
 function closeStudentMenus() {
   document.querySelectorAll(".student-table .teacher-table__menu-popup").forEach((menu) => {
     menu.hidden = true;
@@ -55,7 +68,7 @@ const countLabel = (count) => (count === 1 ? "student" : "students");
 export async function renderStudents() {
   const [students] = await Promise.all([getAllStudents(), getAllClasses()]);
   const classNames = new Map(
-    state.allClasses.map((c) => [c.id, [c.className, c.section].filter(Boolean).join(" · ")]),
+    state.allClasses.map((c) => [c.id, classLabel(c)]),
   );
   const classOf = (student) => classNames.get(student.classId) || "";
   // A student whose class was deleted counts as "No class yet", as the Class column shows.

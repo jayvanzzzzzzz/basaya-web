@@ -1,4 +1,44 @@
 /* LESSON VIEWER — read-only "View lesson" (admin/views/lessonViewer.js) */
+.lesson-preview-modal {
+  --bg: #f8f5ec;
+  --surface: #fffefa;
+  --surface-2: #f4f2ee;
+  --surface-3: #efedf4;
+  --ink: #20243a;
+  --ink-2: #50586b;
+  --ink-3: #626b7b;
+  --primary: #1f2559;
+  --primary-strong: #33396c;
+  --primary-soft: #eae7f8;
+  --primary-softer: #f2f0f8;
+  --border: #dddde3;
+  --border-strong: #b7b9c7;
+  --success: #296841;
+  --success-soft: #e3f1e7;
+  --preview-paper: rgba(255,255,255,.8);
+  --preview-action: #1f2559;
+  --preview-action-ink: #fff;
+}
+:root[data-theme="dark"] .lesson-preview-modal {
+  --bg: #191a20;
+  --surface: #24252e;
+  --surface-2: #292a34;
+  --surface-3: #303140;
+  --ink: #eeeef4;
+  --ink-2: #c1c3d0;
+  --ink-3: #a9aebb;
+  --primary: #c0bcf1;
+  --primary-strong: #d4d0ff;
+  --primary-soft: #35344b;
+  --primary-softer: #2d2d3d;
+  --border: #414350;
+  --border-strong: #777c91;
+  --success: #93d6aa;
+  --success-soft: #263c32;
+  --preview-paper: rgba(39,40,49,.94);
+  --preview-action: #c0bcf1;
+  --preview-action-ink: #191a20;
+}
 .lesson-viewer-modal {
   display: flex;
   width: min(100%, 64rem);
@@ -887,4 +927,87 @@
   .lv-section {
     animation: none;
   }
+}
+
+/* Teacher preview: an editorial reading surface within the existing viewer. */
+.lesson-viewer-modal.lesson-preview-modal { width: min(100%,68rem); height: min(92dvh,56rem); max-height: 92dvh; border-radius: 18px; background: var(--surface); box-shadow: 0 24px 80px -24px rgba(10,15,40,.4); }
+.lesson-preview-modal .lv-hero { gap: 1.25rem; padding: 1.7rem 2rem 0; background: var(--bg); color: var(--ink); }
+.lesson-preview-modal .lv-hero::before { display: none; }
+.lesson-preview-modal .lv-hero__text { padding-right: 2.5rem; gap: .55rem; }
+.lv-eyebrow { font-size: .65rem; letter-spacing: .13em; text-transform: uppercase; font-weight: 700; color: var(--ink-3); }
+.lesson-preview-modal .lv-hero__tags { order: 3; margin: .15rem 0; }
+.lesson-preview-modal .lv-hero h2 { margin: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere; color: var(--ink); font-size: clamp(1.3rem,2.5vw,1.85rem); line-height: 1.35; letter-spacing: -.04em; }
+.lesson-preview-modal .lv-hero__text p { display: block; overflow: visible; overflow-wrap: anywhere; color: var(--ink-2); font-size: .82rem; line-height: 1.65; margin: 0; }
+.lesson-preview-modal .lv-readonly { padding: .25rem .55rem; border: 0; border-radius: 6px; background: var(--surface-3); color: var(--ink-2); font-size: .66rem; font-weight: 600; }
+.lesson-preview-modal .lv-hero .admin-lesson-difficulty { border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); font-size: .66rem; }
+.lesson-preview-modal .lv-stats { gap: 0; padding: 1rem 0; border-top: 1px solid var(--border); }
+.lesson-preview-modal .lv-stats div { padding: .1rem 1rem; border: 0; border-right: 1px solid var(--border); border-radius: 0; background: none; display: flex; flex-direction: column-reverse; gap: .25rem; }
+.lesson-preview-modal .lv-stats div:first-child { padding-left: 0; }
+.lesson-preview-modal .lv-stats div:last-child { border-right: 0; }
+.lesson-preview-modal .lv-stats dt { font-size: .64rem; color: var(--ink-3); opacity: 1; letter-spacing: 0; }
+.lesson-preview-modal .lv-stats dd { margin: 0; font-size: 1.15rem; line-height: 1.3; color: var(--ink); }
+.lesson-preview-modal .lv-stats .lv-skeleton { background: var(--border); }
+.lesson-preview-modal .modal-close { width: 44px; height: 44px; top: 1rem; right: 1rem; background: var(--preview-paper); color: var(--ink-2); border: 1px solid var(--border); border-radius: 10px; backdrop-filter: blur(8px); }
+.lesson-preview-modal .modal-close:hover { transform: none; color: var(--primary); background: var(--primary-soft); }
+.lesson-preview-modal .lv-tabs { flex-shrink: 0; padding: .4rem 1.5rem 0; gap: .5rem; background: var(--surface); scrollbar-width: thin; }
+.lesson-preview-modal .lv-tab { padding: .8rem .65rem; min-height: 48px; color: var(--ink-2); font-size: .78rem; gap: .4rem; }
+.lesson-preview-modal .lv-tab[aria-selected="true"] { color: var(--primary); background: var(--primary-softer); }
+.lesson-preview-modal .lv-tab::after { background: var(--primary); height: 2px; transition: transform 180ms ease; }
+.lesson-preview-modal .lv-body { padding: 1.5rem 2rem 2rem; background: var(--bg); overscroll-behavior: contain; scrollbar-width: thin; }
+.lesson-preview-modal .lv-section { gap: 1.25rem; animation: none; }
+.lesson-preview-modal .lv-section-head { padding-bottom: .85rem; border-bottom: 1px solid var(--border); }
+.lesson-preview-modal .lv-section-head h3 { font-size: 1.05rem; }
+.lesson-preview-modal .lv-section-head p { font-size: .78rem; line-height: 1.7; }
+.lesson-preview-modal :is(.lv-card,.lv-wordcard) { background: var(--preview-paper); border: 1px solid var(--border); border-radius: 12px; box-shadow: none; animation: none; }
+.lesson-preview-modal .lv-card { padding: 1.25rem; gap: .85rem; }
+.lesson-preview-modal .lv-card__label { color: var(--ink-3); font-size: .65rem; letter-spacing: .1em; }
+.lesson-preview-modal .lv-line { padding: .6rem 0; align-items: flex-start; }
+.lesson-preview-modal .lv-line p { padding-top: .5rem; font-size: .9rem; line-height: 1.8; overflow-wrap: anywhere; min-width: 0; }
+.lesson-preview-modal :is(.lv-play,.lv-playall) { min-width: 44px; min-height: 44px; border-radius: 10px; transition: background-color 180ms,color 180ms; }
+.lesson-preview-modal :is(.lv-play,.lv-playall):is(:hover,.is-playing) { transform: none; background: var(--preview-action); color: var(--preview-action-ink); }
+.lesson-preview-modal .lv-playall { padding: .5rem .75rem; font-size: .72rem; }
+.lesson-preview-modal [data-tooltip]::after { content: attr(data-tooltip); position: absolute; bottom: calc(100% + 7px); left: 0; z-index: 5; padding: .45rem .6rem; background: var(--ink); color: var(--bg); border-radius: 6px; font-size: .7rem; font-weight: 500; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity 160ms,transform 160ms; }
+.lesson-preview-modal [data-tooltip]:is(:hover,:focus-visible)::after { opacity: 1; transform: translateY(0); }
+.lesson-preview-modal .modal-close[data-tooltip]::after { left: auto; right: calc(100% + 8px); bottom: auto; }
+.lesson-preview-modal :is(button,.lv-body):focus-visible { outline: 2px solid var(--primary); outline-offset: -3px; }
+.lesson-preview-modal .lv-wordcard { min-width: 0; padding: .85rem; }
+.lesson-preview-modal .lv-wordcard:hover { transform: none; }
+.lesson-preview-modal .lv-wordcard strong { overflow: visible; overflow-wrap: anywhere; font-size: .95rem; }
+.lesson-preview-modal .lv-word { box-shadow: none; font-size: .88rem; max-width: 100%; overflow-wrap: anywhere; }
+.lesson-preview-modal .lv-question__text { font-size: .95rem; line-height: 1.7; overflow-wrap: anywhere; }
+.lesson-preview-modal .lv-choice { border-width: 1px; padding: .7rem; font-size: .83rem; line-height: 1.6; flex-wrap: wrap; }
+.lesson-preview-modal .lv-choice > span:nth-child(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.lesson-preview-modal .lv-choice.is-correct .lv-choice__key { background: var(--success-soft); color: var(--success); }
+.lesson-preview-modal .lv-choice__tag { font-size: .6rem; letter-spacing: .04em; }
+.lesson-preview-modal .lv-level__grid { min-width: 0; overflow-x: auto; background: var(--surface-2); }
+.lesson-preview-modal .lv-wheel span { background: var(--preview-action); color: var(--preview-action-ink); box-shadow: none; }
+.lesson-preview-modal .lv-footer { flex-shrink: 0; padding: .85rem 1.5rem; background: var(--surface); }
+.lesson-preview-modal .lv-footer__note { font-size: .7rem; color: var(--ink-3); }
+.lesson-preview-modal .lv-footer__note svg { flex-shrink: 0; }
+.lesson-preview-modal .lv-footer .button { min-height: 44px; background: var(--preview-action); color: var(--preview-action-ink); border: 0; box-shadow: none; }
+.lesson-preview-modal .lv-empty { background: var(--preview-paper); border-width: 1px; line-height: 1.7; }
+@media (max-width: 760px) {
+  .lesson-preview-modal .lv-hero { padding: 1.15rem 1rem 0; gap: .85rem; max-height: 36dvh; overflow-y: auto; flex-shrink: 0; }
+  .lesson-preview-modal .lv-hero__text { padding-right: 2.75rem; }
+  .lesson-preview-modal .lv-stats { grid-template-columns: repeat(5,minmax(0,1fr)); padding: .7rem 0; }
+  .lesson-preview-modal .lv-stats div { padding: 0 .4rem; }
+  .lesson-preview-modal .lv-stats dt { font-size: .58rem; line-height: 1.5; }
+  .lesson-preview-modal .lv-stats dd { font-size: 1rem; }
+  .lesson-preview-modal .lv-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .1rem; padding: .35rem .65rem; overflow: visible; }
+  .lesson-preview-modal .lv-tab { justify-content: center; padding: .45rem .2rem; min-width: 0; min-height: 44px; font-size: .68rem; gap: .25rem; border-radius: 6px; }
+  .lesson-preview-modal .lv-tab svg { display: none; }
+  .lesson-preview-modal .lv-tab__count { min-width: 1.1rem; height: 1.1rem; padding: .1rem; font-size: .6rem; }
+  .lesson-preview-modal .lv-body { padding: 1rem; }
+  .lesson-preview-modal .lv-card { padding: .9rem; }
+  .lesson-preview-modal .lv-words { grid-template-columns: minmax(0,1fr); }
+  .lesson-preview-modal .lv-line { flex-wrap: wrap; gap: .5rem; }
+  .lesson-preview-modal .lv-line p { flex: 1; min-width: 8rem; }
+  .lesson-preview-modal .lv-card__top { flex-wrap: wrap; }
+  .lesson-preview-modal .lv-footer { padding: .75rem 1rem; }
+}
+@media (max-width: 560px) {
+  .lesson-viewer-modal.lesson-preview-modal { height: 96dvh; max-height: 96dvh; border-radius: 16px 16px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-preview-modal, .lesson-preview-modal * { animation: none !important; transition: none !important; }
 }

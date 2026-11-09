@@ -51,7 +51,7 @@ export async function renderTeachers() {
   page(
     "Teacher accounts",
     [`${state.teachers.length} ${state.teachers.length === 1 ? "teacher" : "teachers"}`],
-    `<button class="button primary" id="add-teacher">+ Add teacher</button>`,
+    `<button class="button primary admin-add-button" id="add-teacher" type="button" aria-label="Add teacher"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><path d="M2.5 21v-2a6.5 6.5 0 0 1 10-5.5M18 12v8m-4-4h8"/></svg></button>`,
   );
 
   $("#page-content").innerHTML = state.teachers.length
@@ -83,7 +83,6 @@ export async function renderTeachers() {
                 (t) => `<tr data-teacher-name="${escapeHtml(t.displayName || "Unnamed teacher")}">
                   <td>
                     <div class="teacher-table__person">
-                      <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml(initials(t.displayName || t.email || "T"))}</span>
                       <span class="teacher-table__name">${escapeHtml(t.displayName || "Unnamed teacher")}</span>
                       ${titleLabel(t.title) ? `<span class="teacher-table__title">${escapeHtml(titleLabel(t.title))}</span>` : ""}
                     </div>
