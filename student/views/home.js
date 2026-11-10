@@ -59,7 +59,7 @@ function statusOf(lesson) {
   if (isComplete(lesson)) return { key: "done", label: "Tapos na", icon: "check" };
   if (lesson.lectureFinished || game || activity || lesson.pronunciationFinished || lesson.quizFinished || lesson.started)
     return { key: "progress", label: "Nasa progreso", icon: "refresh" };
-  return { key: "new", label: "Hindi pa nasisimulan", icon: "lock" };
+  return { key: "new", label: "Hindi pa nasisimulan", icon: "book" };
 }
 
 /** All five parts, excluding a game or Gawain the admin skipped. */
@@ -128,6 +128,7 @@ function lessonCard(lesson, search) {
           <b>${percent}%</b>
         </span>`
         }
+        <span class="st-lesson__action">${canOpen(lesson) ? lesson.practice ? "Magsanay" : status.key === "done" ? "Balikan ang aralin" : status.key === "progress" ? "Ipagpatuloy" : "Simulan ang aralin" : "Tingnan ang iskedyul"}${icon(canOpen(lesson) ? "chevron" : "lock")}</span>
       </button>
       ${isInstalledPwa() ? `<span class="st-download-state" data-download-state="${escapeHtml(lesson.id)}">${downloadIndicator(lesson.id)}</span>
       <details class="st-download-menu" data-download-menu="${escapeHtml(lesson.id)}">
@@ -268,18 +269,24 @@ export async function renderHome() {
   content().innerHTML = `
     <section class="st-home">
       <header class="st-hero st-hero--home">
-        <div>
-          <span class="st-hero__eyebrow">Mga Aralin</span>
-          <h1 id="home-class">${escapeHtml(student.profile.className || "")}</h1>
+        <div class="st-home-welcome">
+          <span class="st-hero__eyebrow">Basa. Tuklas. Saya.</span>
+          <h1>Mga Aralin<span class="st-heading-dot">.</span></h1>
+          <p>Bawat pahina, bagong kaalaman.<br />Handa ka na bang matuto?</p>
+          <span class="st-home-class" id="home-class">${escapeHtml(student.profile.className || "")}</span>
         </div>
-        <button class="st-icon-button" type="button" id="home-refresh" aria-label="I-refresh ang mga aralin">${icon("refresh")}</button>
+        <div class="st-home-art" aria-hidden="true"><span class="st-home-art__page"></span><img src="../img/logo.png" alt="" /><span class="st-home-art__caption">Tara, magbasa!</span></div>
+        <button class="st-icon-button st-hub-tooltip" type="button" id="home-refresh" aria-label="I-refresh ang mga aralin" data-tooltip="I-refresh">${icon("refresh")}</button>
       </header>
+      <section class="st-home-tools" aria-label="Hanapin at salain ang mga aralin">
+      <div class="st-library-heading"><h2>Aking mga aralin</h2><span>Piliin ang susunod mong babasahin</span></div>
       <label class="st-search">
         ${icon("search")}
         <input id="home-search" type="search" placeholder="Hanapin ang aralin" autocomplete="off" aria-label="Hanapin ang aralin" />
       </label>
       <div class="st-tabs" id="home-tabs" role="tablist" aria-label="Salain ang mga aralin" hidden></div>
       <div class="st-status-filters" id="home-status" role="group" aria-label="Salain ayon sa progreso" hidden></div>
+      </section>
       ${isInstalledPwa() ? `<div class="st-download-all"><button class="button secondary" type="button" id="home-download-all" disabled>${icon("download")}<span>I-download lahat</span></button><button class="st-icon-button" type="button" id="home-cancel-download-all" aria-label="Itigil ang pag-download" title="Itigil ang pag-download" hidden>${icon("close")}</button><span id="home-download-all-status" role="status"></span></div>` : ""}
       <div id="home-list" aria-live="polite">
         <div class="st-loading"><span></span><span></span><span></span></div>

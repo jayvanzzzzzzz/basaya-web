@@ -142,6 +142,7 @@ async function drawRoute(flight) {
   // Lesson parts take the whole page (no top bar or bottom menu), like the app.
   const focus = section === "lesson" && part in PARTS;
   $("#app-view").classList.toggle("is-focus", focus);
+  $("#app-view").classList.toggle("is-student-hub", ["home", "progress", "chat", "account"].includes(section));
   $("#app-view").classList.toggle("is-chat", section === "chat" || section === "assistant");
   $$("[data-nav]").forEach((link) => {
     const active =

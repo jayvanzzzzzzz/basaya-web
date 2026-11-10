@@ -133,7 +133,8 @@ export async function renderProgress() {
   content().innerHTML = `
     <section class="st-progress">
       <header class="st-progress__title">
-        <h1>Aking Progreso</h1>
+        <span class="st-page-eyebrow">Bawat hakbang, may pag-unlad</span>
+        <h1>Aking Progreso<span class="st-heading-dot">.</span></h1>
         <p>Tingnan kung gaano ka na kagaling sa bawat kasanayan!</p>
       </header>
       <div id="progress-body">${lastView?.scope === scope ? lastView.html : '<div class="st-loading"><span></span><span></span><span></span></div>'}</div>
@@ -182,7 +183,7 @@ export async function renderProgress() {
       </div>
     </div>
 
-    <h2 class="st-section-title">Mga kasanayan ko</h2>
+    <div class="st-library-heading st-skills-heading"><h2>Mga kasanayan ko</h2><span>Bawat kasanayan, sariling pag-unlad</span></div>
     <div class="st-skills">
       ${SKILLS.map(({ key }, index) => {
         const skill = summary.skills[key];
@@ -206,7 +207,8 @@ export async function renderProgress() {
             <div class="st-words__list">${words.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}</div>
           </section>`
         : ""
-    }`;
+    }
+    <a class="button primary st-progress-continue" href="#/home">${icon("book")}Bumalik sa mga aralin${icon("chevron")}</a>`;
 
   lastView = { scope, html: $("#progress-body").innerHTML };
 }

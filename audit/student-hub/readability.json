@@ -1,0 +1,242 @@
+[
+  {
+    "route": "home",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "home",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "progress",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "chat",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "account",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-profile",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-password",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-leave",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-logout",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-profile",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-password",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-leave",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dialog-logout",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  }
+]
