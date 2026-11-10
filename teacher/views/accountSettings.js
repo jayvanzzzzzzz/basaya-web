@@ -1,4 +1,4 @@
-import { syncThemeButtons } from "../../js/theme.js";
+import { syncThemeButtons } from "../../js/theme-buttons.js";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,

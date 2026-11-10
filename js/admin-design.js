@@ -1,5 +1,5 @@
 import { attachFloatingTooltips } from './floatingTooltip.js';
-import { syncThemeButtons } from './theme.js';
+import { syncThemeButtons } from './theme-buttons.js';
 
 // Reuse the authenticated profile; this module only presents existing controls.
 const app = document.getElementById('app-view');

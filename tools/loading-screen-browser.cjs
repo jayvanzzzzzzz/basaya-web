@@ -6,6 +6,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root = path.resolve(__dirname, '..');
+const audit = require('./text-readability-audit.cjs');
 const artifacts = path.join(root, 'audit/loading-screen');
 const baseline = process.argv.includes('--baseline');
 const server = http.createServer(async (request, response) => {
@@ -48,7 +49,7 @@ const assertCovered = value => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
   let checked = 0;
-  for (const viewport of [{ width: 1440, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 760 }, { width: 844, height: 390 }]) {
     for (const theme of ['light', 'dark']) {
       const context = await browser.newContext({ viewport, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'block' });
       const page = await context.newPage();
@@ -69,6 +70,13 @@ const assertCovered = value => {
         if (!baseline) {
           assertCovered(await coverage(page));
           assert.equal(await page.locator('#dashboard-probe').isVisible(), false, label);
+          if (portal === 'login') {
+            assert.equal(await page.locator('.account-loading').getAttribute('role'), 'status');
+            assert.equal(await page.locator('.account-loading__rail span').evaluate(e => getComputedStyle(e).animationName), 'none');
+            const card = await page.locator('.account-loading__card').boundingBox();
+            assert.ok(card.x >= 0 && card.y >= 0 && card.x + card.width <= viewport.width && card.y + card.height <= viewport.height, label + ': account loading fits');
+            assert.deepEqual(await audit(page), [], label + ': readable text');
+          }
         }
         await page.mouse.move(viewport.width / 2, viewport.height / 2);
         await page.mouse.wheel(0, 1400);

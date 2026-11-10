@@ -54,7 +54,22 @@ self.addEventListener("fetch", (event) => {
       return (await cache.match(fallback)) || Response.error();
     }));
   } else if (shell.has(clean)) {
-    event.respondWith(caches.open(CACHE).then(async (cache) => (await cache.match(clean)) || fetch(request)));
+    // Fresh HTML must not link against an older cached module's exports.
+    // Revalidate public shell assets online; retain the installed copy offline.
+    event.respondWith(caches.open(CACHE).then(async (cache) => {
+      try {
+        const response = await fetch(request, { cache: "no-cache" });
+        if (response.ok) {
+          await cache.put(clean, response.clone());
+          return response;
+        }
+        return (await cache.match(clean)) || response;
+      } catch (error) {
+        const cached = await cache.match(clean);
+        if (cached) return cached;
+        throw error;
+      }
+    }));
   } else if (url.origin === "https://www.gstatic.com" && url.pathname.startsWith("/firebasejs/")) {
     event.respondWith(caches.open(SDK_CACHE).then(async (cache) => (await cache.match(request)) || fetch(request)));
   }

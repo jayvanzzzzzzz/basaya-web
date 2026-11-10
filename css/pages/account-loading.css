@@ -1,0 +1,44 @@
+/* Account verification only; the existing authentication lifecycle owns visibility. */
+.login-editorial > .account-loading {
+  --account-bg: #fff9f0;
+  --account-surface: #fffefa;
+  --account-text: #242b52;
+  --account-muted: #515b77;
+  --account-primary: #5b4cf4;
+  --account-soft: #eeebff;
+  --account-border: #e1e1ed;
+  --account-gold: #ffd56a;
+  background: var(--account-bg);
+  color: var(--account-text);
+  justify-items: center;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+:root[data-theme="dark"] .login-editorial > .account-loading {
+  --account-bg: #121c30;
+  --account-surface: #1c2840;
+  --account-text: #f2f3ff;
+  --account-muted: #c6cce1;
+  --account-primary: #a49cf2;
+  --account-soft: #302f58;
+  --account-border: #35415c;
+}
+.account-loading__card { display: grid; grid-template-columns: 13rem minmax(0, 1fr); align-items: center; gap: 3rem; width: min(100%, 48rem); padding: clamp(1.5rem, 5vw, 3.5rem); border: 1px solid var(--account-border); border-radius: 28px; background: var(--account-surface); box-shadow: 0 18px 60px -35px #20285a50; text-align: left; }
+.account-loading__art { position: relative; display: grid; place-items: center; width: 13rem; height: 14rem; }
+.account-loading__page { position: absolute; inset: 1rem 1.25rem; border: 1px solid var(--account-border); border-top: 6px solid var(--account-gold); border-radius: 20px; background: var(--account-soft); transform: rotate(-8deg); }
+.account-loading__art img { position: relative; width: 10rem; height: 10rem; object-fit: contain; }
+.account-loading__lock { position: absolute; right: .5rem; bottom: 1rem; display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border: 5px solid var(--account-surface); border-radius: 18px; background: var(--account-gold); color: #242b52; transform: rotate(8deg); }
+.account-loading__lock svg { width: 1.6rem; height: 1.6rem; }
+.account-loading__brand { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--account-primary); }
+.account-loading__copy h1 { margin: .75rem 0 1rem; color: var(--account-text); font-family: var(--font-display); font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.25; letter-spacing: -.05em; }
+.account-loading .account-loading__copy p { margin: 0; color: var(--account-muted); font-size: .9rem; line-height: 1.8; }
+.account-loading__rail { width: min(100%, 12rem); height: 5px; margin-top: 1.75rem; overflow: hidden; border-radius: 5px; background: var(--account-soft); }
+.account-loading__rail span { display: block; width: 35%; height: 100%; border-radius: inherit; background: var(--account-primary); animation: account-scan 1.8s ease-in-out infinite alternate; }
+@keyframes account-scan { from { transform: translateX(0); } to { transform: translateX(185%); } }
+@media (max-width: 600px) {
+  .account-loading__card { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 1.25rem; padding: 2rem 1.5rem; text-align: center; }
+  .account-loading__art { width: 11rem; height: 12rem; }
+  .account-loading__art img { width: 9rem; height: 9rem; }
+  .account-loading__rail { margin-inline: auto; }
+}
+@media (max-height: 480px) and (min-width: 601px) { .account-loading__card { padding: 1.5rem 2rem; gap: 2rem; } .account-loading__art { height: 12rem; } }
+@media (prefers-reduced-motion: reduce) { .account-loading__rail span { animation: none; transform: translateX(90%); } }

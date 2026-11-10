@@ -4,6 +4,9 @@
 // choice in this browser. The <head> of each page sets the theme before anything is
 // drawn (no flash); this file handles the button, the animation and system changes.
 
+import { syncThemeButtons } from "./theme-buttons.js";
+export { syncThemeButtons } from "./theme-buttons.js";
+
 const STORAGE_KEY = "basaya-theme";
 const root = document.documentElement;
 const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
@@ -18,18 +21,6 @@ function savedTheme() {
 }
 
 const currentTheme = () => (root.dataset.theme === "dark" ? "dark" : "light");
-
-export function syncThemeButtons() {
-  const next = currentTheme() === "dark" ? "light" : "dark";
-  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    button.setAttribute("aria-label", `Switch to ${next} mode`);
-    button.title = `Switch to ${next} mode`;
-    button.setAttribute("aria-pressed", String(currentTheme() === "dark"));
-  });
-  document.querySelectorAll("[data-theme-choice]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.themeChoice === currentTheme()));
-  });
-}
 
 function applyTheme(theme, { save = false } = {}) {
   root.dataset.theme = theme;

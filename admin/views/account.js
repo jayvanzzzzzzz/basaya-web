@@ -8,7 +8,7 @@ import { $, escapeHtml, page, toast } from "../../js/helpers.js";
 import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { requestAdminPasswordChange, sendResetLink } from "../../js/api.js";
 import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
-import { syncThemeButtons } from '../../js/theme.js';
+import { syncThemeButtons } from '../../js/theme-buttons.js';
 
 // #/settings: the admin's own password. Unlike a teacher's, a new admin password
 // doesn't apply right away: notify-api emails the admin an Approve link first

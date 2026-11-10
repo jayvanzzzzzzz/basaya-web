@@ -65,6 +65,10 @@ async function serviceWorker(failSDK = false) {
     events.fetch({ request: { url, mode, method }, respondWith: (value) => result = value });
     return result ? await (await result).text() : null;
   }
+  network = true;
+  check(await request(`${base}js/theme.js`) === "network", "Online shell modules must revalidate rather than return obsolete exports");
+  network = false;
+  check(await request(`${base}js/theme.js`) === "network", "Refreshed module remains available offline");
   check((await request(`${base}student/`, "navigate")).includes('id="app-view"'), "Offline student navigation gets the student shell");
   check((await request(`${base}student/index.html?installed=1`, "navigate")).includes('id="app-view"'), "Explicit student URL with a query gets the shell");
   check((await request(`${base}admin/`, "navigate")).includes("html"), "Other portals retain an offline fallback");
