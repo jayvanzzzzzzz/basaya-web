@@ -32,7 +32,7 @@ export async function renderActivity(lessonId) {
   if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang gawain."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.activityFinished || lesson.activitySkipped) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang gawain..."><span></span><span></span><span></span></div></div>`;
   const [activity, progress] = await Promise.all([loadActivity(lessonId), loadLessonProgress(lessonId)]);
   if (progress.activityFinished) return navigate(pathUrl);
   if (!activity?.pages.length) {
@@ -43,23 +43,29 @@ export async function renderActivity(lessonId) {
   content().innerHTML = `
     <section class="st-activity">
       <header class="st-focus-bar">
-        <a class="st-icon-button" href="#${pathUrl}" aria-label="Isara">${icon("close")}</a>
-        <div class="st-track st-track--activity" id="activity-track">
+        <a class="st-icon-button st-hub-tooltip" data-tooltip="Bumalik sa aralin" href="#${pathUrl}" aria-label="Bumalik sa aralin">${icon("close")}</a>
+        <div class="st-track st-track--activity" id="activity-track" role="progressbar" aria-label="Mga pahina ng gawain" aria-valuemin="0" aria-valuemax="${activity.pages.length}" aria-valuenow="0">
           ${activity.pages.map(() => "<i></i>").join("")}
         </div>
       </header>
+      <div class="st-activity__workspace">
       <div class="st-activity__head">
+        <span class="st-activity__eyebrow">${lesson.practice ? "Pagsasanay" : "Gawain"} · Pagkilala sa salita</span>
         <div class="st-activity__meta">
           <span class="st-activity__tag" id="activity-page"></span>
-          <span class="st-lives" id="activity-lives" role="img">
+          <span class="st-activity__lives-group"><span id="activity-lives-label">3 buhay</span><span class="st-lives" id="activity-lives" role="img">
             ${Array.from({ length: LIVES }, () => icon("heart")).join("")}
-          </span>
+          </span></span>
         </div>
-        ${activity.title ? `<h1>${escapeHtml(activity.title)}</h1>` : ""}
+        <h1>${escapeHtml(activity.title || "Sanayin ang iyong natutuhan")}</h1>
         ${activity.instruction ? `<p>${escapeHtml(activity.instruction)}</p>` : ""}
       </div>
+      <div class="st-activity__exercise">
       <div class="st-card st-worksheet">
+        <div class="st-worksheet__heading"><span class="st-worksheet__icon">${icon("pencil")}</span><div><h2>Piliin ang sagot</h2><p>Pindutin ang salita upang piliin o alisin ito.</p></div></div>
+        <div class="st-worksheet__meta">
         <span class="st-activity__pick" id="activity-pick"></span>
+        <span id="activity-selection" role="status">0 napili</span></div>
         <div class="st-tiles" id="activity-tiles" role="group" aria-label="Mga salita"></div>
       </div>
       <div class="st-feedback" id="activity-feedback" hidden aria-live="polite">
@@ -69,6 +75,7 @@ export async function renderActivity(lessonId) {
       <div class="st-focus-footer">
         <button class="st-action st-action--check st-wide" type="button" id="activity-action" disabled>Suriin ang Sagot</button>
       </div>
+      </div></div>
     </section>`;
 
   const tilesEl = $("#activity-tiles");
@@ -105,6 +112,7 @@ export async function renderActivity(lessonId) {
     const livesEl = $("#activity-lives");
     $$("svg", livesEl).forEach((heart, i) => heart.classList.toggle("is-lost", i >= lives));
     livesEl.setAttribute("aria-label", `${lives} sa ${LIVES} buhay`);
+    $("#activity-lives-label").textContent = `${lives} sa ${LIVES} buhay`;
   };
 
   const setAction = (label, kind) => {
@@ -117,6 +125,7 @@ export async function renderActivity(lessonId) {
       bar.classList.toggle("is-done", i < pageIndex || (i === pageIndex && pageOver()));
     });
     $("#activity-page").textContent = `Pahina ${pageIndex + 1} / ${activity.pages.length}`;
+    $("#activity-track").setAttribute("aria-valuenow", String(pageIndex + (pageOver() ? 1 : 0)));
     updateLives();
   };
 
@@ -125,6 +134,7 @@ export async function renderActivity(lessonId) {
     $("#activity-pick").textContent = pickCount ? `Pumili ng ${pickCount} salita` : "";
     $("#activity-pick").hidden = !pickCount;
     selected.clear();
+    $("#activity-selection").textContent = "0 napili";
     checked = false;
     feedback.hidden = true;
     setBuddyMood(feedbackBuddy, "idle");
@@ -147,6 +157,7 @@ export async function renderActivity(lessonId) {
     else selected.add(index);
     tile.classList.toggle("is-picked", selected.has(index));
     tile.setAttribute("aria-pressed", String(selected.has(index)));
+    $("#activity-selection").textContent = `${selected.size} napili`;
     action.disabled = selected.size === 0;
   });
 

@@ -1,0 +1,70 @@
+[
+  {
+    "state": "initial",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "state": "initial",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "state": "retry",
+    "theme": "light",
+    "issues": []
+  },
+  {
+    "state": "retry",
+    "theme": "dark",
+    "issues": []
+  },
+  {
+    "state": "success",
+    "theme": "light",
+    "issues": []
+  },
+  {
+    "state": "success",
+    "theme": "dark",
+    "issues": []
+  }
+]

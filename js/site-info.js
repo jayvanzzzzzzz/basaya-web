@@ -116,6 +116,7 @@ function select(id, focusTab = false) {
     panel.hidden = panel.id !== `site-info-${id}`;
   });
   dialog.querySelector(".site-info__body").scrollTop = 0;
+  dialog.setAttribute("aria-label", dialog.querySelector(`#site-info-${id} h2`).textContent);
 }
 
 function open(id, button) {

@@ -174,14 +174,15 @@ export async function renderNotifications() {
   content().innerHTML = `
     <section class="st-notifs">
       <header class="st-hero st-hero--notifs">
-        <a class="st-icon-button st-icon-button--light" href="#/home" aria-label="Bumalik">${icon("back")}</a>
+        <a class="st-icon-button st-icon-button--light st-hub-tooltip" data-tooltip="Mga Aralin" href="#/home" aria-label="Bumalik sa Mga Aralin">${icon("back")}</a>
         <div class="st-hero__text">
-          <span class="st-hero__eyebrow">Mga Abiso</span>
-          <h1 id="notif-bubble">…</h1>
+
+          <h1>Mga Abiso<span class="st-heading-dot">.</span></h1>
+          <p id="notif-bubble" role="status">Inihahanda ang mga balita para sa iyo…</p>
         </div>
         ${buddy("happy", "st-notifs__buddy")}
       </header>
-      <div id="notif-list"><div class="st-loading"><span></span><span></span><span></span></div></div>
+      <div id="notif-list"><div class="st-loading" role="status" aria-label="Kinukuha ang mga abiso..."><span></span><span></span><span></span></div></div>
     </section>`;
 
   await loadClassLessons();

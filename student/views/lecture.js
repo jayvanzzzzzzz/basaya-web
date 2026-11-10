@@ -87,7 +87,7 @@ export async function renderLecture(lessonId) {
   // After the deadline a finished lecture can still be reread.
   if (state === "not-yet-open" || (state === "closed" && !lesson.lectureFinished)) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang iyong babasahin..."><span></span><span></span><span></span></div></div>`;
   // Opened from the lesson path, everything is ready. Opened by its address (e.g. a reload), load it here and wait for the audio at most AUDIO_WAIT_MS.
   if (prepared?.lessonId !== lessonId) {
     try {
@@ -109,24 +109,34 @@ export async function renderLecture(lessonId) {
   content().innerHTML = `
     <section class="st-lecture">
       <header class="st-focus-bar">
-        <button class="st-icon-button" type="button" id="lecture-close" aria-label="Isara ang aralin">${icon("close")}</button>
-        <div class="st-track" id="lecture-track">
+        <button class="st-icon-button st-hub-tooltip" data-tooltip="Lumabas" type="button" id="lecture-close" aria-label="Isara ang aralin">${icon("close")}</button>
+        <div class="st-track" id="lecture-track" role="progressbar" aria-label="Mga pahinang nabasa" aria-valuemin="0" aria-valuemax="${lecture.pages.length}" aria-valuenow="0">
           ${lecture.pages.map(() => "<i></i>").join("")}
         </div>
-        <button class="st-icon-button" type="button" id="lecture-auto" aria-label="Kusang basahin ang aralin" aria-pressed="false">${icon("play")}</button>
-        <button class="st-icon-button" type="button" id="lecture-speaker" aria-label="I-on o i-off ang tunog" aria-pressed="${!muted}">${icon(muted ? "mute" : "speaker")}</button>
+        <button class="st-icon-button st-hub-tooltip" data-tooltip="Kusang pagbasa" type="button" id="lecture-auto" aria-label="Kusang basahin ang aralin" aria-pressed="false">${icon("play")}</button>
+        <button class="st-icon-button st-hub-tooltip" data-tooltip="Tunog" type="button" id="lecture-speaker" aria-label="I-on o i-off ang tunog" aria-pressed="${!muted}">${icon(muted ? "mute" : "speaker")}</button>
       </header>
       <div class="st-lecture__head">
+
         <span class="st-lecture__page" id="lecture-page"></span>
         <h1>${escapeHtml(lecture.title || "Aralin")}</h1>
       </div>
+      <div class="st-lecture__workspace">
+      <aside class="st-lecture__guide" aria-label="Gabay sa pagbasa">
+
       <button class="st-talking-book" type="button" id="lecture-book" aria-label="Ang nagsasalitang aklat. Pindutin para ulitin ang pangungusap.">
         ${talkingBuddy("st-talking-book__buddy")}
         <span class="st-talking-book__waves" aria-hidden="true"><i></i><i></i><i></i></span>
       </button>
+
+      <p>Pindutin ang aklat upang pakinggan muli ang pangungusap.</p>
+      <span class="st-lecture__guide-note">${icon("play")}Gamitin ang kusang pagbasa para magpatuloy ang salaysay.</span>
+      </aside>
       <div class="st-lecture__sheet" id="lecture-sheet" tabindex="0" aria-label="Pindutin ang pahina para sa susunod na pangungusap">
+
         <div class="st-lecture__sentences" id="lecture-sentences" aria-live="polite"></div>
         <p class="st-lecture__hint" id="lecture-hint">Pindutin ang pahina para sa susunod!</p>
+      </div>
       </div>
       <div class="st-focus-footer">
         <button class="button primary st-wide st-big" type="button" id="lecture-next" hidden></button>
@@ -238,6 +248,7 @@ export async function renderLecture(lessonId) {
       const done = i < pageIndex || (i === pageIndex && sentenceIndex >= lecture.pages[i].sentences.length);
       bar.classList.toggle("is-done", done);
     });
+    $("#lecture-track").setAttribute("aria-valuenow", String(pageIndex + (sentenceIndex >= lecture.pages[pageIndex].sentences.length ? 1 : 0)));
   };
 
   const reveal = () => {
@@ -290,6 +301,7 @@ export async function renderLecture(lessonId) {
     autoButton.innerHTML = icon(on ? "pause" : "play");
     autoButton.setAttribute("aria-pressed", String(on));
     autoButton.setAttribute("aria-label", on ? "Ihinto ang kusang pagbasa" : "Kusang basahin ang aralin");
+    autoButton.dataset.tooltip = on ? "Ihinto ang pagbasa" : "Kusang pagbasa";
   };
 
   /** Auto-play's next step: the next sentence, else the next page. The last page waits for TAPUSIN. */

@@ -356,6 +356,25 @@
   flex: 1;
 }
 
+/* Message actions: desktop hover/focus menu, touch long-press menu. The popup
+   mounts outside the scroller so it cannot be clipped by message bubbles. */
+.chat-message-options { display: grid; place-items: center; flex: 0 0 44px; align-self: center; width: 44px; height: 44px; padding: 10px; border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); opacity: 0; cursor: pointer; transition: opacity 160ms ease, background 160ms ease; }
+.chat-message-options svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
+.chat-msg:hover .chat-message-options,.chat-msg:focus-within .chat-message-options,.chat-message-options[aria-expanded="true"] { opacity: 1; }
+.chat-message-options:hover { background: var(--surface-3); }
+.chat-message-options:focus-visible,.chat-message-menu button:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.chat-message-menu { position: fixed; z-index: 80; min-width: min(15rem,calc(100vw - 16px)); max-width: calc(100vw - 16px); padding: 6px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg); animation: chat-menu-in 160ms ease-out; }
+.chat-message-menu button { display: block; width: 100%; min-height: 44px; padding: .7rem .85rem; border: 0; border-radius: 9px; background: transparent; color: var(--danger-strong, var(--danger)); font: 600 .875rem/1.6 var(--font-body); text-align: left; cursor: pointer; }
+.chat-message-menu button:hover { background: var(--danger-soft); }
+@keyframes chat-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (hover:none) and (pointer:coarse) {
+  .chat-message-options { position: absolute; right: 0; pointer-events: none; opacity: 0; }
+  .chat-msg:hover .chat-message-options,.chat-msg:focus-within .chat-message-options,.chat-message-options[aria-expanded="true"] { opacity: 0; pointer-events: none; }
+  .chat-msg .chat-message-options:focus-visible { opacity: 1; pointer-events: auto; }
+  .chat-msg:has([data-message-actions]) .chat-msg__bubble { -webkit-touch-callout: none; user-select: none; }
+}
+@media (prefers-reduced-motion:reduce) { .chat-message-menu { animation: none; } .chat-message-options { transition: none; } }
+
 /* Messages */
 .chat-scroll {
   min-height: 0;

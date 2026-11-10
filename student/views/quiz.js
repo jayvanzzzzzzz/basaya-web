@@ -56,7 +56,7 @@ export async function renderQuiz(lessonId) {
   if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang pagsusulit."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.quizFinished) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading st-focus-loading--space"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading st-focus-loading--space"><div class="st-loading" role="status" aria-label="Inihahanda ang pagsusulit..."><span></span><span></span><span></span></div></div>`;
   const [quiz, progress] = await Promise.all([loadQuiz(lessonId), loadLessonProgress(lessonId)]);
   if (progress.quizFinished) return navigate(pathUrl);
   // A Practice lesson saves nothing, so its quiz never waits for the lecture.
@@ -85,22 +85,27 @@ export async function renderQuiz(lessonId) {
     <section class="st-quiz">
       <header class="st-focus-bar">
         <button class="st-quiz__back" type="button" id="quiz-back" aria-label="Bumalik sa aralin">${icon("back")}<span>Bumalik</span></button>
-        <span class="st-quiz__label">Pagsusulit</span>
+        <span class="st-quiz__label">${lesson.practice ? "Pagsasanay" : "Pagtataya"}</span>
       </header>
-      ${quiz.title ? `<h1 class="st-quiz__title">${escapeHtml(quiz.title)}</h1>` : ""}
+      <header class="st-quiz__heading"><h1 class="st-quiz__title">${escapeHtml(quiz.title || "Pagsusulit")}</h1></header>
       <div class="st-rocket" aria-hidden="true">
         <span class="st-rocket__fill" id="quiz-fill"></span>
         <span class="st-rocket__ship" id="quiz-rocket">${icon("rocket")}</span>
       </div>
       <p class="st-quiz__progress" id="quiz-progress"></p>
+      <div class="st-quiz__workspace">
       <div class="st-quiz__question">
+        <span class="st-quiz__eyebrow">Pag-unawa sa binasa</span>
         <h2 id="quiz-question"></h2>
         <p class="st-quiz__hint" id="quiz-hint"></p>
+        <p class="st-quiz__submit-note">Ipinapasa ang iyong sagot kapag pinindot ang Susunod o Tapusin.</p>
       </div>
-      <div class="st-choices" id="quiz-choices" role="group" aria-labelledby="quiz-question"></div>
+      <div class="st-quiz__answers">
+      <div class="st-choices" id="quiz-choices" role="group" aria-labelledby="quiz-question" aria-describedby="quiz-hint"></div>
       <div class="st-focus-footer">
         <button class="st-action st-action--next st-wide" type="button" id="quiz-next" disabled>Susunod</button>
       </div>
+      </div></div>
     </section>`;
 
   const choicesEl = $("#quiz-choices");

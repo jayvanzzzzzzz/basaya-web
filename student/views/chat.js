@@ -20,6 +20,7 @@ import { student, classId } from "../data.js";
 import { onLeave } from "../router.js";
 import { content, icon, showDialog } from "../ui.js";
 import { LABELS, membersButton, openClassMembers } from "../../js/classMembers.js";
+import { messageActions, wireMessageActions } from "../../js/messageActions.js";
 
 // "Chat ng klase" (the app's ChatFragment): the class's one group chat with the teacher.
 // Students send up to 300 characters, one message every 5 seconds, only while the teacher
@@ -125,7 +126,7 @@ function messageHtml(message, previous, delivery) {
       </div>
       ${status ? `<span class="chat-msg__status">${status === "sending" ? "Ipinapadala…" : "Naipadala"}</span>` : ""}
     </div>
-    ${deletable ? `<button type="button" class="chat-msg__remove st-hub-tooltip" data-tooltip="Burahin" data-delete="${escapeHtml(message.id)}" aria-label="Burahin ang mensahe">${chatIcon("trash")}</button>` : ""}
+    ${deletable ? messageActions(message.id, "Mga opsyon sa mensahe") : ""}
   </li>`;
 }
 
@@ -137,7 +138,7 @@ export async function renderChat() {
   const id = classId();
   if (!id) {
     content().innerHTML = `
-      <section class="st-chat-page"><header class="st-page-heading"><span class="st-page-eyebrow">Sama-sama sa pagkatuto</span><h1>Chat ng Klase<span class="st-heading-dot">.</span></h1></header><div class="st-empty">
+      <section class="st-chat-page"><header class="st-page-heading"><h1>Chat ng Klase<span class="st-heading-dot">.</span></h1></header><div class="st-empty">
         <img class="st-empty__art" src="../img/logo.png" alt="" />
         <h2>Wala ka pang klase</h2>
         <p>Sumali muna sa isang klase sa Mga Aralin para makita ang chat.</p>
@@ -154,15 +155,14 @@ export async function renderChat() {
   const className = student.profile.className || "Klase";
 
   content().innerHTML = `
-    <section class="st-chat-page">
-      <header class="st-page-heading"><span class="st-page-eyebrow">Sama-sama sa pagkatuto</span><h1>Chat ng Klase<span class="st-heading-dot">.</span></h1><p>Magtanong, magbahagi, at makipag-usap sa iyong klase.</p></header>
+    <section class="st-chat-page" aria-label="Chat ng klase">
     <div class="st-chat">
       <div class="chat">
         <header class="chat-head">
           <span class="inbox-class__avatar" style="--h:${hueOf(className)}">${escapeHtml(initials(className))}</span>
           <div class="chat-head__text">
-            <h2>${escapeHtml(className)}</h2>
-            <span data-chat-status>Ikaw, ang guro, at ang mga kaklase mo</span>
+            <h1>${escapeHtml(className)}</h1>
+            <span data-chat-status hidden>Ikaw, ang guro, at ang mga kaklase mo</span>
           </div>
           ${membersButton(LABELS.fil)}
         </header>
@@ -357,9 +357,9 @@ export async function renderChat() {
     }
   });
 
-  list.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-delete]");
-    if (!button) return;
+  const stopMessageActions = wireMessageActions(list, { label: "Burahin ang mensahe", optionsLabel: "Mga opsyon sa mensahe", onDelete: async (messageId) => {
+    const eligible = [...older, ...recent].find(item => item.id === messageId);
+    if (!eligible || !canDeleteOwn(eligible, student.uid)) return;
     const answer = await showDialog({
       iconName: "close",
       tone: "locked",
@@ -370,17 +370,19 @@ export async function renderChat() {
     });
     if (answer !== "primary") return;
     try {
-      const message = [...older, ...recent].find((item) => item.id === button.dataset.delete);
+      const message = [...older, ...recent].find((item) => item.id === messageId);
+      if (!message || !canDeleteOwn(message, student.uid)) return;
       await deleteOwnMessage(id, message, summary);
       older = older.map((item) =>
-        item.id === button.dataset.delete ? { ...item, text: "", deleted: true, deletedBy: "sender" } : item,
+        item.id === messageId ? { ...item, text: "", deleted: true, deletedBy: "sender" } : item,
       );
       render();
     } catch (error) {
       console.error(error);
       toast("Hindi nabura. Baka lampas na sa 5 minuto.");
     }
-  });
+  } });
+  onLeave(stopMessageActions);
 
   input.addEventListener("input", updateComposer);
   input.addEventListener("keydown", (event) => {

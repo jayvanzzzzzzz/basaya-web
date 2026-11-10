@@ -1,0 +1,92 @@
+/* Both Bigkas flows share the hub palette and retain their recording state classes. */
+.st-shell.is-focus:has(:is(.st-pron,.st-reading)) .st-content { width: min(100%,64rem); padding: 1.25rem 2rem 2rem; }
+.st-pron { gap: 1.5rem; }
+.st-pron .st-focus-bar,.st-reading .st-reading__top { padding: .75rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); margin: 0; }
+.st-pron .st-pron__bar { height: .5rem; background: var(--surface-3); }
+.st-pron .st-pron__bar > i { background: var(--success); }
+.st-pron .st-lives { background: var(--warning-soft); color: var(--warning); font-size: .9rem; }
+.st-pron__heading { margin: .5rem 0 0; }
+.st-pron__heading h1 { font-size: clamp(1.8rem,4vw,2.5rem); line-height: 1.4; letter-spacing: -.04em; margin: .5rem 0; overflow-wrap: anywhere; }
+.st-pron .st-pron__instruction { text-align: left; line-height: 1.8; font-size: .95rem; font-weight: 500; }
+.st-pron .st-pron__stage { gap: 1.5rem; }
+.st-pron .st-pron__buddy { width: 8rem; height: 8rem; flex: 0 0 8rem; animation: none; }
+.st-pron .st-pron__word { padding: 2rem 4rem; min-height: 14rem; align-content: center; gap: 1rem; border-radius: 24px; border-top: 4px solid var(--gold); box-shadow: var(--hub-shadow); }
+.st-pron .st-pron__word strong { font-size: clamp(2rem,6vw,3.5rem); line-height: 1.35; }
+.st-pron .st-pron__count { font-size: .75rem; color: var(--ink-2); }
+.st-pron .st-pron__info { background: var(--primary-soft); color: var(--primary); border: 1px solid var(--border); box-shadow: none; border-radius: 13px; animation: none; }
+.st-pron .st-pron__speaker { color: var(--primary); background: var(--primary-soft); }
+.st-pron .st-pron__note { padding: 1.25rem; border-radius: 18px; line-height: 1.7; }
+.st-pron .st-pron__note strong { color: inherit; }
+.st-pron .st-pron__note span { font-size: .9rem; font-weight: 500; }
+.st-pron .st-pron__mic-area { margin: .5rem auto 0; width: 8rem; height: 8rem; }
+.st-pron .st-pron__mic { width: 6rem; height: 6rem; border-radius: 30px; background: var(--primary); color: var(--hub-primary-text); box-shadow: 0 4px 0 var(--primary-lip); }
+.st-pron .st-pron__mic:active:not(:disabled) { box-shadow: none; }
+.st-pron .st-pron__mic-area.is-listening .st-pron__mic { background: var(--danger-soft); color: var(--danger); box-shadow: 0 0 0 5px var(--danger-soft); }
+.st-pron .st-pron__spinner { border-top-color: var(--primary); }
+.st-pron .st-pron__hint { font-size: .9rem; line-height: 1.7; }
+.st-pron .st-pron__wave { margin: 0 auto; }
+
+/* Guided reading, warm-up words, playback, retakes and submitted/graded states. */
+.st-reading { width: 100%; padding: 0; }
+.st-reading .st-reading__heading { text-align: left; padding: 1.75rem 2rem; border-radius: 24px; background: var(--hub-banner); color: #fff; margin: 1.5rem 0; }
+.st-reading .st-reading__heading h1 { color: #fff; font-size: clamp(1.7rem,4vw,2.4rem); line-height: 1.4; letter-spacing: -.04em; }
+.st-reading .st-reading__heading .st-reading__eyebrow { color: var(--hub-gold); }
+.st-reading .st-reading__heading > p:last-child { color: var(--hub-banner-text); font-size: .9rem; line-height: 1.8; margin: .5rem 0 0; }
+.st-reading .st-reading__eyebrow { font-size: .75rem; }
+.st-reading .st-reading__pages { padding: 0; }
+.st-reading .st-reading__pages > span { box-shadow: none; }
+.st-reading .st-reading__pages > .is-current { background: var(--primary); color: var(--hub-primary-text); }
+.st-reading .st-reading__steps { gap: .75rem; padding: 1rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); margin-bottom: 1.5rem; }
+.st-reading .st-reading__steps > span { font-size: .8rem; line-height: 1.6; }
+.st-reading .st-reading__stage { gap: 1.5rem; }
+.st-reading .st-reading__buddy { flex: 0 0 7rem; width: 7rem; height: 8rem; animation: none; }
+.st-reading .st-reading__card { padding: 2rem; border-radius: 24px; border-top: 4px solid var(--gold); background: var(--surface); box-shadow: var(--hub-shadow); }
+.st-reading .st-reading__card-label { font-size: .75rem; color: var(--ink-2); line-height: 1.6; }
+.st-reading .st-reading__text { line-height: 1.85; border: 0; padding: 0; background: transparent; }
+.st-reading .st-reading__card--word .st-reading__text { line-height: 1.4; color: var(--ink); }
+.st-reading .st-reading__listen { min-height: 44px; border: 1px solid var(--border); background: var(--primary-soft); color: var(--primary); border-radius: 12px; font-size: .85rem; line-height: 1.5; }
+.st-reading .st-reading__record { padding: 1.5rem; margin: 1.5rem auto 0; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); width: min(100%,32rem); }
+.st-reading .st-reading__mic { background: var(--primary); color: var(--hub-primary-text); border: 1px solid var(--primary); box-shadow: 0 4px 0 var(--primary-lip); border-radius: 30px; }
+.st-reading .st-reading__mic.is-holding { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); box-shadow: 0 0 0 6px var(--danger-soft); }
+.st-reading .st-reading__record > small { font-size: .8rem; line-height: 1.6; }
+.st-reading .st-reading__checking { background: var(--warning-soft); border-color: var(--warning); color: var(--warning); }
+.st-reading .st-reading__checking-bars { color: inherit; }
+.st-reading .st-reading__preview { background: var(--surface); box-shadow: var(--hub-shadow); border-radius: 24px; padding: 1.5rem; }
+.st-reading .st-reading__preview-heading .st-reading__card-label { font-size: .75rem; }
+.st-reading .st-reading__play { background: var(--primary); color: var(--hub-primary-text); box-shadow: none; border-radius: 18px; }
+.st-reading .st-reading__time { font-size: .75rem; }
+.st-reading .st-reading__actions { gap: .75rem; }
+.st-reading .st-reading__actions .button { white-space: normal; min-height: 48px; line-height: 1.6; }
+.st-reading .st-reading__remark { border-radius: 16px; }
+.st-reading .st-reading__return { min-height: 44px; font-size: .85rem; }
+.st-reading--finished { max-width: 44rem; padding: 2rem; border: 1px solid var(--border); border-top: 4px solid var(--success); border-radius: 24px; background: var(--surface); margin-top: 2rem; }
+.st-reading--finished .st-reading__grade { flex-wrap: wrap; gap: .75rem; }
+.st-reading :is(.st-reading__top .st-icon-button,.st-reading__play) { position: relative; }
+.st-reading :is(.st-reading__top .st-icon-button,.st-reading__play)::after { position: absolute; top: calc(100% + .5rem); left: 0; z-index: 10; width: max-content; max-width: 15rem; padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); content: attr(aria-label); font: 500 .75rem/1.5 var(--font-body); opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity 160ms ease,transform 160ms ease; }
+.st-reading :is(.st-reading__top .st-icon-button,.st-reading__play):is(:hover,:focus-visible)::after { opacity: 1; transform: none; }
+@media(max-width:735px) {
+  .st-shell.is-focus:has(:is(.st-pron,.st-reading)) .st-content { padding: max(1rem,env(safe-area-inset-top)) 1rem 1rem; }
+  .st-pron { gap: 1rem; }
+  .st-pron .st-pron__stage { gap: .5rem; }
+  .st-pron .st-pron__buddy { flex-basis: 3rem; width: 3rem; height: 4rem; }
+  .st-pron .st-pron__word { padding: 1.25rem 3rem; min-height: 12rem; gap: .75rem; }
+  .st-pron .st-pron__info { top: .5rem; left: .5rem; transform: none; }
+  .st-pron .st-pron__speaker { top: .5rem; right: .5rem; transform: none; }
+  .st-pron .st-pron__count { margin-top: 2rem; }
+  .st-reading .st-reading__top { gap: .75rem; }
+  .st-reading .st-reading__heading { padding: 1.25rem; margin: 1rem 0; border-radius: 18px; }
+  .st-reading .st-reading__steps { gap: .4rem; padding: .75rem; }
+  .st-reading .st-reading__steps > span { flex-wrap: wrap; font-size: .75rem; gap: .25rem; }
+  .st-reading .st-reading__steps > i { width: 12px; }
+  .st-reading .st-reading__stage { gap: .5rem; }
+  .st-reading .st-reading__buddy { flex: 0 0 3rem; width: 3rem; height: 4rem; }
+  .st-reading .st-reading__card { padding: 1.25rem; border-radius: 18px; }
+  .st-reading .st-reading__record { padding: 1.25rem .75rem; border-radius: 18px; }
+  .st-reading .st-reading__preview { padding: 1.25rem; }
+  .st-reading--finished { padding: 1.5rem; }
+}
+@media(max-width:380px) {
+  .st-pron .st-pron__buddy,.st-reading .st-reading__buddy { display: none; }
+  .st-pron .st-pron__word { padding-inline: 1.25rem; }
+  .st-reading .st-reading__actions { flex-wrap: wrap; }
+}

@@ -112,9 +112,9 @@ export async function renderAccount() {
 
   content().innerHTML = `
     <section class="st-account">
-      <header class="st-page-heading"><span class="st-page-eyebrow">Sarili mong espasyo</span><h1>Aking Account<span class="st-heading-dot">.</span></h1><p>Ang iyong impormasyon at mga setting, magkakasama rito.</p></header>
+      <header class="st-page-heading"><h1>Aking Account<span class="st-heading-dot">.</span></h1><p>Ang iyong impormasyon at mga setting, magkakasama rito.</p></header>
       <header class="st-account__hero">
-        <span class="st-profile-label">AKING PROFILE</span>
+
         <span class="st-avatar st-avatar--xl" aria-hidden="true">${escapeHtml((profile.firstName || "B").charAt(0).toUpperCase())}</span>
         <h2>${escapeHtml(name)}</h2>
         <p>${escapeHtml(student.email)}</p>
@@ -135,7 +135,7 @@ export async function renderAccount() {
 
       <section class="st-card st-account__section">
         <h2>Aking Klase</h2>
-        <div id="account-class"><div class="st-loading"><span></span><span></span><span></span></div></div>
+        <div id="account-class"><div class="st-loading" role="status" aria-label="Kinukuha ang impormasyon ng klase..."><span></span><span></span><span></span></div></div>
       </section>
 
       <section class="st-card st-account__section">

@@ -270,12 +270,12 @@ export async function renderHome() {
     <section class="st-home">
       <header class="st-hero st-hero--home">
         <div class="st-home-welcome">
-          <span class="st-hero__eyebrow">Basa. Tuklas. Saya.</span>
+
           <h1>Mga Aralin<span class="st-heading-dot">.</span></h1>
-          <p>Bawat pahina, bagong kaalaman.<br />Handa ka na bang matuto?</p>
+
           <span class="st-home-class" id="home-class">${escapeHtml(student.profile.className || "")}</span>
         </div>
-        <div class="st-home-art" aria-hidden="true"><span class="st-home-art__page"></span><img src="../img/logo.png" alt="" /><span class="st-home-art__caption">Tara, magbasa!</span></div>
+        <div class="st-home-art" aria-hidden="true"><span class="st-home-art__page"></span><img src="../img/logo.png" alt="" /></div>
         <button class="st-icon-button st-hub-tooltip" type="button" id="home-refresh" aria-label="I-refresh ang mga aralin" data-tooltip="I-refresh">${icon("refresh")}</button>
       </header>
       <section class="st-home-tools" aria-label="Hanapin at salain ang mga aralin">
@@ -289,7 +289,7 @@ export async function renderHome() {
       </section>
       ${isInstalledPwa() ? `<div class="st-download-all"><button class="button secondary" type="button" id="home-download-all" disabled>${icon("download")}<span>I-download lahat</span></button><button class="st-icon-button" type="button" id="home-cancel-download-all" aria-label="Itigil ang pag-download" title="Itigil ang pag-download" hidden>${icon("close")}</button><span id="home-download-all-status" role="status"></span></div>` : ""}
       <div id="home-list" aria-live="polite">
-        <div class="st-loading"><span></span><span></span><span></span></div>
+        <div class="st-loading" role="status" aria-label="Inihahanda ang mga aralin..."><span></span><span></span><span></span></div>
       </div>
     </section>`;
 

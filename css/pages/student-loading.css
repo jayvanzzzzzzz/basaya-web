@@ -1,0 +1,31 @@
+/* Student loaders only. Authentication, overlay locking and completion timing are unchanged. */
+.st-body > .student-loading { justify-items: center; align-content: center; gap: 1.5rem; padding: 2rem; background: var(--bg); color: var(--ink); }
+.student-loading__art { position: relative; display: grid; place-items: center; width: 11rem; height: 11rem; }
+.student-loading__art > span { position: absolute; width: 8.5rem; height: 10rem; background: var(--surface); border: 1px solid var(--border-strong); border-top: 5px solid var(--gold); border-radius: 18px; transform: rotate(9deg); box-shadow: 8px 8px 0 var(--primary-soft); }
+.student-loading__art img { position: relative; width: 9rem; height: 9rem; object-fit: contain; transform: rotate(-5deg); }
+.student-loading__copy { max-width: 26rem; }
+.student-loading__eyebrow { color: var(--primary); font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.student-loading__copy h1 { margin: .75rem 0; font-size: clamp(2.75rem,8vw,4rem); line-height: 1.15; letter-spacing: -.07em; color: var(--ink); }
+.student-loading__copy h1 > span { color: var(--primary); }
+.st-body .student-loading__copy p { margin: 0; color: var(--ink-2); font-size: .95rem; line-height: 1.8; }
+.student-loading__rail { width: min(100%,14rem); height: 5px; overflow: hidden; border-radius: 5px; background: var(--surface-3); }
+.student-loading__rail > span { display: block; width: 35%; height: 100%; border-radius: inherit; background: var(--primary); animation: st-loading-scan 1.8s ease-in-out infinite alternate; }
+@keyframes st-loading-scan { from { transform: translateX(0); } to { transform: translateX(185%); } }
+
+/* Existing three-span loaders keep their nodes and lifecycle. A named status is
+   visible as well as accessible, and the three marks indicate indeterminate work. */
+.st-body .st-loading { position: relative; display: grid; justify-items: center; align-content: center; gap: 1rem; width: min(100%,23rem); min-height: 10rem; margin: 1rem auto; padding: 1.5rem 1rem 2.25rem; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--ink-2); list-style: none; }
+.st-body .st-loading::before { display: block; width: 32px; height: 32px; content: ""; background: var(--primary); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M12 5c-3-2-7-2-10-1v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z M12 5v15'/%3E%3C/svg%3E") center/contain no-repeat; }
+.st-body .st-loading::after { content: attr(aria-label); max-width: 100%; font-size: .85rem; font-weight: 500; line-height: 1.7; text-align: center; overflow-wrap: anywhere; }
+.st-body .st-loading > span { position: absolute; bottom: 1.25rem; width: 24px; height: 4px; margin: 0; border-radius: 4px; background: var(--primary); animation: st-loading-mark 1.5s ease-in-out infinite; }
+.st-body .st-loading > span:nth-child(1) { left: calc(50% - 42px); }
+.st-body .st-loading > span:nth-child(2) { left: calc(50% - 12px); animation-delay: .2s; }
+.st-body .st-loading > span:nth-child(3) { left: calc(50% + 18px); animation-delay: .4s; }
+@keyframes st-loading-mark { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+.st-body .st-focus-loading { display: grid; flex: 1; align-content: center; justify-items: center; min-height: min(65dvh,36rem); padding: 1rem; }
+.st-body .st-focus-loading .st-loading { margin: 0; width: min(100%,26rem); min-height: 13rem; }
+.st-body .st-focus-loading > p { padding: 1.5rem; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--ink-2); line-height: 1.8; }
+:root[data-theme] .st-body:has(.st-focus-loading) { background: var(--bg); }
+@media(max-height:480px) { .st-body > .student-loading { grid-template-columns: auto minmax(0,25rem); column-gap: 2rem; padding: 1.25rem; } .student-loading__art { grid-row: 1 / 3; } .student-loading__rail { justify-self: start; } .student-loading__copy { text-align: left; } }
+@media(max-width:380px) { .st-body > .student-loading { padding: 1.25rem; } }
+@media(prefers-reduced-motion:reduce) { .st-body .st-loading > span,.student-loading__rail > span { animation: none; opacity: 1; } }

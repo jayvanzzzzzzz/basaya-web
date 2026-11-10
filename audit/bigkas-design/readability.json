@@ -1,0 +1,194 @@
+[
+  {
+    "stage": "words",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "words",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "record",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "preview",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "stage": "legacy",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  }
+]

@@ -32,7 +32,7 @@ export async function renderPronunciation(lessonId) {
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
 
-  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading"><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang Bigkas..."><span></span><span></span><span></span></div></div>`;
   const [activity, progress] = await Promise.all([loadPronunciation(lessonId), loadLessonProgress(lessonId)]);
   if (activity?.pages?.length && (availability(lesson) === 'open' || progress.pronunciationFinished)) return (await import('./fluency.js')).renderFluency(lesson);
   if (availability(lesson) !== 'open') return navigate(pathUrl);
@@ -56,19 +56,19 @@ export async function renderPronunciation(lessonId) {
   content().innerHTML = `
     <section class="st-pron">
       <header class="st-focus-bar">
-        <a class="st-icon-button" href="#${pathUrl}" aria-label="Isara">${icon("close")}</a>
+        <a class="st-icon-button st-hub-tooltip" data-tooltip="Bumalik sa aralin" href="#${pathUrl}" aria-label="Bumalik sa aralin">${icon("close")}</a>
         <span class="st-bar st-pron__bar"><i id="pron-bar" style="width:0%"></i></span>
         <span class="st-lives" id="pron-lives" role="img">${heartIcon()}<b id="pron-lives-count">${MAX_LIVES}</b></span>
       </header>
-      <p class="st-pron__instruction">${escapeHtml(activity.instruction || "Bigkasin ang salitang ito.")}</p>
+      <header class="st-pron__heading"><h1>${escapeHtml(activity.title || "Bigkas")}</h1><p class="st-pron__instruction">${escapeHtml(activity.instruction || "Bigkasin ang salitang ito.")}</p></header>
       <div class="st-pron__stage">
         ${talkingBuddy("st-buddy st-buddy--idle st-pron__buddy")}
         <div class="st-card st-pron__word" id="pron-card">
           <span class="st-pron__count" id="pron-count"></span>
-          <button class="st-icon-button st-pron__info" type="button" id="pron-info" hidden aria-label="Ano ang ibig sabihin ng salita?">${icon("info")}</button>
+          <button class="st-icon-button st-pron__info st-hub-tooltip" data-tooltip="Kahulugan" type="button" id="pron-info" hidden aria-label="Ano ang ibig sabihin ng salita?">${icon("info")}</button>
           <strong id="pron-word"></strong>
           <span class="st-pron__syllables" id="pron-syllables"></span>
-          <button class="st-icon-button st-pron__speaker" type="button" id="pron-speaker" aria-label="Pakinggan ang salita">${icon("speaker")}</button>
+          <button class="st-icon-button st-pron__speaker st-hub-tooltip" data-tooltip="Pakinggan" type="button" id="pron-speaker" aria-label="Pakinggan ang salita">${icon("speaker")}</button>
         </div>
       </div>
       <div class="st-pron__note" id="pron-note" hidden aria-live="polite">

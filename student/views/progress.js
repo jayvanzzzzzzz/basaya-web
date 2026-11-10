@@ -133,11 +133,11 @@ export async function renderProgress() {
   content().innerHTML = `
     <section class="st-progress">
       <header class="st-progress__title">
-        <span class="st-page-eyebrow">Bawat hakbang, may pag-unlad</span>
+
         <h1>Aking Progreso<span class="st-heading-dot">.</span></h1>
         <p>Tingnan kung gaano ka na kagaling sa bawat kasanayan!</p>
       </header>
-      <div id="progress-body">${lastView?.scope === scope ? lastView.html : '<div class="st-loading"><span></span><span></span><span></span></div>'}</div>
+      <div id="progress-body">${lastView?.scope === scope ? lastView.html : '<div class="st-loading" role="status" aria-label="Inihahanda ang iyong progreso..."><span></span><span></span><span></span></div>'}</div>
     </section>`;
 
   await loadClassLessons();

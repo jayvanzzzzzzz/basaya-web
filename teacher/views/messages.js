@@ -17,6 +17,7 @@ import {
 } from "../../js/chat.js?v=removed-preview";
 import { LABELS, openClassMembers } from "../../js/classMembers.js";
 import { attachFloatingTooltips } from "../../js/floatingTooltip.js";
+import { messageActions, wireMessageActions } from "../../js/messageActions.js";
 
 // Messages: one group chat per class with its students (#/messages/<classId>).
 // The class list shows each chat's last message and an unread dot; the sidebar shows how
@@ -314,7 +315,7 @@ function messageHtml(message, previous, delivery) {
       </div>
       <div class="chat-msg__meta">${message.pending ? "" : `<time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time>`}${status ? `<span class="chat-msg__status">${status === "sending" ? "Sending…" : "Sent"}</span>` : ""}</div>
     </div>
-    <button type="button" class="chat-msg__remove chat-icon" data-remove="${escapeHtml(message.id)}" aria-label="Remove for everyone" data-floating-tooltip>${icon("trash")}</button>
+    ${message.pending ? "" : messageActions(message.id)}
   </li>`;
 }
 
@@ -422,6 +423,7 @@ function openChat(classroom) {
     clearInterval(cooldownTimer);
     delivery.stop();
     document.removeEventListener("visibilitychange", onVisible);
+    stopMessageActions();
   };
 
   // Older messages, on request
@@ -447,41 +449,20 @@ function openChat(classroom) {
     }
   });
 
-  const clearRemoveConfirmation = () => {
-    list.querySelectorAll('.is-confirming').forEach(row => {
-      row.classList.remove('is-confirming');
-      row.querySelector('[data-remove]')?.setAttribute('aria-label', 'Remove for everyone');
-    });
-  };
-  // Remove a message (for everyone)
-  list.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-remove]");
-    if (!button) return;
-    const row = button.closest(".chat-msg");
-    if (!row.classList.contains("is-confirming")) {
-      clearRemoveConfirmation();
-      row.classList.add("is-confirming");
-      button.setAttribute("aria-label", "Click again to remove");
-      return;
-    }
-    button.disabled = true;
+  const stopMessageActions = wireMessageActions(list, { label: "Delete for everyone", confirmLabel: "Confirm delete for everyone", onDelete: async (messageId) => {
     try {
-      const message = [...older, ...recent].find((item) => item.id === button.dataset.remove);
+      const message = [...older, ...recent].find((item) => item.id === messageId);
+      if (!message || message.deleted || message.pending) return;
       await removeMessage(classId, message, summary);
       older = older.map((item) =>
-        item.id === button.dataset.remove ? { ...item, text: "", deleted: true, deletedBy: "teacher" } : item,
+        item.id === messageId ? { ...item, text: "", deleted: true, deletedBy: "teacher" } : item,
       );
       render();
     } catch (error) {
       console.error(error);
       toast("Couldn't remove the message.");
-      button.disabled = false;
     }
-  });
-  list.addEventListener("mouseleave", clearRemoveConfirmation);
-  list.addEventListener("keydown", event => {
-    if (event.key === 'Escape') clearRemoveConfirmation();
-  });
+  } });
 
   $("[data-members]", root).addEventListener("click", () => {
     openClassMembers({

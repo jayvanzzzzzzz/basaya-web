@@ -146,7 +146,7 @@ await test("assessment HTTP handler requires authentication and handles prefligh
   const auth = module({ allowCors: () => {}, requireUser: async (_req, res) => { res.status(401).json({ error: "Not signed in" }); return null; } });
   const firebase = module({ db: () => { called = true; throw new Error("Must not access database before authentication"); } });
   const service = module({ AssessmentError: class AssessmentError extends Error {}, assessmentOperation: () => { called = true; } });
-  const speech = module({ submitSpeech: () => { called = true; } });
+  const speech = module({ submitSpeech: () => { called = true; }, fluencyOperation: () => { called = true; }, dictionaryAudioOperation: () => { called = true; } });
   const handler = new vm.SourceTextModule(await readFile(new URL("../notify-api/handlers/assessment.js", import.meta.url), "utf8"), { context });
   await handler.link(s => s.endsWith("firebase.js") ? firebase : s.endsWith("http.js") ? auth : s.endsWith("assessments.js") ? service : speech);
   await handler.evaluate();

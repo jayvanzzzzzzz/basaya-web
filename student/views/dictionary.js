@@ -38,7 +38,7 @@ function entryHtml(entry) {
           <h2 tabindex="-1">${escapeHtml(shown(entry))}</h2>
           <p class="st-dict-syllables" aria-label="Pantig: ${escapeHtml(syllablesOf(entry))}">${escapeHtml(syllablesOf(entry))}</p>
         </div>
-        <button class="st-icon-button st-dict-speak" type="button" data-speak aria-label="Pakinggan ang “${escapeHtml(shown(entry))}”">${icon("speaker")}</button>
+        <button class="st-icon-button st-dict-speak st-hub-tooltip" data-tooltip="Pakinggan" type="button" data-speak aria-label="Pakinggan ang “${escapeHtml(shown(entry))}”">${icon("speaker")}</button>
         ${entry.source === "teacher" ? `<span class="st-dict-tag">Dinagdag ng guro</span>` : ""}
       </header>
       ${entry.senses
@@ -76,7 +76,7 @@ function listHtml(entries) {
     .join("")}</ul>`;
 }
 
-const loading = () => `<div class="st-loading"><span></span><span></span><span></span></div>`;
+const loading = () => `<div class="st-loading" role="status" aria-label="Hinahanap ang mga salita..."><span></span><span></span><span></span></div>`;
 
 function errorHtml() {
   return `<div class="st-empty">
@@ -90,8 +90,9 @@ export async function renderDictionary() {
     <section class="st-dict">
       <header class="st-hero st-hero--dict">
         <div class="st-hero__text">
-          <span class="st-hero__eyebrow">Diksiyonaryo</span>
-          <h1>Anong salita ang hahanapin mo?</h1>
+
+          <h1>Diksiyonaryo<span class="st-heading-dot">.</span></h1>
+          <p>Hanapin ang kahulugan. Pakinggan ang bigkas.<br />Palawakin ang iyong talasalitaan.</p>
         </div>
         ${buddy("happy", "st-dict__buddy")}
       </header>

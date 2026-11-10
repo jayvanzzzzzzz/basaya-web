@@ -10,7 +10,7 @@ module.exports = async function auditText(page) {
     };
     const over=(fg,bg)=>[0,1,2].map(i=>fg[i]*fg[3]+bg[i]*(1-fg[3]));
     const luminance=c=>c.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);
-    const roots=[...document.querySelectorAll('#page-header,#page-content,.modal,.floating-tooltip,.site-footer')];
+    const roots=[...document.querySelectorAll('#page-header,#page-content,.modal,.floating-tooltip,.site-footer,.site-info')];
     const elements=new Set(roots.flatMap(root=>[root,...root.querySelectorAll('*')]));
     for(const el of elements){
       if(['OPTION','SVG','PATH'].includes(el.tagName)||el.closest('svg,[hidden],.sr-only,:disabled'))continue;

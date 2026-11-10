@@ -25,11 +25,11 @@ async function render(progress) {
     loadLessonProgress: async () => structuredClone(progress),
     loadPronunciation: async () => ({ title: "Bigkas", words: ["bahay", "puno", "bata", "aso", "pusa"].map(word => ({ word })) }),
     resumeOf: vm.runInContext(`(${resumeSource})`, context),
-    refreshSummary() {}, saveResume() {}, assessmentRequest() {},
+    refreshSummary() {}, saveResume() {}, assessmentRequest: async () => structuredClone(progress.resume?.pronunciation || {}),
     saveProgress: async (lessonId, fields, skill) => { state.finishes.push({ lessonId, fields, skill }); return { score: progress.resume?.pronunciation?.correct || 0 }; },
   });
   const router = module({ onLeave: fn => { state.cleanup = fn; } });
-  const speech = module({ Microphone: { supported: () => true }, browserRecognitionAvailable: () => false, listenWithBrowser() {}, score() {}, transcribe() {} });
+  const speech = module({ Microphone: class { static supported() { return true; } async open() { return "ok"; } close() {} }, browserRecognitionAvailable: () => false, listenWithBrowser() {}, score() {}, transcribe() {} });
   const ui = module({ content: () => $("main"), icon: () => "", talkingBuddy: () => '<span class="st-pron__buddy"></span>', confetti() {}, confettiFrom() {}, setBuddyMood() {}, setTalking() {}, shake() {} });
   const results = module({ renderResults: result => state.results.push(result) });
   const controller = new vm.SourceTextModule(pronunciationSource, { context });

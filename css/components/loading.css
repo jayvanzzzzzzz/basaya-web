@@ -1,8 +1,26 @@
 /* LOADING SCREENS */
+/* The shell can render before startup finishes. Keep it behind the loader. */
+html:has(body > .loading-screen:not([hidden])),
+body:has(> .loading-screen:not([hidden])) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.loading-screen:not([hidden]) ~ :is(#app-view, #login-view) {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: grid;
-  min-height: 100vh;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
   place-content: center;
+  place-content: safe center;
   gap: 1.1rem;
   padding: 1.5rem;
   background: var(--bg);
@@ -16,9 +34,7 @@
 
 .loading-screen--dark,
 .teacher-loading {
-  position: relative;
   isolation: isolate;
-  overflow: hidden;
   background: var(--hero-gradient);
   color: rgba(255, 255, 255, 0.86);
 }

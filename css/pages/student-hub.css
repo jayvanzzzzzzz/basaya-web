@@ -1,6 +1,6 @@
 /* BaSaya student hub. Extends the existing tokens and data-theme mechanism.
    Only the four main student tabs opt in; learning and teacher views stay scoped out. */
-.st-body:has(.is-student-hub) {
+.st-body:has(.is-student-hub, .st-loading, .st-focus-loading, .student-loading:not([hidden])) {
   --bg: #fffaf2;
   --bg-tint: #f4f0e8;
   --surface: #fffefa;
@@ -31,7 +31,7 @@
   --hub-shadow: 0 6px 22px rgba(36, 43, 82, .045);
   background: var(--bg);
 }
-:root[data-theme="dark"] .st-body:has(.is-student-hub) {
+:root[data-theme="dark"] .st-body:has(.is-student-hub, .st-loading, .st-focus-loading, .student-loading:not([hidden])) {
   --bg: #121a2d;
   --bg-tint: #192338;
   --surface: #1c2840;
@@ -202,9 +202,10 @@
 .st-account .st-footer { margin: .5rem 0 0; }
 
 /* Chat: speech bubbles, a spacious transcript and a visible send action. */
-.st-chat-page .st-chat { height: calc(100dvh - 20.5rem); min-height: 24rem; border-radius: 22px; box-shadow: var(--hub-shadow); }
-.st-chat-page .chat-head { padding: 1rem 1.25rem; background: var(--surface); }
-.st-chat-page .chat-head__text h2 { overflow: visible; white-space: normal; overflow-wrap: anywhere; font-family: var(--font-display); font-size: 1rem; line-height: 1.4; }
+.is-student-hub:has(.st-chat-page) .st-content { padding-top: .75rem; }
+.st-chat-page .st-chat { height: calc(100dvh - 10.75rem - var(--st-safe-bottom)); min-height: 18rem; border-radius: 22px; box-shadow: var(--hub-shadow); }
+.st-chat-page .chat-head { padding: .65rem 1rem; background: var(--surface); }
+.st-chat-page .chat-head__text h1 { margin: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere; font-family: var(--font-display); font-size: 1rem; line-height: 1.4; letter-spacing: -.025em; }
 .st-chat-page .chat-head__text span { margin-top: .3rem; color: var(--ink-2); font-size: .75rem; }
 .st-chat-page .inbox-class__avatar { width: 3rem; height: 3rem; background: var(--primary-soft); color: var(--primary); border: 1px solid var(--border); border-radius: 14px; box-shadow: none; }
 .st-chat-page .chat-scroll { padding: 1rem 1.25rem; background: var(--surface-2); }
@@ -273,8 +274,8 @@
   .st-progress .st-skill { padding: 1.25rem; }
   .st-chat-page .st-page-heading { margin-bottom: 1rem; }
   .st-chat-page .st-page-heading p { display: none; }
-  .st-chat-page .st-chat { height: calc(100dvh - 15rem - var(--st-safe-bottom)); min-height: 18rem; }
-  .st-chat-page .chat-head { padding: .85rem; gap: .6rem; }
+  .st-chat-page .st-chat { height: calc(100dvh - 10.75rem - var(--st-safe-bottom)); min-height: 18rem; }
+  .st-chat-page .chat-head { padding: .6rem .75rem; gap: .6rem; }
   .st-chat-page .chat-scroll { padding: .75rem; }
   .st-chat-page .chat-composer { padding: .75rem; gap: .5rem; }
   .st-chat-page .chat-composer__send { padding-inline: .7rem; }

@@ -140,7 +140,7 @@ const server = http.createServer(async (req,res) => {
     await page.locator('[data-leave="ask"]').click();assert.ok(await page.locator('#leave-form').isVisible());await page.locator('[data-close]').click();
     await page.locator('#account-logout').click();await page.locator('.modal-close').click();assert.equal(await page.evaluate(()=>window.qaLogout),undefined);
     await page.evaluate(()=>show('chat'));await page.locator('[data-input]').fill('Salamat po!');await page.locator('[data-send]').click();assert.equal(await page.evaluate(()=>window.qaSent),'Salamat po!');assert.ok(await page.locator('[data-input]').isDisabled());
-    await page.locator('[data-delete="mine"]').click();await page.locator('[data-answer="primary"]').click();assert.equal(await page.evaluate(()=>window.qaDeleted),'mine');
+    await page.locator('[data-id="mine"]').hover();await page.locator('[data-message-actions="mine"]').click();await page.locator('.chat-message-menu [role="menuitem"]').click();await page.locator('[data-answer="primary"]').click();assert.equal(await page.evaluate(()=>window.qaDeleted),'mine');
     await page.evaluate(()=>qa.emitChat(false));assert.ok(await page.locator('[data-chat-closed]').isVisible());assert.ok(await page.locator('[data-input]').isDisabled());
     await page.screenshot({path:path.join(artifacts,'chat-closed-dark.png'),fullPage:true});
     await page.evaluate(()=>{qaEmpty=true;return show('chat')});assert.ok(await page.locator('.chat-empty').isVisible());

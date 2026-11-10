@@ -13,12 +13,14 @@ export function renderAssistant() {
   const messages = session.messages;
   const root = content();
   root.innerHTML = `
+    <section class="st-assistant-page">
+      <header class="st-page-heading"><h1>BaSaya Assistant<span class="st-heading-dot">.</span></h1><p>Kaagapay mo sa paggamit ng BaSaya. May mga gabay din kahit offline.</p></header>
     <section class="st-chat st-assistant" aria-labelledby="assistant-title">
       <div class="chat">
         <header class="chat-head">
           <span class="inbox-class__avatar" style="--h:250" aria-hidden="true">${icon("chat")}</span>
           <div class="chat-head__text"><h2 id="assistant-title">BaSaya Assistant <span class="st-assistant__badge">AI</span></h2><span>Gabay sa paggamit ng BaSaya</span></div>
-          <button type="button" id="assistant-help-toggle" class="st-assistant__icon-button st-assistant__icon-button--guide" aria-label="Mga gabay" title="Mga gabay" aria-expanded="false" aria-controls="assistant-help">${guideIcon}</button>
+          <button type="button" id="assistant-help-toggle" class="st-assistant__icon-button st-assistant__icon-button--guide st-hub-tooltip" data-tooltip="Mga gabay" aria-label="Mga gabay" aria-expanded="false" aria-controls="assistant-help">${guideIcon}</button>
         </header>
         <div class="chat-scroll" id="assistant-scroll">
           <ol class="chat-messages" id="assistant-messages" role="log" aria-live="polite" aria-label="Pag-uusap">
@@ -44,7 +46,7 @@ export function renderAssistant() {
           <p>Ang bawat tanong ay hiwalay. Ipinapadala sa AI ang tanong at maaaring magkamali ang sagot. Para sa aralin at resulta, kausapin ang guro sa <a href="#/chat">Class Chat</a>.</p>
         </aside>
       </div>
-    </section>`;
+    </section></section>`;
   const $ = selector => root.querySelector(selector);
   const input = $("#assistant-question"), send = $("#assistant-send"), log = $("#assistant-messages");
   let active = true, busy = false, ready = false, available = false, remaining = null, unlimited = false, nextAllowedAt = 0, blockUntil = 0, resetAt = 0;
@@ -113,6 +115,7 @@ export function renderAssistant() {
     send.setAttribute("aria-busy", String(busy));
     $("#assistant-reconnect").hidden = !ready || available || !navigator.onLine || busy;
     send.innerHTML = busy ? '<span aria-hidden="true">…</span>' : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 20 4.5 13.5 20l-2.2-6.3L4.5 12Z" /><path d="m11.3 13.7 4-4" /></svg>';
+    send.insertAdjacentHTML("beforeend", `<span>${busy ? "Sandali…" : "Ipadala"}</span>`);
     send.setAttribute("aria-label", busy ? "Sumasagot" : "Ipadala");
     $("#assistant-status").textContent = !navigator.onLine ? "Walang internet. Magagamit pa rin ang mga gabay."
       : busy ? "" : !ready ? "Sinusuri ang availability…"

@@ -163,7 +163,7 @@ async function screenshot(page, name) { await page.evaluate(()=>window.scrollTo(
     }
     await page.evaluate(()=>window.chatTest.classDelay=0);
     for (const theme of ['light', 'dark']) {
-      if (await page.evaluate(() => document.documentElement.dataset.theme) !== theme) { await page.locator('[data-theme-toggle]').click(); await page.waitForTimeout(750); }
+      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; localStorage.setItem('basaya-theme', theme); }, theme); await page.waitForTimeout(350);
       for (const [name, width] of [['desktop', 1440], ['laptop', 1100], ['tablet', 768], ['mobile', 390], ['small-mobile', 320]]) {
         await page.setViewportSize({ width, height: 1000 }); await page.waitForTimeout(200);
         await overflow(page, theme + ' ' + name);
@@ -175,7 +175,7 @@ async function screenshot(page, name) { await page.evaluate(()=>window.scrollTo(
       }
       await page.setViewportSize({ width: 1440, height: 1000 });
       const input = page.locator('[data-input]'); await input.fill('A class message');
-      for (const selector of ['[data-members]', '[data-send]', '[data-remove]']) {
+      for (const selector of ['[data-members]', '[data-send]', '[data-message-actions]']) {
         const control = page.locator(selector).first();
         assert.ok(await control.getAttribute('aria-label')); assert.equal(await control.locator('svg').count(), 1);
         await control.hover(); await page.locator('.floating-tooltip:visible').waitFor(); await page.waitForTimeout(250);
@@ -237,9 +237,10 @@ async function screenshot(page, name) { await page.evaluate(()=>window.scrollTo(
     await page.locator('[data-reopen]').click();
     await input.fill('x'.repeat(1850)); assert.equal(await input.getAttribute('maxlength'),'2000');
     assert.equal(await page.locator('[data-count]').textContent(),'1850/2000'); await input.fill('');
-    const remove=page.locator('[data-remove="question"]'); await remove.click();
-    assert.ok(await page.locator('[data-id="question"]').evaluate(el=>el.classList.contains('is-confirming')));
-    await remove.click(); await page.waitForFunction(()=>!document.querySelector('[data-id="question"]'));
+    await page.locator('[data-id="question"]').hover();await page.locator('[data-message-actions="question"]').click();
+    await page.locator('.chat-message-menu [role="menuitem"]').click();
+    assert.equal(await page.locator('.chat-message-menu [role="menuitem"]').textContent(),'Confirm delete for everyone');
+    await page.locator('.chat-message-menu [role="menuitem"]').click(); await page.waitForFunction(()=>!document.querySelector('[data-id="question"]'));
     await page.evaluate(()=>window.chatTest.summary());
     await page.waitForFunction(()=>document.querySelectorAll('.inbox-class__preview')[1].textContent.includes('real-time class preview'));
     await page.evaluate(()=>window.chatTest.history());

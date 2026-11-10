@@ -84,7 +84,7 @@ async function router({ initial = "/lesson/lesson/quiz", homeWait = null, progre
   };
   const helpers = exportsModule(context, { $: s => document.querySelector(s), $$: s => [...document.querySelectorAll(s)], escapeHtml: s => s, navigate: () => {} });
   const data = exportsModule(context, { student: { uid: "student" } });
-  const names = { home: "renderHome", join: "renderJoin", lessonPath: "renderLessonPath", lecture: "renderLecture", game: "renderGame", activity: "renderActivity", pronunciation: "renderPronunciation", quiz: "renderQuiz", progress: "renderProgress", chat: "renderChat", notifications: "renderNotifications", account: "renderAccount", dictionary: "renderDictionary" };
+  const names = { home: "renderHome", join: "renderJoin", lessonPath: "renderLessonPath", lecture: "renderLecture", game: "renderGame", activity: "renderActivity", pronunciation: "renderPronunciation", quiz: "renderQuiz", progress: "renderProgress", chat: "renderChat", notifications: "renderNotifications", account: "renderAccount", dictionary: "renderDictionary", assistant: "renderAssistant" };
   const modules = new Map();
   mod = new vm.SourceTextModule(await readFile(new URL("../student/router.js", import.meta.url), "utf8"), { context });
   await mod.link(specifier => {

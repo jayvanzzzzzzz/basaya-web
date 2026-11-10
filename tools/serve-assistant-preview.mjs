@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 let html = await readFile(new URL("../student/index.html", import.meta.url), "utf8");
 html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "")
-  .replace('id="app-view" class="st-shell" hidden', 'id="app-view" class="st-shell"')
+  .replace('id="app-view" class="st-shell" hidden', 'id="app-view" class="st-shell is-student-hub"')
   .replace('id="loading-screen"', 'hidden id="loading-screen"')
   .replace("</body>", `<script type="module">import {renderAssistant} from '/student/views/assistant.js'; window.fixture={remaining:5,calls:0}; renderAssistant();</script></body>`);
 export function previewServer() {

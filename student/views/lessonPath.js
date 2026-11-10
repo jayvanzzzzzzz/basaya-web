@@ -73,7 +73,7 @@ export async function renderLessonPath(lessonId) {
   content().innerHTML = `
     <section class="st-path">
       <header class="st-hero st-hero--path">
-        <a class="st-icon-button st-icon-button--light" href="#/home" aria-label="Bumalik">${icon("back")}</a>
+        <a class="st-icon-button st-icon-button--light st-hub-tooltip" data-tooltip="Mga Aralin" href="#/home" aria-label="Bumalik sa Mga Aralin">${icon("back")}</a>
         <div class="st-hero__text">
           <span class="st-hero__eyebrow">ARALIN · ${lesson.practice ? "PAGSASANAY" : "PAGTATAYA"}</span>
           <h1>${escapeHtml(lesson.title || "BaSaya")}</h1>
@@ -81,7 +81,11 @@ export async function renderLessonPath(lessonId) {
         </div>
         ${buddy("happy", "st-path__buddy")}
       </header>
+      <div class="st-path__layout">
+      <aside id="path-summary" class="st-path-summary" aria-label="Buod ng aralin"><p role="status">Inihahanda ang iyong progreso…</p></aside>
+      <div class="st-path__journey">
       <div class="st-path__heading">
+
         <h2>Ang iyong landas</h2>
         <p>${
           lesson.practice
@@ -89,7 +93,8 @@ export async function renderLessonPath(lessonId) {
             : "Tapusin ang bawat hakbang, isa-isa!"
         }</p>
       </div>
-      <ol id="path-steps" class="st-steps"><li class="st-loading"><span></span><span></span><span></span></li></ol>
+      <ol id="path-steps" class="st-steps"><li class="st-loading" role="status" aria-label="Inihahanda ang mga hakbang..."><span></span><span></span><span></span></li></ol>
+      </div></div>
     </section>`;
 
   const [progress, counts] = await Promise.all([loadLessonProgress(lessonId), loadContentCounts(lessonId)]);
@@ -105,6 +110,18 @@ export async function renderLessonPath(lessonId) {
   const parts = PARTS.filter(
     (part) => !(part.key === "game" && lesson.gameSkipped) && !(part.key === "activity" && lesson.activitySkipped),
   );
+  const completed = parts.filter(part => finished[part.key]).length;
+  const next = parts.find(part => !finished[part.key] && !(part.key === "quiz" && quizLocked));
+  $("#path-summary").innerHTML = `
+
+    <h2>${lesson.practice ? "Subok lang nang subok!" : completed === parts.length ? "Natapos mo na!" : completed ? "Tuloy ang pagkatuto!" : "Handa ka na ba?"}</h2>
+    ${lesson.practice ? `<p>Pumili ng hakbang at magsanay sa sarili mong bilis. Hindi naitatala ang iskor dito.</p>` : `
+    <div class="st-path-summary__count"><strong>${completed}<span> / ${parts.length}</span></strong><span>hakbang na natapos</span></div>
+    <div class="st-bar" role="progressbar" aria-label="Mga hakbang na natapos" aria-valuemin="0" aria-valuemax="${parts.length}" aria-valuenow="${completed}"><i style="width:${completed / parts.length * 100}%"></i></div>
+    <p>${completed === parts.length ? "Maaari mong balikan ang lektura upang sariwain ang natutuhan." : "Bawat hakbang ay dagdag sa iyong kaalaman. Kaya mo ’yan!"}</p>`}
+    <button class="button primary st-path-summary__continue" type="button" id="path-continue">${icon(next?.icon || "book")}<span>${lesson.practice ? "Simulan ang pagsasanay" : next ? completed ? "Ipagpatuloy" : "Simulan ang lektura" : "Balikan ang lektura"}</span>${icon("chevron")}</button>
+    <span class="st-path-summary__hint">${escapeHtml(next?.title || "Lektura")}</span>`;
+  $("#path-continue").addEventListener("click", () => $(`[data-part="${next?.key || "lecture"}"]`)?.click());
 
   $("#path-steps").innerHTML = parts
     .map((part, index) => {

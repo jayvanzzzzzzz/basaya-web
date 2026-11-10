@@ -1,0 +1,146 @@
+[
+  {
+    "route": "dictionary",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "dictionary",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "assistant",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "route": "notifications",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  }
+]
