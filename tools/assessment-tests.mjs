@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { startFirestoreTestServer } from "./firestore-test-server.mjs";
-import { assessmentOperation } from "../notify-api/lib/assessments.js";
+const { assessmentOperation } = await import(process.argv[4] || "../notify-api/lib/assessments.js");
 import { submitSpeech } from "../notify-api/lib/assessmentSpeech.js";
 
 const require = createRequire(new URL("../notify-api/package.json", import.meta.url));
@@ -96,6 +96,41 @@ try {
   });
   await test("API rejects client-supplied scores and skills", async () => {
     for (const fields of [{ quizScore: 100 }, { skills: {} }, { total: 1 }, { uid: "other" }]) await rejects(op("answer", { part: "quiz", ...fields }), 400);
+  });
+  await test("activity preparation includes only activity keys and establishes a versioned attempt", async () => {
+    await seed("classes/a/classLessons/instant", { lessonId: "instant" });
+    await seed("lessons/instant/activity/content", { title: "Instant", pages: [
+      { words: ["a", "b"], correctIndices: [1], explanation: "Why b" },
+      { words: ["x", "y"], correctIndices: [0] },
+    ] });
+    const prepared = await op("prepare-activity", { lessonId: "instant", part: "activity" });
+    assert.deepEqual(prepared.activity.pages[0].correctIndices, [1]);
+    assert.equal(prepared.activity.pages[0].explanation, "Why b");
+    assert.ok(prepared.attemptId && prepared.contentVersion);
+    assert.equal(prepared.quiz, undefined);
+    assert.equal(prepared.resume.lives, 3);
+    await rejects(op("prepare-activity", { part: "quiz" }), 400);
+    await rejects(op("prepare-activity", { lessonId: "unassigned", part: "activity" }), 403);
+    const fields = { lessonId: "instant", part: "activity", attemptId: prepared.attemptId,
+      contentVersion: prepared.contentVersion, index: 0, selected: [0], eventId: "instant-wrong" };
+    const wrong = await op("answer", fields);
+    assert.equal(wrong.lives, 2);
+    assert.deepEqual(await op("answer", fields), wrong, "Retry must not deduct another life");
+    const resumed = await op("prepare-activity", { lessonId: "instant", part: "activity" });
+    assert.equal(resumed.resume.lives, 2);
+    assert.equal(resumed.attemptId, prepared.attemptId);
+    await rejects(op("answer", { ...fields, eventId: "bad-version", contentVersion: "stale" }), 409);
+    await rejects(op("answer", { ...fields, eventId: "bad-attempt", attemptId: "stale" }), 409);
+    const right = await op("answer", { ...fields, eventId: "instant-right", selected: [1] });
+    assert.equal(right.done, 1); assert.equal(right.score, 1); assert.equal(right.retries, 1);
+    await op("answer", { ...fields, eventId: "instant-page-two", index: 1, selected: [0] });
+    const result = await op("finish", { lessonId: "instant", part: "activity",
+      attemptId: prepared.attemptId, contentVersion: prepared.contentVersion });
+    assert.equal(result.finished, true); assert.equal(result.score, 2);
+    assert.equal((await op("prepare-activity", { lessonId: "instant", part: "activity" })).finished, true);
+    await seed("lessons/instant/activity/content", { pages: [{ words: ["a", "b"], correctIndices: [0] }] });
+    await rejects(op("answer", { ...fields, eventId: "edited-key" }), 409);
+    await db.doc("classes/a/classLessons/instant").delete();
   });
   await test("unassigned, wrong membership and stale sessions rejected", async () => {
     await rejects(op("content", { lessonId: "unassigned" }), 403);
@@ -387,7 +422,12 @@ try {
   await test("practice answers never create assessment progress or summaries", async () => {
     await seed("classes/a/classLessons/practice-entry", { lessonId: "practice", mode: "practice" });
     await seed("lessons/practice/quiz/content", { questions: [{ question: "Practice", choices: ["a", "b"], answer: 0 }] });
+    await seed("lessons/practice/activity/content", { pages: [{ words: ["a", "b"], correctIndices: [1] }] });
     const before = (await read("users/student")).skillSummary;
+    const prepared = await op("prepare-activity", { practice: true, entryId: "practice-entry", lessonId: "practice", part: "activity" });
+    assert.deepEqual(prepared.activity.pages[0].correctIndices, [1]);
+    assert.equal(prepared.resume.lives, 3);
+    assert.equal(prepared.quiz, undefined);
     const result = await op("answer", { practice: true, entryId: "practice-entry", lessonId: "practice", part: "quiz", index: 0, selected: [0] });
     assert.equal(result.right, true); assert.equal(await read("users/student/assignedLessons/practice"), undefined);
     assert.deepEqual((await read("users/student")).skillSummary, before);

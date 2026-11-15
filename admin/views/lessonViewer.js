@@ -27,16 +27,17 @@ export async function loadLessonSections(lessonId) {
 
   const data = Object.fromEntries(entries);
 
+  // The editor saves to "content"; older documents can still exist beside it.
+  const content = (docs) => docs.find((item) => item.id === "content") ||
+    docs.find((item) => item.id !== "status") || null;
   const status = (docs) => docs.find((item) => item.id === "status") || null;
   return {
     // activity/status (and game/status) say the admin skipped that part.
-    activity: data.activity.find((item) => item.id === "content") ||
-      data.activity.find((item) => item.id !== "status") ||
-      null,
+    activity: content(data.activity),
     activityStatus: status(data.activity),
-    lectures: data.lectures[0] || null,
-    pronunciation: data.pronunciation[0] || null,
-    quiz: data.quiz[0] || null,
+    lectures: content(data.lectures),
+    pronunciation: content(data.pronunciation),
+    quiz: content(data.quiz),
     game: (data.game || []).filter((item) => item.id !== "status"),
     gameStatus: status(data.game || []),
   };

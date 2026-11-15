@@ -118,7 +118,7 @@ export async function renderAccount() {
         <span class="st-avatar st-avatar--xl" aria-hidden="true">${escapeHtml((profile.firstName || "B").charAt(0).toUpperCase())}</span>
         <h2>${escapeHtml(name)}</h2>
         <p>${escapeHtml(student.email)}</p>
-        <span class="st-profile-role">${icon("book")}Mag-aaral ng BaSaya</span>
+        <span class="st-profile-role">${icon("book")}Mag-aaral ng BASAya</span>
       </header>
 
       <section class="st-card st-account__section">
@@ -150,7 +150,7 @@ export async function renderAccount() {
       <button class="button secondary st-wide st-logout" type="button" id="account-logout">${icon("door")}Mag-logout</button>
 
       <footer class="site-footer site-footer--app st-footer">
-        <p>© 2026 <strong>BaSaya</strong> · A BSIT Capstone Project</p>
+        <p>© 2026 <strong>BASAya</strong> · A BSIT Capstone Project</p>
         <nav class="site-footer__links" aria-label="Site information">
           <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
           <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>

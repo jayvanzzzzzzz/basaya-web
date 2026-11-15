@@ -19,5 +19,5 @@ document.getElementById("pwa-install-button").addEventListener("click", async ()
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register(new URL("service-worker.js", document.baseURI))
-    .catch((error) => console.warn("BaSaya offline page unavailable:", error));
+    .catch((error) => console.warn("BASAya offline page unavailable:", error));
 }

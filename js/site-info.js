@@ -24,11 +24,11 @@ const initials = (name) =>
 
 const PANELS = {
   about: `
-    <h2>About BaSaya</h2>
+    <h2>About BASAya</h2>
     <p>
-      BaSaya is a Tagalog learning platform for Filipino classrooms. Teachers create
+      BASAya is a Tagalog learning platform for Filipino classrooms. Teachers create
       classes, assign lessons and game levels, and follow each student's progress here on
-      the web. Students learn, practice, and play in the BaSaya Android app or on this
+      the web. Students learn, practice, and play in the BASAya Android app or on this
       website, with the same account.
     </p>
     <div class="site-info__school">
@@ -43,7 +43,7 @@ const PANELS = {
   privacy: `
     <h2>Privacy Policy</h2>
     <p>
-      BaSaya only collects what it needs to run classes and track learning. We do not sell
+      BASAya only collects what it needs to run classes and track learning. We do not sell
       or share your information, and we do not show ads.
     </p>
     <h3>What we store</h3>
@@ -52,7 +52,7 @@ const PANELS = {
       <li>Class information: the classes a student has joined and their teacher.</li>
       <li>Learning activity: lesson progress, game scores, and completed activities.</li>
       <li>Notifications about new lessons sent to the student's app.</li>
-      <li>Contact form messages: emailed to the BaSaya team, not saved in the app.</li>
+      <li>Contact form messages: emailed to the BASAya team, not saved in the app.</li>
     </ul>
     <h3>How it is used</h3>
     <p>
@@ -75,11 +75,11 @@ const logoUrl = new URL("../img/logo.png", import.meta.url).href;
 function build() {
   const dialog = document.createElement("dialog");
   dialog.className = "site-info";
-  dialog.setAttribute("aria-label", "About BaSaya");
+  dialog.setAttribute("aria-label", "About BASAya");
   dialog.innerHTML = `
     <div class="site-info__card">
       <div class="site-info__head">
-        <p class="site-info__brand"><img src="${logoUrl}" alt="" /> BaSaya</p>
+        <p class="site-info__brand"><img src="${logoUrl}" alt="" /> BASAya</p>
         <button class="site-info__close" type="button" aria-label="Close">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
         </button>

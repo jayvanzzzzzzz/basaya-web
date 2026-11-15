@@ -1,0 +1,22 @@
+[
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/activity/PreparedPractice.kt",
+    "hash": null
+  },
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/DashboardActivity.kt",
+    "hash": "f2f1a23c96e11ddc21db6c49bd1a5c522098770ddc2edd0516633cf257dab00f"
+  },
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/activity/PracticeActivity.kt",
+    "hash": "8526a3ba01030371aa6f5818639936d94188ae42e574dabd3d3b10181b158594"
+  },
+  {
+    "relative": "app/src/main/res/layout/activity_dashboard.xml",
+    "hash": "3d353a2c0d8077989259a2646a3f9b77f16bb633531c2e4c10c4754dbde2e135"
+  },
+  {
+    "relative": "app/src/main/res/values/strings_practice_preparation.xml",
+    "hash": null
+  }
+]

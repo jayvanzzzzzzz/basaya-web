@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         type: "chat_message",
         classId,
         messageId,
-        title: "BaSaya · Mensahe sa klase",
+        title: "BASAya · Mensahe sa klase",
         body: "May bagong mensahe ang iyong guro. Buksan ang iyong klase para basahin ito.",
         sentAt: String(sentAt),
       },

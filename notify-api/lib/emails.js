@@ -50,7 +50,7 @@ function layout({ preheader, eyebrow, body, footerNote }) {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" />
 <meta name="supported-color-schemes" content="light" />
-<title>BaSaya</title>
+<title>BASAya</title>
 </head>
 <body style="margin:0;padding:0;background:${C.page};-webkit-text-size-adjust:100%;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escape(preheader)}</div>
@@ -66,7 +66,7 @@ function layout({ preheader, eyebrow, body, footerNote }) {
                 <tr>
                   <td style="vertical-align:middle;">
                     <img src="${LOGO_URL}" width="40" height="40" alt="" style="display:inline-block;vertical-align:middle;border:0;" />
-                    <span style="display:inline-block;vertical-align:middle;margin-left:10px;font-family:${FONT};font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;">BaSaya</span>
+                    <span style="display:inline-block;vertical-align:middle;margin-left:10px;font-family:${FONT};font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;">BASAya</span>
                   </td>
                   <td align="right" style="vertical-align:middle;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#e6e4ff;">${escape(eyebrow)}</td>
                 </tr>
@@ -85,7 +85,7 @@ function layout({ preheader, eyebrow, body, footerNote }) {
           <tr>
             <td align="center" style="padding:24px 24px 8px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.ink3};">
               ${footerNote ? `<p style="margin:0 0 10px;">${footerNote}</p>` : ""}
-              <p style="margin:0;"><strong style="color:${C.ink2};">BaSaya</strong> &middot; A Capstone Project, BS in Information Technology</p>
+              <p style="margin:0;"><strong style="color:${C.ink2};">BASAya</strong> &middot; A Capstone Project, BS in Information Technology</p>
               <p style="margin:0;">${SCHOOL}</p>
               <p style="margin:10px 0 0;"><a href="${SITE_URL}" style="color:${C.primary};text-decoration:none;font-weight:600;">${SITE_URL.replace(/^https?:\/\//, "")}</a></p>
             </td>
@@ -118,12 +118,12 @@ export function contactEmail({ name, email, topic, message, role, page, sentAt, 
     timeStyle: "short",
   });
   const kb = attachment ? Math.max(1, Math.round(attachment.size / 1024)) : 0;
-  const replyHref = `mailto:${email}?subject=${encodeURIComponent(`Re: ${topic} - BaSaya`)}`;
+  const replyHref = `mailto:${email}?subject=${encodeURIComponent(`Re: ${topic} - BASAya`)}`;
 
   const body = `
     <span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${C.primarySoft};color:${C.primary};font-size:12px;font-weight:700;">${escape(topic)}</span>
     <h1 style="margin:16px 0 6px;font-size:24px;line-height:1.3;color:${C.ink};font-weight:800;letter-spacing:-0.3px;">New message from ${escape(name)}</h1>
-    <p style="margin:0;font-size:14px;line-height:1.6;color:${C.ink2};">Sent through the contact form on the BaSaya website.</p>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:${C.ink2};">Sent through the contact form on the BASAya website.</p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
       <tr>
@@ -150,12 +150,12 @@ export function contactEmail({ name, email, topic, message, role, page, sentAt, 
     <p style="margin:0;font-size:13px;color:${C.ink3};">Or just press <strong>Reply</strong> in Gmail. It goes straight to ${escape(email)}.</p>`;
 
   return {
-    subject: `[BaSaya · ${topic}] ${name}`,
+    subject: `[BASAya · ${topic}] ${name}`,
     html: layout({
       preheader: `${topic} from ${name}: ${message.slice(0, 90)}`,
       eyebrow: "Contact form",
       body,
-      footerNote: "You received this because someone used the contact form on the BaSaya website.",
+      footerNote: "You received this because someone used the contact form on the BASAya website.",
     }),
     text: [
       `New message from ${name} (${topic})`,
@@ -186,8 +186,8 @@ export function passwordResetEmail({ name, email, link, role = "teacher", reques
   const account = ["student", "teacher", "admin"].includes(role) ? `${role} account` : "account";
   const byAdmin = requestedBy === "admin";
   const intro = byAdmin
-    ? `Your school admin asked BaSaya to send you a password reset link for your ${account}`
-    : `We received a request to reset the password for your BaSaya ${account}`;
+    ? `Your school admin asked BASAya to send you a password reset link for your ${account}`
+    : `We received a request to reset the password for your BASAya ${account}`;
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
       <tr>
@@ -221,12 +221,12 @@ export function passwordResetEmail({ name, email, link, role = "teacher", reques
     <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="${escape(link)}" style="color:${C.primary};text-decoration:none;">${escape(link)}</a></p>`;
 
   return {
-    subject: "Reset your BaSaya password",
+    subject: "Reset your BASAya password",
     html: layout({
       preheader: `Use this link within 1 hour to choose a new password for your ${account}.`,
       eyebrow: "Account security",
       body,
-      footerNote: `This email was sent to ${escape(email)} because a password reset was requested for your BaSaya ${account}.`,
+      footerNote: `This email was sent to ${escape(email)} because a password reset was requested for your BASAya ${account}.`,
     }),
     text: [
       `Hi ${first},`,
@@ -238,7 +238,7 @@ export function passwordResetEmail({ name, email, link, role = "teacher", reques
       "This link expires in 1 hour and can be used only once.",
       "Didn't expect this? You can ignore this email. Your current password keeps working.",
       "",
-      `BaSaya · A Capstone Project, BS in Information Technology · ${SCHOOL}`,
+      `BASAya · A Capstone Project, BS in Information Technology · ${SCHOOL}`,
     ].join("\n"),
   };
 }
@@ -264,7 +264,7 @@ export function adminPasswordChangeEmail({ name, email, approveLink, cancelLink,
     <h1 style="margin:22px 0 8px;font-size:26px;line-height:1.3;color:${C.ink};font-weight:800;letter-spacing:-0.4px;">Approve your new password</h1>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:${C.ink2};">Hi ${escape(first)},</p>
     <p style="margin:0;font-size:15px;line-height:1.7;color:${C.ink2};">
-      Someone signed in to the BaSaya admin account <strong style="color:${C.ink};">${escape(email)}</strong>
+      Someone signed in to the BASAya admin account <strong style="color:${C.ink};">${escape(email)}</strong>
       and asked to change its password on <strong style="color:${C.ink};">${escape(when)}</strong>.
       The new password <strong style="color:${C.ink};">won't work until you approve it</strong>.
     </p>
@@ -291,17 +291,17 @@ export function adminPasswordChangeEmail({ name, email, approveLink, cancelLink,
     <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="${escape(approveLink)}" style="color:${C.primary};text-decoration:none;">${escape(approveLink)}</a></p>`;
 
   return {
-    subject: "Approve your new BaSaya admin password",
+    subject: "Approve your new BASAya admin password",
     html: layout({
       preheader: `Your new admin password won't work until you approve it (link valid ${minutes} minutes).`,
       eyebrow: "Account security",
       body,
-      footerNote: `This email was sent to ${escape(email)} because a password change was requested for your BaSaya admin account.`,
+      footerNote: `This email was sent to ${escape(email)} because a password change was requested for your BASAya admin account.`,
     }),
     text: [
       `Hi ${first},`,
       "",
-      `Someone signed in to the BaSaya admin account ${email} and asked to change its password on ${when}.`,
+      `Someone signed in to the BASAya admin account ${email} and asked to change its password on ${when}.`,
       "The new password won't work until you approve it.",
       "",
       `Approve: ${approveLink}`,
@@ -312,7 +312,7 @@ export function adminPasswordChangeEmail({ name, email, approveLink, cancelLink,
       `Wasn't you? Cancel: ${cancelLink}`,
       "Or ignore this email: your current password keeps working. Whoever asked knew your current password, so change it soon.",
       "",
-      `BaSaya · A Capstone Project, BS in Information Technology · ${SCHOOL}`,
+      `BASAya · A Capstone Project, BS in Information Technology · ${SCHOOL}`,
     ].join("\n"),
   };
 }

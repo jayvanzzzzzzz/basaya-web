@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ac_sync_finishing">Sine-save ang resulta…</string>
+    <string name="ac_sync_pending">Naka-save sa telepono. Hindi pa naka-sync; awtomatikong susubukan muli.</string>
+    <string name="ac_sync_rejected">Nagbago o hindi tinanggap ang progreso. Pindutin dito upang bumalik sa aralin at suriin ito.</string>
+    <string name="ac_save_local_error">Hindi ma-save ang sagot sa telepono. Magbakante ng storage at subukan muli.</string>
+</resources>

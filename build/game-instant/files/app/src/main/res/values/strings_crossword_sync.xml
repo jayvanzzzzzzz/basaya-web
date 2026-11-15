@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cw_sync_finishing">Sine-save ang antas…</string>
+    <string name="cw_sync_pending">Naka-save sa telepono. Hindi pa naka-sync; awtomatikong susubukan muli.</string>
+    <string name="cw_sync_rejected">Hindi tinanggap ang progreso. Pindutin dito upang bumalik sa aralin at suriin ito.</string>
+    <string name="cw_save_local_error">Hindi ma-save sa telepono. Magbakante ng storage at buuin muli ang salita.</string>
+</resources>

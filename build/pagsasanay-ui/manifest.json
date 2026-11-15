@@ -1,0 +1,22 @@
+[
+  {
+    "file": "app/src/main/res/layout/activity_practice.xml",
+    "before": "0cdbd84ab12368d79eaf7ca926d7559c86ffbde7f77e5e684e35e416a49b3728",
+    "after": "61ec3a6962baec73ab3d2f656f1acbc4d0ebbd94fadaf8d179a1ea22731877b6"
+  },
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/activity/PracticeActivity.kt",
+    "before": "c472a7d7cc97e9d2655b93c520c8455850768092d4f08bfd8cf740812db5173e",
+    "after": "9e3e9fbecf1a432ccfab4f9cdb35612ecc486d5d1af811b8312fa97a2c77516d"
+  },
+  {
+    "file": "app/src/main/res/values/strings_practice_instruction.xml",
+    "before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after": "76e2142d670219271722141029ccbf48013fd8266ab2633de3ee4d79b929a7be"
+  },
+  {
+    "file": "app/src/main/res/drawable/ac_btn_instruction.xml",
+    "before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after": "c2808ec634f4adea6683875c5ffc5f101a5208225e50a094291c2e188a83a988"
+  }
+]

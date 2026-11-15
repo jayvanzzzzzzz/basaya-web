@@ -104,7 +104,7 @@ function exportStudentExcel({ classroom, student, profile, progress, joined }) {
   const score = (value, skipped) => (skipped ? "Skipped" : value);
 
   return downloadWorkbook(
-    `BaSaya Progress - ${fileName(student.name)} - ${fileName(classroom.className)} - ${dateStamp()}.xlsx`,
+    `BASAya Progress - ${fileName(student.name)} - ${fileName(classroom.className)} - ${dateStamp()}.xlsx`,
     [
       {
         name: "Summary",
@@ -236,7 +236,7 @@ export async function renderStudentProgress(classId, studentId) {
     `<button class="button secondary sp-action" id="open-class-report" type="button" aria-label="Class report" data-teacher-tooltip data-floating-tooltip="Class report">${reportIcon}</button>`,
     {
       crumbs: [
-        { label: "Classrooms", href: "#/dashboard" },
+        { label: "Classrooms", href: "#/classes" },
         { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
         { label: "Students", href: `#/classes/${encodeURIComponent(classId)}/students` },
       ],

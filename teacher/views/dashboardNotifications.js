@@ -35,16 +35,17 @@ export function watchDashboardNotifications(classes, onChange) {
     if (owns()) onChange(entry.id, {
       className: entry.className, joins: entry.joins, leaves: entry.leaves,
       grading: readingGradingSummary(entry.readings, entry.links),
+      loading: entry.loaded.size < 4,
       error: Object.values(entry.errors).some(Boolean),
     });
   };
   for (const classroom of classes) {
-    const entry = { id: classroom.id, className: classroom.className, joins: 0, leaves: 0, readings: [], links: [], errors: {}, inFlight: false };
+    const entry = { id: classroom.id, className: classroom.className, joins: 0, leaves: 0, readings: [], links: [], errors: {}, loaded: new Set(), inFlight: false };
     entries.set(entry.id, entry);
     const watch = (name, ref, apply) => stops.push(onSnapshot(ref, snapshot => {
       if (!owns()) return;
-      apply(snapshot); entry.errors[name] = false; emit(entry);
-    }, () => { entry.errors[name] = true; emit(entry); }));
+      apply(snapshot); entry.loaded.add(name); entry.errors[name] = false; emit(entry);
+    }, () => { entry.loaded.add(name); entry.errors[name] = true; emit(entry); }));
     watch('joins', query(collection(db, 'classes', entry.id, 'joinRequests'), where('status', '==', 'pending')), snap => { entry.joins = snap.docs.length; });
     watch('leaves', collection(db, 'classes', entry.id, 'students'), snap => { entry.leaves = snap.docs.filter(doc => doc.data().leaveRequest).length; });
     watch('links', collection(db, 'classes', entry.id, 'classLessons'), snap => { entry.links = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); });
@@ -56,8 +57,8 @@ export function watchDashboardNotifications(classes, onChange) {
       entry.inFlight = true;
       try {
         const result = await postToApi('assessment', { operation: 'fluency-list', classId: entry.id }, { signal: AbortSignal.timeout(20000) });
-        if (owns()) { entry.readings = result.submissions || []; entry.errors.readings = false; emit(entry); }
-      } catch { if (owns()) { entry.errors.readings = true; emit(entry); } }
+        if (owns()) { entry.readings = result.submissions || []; entry.loaded.add('readings'); entry.errors.readings = false; emit(entry); }
+      } catch { if (owns()) { entry.loaded.add('readings'); entry.errors.readings = true; emit(entry); } }
       finally { entry.inFlight = false; }
     }));
   }

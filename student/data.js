@@ -394,7 +394,7 @@ export async function downloadLesson(lessonId, onProgress = () => {}, { signal }
   if (!registration.active) throw new Error("Inihahanda pa ang app. Subukan muli.");
   const shellReady = await Promise.all((await caches.keys()).filter((name) => name.startsWith("basaya-offline-v2")).map(async (name) =>
     Boolean(await (await caches.open(name)).match(new URL("../.offline-ready", import.meta.url).href))));
-  if (!shellReady.some(Boolean)) throw new Error("Inihahanda pa ang offline na app. Isara at buksan muli ang BaSaya habang online, saka subukan.");
+  if (!shellReady.some(Boolean)) throw new Error("Inihahanda pa ang offline na app. Isara at buksan muli ang BASAya habang online, saka subukan.");
   const uid = student.uid;
   const cid = classId();
   const lesson = await findLesson(lessonId);

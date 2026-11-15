@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="BaSaya para sa mga mag-aaral" />
+    <meta name="description" content="BASAya para sa mga mag-aaral" />
     <meta name="theme-color" content="#5b4cf4" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="BaSaya" />
+    <meta name="apple-mobile-web-app-title" content="BASAya" />
     <link rel="manifest" href="../manifest.webmanifest" />
-    <title>BaSaya — Mag-aaral</title>
+    <title>BASAya — Mag-aaral</title>
     <link rel="icon" type="image/png" href="../img/favicon.png?v=1" sizes="128x128" />
     <link rel="apple-touch-icon" href="../img/pwa-icon-192.png" />
     <script src="./pwa.js" defer></script>
@@ -71,18 +71,18 @@
   <body class="st-body">
     <div id="loading-screen" class="loading-screen student-loading" role="status" aria-live="polite">
       <div class="student-loading__art" aria-hidden="true"><span></span><img src="../img/logo.png" alt="" width="144" height="144" /></div>
-      <div class="student-loading__copy"><h1>BaSaya<span>.</span></h1><p>Inihahanda ang iyong mga aralin…</p></div>
+      <div class="student-loading__copy"><h1>BASAya<span>.</span></h1><p>Inihahanda ang iyong mga aralin…</p></div>
       <div class="student-loading__rail" aria-hidden="true"><span></span></div>
     </div>
 
     <div id="app-view" class="st-shell" hidden>
       <header class="st-topbar">
-        <a class="st-topbar__brand" href="#/home" aria-label="BaSaya home">
+        <a class="st-topbar__brand" href="#/home" aria-label="BASAya home">
           <img src="../img/logo.png" alt="" />
-          <span>BaSaya</span>
+          <span>BASAya</span>
         </a>
         <div class="st-topbar__actions">
-          <a class="st-bell st-assistant-link" href="#/assistant" data-nav="assistant" aria-label="BaSaya AI Assistant" title="BaSaya Assistant">
+          <a class="st-bell st-assistant-link" href="#/assistant" data-nav="assistant" aria-label="BASAya AI Assistant" title="BASAya Assistant">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="4" /><path d="M12 3v3M8 16h8M8 11h1m6 0h1" /></svg>
           </a>
           <a class="st-bell" id="st-dict-link" href="#/diksiyonaryo" data-nav="diksiyonaryo" aria-label="Diksiyonaryo" title="Diksiyonaryo">
@@ -123,10 +123,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
                 <span>Aking account</span>
               </a>
-              <a class="st-menu__item" href="#/assistant" role="menuitem"><span>BaSaya Assistant · AI Help</span></a>
+              <a class="st-menu__item" href="#/assistant" role="menuitem"><span>BASAya Assistant · AI Help</span></a>
               <button class="st-menu__item" id="st-install-app" type="button" role="menuitem">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
-                <span>Install BaSaya</span>
+                <span>Install BASAya</span>
               </button>
               <button class="st-menu__item st-menu__item--danger" id="st-menu-logout" type="button" role="menuitem">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" /></svg>
@@ -175,7 +175,7 @@
         const paragraph = document.createElement("p");
         paragraph.style.maxWidth = "30rem";
         const heading = document.createElement("strong");
-        heading.textContent = "Hindi mabuksan ang BaSaya.";
+        heading.textContent = "Hindi mabuksan ang BASAya.";
         paragraph.append(
           heading,
           document.createElement("br"),

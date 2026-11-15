@@ -16,7 +16,7 @@ window.addEventListener("DOMContentLoaded", () => {
       installPrompt = null;
       await prompt.prompt();
     } else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-      alert("Sa Safari, pindutin ang Share at piliin ang Add to Home Screen para i-install ang BaSaya.");
+      alert("Sa Safari, pindutin ang Share at piliin ang Add to Home Screen para i-install ang BASAya.");
     } else {
       alert("Buksan ang menu ng iyong browser at piliin ang Install app o Add to Home screen. Kung wala ang opsyon, maaaring hindi ito suportado ng browser.");
     }
@@ -33,6 +33,6 @@ if ("serviceWorker" in navigator) {
         const old = await navigator.serviceWorker.getRegistration(new URL("student/", root));
         if (old && old.scope === new URL("student/", root).href) await old.unregister();
       })
-      .catch((error) => console.warn("BaSaya offline page unavailable:", error));
+      .catch((error) => console.warn("BASAya offline page unavailable:", error));
   });
 }

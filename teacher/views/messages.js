@@ -159,7 +159,7 @@ export function leaveMessages() {
 
 function classListHtml(activeId) {
   if (!state.classes.length) {
-    return `<div class="inbox-empty-list">${icon("chat")}<p>Create a class to start a class chat.</p><a class="button primary" href="#/dashboard">Go to classes</a></div>`;
+    return `<div class="inbox-empty-list">${icon("chat")}<p>Create a class to start a class chat.</p><a class="button primary" href="#/classes">Go to classes</a></div>`;
   }
   return state.classes
     .map((classroom) => {
@@ -214,7 +214,7 @@ export async function renderMessages(classId) {
         <p class="inbox-list__note">${icon("chat")}A space to learn, ask, and connect.</p>
       </aside>
       <section class="chat" data-chat aria-label="Class chat">
-        ${classroom ? chatShellHtml(classroom) : `<div class="chat-placeholder">${icon("chat")}<span class="inbox-eyebrow">Class conversations</span><h2>${state.classes.length ? "Start with a class" : "Your conversations start here"}</h2><p>${state.classes.length ? "Choose a class to read and send messages." : "Create a class to connect with your students."}</p>${!state.classes.length ? '<a class="button primary" href="#/dashboard">Go to classes</a>' : ''}</div>`}
+        ${classroom ? chatShellHtml(classroom) : `<div class="chat-placeholder">${icon("chat")}<span class="inbox-eyebrow">Class conversations</span><h2>${state.classes.length ? "Start with a class" : "Your conversations start here"}</h2><p>${state.classes.length ? "Choose a class to read and send messages." : "Create a class to connect with your students."}</p>${!state.classes.length ? '<a class="button primary" href="#/classes">Go to classes</a>' : ''}</div>`}
       </section>
     </div>`;
 
@@ -349,7 +349,7 @@ function openChat(classroom) {
     delivery.note(messages);
     list.innerHTML = messages.length
       ? messages.map((message, index) => messageHtml(message, messages[index - 1], delivery)).join("")
-      : `<li class="chat-empty">${icon("chat")}<strong>No messages yet</strong><span>Say hello to ${escapeHtml(classroom.className || "your class")}. Students see it in the BaSaya app.</span></li>`;
+      : `<li class="chat-empty">${icon("chat")}<strong>No messages yet</strong><span>Say hello to ${escapeHtml(classroom.className || "your class")}. Students see it in the BASAya app.</span></li>`;
     delivery.drawn(messages);
     $("[data-older]", root).hidden = !(older.length ? moreOlder : recentFull);
     if (keepOffset) scroller.scrollTop = scroller.scrollHeight - fromBottom;

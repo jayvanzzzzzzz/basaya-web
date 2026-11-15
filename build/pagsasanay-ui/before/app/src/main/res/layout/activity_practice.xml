@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Practice (Gawain): mint art desk, candy word tiles, and the book buddy for feedback. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ac_bg_scene"
+    tools:context=".ui.activity.PracticeActivity">
+
+    <LinearLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp">
+
+            <ImageButton
+                android:id="@+id/btnClose"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/ac_btn_round"
+                android:contentDescription="@string/ac_close"
+                android:paddingBottom="3dp"
+                android:src="@drawable/ic_close"
+                app:tint="@color/ac_ink" />
+
+            <TextView
+                android:id="@+id/tvPageTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/ac_chip"
+                android:fontFamily="@font/be_vietnam_bold"
+                android:gravity="center"
+                android:minHeight="40dp"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="7dp"
+                android:textColor="@color/ac_ink"
+                android:textSize="14sp"
+                tools:text="Pahina 1 / 3" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Lives left on this page; the hearts are added in PracticeActivity -->
+            <LinearLayout
+                android:id="@+id/llLives"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/acSyncStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="44dp"
+            android:gravity="center"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="6dp"
+            android:fontFamily="@font/quicksand_medium"
+            android:textColor="@color/ac_ink"
+            android:textSize="13sp"
+            android:accessibilityLiveRegion="polite"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/llProgressBars"
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginEnd="20dp"
+            android:orientation="horizontal" />
+
+        <TextView
+            android:id="@+id/tvActivityTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="18dp"
+            android:layout_marginEnd="20dp"
+            android:fontFamily="@font/lexend"
+            android:textColor="@color/ac_ink"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            tools:text="Hanapin ang Pangngalan" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/ac_instruction_pill"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ac_ic_pencil"
+                app:tint="@color/ac_check" />
+
+            <TextView
+                android:id="@+id/tvInstruction"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:fontFamily="@font/quicksand_medium"
+                android:lineSpacingExtra="2dp"
+                android:textColor="@color/ac_ink_soft"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="Piliin ang mga salitang pangngalan sa pangungusap." />
+        </LinearLayout>
+
+        <!-- How many words to pick on this page -->
+        <TextView
+            android:id="@+id/tvPickCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/pg_round"
+            android:backgroundTint="@color/ac_check"
+            android:fontFamily="@font/be_vietnam_bold"
+            android:paddingStart="14dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="6dp"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:visibility="gone"
+            tools:text="Pumili ng 2 salita"
+            tools:visibility="visible" />
+
+        <!-- Worksheet -->
+        <ScrollView
+            android:id="@+id/worksheetScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingTop="18dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="16dp">
+
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/chipsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/ac_card"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:elevation="2dp"
+                    android:minHeight="140dp"
+                    android:paddingStart="16dp"
+                    android:paddingTop="22dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="28dp"
+                    app:alignContent="center"
+                    app:alignItems="center"
+                    app:flexWrap="wrap"
+                    app:justifyContent="center" />
+
+                <!-- Feedback bubble with the book buddy, hidden until checked -->
+                <LinearLayout
+                    android:id="@+id/feedbackContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:accessibilityLiveRegion="polite"
+                    android:background="@drawable/ac_feedback_good"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="8dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <ph.basaya.app.ui.pronunciation.PronunciationBookView
+                        android:id="@+id/feedbackBuddy"
+                        android:layout_width="78dp"
+                        android:layout_height="92dp"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/tvFeedback"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/quicksand_medium"
+                        android:lineSpacingExtra="2dp"
+                        android:textColor="@color/ac_good_text"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        tools:text="Mahusay! Ang pangngalan ay ngalan ng tao, bagay, hayop, lugar o pangyayari." />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Action button -->
+        <TextView
+            android:id="@+id/btnAction"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="18dp"
+            android:background="@drawable/ac_btn_check"
+            android:clickable="true"
+            android:enabled="false"
+            android:focusable="true"
+            android:fontFamily="@font/be_vietnam_bold"
+            android:gravity="center"
+            android:paddingBottom="5dp"
+            android:text="@string/ac_check"
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <ph.basaya.app.ui.game.ConfettiView
+        android:id="@+id/confettiView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="16dp" />
+</FrameLayout>

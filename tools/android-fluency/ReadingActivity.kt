@@ -162,7 +162,16 @@ class ReadingActivity : AppCompatActivity() {
         val pageIndex = state.number("page")
         val total = state.getAsJsonArray("pages").size()
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(button("‹", false) { finish() }.apply { contentDescription = "Bumalik" }, LinearLayout.LayoutParams(dp(50), dp(50)))
+        header.addView(ImageButton(this).apply {
+            setImageResource(R.drawable.cw_ic_back)
+            imageTintList = ColorStateList.valueOf(ink)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setPadding(dp(11), dp(11), dp(11), dp(11))
+            background = shape(paper, 16)
+            contentDescription = "Bumalik"
+            tooltipText = "Bumalik"
+            setOnClickListener { if (!held && !busy) finish() }
+        }, LinearLayout.LayoutParams(dp(50), dp(50)))
         header.addView(text((0 until total).joinToString("  ") { i -> if (i < pageIndex) "✓" else if (i == pageIndex) "●" else "○" }, 20f, purple, true).apply { gravity = Gravity.CENTER }, LinearLayout.LayoutParams(0,-2,1f))
         header.addView(text("${pageIndex + 1}/$total", 15f, muted, true), LinearLayout.LayoutParams(dp(40),-2))
         column.addView(header)

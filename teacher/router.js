@@ -14,8 +14,9 @@ import { leaveLeaveRequests } from "./views/leaveRequests.js";
 import { leaveStudentRequestsBadge } from "./views/studentRequestsBadge.js";
 import { renderFluencyReview } from './views/fluencyReview.js';
 import { leaveStudentNotifications } from './views/studentNotifications.js';
-import { leaveTeacherTooltips } from './views/classActions.js';
+import { leaveTeacherTooltips, watchTeacherTooltips } from './views/classActions.js';
 import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
+import { renderTeacherLanding } from './views/landing.js';
 
 let statsLoaded = false;
 
@@ -41,7 +42,11 @@ export async function renderRoute() {
   leaveTeacherTooltips();
   shell();
   leaveMessages(); // stops the open chat's live listeners
-  loadSidebarStats(); // fire-and-forget, doesn't block page render
+  loadSidebarStats().catch(() => {
+    statsLoaded = false;
+    const el = $("#teacher-stats-text");
+    if (el) el.textContent = 'Class details unavailable';
+  }); // Sidebar failure must not interrupt the dashboard's recovery state.
   const route = currentRoute();
   const classIdSegment = route.split("/")[2];
   let classId = null;
@@ -57,14 +62,19 @@ export async function renderRoute() {
     .querySelectorAll("[data-nav]")
     .forEach((link) => {
       const section = link.dataset.nav;
+      link.setAttribute('aria-label', link.querySelector('strong')?.textContent || section);
+      link.setAttribute('data-teacher-tooltip', '');
       const isActive =
         section === "classes"
-          ? route === "/dashboard" || route.startsWith("/classes/")
+          ? route === "/classes" || route.startsWith("/classes/")
           : route.startsWith(`/${section}`);
       link.classList.toggle("active", isActive);
+      if (isActive) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
     });
   try {
-    if (route === "/dashboard") await renderDashboard();
+    if (route === "/dashboard") await renderTeacherLanding();
+    else if (route === "/classes") await renderDashboard();
     else if (route === "/settings") await renderAccountSettings();
     else if (route === "/dictionary") await renderDictionary();
     else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
@@ -83,6 +93,8 @@ export async function renderRoute() {
       await Promise.all([getTeacherLessons(), getAllLessons()]);
       await renderClass(classId);
     } else navigate("/dashboard");
+    document.querySelectorAll('.sidebar button[aria-label]').forEach(button => button.setAttribute('data-teacher-tooltip', ''));
+    watchTeacherTooltips();
   } catch (error) {
     console.error(error);
     $("#page-content").innerHTML = empty(

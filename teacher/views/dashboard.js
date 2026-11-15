@@ -456,7 +456,7 @@ export function openClassModal(existing) {
             });
           close();
           toast(existing ? "Class updated." : "Class created.");
-          navigate("/dashboard");
+          navigate("/classes");
           renderRoute();
         } catch (err) {
           toast(err.message);

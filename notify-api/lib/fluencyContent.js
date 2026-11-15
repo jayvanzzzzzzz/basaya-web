@@ -11,7 +11,9 @@ export function fluencyPages(content = {}) {
       sentence: page.sentence.trim(),
       audioUrl: /^https:\/\//.test(page.cloudAudio?.audioUrl || '') ? page.cloudAudio.audioUrl : '',
       wordStarts: validWordStarts(page.cloudAudio?.wordStarts, page.sentence),
-      words: wordsIn(page.sentence).filter(word => selected.has(wordKey(word))).map(word => {
+      words: wordsIn(page.sentence).filter(word => selected.has(wordKey(word))).map(source => {
+        const edited = page.readyWordEdits?.[wordKey(source)];
+        const word = typeof edited === 'string' && edited.trim() ? edited.trim() : source;
         const at = globalWords.findIndex(value => wordKey(value) === wordKey(word));
         const clip = (content.cloudAudio || []).find(value => wordKey(value?.text || '') === wordKey(word)) || content.cloudAudio?.[at];
         return { word, audioUrl: /^https:\/\//.test(clip?.audioUrl || '') ? clip.audioUrl : '' };

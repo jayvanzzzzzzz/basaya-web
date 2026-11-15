@@ -281,7 +281,7 @@ function setSigningIn(active) {
   passwordInput.disabled = active;
   loginButton.setAttribute("aria-busy", String(active));
   loginForm.setAttribute("aria-busy", String(active));
-  loginButtonLabel.textContent = active ? "Signing in…" : "Sign in to BaSaya";
+  loginButtonLabel.textContent = active ? "Signing in…" : "Sign in to BASAya";
 }
 
 const ROLE_DESTINATIONS = {

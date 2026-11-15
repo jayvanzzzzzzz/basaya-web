@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:background="@color/home_bg"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.MainActivity">
+    <!-- Status bar area: the top bar's own background extends behind it (see MainActivity insets). -->
+    <View
+        android:id="@+id/statusBarBg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+    <!-- Learning Studio masthead: personal controls and illustrated brand ribbon. -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_home_masthead"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
+        app:elevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="72dp"
+            android:background="@android:color/transparent"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            app:contentInsetStart="0dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="72dp"
+                android:baselineAligned="false"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <!-- Avatar (opens the profile menu) + chevron badge -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+                    <TextView
+                        android:id="@+id/tvAvatarInitial"
+                        android:stateListAnimator="@animator/masthead_press"
+                        android:focusable="true"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center_vertical"
+                        android:background="@drawable/bg_masthead_avatar"
+                        android:contentDescription="@string/profile_picture"
+                        android:fontFamily="@font/lexend"
+                        android:gravity="center"
+                        android:text="B"
+                        android:textColor="@color/mh_avatar_ink"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                    <ImageView
+                        android:id="@+id/ivProfileChevron"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginEnd="-6dp"
+                        android:layout_marginBottom="1dp"
+                        android:background="@drawable/bg_masthead_chevron"
+                        android:importantForAccessibility="no"
+                        android:padding="2dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/mh_accent" />
+                </FrameLayout>
+                <!-- Greeting + first name -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/tvGreeting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/be_vietnam_regular"
+                        android:text="@string/tb_greeting_morning"
+                        android:textColor="@color/mh_soft"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/tvFirstName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/lexend"
+                        android:maxLines="1"
+                        android:text="@string/name"
+                        android:textColor="@color/mh_on"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+                <!-- Dictionary: tactile book tab. -->
+                <ImageButton
+                    android:id="@+id/btnDictionary"
+                        android:stateListAnimator="@animator/masthead_press"
+                        android:focusable="true"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_masthead_dictionary"
+                    android:contentDescription="@string/dict_open"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_dictionary"
+                    app:tint="@color/mh_avatar_ink" />
+                <!-- Notifications: mint signal button with live unread count. -->
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+                    <ImageButton
+                        android:id="@+id/btnNotification"
+                        android:stateListAnimator="@animator/masthead_press"
+                        android:focusable="true"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_masthead_bell"
+                        android:contentDescription="@string/notifications"
+                        android:padding="12dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_notifications"
+                        app:tint="@color/mh_avatar_ink" />
+                    <TextView
+                        android:id="@+id/tvNotifBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="20dp"
+                        android:layout_gravity="top|end"
+                        android:background="@drawable/bg_home_unread_badge"
+                        android:fontFamily="@font/be_vietnam_bold"
+                        android:gravity="center"
+                        android:importantForAccessibility="no"
+                        android:includeFontPadding="false"
+                        android:minWidth="19dp"
+                        android:paddingStart="5dp"
+                        android:paddingEnd="5dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:textColor="@color/home_badge_text"
+                        android:textSize="11sp"
+                        android:visibility="gone"
+                        tools:ignore="SmallSp"
+                        tools:text="3"
+                        tools:visibility="visible" />
+                </FrameLayout>
+            </LinearLayout>
+        </androidx.appcompat.widget.Toolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+    <FrameLayout
+        android:id="@+id/frameLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavCard"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
+    <!-- Studio Dock: the selected destination becomes a raised ticket. -->
+    <FrameLayout android:id="@+id/bottomNavCard" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:background="@drawable/nav_studio_dock" app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent">
+        <FrameLayout android:id="@+id/bottomNavContent" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <View android:id="@+id/navUnderline" android:layout_width="72dp" android:layout_height="56dp"
+                android:background="@drawable/nav_studio_ticket" android:importantForAccessibility="no" />
+            <LinearLayout android:id="@+id/navItemsRow" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="4dp" android:paddingBottom="4dp"
+                android:baselineAligned="false" android:orientation="horizontal" android:gravity="center_vertical">
+                <LinearLayout android:id="@+id/navHome" style="@style/NavStudioTab" android:contentDescription="@string/nav_home">
+                    <ImageView android:id="@+id/iconHome" style="@style/NavStudioIcon" android:src="@drawable/ic_nav_studio_learn" app:tint="@color/nav_inactive" />
+                    <TextView android:id="@+id/labelHome" style="@style/NavStudioLabel" android:text="@string/nav_home" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/navProgress" style="@style/NavStudioTab" android:contentDescription="@string/nav_progress">
+                    <ImageView android:id="@+id/iconPractice" style="@style/NavStudioIcon" android:src="@drawable/ic_nav_studio_progress" app:tint="@color/nav_inactive" />
+                    <TextView android:id="@+id/labelPractice" style="@style/NavStudioLabel" android:text="@string/nav_progress" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/navChat" style="@style/NavStudioTab" android:contentDescription="@string/nav_chat">
+                    <FrameLayout android:layout_width="28dp" android:layout_height="28dp" android:clipChildren="false" android:clipToPadding="false">
+                    <ImageView android:id="@+id/iconChat" style="@style/NavStudioIcon" android:src="@drawable/ic_nav_studio_chat" app:tint="@color/nav_inactive" />
+                        <View android:id="@+id/chatUnreadDot" android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="top|end" android:background="@drawable/ch_nav_dot" android:importantForAccessibility="no" android:visibility="gone" tools:visibility="visible" />
+                    </FrameLayout>
+                    <TextView android:id="@+id/labelChat" style="@style/NavStudioLabel" android:text="@string/nav_chat" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/navProfile" style="@style/NavStudioTab" android:contentDescription="@string/nav_profile">
+                    <ImageView android:id="@+id/iconProfile" style="@style/NavStudioIcon" android:src="@drawable/ic_nav_studio_profile" app:tint="@color/nav_inactive" />
+                    <TextView android:id="@+id/labelProfile" style="@style/NavStudioLabel" android:text="@string/nav_profile" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

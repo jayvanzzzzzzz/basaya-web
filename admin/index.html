@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Admin portal" />
-    <title>BaSaya — Admin Portal</title>
+    <title>BASAya — Admin Portal</title>
     <link rel="icon" type="image/png" href="../img/favicon.png?v=1" sizes="128x128" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -67,6 +67,7 @@
     <link rel="stylesheet" href="../css/layout/workspace.css" />
     <link rel="stylesheet" href="../css/pages/admin-editorial.css?v=20261109-1" />
     <link rel="stylesheet" href="../css/components/site-info.css" />
+    <link rel="stylesheet" href="../css/pages/workspace-dashboard.css" />
   </head>
   <body data-portal="admin">
     <div id="loading-screen" class="loading-screen">
@@ -81,6 +82,10 @@
           <span class="admin-profile__identity"><small><span class="admin-status-dot" aria-hidden="true"></span>Admin</small></span>
         </a>
         <nav class="main-nav main-nav--admin" aria-label="Main navigation">
+          <a href="#/dashboard" data-nav="dashboard">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect class="duo" x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect class="duo" x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+            <span class="nav-item-text"><strong>Dashboard</strong><small>Your school at a glance</small></span>
+          </a>
           <a href="#/teachers" data-nav="teachers">
             <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle class="duo" cx="7" cy="6.5" r="2.5" /><path d="M3.5 20.5v-4.5A3.5 3.5 0 0 1 7 12.5h2.5L13 10M16.5 10v3.5M14.5 20.5l2-7 2 7" /><rect class="duo" x="12" y="3" width="9" height="7" rx="1.5" /></svg></span>
             <span class="nav-item-text">
@@ -136,7 +141,7 @@
         <header id="page-header" class="page-header"></header>
         <div id="page-content"></div>
         <footer class="site-footer site-footer--app">
-          <p>© 2026 <strong>BaSaya</strong> · A BSIT Capstone Project, Eastwoods Professional College of Science and Technology</p>
+          <p>© 2026 <strong>BASAya</strong> · A BSIT Capstone Project, Eastwoods Professional College of Science and Technology</p>
           <nav class="site-footer__links" aria-label="Site information">
             <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
             <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>

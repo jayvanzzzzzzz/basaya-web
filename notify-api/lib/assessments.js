@@ -110,11 +110,13 @@ function skill(correct, total, now, extras = {}) {
 /** The HTTP caller supplies answers only. No score, total, timestamp or skill map is accepted. */
 export async function assessmentOperation(db, uid, body, speechEvidence = null) {
   if (!body || typeof body !== "object" || Array.isArray(body)) fail(400, "Invalid assessment request.");
-  const allowed = ["operation", "classId", "progressSession", "lessonId", "part", "index", "selected", "eventId", "level", "word", "words", "done", "practice", "entryId", "attemptId"];
+  const allowed = ["operation", "classId", "progressSession", "lessonId", "part", "index", "selected", "eventId", "level", "word", "words", "done", "practice", "entryId", "attemptId", "contentVersion"];
   if (Object.keys(body).some(k => !allowed.includes(k))) fail(400, "Submit answers, not assessment results.");
-  if (!["metadata-list", "metadata", "content", "begin", "abandon", "answer", "finish", "resume", "summary", "speech-check"].includes(body.operation)) fail(400, "Unknown assessment operation.");
+  if (!["metadata-list", "metadata", "content", "prepare-activity", "begin", "abandon", "answer", "finish", "resume", "summary", "speech-check"].includes(body.operation)) fail(400, "Unknown assessment operation.");
+  if (body.operation === "prepare-activity" && body.part !== "activity") fail(400, "Only activity supports local preparation.");
+  if (body.contentVersion !== undefined && (body.part !== "activity" || typeof body.contentVersion !== "string")) fail(400, "Invalid activity content version.");
   if ("words" in body && (body.operation !== "finish" || body.part !== "game")) fail(400, "Word batches are only supported for crossword finalization.");
-  if (body.practice && !["metadata", "content", "answer"].includes(body.operation)) fail(400, "Practice does not save results.");
+  if (body.practice && !["metadata", "content", "prepare-activity", "answer"].includes(body.operation)) fail(400, "Practice does not save results.");
   return db.runTransaction(async tx => {
     const ctx = await context(tx, db, uid, body, { open: !["summary", "content", "metadata", "metadata-list", "abandon"].includes(body.operation), lesson: !["summary", "metadata-list"].includes(body.operation) });
     if (body.operation === "metadata-list") {
@@ -154,7 +156,14 @@ export async function assessmentOperation(db, uid, body, speechEvidence = null) 
     if ((operation === "begin" && !["quiz", "game", "pronunciation"].includes(part)) ||
         (operation === "abandon" && part !== "quiz")) fail(400, "Invalid assessment start or exit.");
     if ((part === "game" && c.gameSkipped) || (part === "activity" && c.activitySkipped)) fail(403, "This part is skipped.");
+    const preparedActivity = () => ({
+      activity: { title: c.activity.title || "", instruction: c.activity.instruction || "", explanation: c.activity.explanation || "",
+        pages: c.activity.pages.map(p => ({ words: p.words, correctIndices: p.correctIndices,
+          pickCount: p.correctIndices.length, explanation: p.explanation ?? c.activity.explanation ?? "" })) },
+      contentVersion: hash(c.activity),
+    });
     if (body.practice) {
+      if (operation === "prepare-activity") return { ...preparedActivity(), resume: { done: 0, score: 0, retries: 0, lives: 3 } };
       if (operation !== "answer" || !["quiz", "activity"].includes(part) || !Number.isInteger(body.index)) fail(400, "Invalid practice answer.");
       const item = part === "quiz" ? c.quiz.questions[body.index] : c.activity.pages[body.index];
       if (!item) fail(400, "Invalid practice item.");
@@ -195,8 +204,22 @@ export async function assessmentOperation(db, uid, body, speechEvidence = null) 
     const state = structuredClone(trustedState?.attemptId && trustedState.attemptId === progress.assessmentState?.[part]?.attemptId ? trustedState : {});
     state.attemptId ||= randomUUID();
     const version = hash(part === "quiz" ? c.quiz : part === "activity" ? c.activity : part === "game" ? c.levels : part === "pronunciation" ? c.pronunciation.words : c.lecture);
+    if (part === "activity" && body.contentVersion !== undefined &&
+        (body.contentVersion !== version || body.attemptId !== state.attemptId))
+      fail(409, "This activity changed. Reopen it from the lesson dashboard.");
     if (state.version && state.version !== version) fail(409, "The lesson changed during your attempt. Ask your teacher to reset it.");
     state.version = version;
+    if (operation === "prepare-activity") {
+      if (!c.activity.pages.length) fail(409, "This activity has no pages.");
+      if (!progress.activityFinished) {
+        tx.set(attemptRef, { parts: { ...privateParts, activity: state } });
+        tx.set(ref, { ...progress, classId: body.classId, progressSession: body.progressSession,
+          assessmentState: { ...progress.assessmentState, activity: state } });
+      }
+      return { ...preparedActivity(), attemptId: state.attemptId, finished: progress.activityFinished === true,
+        resume: { done: state.done || 0, score: state.correct || 0, retries: state.retries || 0,
+          lives: 3 - (state.misses || 0) } };
+    }
     const eventHash = hash({ ...body, eventId: undefined });
     let receiptRef;
     if (["answer", "speech-check"].includes(operation)) {

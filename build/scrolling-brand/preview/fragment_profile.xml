@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader's Pass: toolbar blue identity, notebook details, class ticket and theme studio. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pfScroll"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pf_page"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:scrollbars="none"
+    tools:context=".ui.fragment.ProfileFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <include layout="@layout/include_scrolling_brand" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="32dp">
+
+<LinearLayout android:id="@+id/pfIdentityPass" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/pf_studio_hero" android:orientation="vertical" android:padding="20dp" android:paddingBottom="28dp">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityHeading="true" android:fontFamily="@font/lexend" android:text="@string/pf_studio_title" android:textColor="@color/mh_on" android:textSize="24sp" android:textStyle="bold"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center_vertical" android:orientation="horizontal">
+<TextView android:id="@+id/pfAvatar" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/pf_studio_avatar" android:contentDescription="@string/profile_picture" android:fontFamily="@font/lexend" android:gravity="center" android:textColor="@color/mh_avatar_ink" android:textSize="36sp" android:textStyle="bold" tools:text="J"/>
+<Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+<ImageView android:layout_width="112dp" android:layout_height="88dp" android:importantForAccessibility="no" android:src="@drawable/il_account_reader"/>
+</LinearLayout>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/pf_studio_chip" android:paddingHorizontal="8dp" android:paddingVertical="4dp" android:fontFamily="@font/be_vietnam_bold" android:letterSpacing="0.08" android:text="@string/pf_studio_reader" android:textColor="@color/mh_avatar_ink" android:textSize="10sp"/>
+<TextView android:id="@+id/pfName" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:fontFamily="@font/lexend" android:textColor="@color/mh_on" android:textSize="24sp" android:textStyle="bold" tools:text="Juan Dela Cruz"/>
+<TextView android:id="@+id/pfEmail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:fontFamily="@font/be_vietnam_regular" android:textColor="@color/mh_soft" android:textSize="13sp" tools:text="juan@gmail.com"/>
+</LinearLayout>
+        <!-- My info -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:accessibilityHeading="true"
+                android:fontFamily="@font/lexend"
+                android:text="@string/pf_section_info"
+                android:textColor="@color/pf_ink"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnEditProfile"
+                android:stateListAnimator="@animator/pf_studio_press"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:background="@drawable/pf_studio_edit"
+                android:clickable="true"
+                android:contentDescription="@string/pf_edit_cd"
+                android:drawablePadding="6dp"
+                android:focusable="true"
+                android:fontFamily="@font/be_vietnam_bold"
+                android:gravity="center"
+                android:paddingStart="14dp"
+                android:paddingEnd="16dp"
+                android:text="@string/pf_edit"
+                android:textColor="@color/pf_blue"
+                android:textSize="14sp"
+                app:drawableStartCompat="@drawable/ac_ic_pencil"
+                app:drawableTint="@color/pf_blue" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pf_studio_notebook"
+            android:orientation="vertical"
+            android:paddingStart="28dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="11dp">
+
+            <!-- Name -->
+            <LinearLayout style="@style/Pf.Row">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pf_blue_tint"
+                    android:src="@drawable/pf_ic_person"
+                    app:tint="@color/pf_blue" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView style="@style/Pf.RowLabel" android:text="@string/pf_name" />
+
+                    <TextView
+                        android:id="@+id/pfInfoName"
+                        style="@style/Pf.RowValue"
+                        tools:text="Juan Santos Dela Cruz" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View style="@style/Pf.Divider" />
+
+            <!-- Gender -->
+            <LinearLayout style="@style/Pf.Row">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pf_gold_tint"
+                    android:src="@drawable/pf_ic_gender"
+                    app:tint="@color/pf_gold_ink" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView style="@style/Pf.RowLabel" android:text="@string/pf_gender" />
+
+                    <TextView
+                        android:id="@+id/pfInfoGender"
+                        style="@style/Pf.RowValue"
+                        tools:text="Lalaki" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View style="@style/Pf.Divider" />
+
+            <!-- Birthday -->
+            <LinearLayout style="@style/Pf.Row">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pf_aqua_tint"
+                    android:src="@drawable/pf_ic_calendar"
+                    app:tint="@color/pf_aqua" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView style="@style/Pf.RowLabel" android:text="@string/pf_birthday" />
+
+                    <TextView
+                        android:id="@+id/pfInfoBirthday"
+                        style="@style/Pf.RowValue"
+                        tools:text="Oktubre 12, 2016" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- My class: leaving needs the teacher's approval -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:accessibilityHeading="true"
+            android:fontFamily="@font/lexend"
+            android:text="@string/pf_section_class"
+            android:textColor="@color/pf_ink"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/pfClassTicket"
+            android:animateLayoutChanges="true"
+            android:background="@drawable/pf_studio_ticket"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="11dp">
+
+            <!-- Current class -->
+            <LinearLayout style="@style/Pf.Row">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pf_blue_tint"
+                    android:src="@drawable/pf_ic_class"
+                    app:tint="@color/pf_blue" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView
+                        android:id="@+id/pfClassLabel"
+                        style="@style/Pf.RowLabel"
+                        android:text="@string/pf_class_current" />
+
+                    <TextView
+                        android:id="@+id/pfClassName"
+                        style="@style/Pf.RowValue"
+                        tools:text="Grade 8 - Aguinaldo" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Waiting for the teacher / the teacher said no -->
+            <LinearLayout
+                android:id="@+id/pfLeaveStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="6dp"
+                android:background="@drawable/pf_status_pending"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/pfLeaveStatusTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/lexend"
+                    android:textColor="@color/pf_ink"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="Hinihintay ang iyong guro" />
+
+                <TextView
+                    android:id="@+id/pfLeaveStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/quicksand_medium"
+                    android:lineSpacingExtra="2dp"
+                    android:textColor="@color/pf_muted"
+                    android:textSize="13sp"
+                    tools:text="Humiling kang umalis sa klase." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLeaveStatusAction"
+                android:stateListAnimator="@animator/pf_studio_press"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/be_vietnam_bold"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    app:cornerRadius="12dp"
+                    tools:text="Kanselahin ang paghiling" />
+            </LinearLayout>
+
+            <View
+                android:id="@+id/pfLeaveDivider"
+                style="@style/Pf.Divider" />
+
+            <!-- Leave the class -->
+            <LinearLayout
+                android:id="@+id/rowLeaveClass"
+                android:stateListAnimator="@animator/pf_studio_press"
+                style="@style/Pf.Row"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pg_danger_tint"
+                    android:src="@drawable/pf_ic_logout"
+                    app:tint="@color/pg_danger" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView
+                        style="@style/Pf.RowValue"
+                        android:layout_marginTop="0dp"
+                        android:text="@string/pf_leave_class"
+                        android:textColor="@color/pg_danger" />
+
+                    <TextView
+                        style="@style/Pf.RowLabel"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/pf_leave_class_sub" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/pf_muted" />
+            </LinearLayout>
+
+            <!-- Join a class (only while the student has none) -->
+            <LinearLayout
+                android:id="@+id/rowJoinClass"
+                android:stateListAnimator="@animator/pf_studio_press"
+                style="@style/Pf.Row"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pf_gold_tint"
+                    android:src="@drawable/ic_join_class"
+                    app:tint="@color/pf_gold_ink" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView
+                        style="@style/Pf.RowValue"
+                        android:layout_marginTop="0dp"
+                        android:text="@string/pf_join_class" />
+
+                    <TextView
+                        style="@style/Pf.RowLabel"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/pf_join_class_sub" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/pf_muted" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Appearance: System / Light / Dark -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:accessibilityHeading="true"
+            android:fontFamily="@font/lexend"
+            android:text="@string/pf_section_appearance"
+            android:textColor="@color/pf_ink"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pf_studio_theme"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="19dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    style="@style/Pf.RowIcon"
+                    android:backgroundTint="@color/pf_blue_tint"
+                    android:src="@drawable/pf_ic_theme"
+                    app:tint="@color/pf_blue" />
+
+                <LinearLayout style="@style/Pf.RowTexts">
+
+                    <TextView
+                        style="@style/Pf.RowValue"
+                        android:layout_marginTop="0dp"
+                        android:text="@string/pf_theme" />
+
+                    <TextView
+                        style="@style/Pf.RowLabel"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/pf_studio_theme_hint" />
+                </LinearLayout>
+            </LinearLayout>
+
+<ImageView android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="16dp" android:importantForAccessibility="no" android:src="@drawable/il_account_theme" android:scaleType="fitXY"/>
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/pfThemeGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pfThemeSystem"
+                    style="@style/Pf.ThemeOption"
+                    android:text="@string/pf_theme_system" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pfThemeLight"
+                    style="@style/Pf.ThemeOption"
+                    android:text="@string/pf_theme_light" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pfThemeDark"
+                    style="@style/Pf.ThemeOption"
+                    android:text="@string/pf_theme_dark" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+        </LinearLayout>
+
+        <!-- Security -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:accessibilityHeading="true"
+            android:fontFamily="@font/lexend"
+            android:text="@string/pf_section_security"
+            android:textColor="@color/pf_ink"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/rowChangePassword"
+                android:stateListAnimator="@animator/pf_studio_press"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pf_studio_surface"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="19dp">
+
+            <ImageView
+                style="@style/Pf.RowIcon"
+                android:backgroundTint="@color/pf_aqua_tint"
+                android:src="@drawable/pf_ic_key"
+                app:tint="@color/pf_aqua" />
+
+            <LinearLayout style="@style/Pf.RowTexts">
+
+                <TextView
+                    style="@style/Pf.RowValue"
+                    android:layout_marginTop="0dp"
+                    android:text="@string/pf_change_password" />
+
+                <TextView
+                    style="@style/Pf.RowLabel"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/pf_change_password_sub" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/pf_muted" />
+        </LinearLayout>
+
+        <!-- Logout -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogout"
+                android:stateListAnimator="@animator/pf_studio_press"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="28dp"
+            android:fontFamily="@font/be_vietnam_bold"
+            android:text="@string/pf_logout"
+            android:textAllCaps="false"
+            android:textColor="@color/pg_danger"
+            android:textSize="16sp"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/pf_ic_logout"
+            app:iconGravity="textStart"
+            app:iconTint="@color/pg_danger"
+            app:strokeColor="@color/pg_danger_stroke"
+            app:strokeWidth="2dp" />
+
+        <TextView
+            android:id="@+id/pfVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="@font/quicksand_medium"
+            android:gravity="center"
+            android:textColor="@color/pf_muted"
+            android:textSize="12sp"
+            tools:text="BASAya v1.0" />
+    </LinearLayout>
+    </LinearLayout>
+</ScrollView>

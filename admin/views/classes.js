@@ -148,7 +148,7 @@ export async function renderClasses() {
         <div class="admin-class-directory__intro">
           <div>
             <span class="admin-class-directory__eyebrow">Learning spaces</span>
-            <h2>Classes across BaSaya</h2>
+            <h2>Classes across BASAya</h2>
             <p>A clear view of every classroom and the teacher leading it.</p>
           </div>
           <span class="admin-class-directory__count">

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared branding belongs to the page scroll, below the persistent account controls. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:paddingTop="8dp" android:paddingBottom="8dp" android:background="@drawable/bg_home_masthead" android:paddingStart="20dp" android:paddingEnd="16dp" android:gravity="center_vertical" android:orientation="horizontal">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:paddingBottom="8dp" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/tb_studio_brand" android:fontFamily="@font/lexend" android:textStyle="bold" android:textSize="20sp" android:textColor="@color/mh_accent"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/tb_studio_motto" android:fontFamily="@font/be_vietnam_regular" android:textSize="11sp" android:textColor="@color/mh_soft"/>
+            </LinearLayout>
+            <ImageView android:layout_width="104dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:src="@drawable/il_masthead_studio" android:importantForAccessibility="no"/>
+        </LinearLayout>

@@ -68,7 +68,7 @@ export async function renderAddLessonPage(classId) {
     "",
     {
       crumbs: [
-        { label: "Classrooms", href: "#/dashboard" },
+        { label: "Classrooms", href: "#/classes" },
         { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
       ],
     },

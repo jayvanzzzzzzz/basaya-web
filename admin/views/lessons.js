@@ -404,7 +404,7 @@ function studioHtml(lesson = {}, sections = {}) {
     <div class="lesson-studio">
       <div class="lesson-studio__heading">
         <div>
-          <p class="eyebrow">BaSaya lesson studio</p>
+          <p class="eyebrow">BASAya lesson studio</p>
           <h2>${lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
         </div>
         <span class="lesson-studio__badge">Admin only</span>

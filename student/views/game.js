@@ -483,7 +483,7 @@ function showLevelComplete({ lessonId, pathUrl, levelNumber, total, lessonTitle 
   content().innerHTML = `
     <section class="st-results st-level-done">
       ${buddy("happy", "st-results__buddy")}
-      <p class="st-results__title">${escapeHtml(lessonTitle || "BaSaya")}</p>
+      <p class="st-results__title">${escapeHtml(lessonTitle || "BASAya")}</p>
       <h1>${last ? "Natapos mo ang Laro!" : `Natapos mo ang Antas ${levelNumber}!`}</h1>
       <div class="st-card st-results__card">
         <span class="st-results__label">Antas</span>

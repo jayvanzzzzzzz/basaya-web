@@ -3,10 +3,11 @@ import { $, $$, escapeHtml, safeHttpUrl, toast } from "../../js/helpers.js";
 export const MAX_PRONUNCIATION_PAGES = 8;
 export const MAX_PRONUNCIATION_CHARACTERS = 200;
 
-// Keep spelling from the first occurrence; punctuation and case do not create duplicates.
+// Get Ready vocabulary is lowercase; punctuation and case do not create duplicates.
 export function readyWords(sentences) {
   const seen = new Set();
   return sentences.flatMap(text => String(text).normalize("NFC").match(/[\p{L}\p{M}\p{N}]+(?:[-'’][\p{L}\p{M}\p{N}]+)*/gu) || [])
+    .map(word => word.toLocaleLowerCase("fil"))
     .filter(word => {
       const key = word.toLocaleLowerCase("fil").replace(/’/g, "'");
       if (seen.has(key)) return false;
@@ -50,6 +51,12 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
   list.innerHTML = (saved?.pages?.length ? saved.pages : [{}]).map(pageHtml).join("");
   const cache = new Map();
   const keyOf = word => word.toLocaleLowerCase("fil").replace(/’/g, "'");
+  const savedEdits = Object.assign({}, ...(saved?.pages || []).map(page => page.readyWordEdits || {}));
+  $$('[data-pronunciation-word]', wordList).forEach(row => {
+    const value = $('[data-pronunciation-text]', row).value;
+    const source = Object.keys(savedEdits).find(key => savedEdits[key] === value);
+    if (source) row.dataset.readyWordSource = source;
+  });
   const selections = new WeakMap();
   $$('[data-pronunciation-page]', list).forEach((row, index) => selections.set(row, new Set((saved?.pages?.[index]?.readyWords || (saved?.pages?.length ? saved.words || [] : [])).map(keyOf))));
   $('[data-pronunciation-word-picker]', panel).hidden = true;
@@ -78,7 +85,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     const chosen = selections.get(pages[activePage]) || new Set();
     const visibleWords = [];
     $$('[data-pronunciation-word]', wordList).forEach(row => {
-      row.hidden = panel.dataset.pronunciationMode === 'sentences' && !chosen.has(keyOf($('[data-pronunciation-text]', row).value));
+      row.hidden = panel.dataset.pronunciationMode === 'sentences' && !chosen.has(row.dataset.readyWordSource || keyOf($('[data-pronunciation-text]', row).value));
       if (!row.hidden) visibleWords.push(row);
     });
     visibleWords.forEach((row, i) => {
@@ -90,7 +97,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
   }
   const sync = ({ renderPicker = true } = {}) => {
     if (panel.dataset.pronunciationMode !== "sentences") return;
-    $$('[data-pronunciation-word]', wordList).forEach(row => cache.set(keyOf($('[data-pronunciation-text]', row).value), row));
+    $$('[data-pronunciation-word]', wordList).forEach(row => cache.set(row.dataset.readyWordSource || keyOf($('[data-pronunciation-text]', row).value), row));
     const words = readyWords(sentences());
     const selected = new Set();
     $$('[data-pronunciation-page]', list).forEach(row => {
@@ -120,11 +127,18 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
         refreshWord(row);
       }
       const field = $('[data-pronunciation-text]', row);
-      if (field.value !== word) {
+      if (!row.dataset.readyWordSource && field.value !== word) {
+        // Capitalization alone does not invalidate existing word audio.
+        const audio = JSON.parse(row.dataset.cloudAudio || 'null');
+        if (audio?.text && keyOf(audio.text) === key) {
+          row.dataset.cloudAudio = JSON.stringify({ ...audio, text: word });
+        }
+        const preview = previews.get(row);
+        if (preview?.text && keyOf(preview.text) === key) preview.text = word;
         field.value = word;
         refreshWord(row);
       }
-      field.readOnly = true;
+      row.dataset.readyWordSource = key;
       $('[data-remove-pronunciation-word]', row).hidden = true;
       return row;
     });
@@ -206,7 +220,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
       else {
         const row = target.closest('[data-pronunciation-word]');
         if (row) {
-          const key = keyOf($('[data-pronunciation-text]', row).value);
+          const key = row.dataset.readyWordSource || keyOf($('[data-pronunciation-text]', row).value);
           const index = $$('[data-pronunciation-page]', list).findIndex(page => selections.get(page)?.has(key));
           if (index >= 0) showPage(index);
         }
@@ -225,7 +239,14 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
           ? { ...await saveAudio({ audio: preview.blob, lessonId, section: 'pronunciation', pageNumber: index + 1, sentenceIndex: 1 }), text: sentence, ...(preview.wordStarts ? { wordStarts: preview.wordStarts } : {}) }
           : JSON.parse(row.dataset.cloudAudio);
         const chosen = selections.get(row) || new Set();
-        pages.push({ pageNumber: index + 1, sentence, cloudAudio, readyWords: readyWords([sentence]).filter(word => chosen.has(keyOf(word))) });
+        const selectedWords = readyWords([sentence]).filter(word => chosen.has(keyOf(word)));
+        const readyWordEdits = Object.fromEntries(selectedWords.flatMap(word => {
+          const field = $('[data-pronunciation-text]', cache.get(keyOf(word)));
+          const edited = field.value.trim();
+          return edited && edited !== word ? [[keyOf(word), edited]] : [];
+        }));
+        pages.push({ pageNumber: index + 1, sentence, cloudAudio, readyWords: selectedWords,
+          ...(Object.keys(readyWordEdits).length ? { readyWordEdits } : {}) });
       }
       return { formatVersion: 2, pages };
     },

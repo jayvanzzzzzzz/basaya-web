@@ -76,7 +76,7 @@ export async function renderLessonPath(lessonId) {
         <a class="st-icon-button st-icon-button--light st-hub-tooltip" data-tooltip="Mga Aralin" href="#/home" aria-label="Bumalik sa Mga Aralin">${icon("back")}</a>
         <div class="st-hero__text">
           <span class="st-hero__eyebrow">ARALIN · ${lesson.practice ? "PAGSASANAY" : "PAGTATAYA"}</span>
-          <h1>${escapeHtml(lesson.title || "BaSaya")}</h1>
+          <h1>${escapeHtml(lesson.title || "BASAya")}</h1>
           ${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}
         </div>
         ${buddy("happy", "st-path__buddy")}

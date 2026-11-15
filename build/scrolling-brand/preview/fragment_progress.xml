@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Learning report: completion summary, separate skills, then pronunciation practice. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ps_bg"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:scrollbars="none"
+    tools:context=".ui.fragment.ProgressFragment">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <include layout="@layout/include_scrolling_brand" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="32dp">
+        <TextView
+            style="@style/Ps.PageTitle"
+            android:text="@string/pg_title" />
+        <TextView
+            style="@style/Ps.Body"
+            android:text="@string/pg_subtitle"
+            android:layout_marginTop="8dp" />
+        <LinearLayout
+            android:id="@+id/heroCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/ps_hero"
+            android:padding="20dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ps_overview_label"
+                android:textSize="11sp"
+                android:textColor="@color/mh_accent"
+                android:fontFamily="@font/be_vietnam_bold"
+                android:letterSpacing="0.08"
+                android:paddingEnd="24dp" />
+            <TextView
+                android:id="@+id/tvGreeting"
+                style="@style/Ps.Section"
+                android:text="@string/pg_greeting_plain"
+                android:layout_marginTop="12dp"
+                android:textColor="@color/mh_on"
+                android:textSize="22sp" />
+            <TextView
+                android:id="@+id/tvHeroMessage"
+                style="@style/Ps.Body"
+                android:layout_marginTop="6dp"
+                android:text="@string/ps_loading"
+                android:textColor="@color/mh_soft" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="16dp"
+                android:background="@color/mh_border"
+                android:importantForAccessibility="no" />
+            <LinearLayout
+                android:id="@+id/lessonRing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="12dp">
+                    <TextView
+                        android:id="@+id/tvLessonsDone"
+                        style="@style/Ps.PageTitle"
+                        android:textSize="40sp"
+                        android:text="@string/ps_pending"
+                        android:accessibilityHeading="false"
+                        tools:text="8/10"
+                        android:textColor="@color/mh_on" />
+                    <TextView
+                        style="@style/Ps.Body"
+                        android:text="@string/ps_lessons_finished"
+                        android:textSize="13sp"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/mh_soft" />
+                </LinearLayout>
+                <FrameLayout
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:importantForAccessibility="noHideDescendants">
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/progressLessons"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:max="100"
+                        app:indicatorColor="@color/mh_accent"
+                        app:indicatorSize="80dp"
+                        app:trackColor="@color/mh_surface"
+                        app:trackCornerRadius="3dp"
+                        app:trackThickness="6dp" />
+                    <ImageView
+                        android:id="@+id/buddy"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_book"
+                        app:tint="@color/mh_accent"
+                        android:importantForAccessibility="no" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+        <TextView
+            style="@style/Ps.Section"
+            android:text="@string/pg_section_skills"
+            android:layout_marginTop="28dp"
+            android:layout_marginBottom="12dp" />
+        <LinearLayout
+            android:id="@+id/skillsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ps_card"
+            android:orientation="vertical" />
+        <LinearLayout
+            android:id="@+id/wordsCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/ps_words_card"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+            <TextView
+                style="@style/Ps.Section"
+                android:text="@string/pg_section_words"
+                android:textSize="17sp" />
+            <TextView
+                style="@style/Ps.Body"
+                android:text="@string/pg_words_hint"
+                android:layout_marginTop="6dp" />
+            <com.google.android.flexbox.FlexboxLayout
+                android:id="@+id/wordsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:flexWrap="wrap" />
+        </LinearLayout>
+    </LinearLayout>
+    </LinearLayout>
+</ScrollView>

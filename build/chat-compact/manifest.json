@@ -1,0 +1,17 @@
+[
+  {
+    "file": "app/src/main/res/layout/fragment_chat.xml",
+    "before": "b1567ce60c5076d6a2c11e56facf2819ecd9912c4dc6c66be26f953abafdd4af",
+    "after": "23134c0699b1c2a019eb2250f8567a0334af2600bda11c4bf08c40fd07ec20ce"
+  },
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/fragment/ChatFragment.kt",
+    "before": "27ff917111f3ca4973e01fa59895720dd764b8dad282e7af473fff1cb2b50638",
+    "after": "9ec2025a2ddf2877bc417dc1e2f2b16bbc4f083e393b33983f154f733dfb21e8"
+  },
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/MainActivity.kt",
+    "before": "0200f7c97a20df4414d0c70ec440752add3661e2e76b4b171c063c4efbf88611",
+    "after": "ca481c2c3e0ae247f4cf7f3188e0322a3b09915a06d70ce6ee799ad4f731191e"
+  }
+]

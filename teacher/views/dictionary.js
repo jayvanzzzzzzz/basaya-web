@@ -145,9 +145,10 @@ function senseHtml(sense = { pos: "", definitions: [], examples: [] }, index = 0
     </fieldset>`;
 }
 
-/** Add or edit a word. `typed` prefills a new word (the admin lesson editor's "Add it now"). */
+/** Add or edit a word. `typed` locks the word supplied by the lesson editor. */
 export function openWordModal(entry = null, onSaved, typed = "") {
   const editing = !!entry;
+  const lockedWord = Boolean(typed.trim());
   const senses = entry?.senses.length ? entry.senses : [undefined];
   let mayLeave = () => Promise.resolve(true);
   openModal(
@@ -158,8 +159,8 @@ export function openWordModal(entry = null, onSaved, typed = "") {
          : "Write the meanings in Filipino so students can understand them."
      }</p>
      <form id="dict-word-form" class="dict-form" novalidate>
-       <label>Word ${editing && isAdmin() ? "<small>(changing the spelling moves the word to the new spelling)</small>" : ""}
-         <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || typed)}" ${editing && !isAdmin() ? "readonly" : ""} placeholder="bahay" />
+       <label>Word ${editing && isAdmin() && !lockedWord ? "<small>(changing the spelling moves the word to the new spelling)</small>" : ""}
+         <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || typed)}" ${lockedWord ? 'readonly disabled tabindex="-1" data-locked-dictionary-word' : editing && !isAdmin() ? "readonly" : ""} placeholder="bahay" />
        </label>
        <label>Spelling with accent marks <small>(optional)</small>
          <input name="accent" maxlength="${MAX_WORD}" value="${escapeHtml(entry?.accent || "")}" placeholder="báhay" />
@@ -284,7 +285,7 @@ export function openWordModal(entry = null, onSaved, typed = "") {
             if (existing) {
               close();
               toast(`“${existing.word}” is already in the dictionary. You can edit it here.`);
-              openWordModal(existing, onSaved);
+              openWordModal(existing, onSaved, typed);
               return;
             }
           }

@@ -1,0 +1,22 @@
+[
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/quiz/PreparedQuiz.kt",
+    "before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after": "33a017a87afa06e5c814dee214594bbb1a265570720476b48ed6370dc0bc2869"
+  },
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/DashboardActivity.kt",
+    "before": "5892b918a3d115ac2a3678b644ec1fe8a4bd316d03632f52f6670a839b97a3a8",
+    "after": "fc3ea941a140936aabacd63bf259a49206d352d1d0f03cbb2a2eebd67297ff7b"
+  },
+  {
+    "file": "app/src/main/java/ph/basaya/app/ui/quiz/QuizActivity.kt",
+    "before": "231416e64b54880e236619e0238b15c4d75ffd9cc33d608d47a9c882c6a61eac",
+    "after": "2a7712aa977c8f442e1ddfb70ecfaa59881b8478ecf4eef083f4c54da47be11c"
+  },
+  {
+    "file": "app/src/main/res/layout/activity_dashboard.xml",
+    "before": "80a717f5958ac03eadee95827ba3eecf32f7ce1d33041d3a63dfcfd0c884ff77",
+    "after": "a9b6a3a63c2766c1e9314c0f1389ca176aee4444762899a81706a52cab967c97"
+  }
+]

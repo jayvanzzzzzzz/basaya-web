@@ -14,17 +14,17 @@ export function renderAssistant() {
   const root = content();
   root.innerHTML = `
     <section class="st-assistant-page">
-      <header class="st-page-heading"><h1>BaSaya Assistant<span class="st-heading-dot">.</span></h1><p>Kaagapay mo sa paggamit ng BaSaya. May mga gabay din kahit offline.</p></header>
+      <header class="st-page-heading"><h1>BASAya Assistant<span class="st-heading-dot">.</span></h1><p>Kaagapay mo sa paggamit ng BASAya. May mga gabay din kahit offline.</p></header>
     <section class="st-chat st-assistant" aria-labelledby="assistant-title">
       <div class="chat">
         <header class="chat-head">
           <span class="inbox-class__avatar" style="--h:250" aria-hidden="true">${icon("chat")}</span>
-          <div class="chat-head__text"><h2 id="assistant-title">BaSaya Assistant <span class="st-assistant__badge">AI</span></h2><span>Gabay sa paggamit ng BaSaya</span></div>
+          <div class="chat-head__text"><h2 id="assistant-title">BASAya Assistant <span class="st-assistant__badge">AI</span></h2><span>Gabay sa paggamit ng BASAya</span></div>
           <button type="button" id="assistant-help-toggle" class="st-assistant__icon-button st-assistant__icon-button--guide st-hub-tooltip" data-tooltip="Mga gabay" aria-label="Mga gabay" aria-expanded="false" aria-controls="assistant-help">${guideIcon}</button>
         </header>
         <div class="chat-scroll" id="assistant-scroll">
           <ol class="chat-messages" id="assistant-messages" role="log" aria-live="polite" aria-label="Pag-uusap">
-            <li class="chat-msg st-assistant__message"><span class="chat-msg__avatar st-assistant__avatar" aria-hidden="true"><img src="../img/logo.png" alt="" /></span><div class="chat-msg__body"><span class="chat-msg__name">BaSaya Assistant</span><div class="chat-msg__bubble"><p>Kumusta! Paano kita matutulungan sa paggamit ng BaSaya?</p></div></div></li>
+            <li class="chat-msg st-assistant__message"><span class="chat-msg__avatar st-assistant__avatar" aria-hidden="true"><img src="../img/logo.png" alt="" /></span><div class="chat-msg__body"><span class="chat-msg__name">BASAya Assistant</span><div class="chat-msg__bubble"><p>Kumusta! Paano kita matutulungan sa paggamit ng BASAya?</p></div></div></li>
           </ol>
           <div class="st-assistant__suggestions" aria-label="Mga mungkahing tanong">
             ${assistantHelp.slice(0, 4).map(a => `<button type="button" data-question="${a.id}">${escapeHtml(a.question)}</button>`).join("")}
@@ -33,7 +33,7 @@ export function renderAssistant() {
         <p id="assistant-status" class="st-assistant__status" role="status">Sinusuri ang availability…</p>
         <button id="assistant-reconnect" type="button" class="st-assistant__text-button" hidden>Suriin muli ang koneksyon</button>
         <form class="chat-composer" id="assistant-form">
-          <textarea id="assistant-question" rows="1" maxlength="500" placeholder="Sumulat ng tanong…" aria-label="Tanong sa BaSaya Assistant" aria-describedby="assistant-privacy assistant-status" required></textarea>
+          <textarea id="assistant-question" rows="1" maxlength="500" placeholder="Sumulat ng tanong…" aria-label="Tanong sa BASAya Assistant" aria-describedby="assistant-privacy assistant-status" required></textarea>
           <span id="assistant-count" class="chat-composer__count" hidden></span>
           <button class="chat-composer__send" type="submit" id="assistant-send" aria-label="Ipadala">${icon("chat")}</button>
         </form>
@@ -58,11 +58,11 @@ export function renderAssistant() {
     body.className = "chat-msg__body"; bubble.className = "chat-msg__bubble";
     const name = document.createElement("span"), paragraph = document.createElement("p");
     name.className = "chat-msg__name";
-    name.textContent = role === "user" ? "Ikaw" : role === "error" ? "Hindi naipadala" : "BaSaya Assistant";
+    name.textContent = role === "user" ? "Ikaw" : role === "error" ? "Hindi naipadala" : "BASAya Assistant";
     paragraph.textContent = animate ? "" : text;
     if (role === "typing") {
       paragraph.className = "st-assistant__typing";
-      paragraph.setAttribute("aria-label", "Sumasagot ang BaSaya Assistant");
+      paragraph.setAttribute("aria-label", "Sumasagot ang BASAya Assistant");
       paragraph.innerHTML = '<span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>';
     }
     bubble.append(paragraph); body.append(name, bubble);

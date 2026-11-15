@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "BaSaya",
-  "short_name": "BaSaya",
-  "description": "BaSaya para sa mga mag-aaral, guro, at administrator.",
+  "name": "BASAya",
+  "short_name": "BASAya",
+  "description": "BASAya para sa mga mag-aaral, guro, at administrator.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

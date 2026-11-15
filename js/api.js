@@ -6,7 +6,7 @@ import { notifyApiUrl } from "../firebase-config.js";
 
 /** POSTs `body` to `/api/<path>`. Throws with the server's message on failure. */
 export async function postToApi(path, body, { signal } = {}) {
-  if (!notifyApiUrl) throw new Error("the BaSaya API is not set up yet");
+  if (!notifyApiUrl) throw new Error("the BASAya API is not set up yet");
   const token = await auth.currentUser?.getIdToken();
   const response = await fetch(`${notifyApiUrl.replace(/\/+$/, "")}/api/${path}`, {
     method: "POST",

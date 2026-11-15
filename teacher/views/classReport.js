@@ -81,7 +81,7 @@ async function exportClassExcel(classroom, entries, report) {
   const overall =
     report.overall == null ? null : `${report.overall}% (${report.overallRemark.label})`;
 
-  await downloadWorkbook(`BaSaya Class Report - ${fileName(classroom.className)} - ${dateStamp()}.xlsx`, [
+  await downloadWorkbook(`BASAya Class Report - ${fileName(classroom.className)} - ${dateStamp()}.xlsx`, [
     {
       name: "Students",
       title: "Class Report",
@@ -156,7 +156,7 @@ export async function renderClassReport(classId) {
     "",
     {
       crumbs: [
-        { label: "Classrooms", href: "#/dashboard" },
+        { label: "Classrooms", href: "#/classes" },
         { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
       ],
     },

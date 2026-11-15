@@ -1,0 +1,30 @@
+[
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/game/GameWordOutbox.kt",
+    "hash": null
+  },
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/game/GameWordSaves.kt",
+    "hash": null
+  },
+  {
+    "relative": "app/src/test/java/ph/basaya/app/ui/game/GameWordOutboxTest.kt",
+    "hash": null
+  },
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/game/PreparedCrossword.kt",
+    "hash": "09e246dbfa7481244e82b45aff50827b1b23919fc83e4424f0e34c4dfedc25c7"
+  },
+  {
+    "relative": "app/src/main/java/ph/basaya/app/ui/game/CrosswordActivity.kt",
+    "hash": "b27f233f7a7875fb07778c75e3d70fb68b2ac74eb9caf2e4155198a1f5b752f0"
+  },
+  {
+    "relative": "app/src/main/res/layout/activity_crossword.xml",
+    "hash": "8e5e3b29efa762add9fe64a48998db1a27ee53ae2520c22ff7232e9b615df5bc"
+  },
+  {
+    "relative": "app/src/main/res/values/strings_crossword_sync.xml",
+    "hash": null
+  }
+]

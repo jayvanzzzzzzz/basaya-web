@@ -75,7 +75,7 @@ export function renderAccountSettings() {
               <small>This email stays available for password recovery.</small>
             </label>
             <div class="account-settings__form-footer">
-              <span>Used across your BaSaya classrooms.</span>
+              <span>Used across your BASAya classrooms.</span>
               <button class="button primary" type="submit">Save profile</button>
             </div>
           </form>

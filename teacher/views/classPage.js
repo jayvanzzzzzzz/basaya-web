@@ -378,7 +378,7 @@ export async function renderClass(classId) {
       "More class options",
       `<button type="button" id="edit-class">Edit class</button><button type="button" class="danger" id="class-deletion">${classroom.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>`,
     )}${addLessonAction('add-lesson')}`,
-    { crumbs: [{ label: "Classrooms", href: "#/dashboard" }] },
+    { crumbs: [{ label: "Classrooms", href: "#/classes" }] },
   );
   $("#page-header").classList.add("teacher-class-header");
   $("#page-header .page-header__top").insertAdjacentHTML("beforeend", '<span class="class-workspace-label">Class workspace</span>');

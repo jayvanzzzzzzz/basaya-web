@@ -68,7 +68,7 @@ export function addExportActions({ excel, iconOnly = false }) {
 
 /** Print-only heading: what this is, for which class, by whom, and when. */
 export const printMeta = (title, lines = []) => `<header class="print-meta" aria-hidden="true">
-    <div class="print-meta__brand"><img src="../img/logo.png" alt="" /><span>BaSaya</span></div>
+    <div class="print-meta__brand"><img src="../img/logo.png" alt="" /><span>BASAya</span></div>
     <div class="print-meta__text">
       <strong>${escapeHtml(title)}</strong>
       ${lines.filter(Boolean).map((line) => `<span>${escapeHtml(line)}</span>`).join("")}
@@ -184,7 +184,7 @@ const GUIDE_SHEET = {
 export async function downloadWorkbook(filename, sheets, { guide = true } = {}) {
   const ExcelJS = await loadExcelJs();
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "BaSaya";
+  workbook.creator = "BASAya";
   workbook.created = new Date();
 
   for (const sheet of guide ? [...sheets, GUIDE_SHEET] : sheets) {
@@ -202,7 +202,7 @@ export async function downloadWorkbook(filename, sheets, { guide = true } = {}) 
 
     // Title and details overflow to the right, so they don't fight the column widths.
     ws.addRow([sheet.title]).getCell(1).font = { bold: true, size: 16, color: { argb: BRAND } };
-    ws.addRow([`BaSaya · ${today()}`]).getCell(1).font = { size: 10, color: { argb: MUTED } };
+    ws.addRow([`BASAya · ${today()}`]).getCell(1).font = { size: 10, color: { argb: MUTED } };
     if (sheet.meta?.length) {
       ws.addRow([]);
       sheet.meta.forEach(([label, value]) => {

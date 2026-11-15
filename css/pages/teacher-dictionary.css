@@ -1,4 +1,12 @@
 /* Dictionary (teacher/views/dictionary.js) */
+.dict-form [data-locked-dictionary-word] {
+  color: var(--ink);
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
 .dict-teacher {
   display: grid;
   gap: 1rem;

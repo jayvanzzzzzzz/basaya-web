@@ -22,7 +22,7 @@ export const contactInbox = () => process.env.CONTACT_TO || process.env.GMAIL_US
 export async function sendMail({ to, subject, html, text, replyTo, attachments }) {
   const { transport, user } = gmail();
   return transport.sendMail({
-    from: { name: "BaSaya", address: user },
+    from: { name: "BASAya", address: user },
     to,
     subject,
     html,

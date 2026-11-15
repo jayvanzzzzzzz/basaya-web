@@ -6,6 +6,7 @@ import { validateFluencyAudio, putFluencyAudio, fluencyPlaybackUrl } from './flu
 import { enforceSpeechLimit, recognizeAudio } from './assessmentSpeech.js';
 import { matchesGetReadyWord } from './pronunciationScoring.js';
 
+
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const fail = (status, message) => { throw new AssessmentError(status, message); };
 const keyFor = body => hash([body.classId, body.progressSession, body.lessonId, body.practice ? body.entryId : '']);
@@ -122,7 +123,7 @@ export async function fluencyOperation(db, uid, body, storage = { put: putFluenc
     tx.set(ref, { ...state, updatedAt: stamp() });
     if (!state.practice) tx.set(progressRef, {
       classId: body.classId, progressSession: body.progressSession, fluency: publicProgress(state), updatedAt: stamp(),
-      ...(state.status === 'submitted' ? { pronunciationFinished: true, pronunciationReviewStatus: 'pending', pronunciationScore: FieldValue.delete(), pronunciationTotal: FieldValue.delete(), skills: { pagbigkas: FieldValue.delete() } } : {}),
+      ...(state.status === 'submitted' ? { pronunciationFinished: true, pronunciationReviewStatus: 'pending', pronunciationScore: FieldValue.delete(), pronunciationTotal: FieldValue.delete() } : {}),
     }, { merge: true });
     return { ...view(state), ...(body.operation === 'fluency-word' ? { wordAccepted: true } : {}) };
   });

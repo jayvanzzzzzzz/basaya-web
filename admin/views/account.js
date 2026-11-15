@@ -26,7 +26,7 @@ export function renderAccount() {
           <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.2 7.5 9.5 4.4-1.3 7.5-5.1 7.5-9.5V6Z" /><path d="m9 12 2 2 4-4" /></svg>
         </div>
         <div>
-          <span class="account-settings__eyebrow">Your BaSaya account</span>
+          <span class="account-settings__eyebrow">Your BASAya account</span>
           <h2>${escapeHtml(state.profile?.displayName || "Admin")}</h2>
           <p>${escapeHtml(email)}</p>
         </div>
