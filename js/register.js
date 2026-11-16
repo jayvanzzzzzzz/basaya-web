@@ -29,10 +29,13 @@ form.querySelectorAll("[data-reveal]").forEach((button) =>
     input.type = show ? "text" : "password";
     button.classList.toggle("is-revealed", show);
     button.setAttribute("aria-label", show ? "Itago ang password" : "Ipakita ang password");
+    button.setAttribute("aria-pressed", String(show));
   }),
 );
 
 function setBusy(busy) {
+  form.setAttribute("aria-busy", String(busy));
+  submit.setAttribute("aria-busy", String(busy));
   submit.disabled = busy;
   submit.textContent = busy ? "Ginagawa ang account…" : "Gumawa ng account ngayon";
 }

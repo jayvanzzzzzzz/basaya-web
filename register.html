@@ -38,51 +38,76 @@
     <link rel="stylesheet" href="css/components/password-rules.css" />
     <link rel="stylesheet" href="css/pages/reset-password.css" />
     <link rel="stylesheet" href="css/pages/register.css" />
+    <link rel="stylesheet" href="css/pages/register-editorial.css" />
     <link rel="stylesheet" href="css/components/site-info.css" />
       <link rel="stylesheet" href="css/components/action-confirmation.css" />
     <script type="module" src="js/action-confirmation.js"></script>
   </head>
-  <body>
-    <main class="reset-page">
+  <body class="register-editorial">
+    <main class="registration-page">
+      <header class="registration-header">
+        <a class="registration-brand" href="index.html" aria-label="Bumalik sa sign in ng BaSaya">
+          <img src="img/logo.png" alt="" width="44" height="44" />
+          <span>BaSaya</span>
+        </a>
+        <div class="registration-utilities">
+          <a class="registration-back" href="index.html" aria-label="Mag-login"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12" /></svg><span>Mag-login</span></a>
       <button class="theme-toggle theme-toggle--floating" type="button" data-theme-toggle aria-label="Palitan ang tema">
         <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
         <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
       </button>
+        </div>
+      </header>
 
-      <a class="reset-brand" href="index.html">
-        <img src="img/logo.png" alt="" />
-        BASAya
-      </a>
-
-      <section class="reset-card register-card">
+      <div class="registration-layout">
+      <aside class="registration-intro" aria-labelledby="registration-intro-title">
+        <div>
+          <p class="registration-eyebrow">BASA. UNAWA. SAYA.</p>
+          <h2 id="registration-intro-title">Bawat salita,<br> bagong <span>simula.</span></h2>
+          <p class="registration-lead">Kilalanin ang mga kuwento, hasain ang iyong pagbasa, at matuto kasama ang iyong klase.</p>
+        </div>
+        <ol class="registration-guide" aria-label="Paano magsimula sa BaSaya">
+          <li><span class="registration-guide__number">01</span><div><strong>Gumawa ng account</strong><p>Ilagay ang iyong pangalan at login details.</p></div></li>
+          <li><span class="registration-guide__number">02</span><div><strong>Sumali sa iyong klase</strong><p>Gamitin ang class code mula sa iyong guro.</p></div></li>
+          <li><span class="registration-guide__number">03</span><div><strong>Simulan ang mga aralin</strong><p>Magbasa, magsanay, at subukan ang natutuhan.</p></div></li>
+        </ol>
+        <div class="registration-companion">
+          <img src="img/logo.png" alt="" width="104" height="104" />
+          <div><span>Kasama mo sa pagkatuto</span><p>Isang aralin.<br>Isang bagong kakayahan.</p></div>
+        </div>
+      </aside>
+      <section class="registration-form-panel" aria-labelledby="registration-title">
         <form id="register-form" class="register-form" novalidate>
           <div class="reset-heading">
-            <h1>Sumali sa BASAya!</h1>
-            <p>Ilang hakbang na lang, magsisimula na ang iyong pagbabasa.</p>
+            <span class="registration-eyebrow">ACCOUNT NG MAG-AARAL</span>
+            <h1 id="registration-title">Gumawa ng account<span>.</span></h1>
+            <p>Simulan ang iyong paglalakbay sa BaSaya.</p>
           </div>
 
           <fieldset class="register-step">
             <legend><span>1</span> Ang iyong pangalan</legend>
+            <div class="registration-name-grid">
             <label>First name
-              <input id="first-name" name="firstName" autocomplete="given-name" maxlength="60" required />
+              <input id="first-name" name="firstName" autocomplete="given-name" maxlength="60" required placeholder="Juan" />
             </label>
-            <label>Middle name <small>Opsyonal</small>
-              <input id="middle-name" name="middleName" autocomplete="additional-name" maxlength="60" />
+            <label><span>Middle name <small>Opsyonal</small></span>
+              <input id="middle-name" name="middleName" autocomplete="additional-name" maxlength="60" placeholder="Santos" />
             </label>
             <label>Last name
-              <input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required />
+              <input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required placeholder="Dela Cruz" />
             </label>
+            </div>
           </fieldset>
 
           <fieldset class="register-step">
             <legend><span>2</span> Ang iyong account</legend>
-            <label>Email
+            <label>Email address
               <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@email.com" />
             </label>
             <label>Password
               <span class="reset-password">
                 <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Gumawa ng password" />
-                <button type="button" class="reset-reveal" data-reveal="password" aria-label="Ipakita ang password">
+                <button type="button" class="reset-reveal" data-reveal="password" aria-label="Ipakita ang password" aria-pressed="false">
                   <svg class="reset-reveal__show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="3" /></svg>
                   <svg class="reset-reveal__hide" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M10.6 6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.8 3.5M6.6 7.6C3.9 9.4 2.5 12 2.5 12S6 18.5 12 18.5c1.7 0 3.2-.5 4.4-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
                 </button>
@@ -94,8 +119,10 @@
           <p class="form-error" id="register-error" role="alert"></p>
           <button class="button primary reset-submit" type="submit" id="register-submit">Gumawa ng account ngayon</button>
           <p class="register-login">May account na? <a href="index.html">Mag-login</a></p>
+          <p class="registration-note"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0"/></svg><span>Para sa mga mag-aaral ang form na ito. Ang account ng guro ay ginagawa ng school admin.</span></p>
         </form>
       </section>
+      </div>
 
       <footer class="site-footer site-footer--auth reset-footer">
         <p>© 2026 BASAya · A Capstone Project, BS in Information Technology</p>
