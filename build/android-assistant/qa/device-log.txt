@@ -1,0 +1,53 @@
+--------- beginning of system
+11-16 08:57:30.243  1753  2738 D ActivityTaskManager: Temporarily retain top process state for launching app
+11-16 08:57:30.252  1753  2738 V ActivityTaskManager: TaskLaunchParamsModifier: phase=3 task=Task{de5c92d #5454 type=standard A=10346:com.example.basaya.test} activity=ActivityRecord{256988228 u0 com.example.basaya.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity t-1} display-from-task=0 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@74552282 inherit-from-task=fullscreen non-freeform-task-display-area display-area=DefaultTaskDisplayArea@74552282 default-portrait freeform-size-mismatch=Rect(276, 694 - 804, 1774)
+11-16 08:57:30.252  1753  2738 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 xflg=0x4 cmp=com.example.basaya.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} with LAUNCH_MULTIPLE from uid 10329 (com.example.basaya) (BAL_ALLOW_PERMISSION) result code=0
+--------- beginning of main
+11-16 08:57:30.380 16123 16152 E TestRunner: failed: draftSurvivesRecreationWithoutSendingAQuestion(ph.basaya.app.ui.assistant.AssistantScreenTest)
+11-16 08:57:30.389 16123 16152 E TestRunner: ----- begin exception -----
+11-16 08:57:30.389 16123 16152 E TestRunner: java.lang.AssertionError: Activity never becomes requested state "[RESUMED]" (last lifecycle transition = "STOPPED")
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.core.app.ActivityScenario.waitForActivityToBecomeAnyOf(ActivityScenario.java:454)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.core.app.ActivityScenario.moveToState(ActivityScenario.java:689)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.core.app.ActivityScenario.recreate(ActivityScenario.java:718)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at ph.basaya.app.ui.assistant.AssistantScreenTest.draftSurvivesRecreationWithoutSendingAQuestion(AssistantScreenTest.kt:28)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at java.lang.reflect.Method.invoke(Native Method)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.ext.junit.runners.AndroidJUnit4.run(AndroidJUnit4.java:162)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.Suite.runChild(Suite.java:128)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.Suite.runChild(Suite.java:27)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:467)
+11-16 08:57:30.389 16123 16152 E TestRunner: 	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2634)
+11-16 08:57:30.389 16123 16152 E TestRunner: ----- end exception -----
+11-16 08:57:30.394 16123 16152 I TestRunner: finished: draftSurvivesRecreationWithoutSendingAQuestion(ph.basaya.app.ui.assistant.AssistantScreenTest)
+11-16 08:57:30.396 16123 16152 I TestRunner: started: guidesAreBundledAndCanBeExpandedWithoutAskingTheAI(ph.basaya.app.ui.assistant.AssistantScreenTest)
+11-16 08:57:30.408  1753 14094 D ActivityTaskManager: Temporarily retain top process state for launching app
+11-16 08:57:30.412  1753 14094 V ActivityTaskManager: TaskLaunchParamsModifier: phase=3 task=Task{b283fa3 #5455 type=standard A=10329:com.example.basaya} activity=ActivityRecord{210658002 u0 com.example.basaya/ph.basaya.app.ui.assistant.AssistantActivity t-1} display-from-task=0 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@74552282 inherit-from-task=fullscreen non-freeform-task-display-area display-area=DefaultTaskDisplayArea@74552282 default-portrait freeform-size-mismatch=Rect(276, 694 - 804, 1774)
+11-16 08:57:30.412  1753 14094 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10008000 xflg=0x4 cmp=com.example.basaya/ph.basaya.app.ui.assistant.AssistantActivity} with LAUNCH_MULTIPLE from uid 10329 (com.example.basaya) (BAL_ALLOW_PERMISSION) result code=0
+11-16 08:57:30.482  1753  1819 I ActivityTaskManager: Displayed com.example.basaya/ph.basaya.app.ui.assistant.AssistantActivity for user 0: +76ms
+11-16 08:57:42.033  1753  2888 D ActivityTaskManager: Top Process State changed to PROCESS_STATE_TOP

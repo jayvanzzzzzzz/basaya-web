@@ -1,0 +1,31 @@
+<resources>
+    <string name="assistant_title">BASAya Assistant</string>
+    <string name="assistant_back">Bumalik</string>
+    <string name="assistant_guides">Mga gabay</string>
+    <string name="assistant_kicker">KASAMA MO SA APP</string>
+    <string name="assistant_hero">May tanong?\nTara, tulungan kita.</string>
+    <string name="assistant_subtitle">Gabay sa paggamit ng BASAya</string>
+    <string name="assistant_badge">AI + MGA GABAY</string>
+    <string name="assistant_start">Saan tayo magsisimula?</string>
+    <string name="assistant_suggestion_hint">Pumili ng tanong, saka pindutin ang ipadala.</string>
+    <string name="assistant_hint">Sumulat ng tanong…</string>
+    <string name="assistant_input_label">Tanong sa BASAya Assistant</string>
+    <string name="assistant_send">Ipadala ang tanong</string>
+    <string name="assistant_retry">Suriin muli ang koneksyon</string>
+    <string name="assistant_privacy">AI · Huwag magbahagi ng personal na detalye.</string>
+    <string name="assistant_disclaimer">Bawat tanong ay hiwalay. Maaaring magkamali ang AI. Para sa aralin at resulta, kausapin ang guro sa Chat.</string>
+    <string name="assistant_offline">Walang internet. Magagamit pa rin ang Mga gabay.</string>
+    <string name="assistant_checking">Sinusuri ang availability…</string>
+    <string name="assistant_unavailable">Hindi available ang AI ngayon. Buksan ang Mga gabay.</string>
+    <string name="assistant_ready">Handang tumulong sa paggamit ng app.</string>
+    <string name="assistant_thinking">Kumukuha ng sagot…</string>
+    <string name="assistant_wait">Maaari muling magtanong sa loob ng %1$d segundo.</string>
+    <string name="assistant_remaining">%1$d tanong pa ngayong araw</string>
+    <string name="assistant_unlimited">Debug · Walang daily limit</string>
+    <string name="assistant_reset">Naabot na ang limit. Magre-reset sa %1$s.</string>
+    <string name="assistant_you">Ikaw</string>
+    <string name="assistant_failed">Hindi makuha ang sagot</string>
+    <string name="assistant_close">Isara</string>
+    <string name="assistant_guides_subtitle">Mabilisang tulong, kahit offline. Pindutin ang paksa para basahin.</string>
+    <string name="assistant_guides_empty">Hindi ma-load ang mga gabay. Buksan muli ang Assistant.</string>
+</resources>

@@ -1,0 +1,8 @@
+
+ph.basaya.app.ui.assistant.AssistantScreenTest:.
+
+Time: 1.161
+
+OK (1 test)
+
+

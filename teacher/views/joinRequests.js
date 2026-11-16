@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import { collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { $, notify } from "../../js/helpers.js";
@@ -63,6 +64,8 @@ export function watchJoinRequests(classId, onEnrolled) {
   });
   async function review(items, action) {
     if (busy || !items.length) return;
+    if (!await confirmAction({ title: action === 'approve' ? 'Approve join requests?' : 'Decline join requests?', message: action === 'approve' ? items.length + ' selected student(s) will gain access to this class.' : items.length + ' selected request(s) will be declined. Students can request to join again.', confirm: action === 'approve' ? 'Approve requests' : 'Decline requests' })) return;
+    if (!active || busy) return;
     busy = true;
     error.hidden = true;
     controls();

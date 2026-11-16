@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import {
   doc,
   setDoc,
@@ -292,6 +293,7 @@ async function resetPassword(teacher) {
   if (!teacher.email) {
     return notify({ tone: "danger", title: "No email on file", message: `${name} has no email to send a reset link to.` });
   }
+  if (!await confirmAction({ title: 'Send password reset link?', message: 'Email this teacher a link to choose a new password.', confirm: 'Send reset link' })) return;
   const sending = notify({
     tone: "info",
     avatar: initials(name),

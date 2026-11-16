@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import { $, escapeHtml, page } from '../../js/helpers.js';
 import { postToApi } from '../../js/api.js';
 import { latestReadingSubmissions } from '../../js/readingSubmissions.js';
@@ -141,9 +142,16 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
   let rows = [], roster = [], lessonLinks = [], className = 'Class', classSection = '', players = [], generation = 0, dirty = false, saving = false, deadlineTimer, stopGradingLayout = () => {};
   const stop = () => { players.forEach(audio => { audio.pause(); audio.onended = null; }); players = []; };
   const beforeUnload = event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
-  const guard = event => {
-    if (!target.isConnected || !event.target.closest('a[href]')) return;
-    if (saving || (dirty && !window.confirm('Leave this review without saving your changes?'))) event.preventDefault();
+  const guard = async event => {
+    const link = event.target.closest('a[href]');
+    if (!target.isConnected || !link || (!saving && !dirty)) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (saving) return;
+    if (await confirmAction({ title: 'Leave without saving?', message: 'Your unsaved rubric changes will be discarded.', confirm: 'Discard changes', danger: true })) {
+      if (!target.isConnected || !link.isConnected || saving) return;
+      dirty = false;
+      link.click();
+    }
   };
   window.addEventListener('beforeunload', beforeUnload);
   document.addEventListener('click', guard, true);

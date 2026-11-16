@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import { $, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import {
   student,
@@ -504,6 +505,8 @@ export async function renderHome() {
     const redrawDownloads = refreshDownloads;
     try {
       if (button.dataset.removeDownload) {
+        if (!await confirmAction({ title: 'Alisin ang na-download na aralin?', message: 'Kailangan mo ng internet para i-download muli ang araling ito. Mananatili ang iyong mga resulta.', confirm: 'Alisin', danger: true, student: true })) return;
+        if (!active) return;
         removingDownloads.add(id);
         redrawDownloads();
         await removeLessonDownload(id);

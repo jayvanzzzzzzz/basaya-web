@@ -4,6 +4,7 @@ import { onLeave } from '../router.js';
 import { Microphone } from '../speech.js';
 import { openReading } from '../fluencySession.js';
 import { invalidateStudentData } from '../data.js';
+import { confirmAction } from '../../js/action-confirmation.js';
 import { fillSentence, followAlong } from '../readAlong.js';
 
 export async function renderFluency(lesson) {
@@ -229,7 +230,11 @@ export async function renderFluency(lesson) {
       try { await act('next'); } catch (error) { notice = error.message; draw(); }
     } else {
       busy = true; draw();
-      try { await session.submit(); invalidateStudentData(); }
+      try {
+        if (!await confirmAction({ title: 'Ipasa ang iyong pagbasa?', message: 'Ipapasa ang mga recording sa iyong guro para mabigyan ng marka.', confirm: 'Ipasa', student: true })) return;
+        if (!active) return;
+        await session.submit(); invalidateStudentData();
+      }
       catch (error) { notice = error.message; }
       finally { busy = false; draw(); }
     }

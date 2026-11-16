@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import { state } from "../../js/state.js";
 import { $, $$, escapeHtml, toast, page, openModal, displayName } from "../../js/helpers.js";
 import {
@@ -291,11 +292,13 @@ export function openWordModal(entry = null, onSaved, typed = "") {
           }
           if (
             renaming &&
-            !confirm(
+            !await confirmAction({ title: "Change word spelling?", confirm: "Change spelling", message:
               `Change “${entry.word}” to “${word}”? Students will only find it under the new spelling, and Bigkas lessons that still use “${entry.word}” won't show its meaning.`,
-            )
+            })
           )
             return;
+          if (!renaming && !await confirmAction({ title: editing ? 'Save word changes?' : 'Add this word?', message: 'Update the dictionary entry that students can look up.', confirm: editing ? 'Save changes' : 'Add word' })) return;
+          if (!form.isConnected) return;
           // The automatic split typed back in isn't a fix, so it isn't saved.
           const fixed = syllables && syllables !== syllabify(form.accent.value.trim() || word) ? syllables : "";
           const fields = { word, accent: form.accent.value, syllables: fixed, senses, synonyms };

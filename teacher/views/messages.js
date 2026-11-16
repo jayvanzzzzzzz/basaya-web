@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import { $, displayName, escapeHtml, initials, navigate, page, toast } from "../../js/helpers.js";
 import { state, getTeacherClasses } from "../../js/state.js";
 import {
@@ -449,10 +450,11 @@ function openChat(classroom) {
     }
   });
 
-  const stopMessageActions = wireMessageActions(list, { label: "Delete for everyone", confirmLabel: "Confirm delete for everyone", onDelete: async (messageId) => {
+  const stopMessageActions = wireMessageActions(list, { label: "Delete for everyone", onDelete: async (messageId) => {
     try {
       const message = [...older, ...recent].find((item) => item.id === messageId);
       if (!message || message.deleted || message.pending) return;
+      if (!await confirmAction({ title: 'Delete this message?', message: 'This message will be removed for everyone in the class conversation.', confirm: 'Delete message', danger: true })) return;
       await removeMessage(classId, message, summary);
       older = older.map((item) =>
         item.id === messageId ? { ...item, text: "", deleted: true, deletedBy: "teacher" } : item,

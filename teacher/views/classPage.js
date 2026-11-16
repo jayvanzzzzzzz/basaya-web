@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import {
   Timestamp,
   collection,
@@ -601,6 +602,8 @@ export async function renderClass(classId) {
     b.addEventListener("click", async () => {
       const found = findLinked(b.dataset.notify);
       if (!found) return;
+      if (!await confirmAction({ title: 'Notify students?', message: 'Send a notification about this lesson to the students in this class.', confirm: 'Notify students' })) return;
+      if (!b.isConnected) return;
       b.disabled = true;
       try {
         await notifyStudents(classId, [found.link.id]);

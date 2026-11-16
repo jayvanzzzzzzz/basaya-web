@@ -1,3 +1,4 @@
+import { confirmAction } from "../../js/action-confirmation.js";
 import {
   addDoc,
   collection,
@@ -442,7 +443,7 @@ function studioHtml(lesson = {}, sections = {}) {
         </div>
       </div>
 
-      <form id="lesson-form" novalidate>
+        <form id="lesson-form" novalidate data-confirm-manually>
         <section class="lesson-step active" data-panel="basics">
           <div class="lesson-section-intro">
             <span class="lesson-section-number">01</span>
@@ -1592,6 +1593,8 @@ async function openLessonModal(existing = null) {
         }
       }
 
+      if (!await confirmAction({ title: existing ? 'Save lesson changes?' : 'Publish this lesson?', message: existing ? 'Apply your changes to the lesson and its learning activities.' : 'Add this lesson to the library so teachers can assign it to classes.', confirm: existing ? 'Save changes' : 'Publish lesson' })) return;
+      if (!form.isConnected) return;
       form.dataset.saving = 'true';
       setButtonSaving(submit, true);
 

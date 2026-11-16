@@ -9,7 +9,9 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import { auth, db } from "./firebase.js";
 import { $ } from "./helpers.js";
 import { clearFieldErrors, fieldError } from "./field-errors.js";
+import { confirmAction } from "./action-confirmation.js";
 import { recentAccounts, rememberAccount, removeAccount } from "./recent-accounts.js";
+import { watchGooglePopup } from "./google-popup.js";
 
 const loading = document.getElementById("loading-screen");
 const loginView = document.getElementById("login-view");
@@ -18,6 +20,7 @@ const loginButton = loginForm.querySelector('[type="submit"]');
 const loginButtonLabel = loginButton.querySelector(".login-submit__label");
 const googleLoginButton = $("#google-login");
 let signingIn = false;
+let signInAttempt = 0;
 let selectedAccount = null;
 const recentPanel = $("#recent-accounts");
 const recentList = $("#recent-account-list");
@@ -102,7 +105,8 @@ function showRecentAccounts(focus = false) {
     remove.textContent = "×";
     remove.title = `Remove ${account.name} from this device`;
     remove.setAttribute("aria-label", remove.title);
-    remove.addEventListener("click", () => {
+    remove.addEventListener("click", async () => {
+      if (!await confirmAction({ title: 'Remove saved account?', message: `Remove ${account.name} from this device’s recent accounts? The account itself will remain active.`, confirm: 'Remove from device', danger: true })) return;
       if (removeAccount(account.uid)) showRecentAccounts(true);
       else $("#recent-account-error").textContent = "Could not remove this saved profile. Check your browser storage settings.";
     });
@@ -293,6 +297,7 @@ const ROLE_DESTINATIONS = {
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (signingIn) return;
+  const attempt = ++signInAttempt;
   const email = selectedAccount?.email || $("#email").value.trim();
   const password = passwordInput.value;
   // Hide it again so a browser's "save password" prompt never sees it as plain text.
@@ -304,6 +309,7 @@ loginForm.addEventListener("submit", async (event) => {
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
+    if (attempt !== signInAttempt) return;
     setSigningIn(false);
     if (error.code === "auth/invalid-email") {
       fieldError($("#email"), "That doesn't look like an email address. Check it has an @ and a domain.");
@@ -319,16 +325,21 @@ loginForm.addEventListener("submit", async (event) => {
 
 googleLoginButton.addEventListener("click", async () => {
   if (signingIn) return;
+  const attempt = ++signInAttempt;
   const error = $("#login-error");
   error.textContent = "";
   setSigningIn(true);
+  const stopWatching = watchGooglePopup(auth.app.options.authDomain, () => {
+    if (attempt === signInAttempt && !auth.currentUser) setSigningIn(false);
+  });
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account", ...(selectedAccount ? { login_hint: selectedAccount.email } : {}) });
     await signInWithPopup(auth, provider);
   } catch (signInError) {
-    console.error("Google sign-in failed", signInError);
-    if (signInError.code !== "auth/popup-closed-by-user") {
+    if (attempt !== signInAttempt) return;
+    if (!["auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(signInError.code)) {
+      console.error("Google sign-in failed", signInError);
       error.textContent =
         signInError.code === "auth/operation-not-allowed"
           ? "Google sign-in is disabled for this Firebase project. Enable the Google provider in Firebase Authentication settings, then try again."
@@ -343,7 +354,8 @@ googleLoginButton.addEventListener("click", async () => {
                 : "Could not verify your Google account. Please try again.";
     }
   } finally {
-    setSigningIn(false);
+    stopWatching();
+    if (attempt === signInAttempt && !auth.currentUser) setSigningIn(false);
   }
 });
 

@@ -1,0 +1,97 @@
+[
+  {
+    "role": "Admin",
+    "file": "01-teacher-accounts.png",
+    "title": "Teacher accounts"
+  },
+  {
+    "role": "Admin",
+    "file": "02-create-teacher.png",
+    "title": "Create teacher account"
+  },
+  {
+    "role": "Admin",
+    "file": "03-student-accounts.png",
+    "title": "Student accounts"
+  },
+  {
+    "role": "Admin",
+    "file": "04-class-management.png",
+    "title": "Class management"
+  },
+  {
+    "role": "Admin",
+    "file": "05-lesson-library.png",
+    "title": "Lesson library"
+  },
+  {
+    "role": "Admin",
+    "file": "06-lesson-editor.png",
+    "title": "Lesson editor"
+  },
+  {
+    "role": "Admin",
+    "file": "07-dictionary.png",
+    "title": "Dictionary"
+  },
+  {
+    "role": "Teacher",
+    "file": "10-dictionary.png",
+    "title": "Dictionary"
+  },
+  {
+    "role": "Admin",
+    "file": "08-account-settings.png",
+    "title": "Account settings"
+  },
+  {
+    "role": "Teacher",
+    "file": "01-my-classes.png",
+    "title": "My classes"
+  },
+  {
+    "role": "Teacher",
+    "file": "02-class-workspace.png",
+    "title": "Class workspace"
+  },
+  {
+    "role": "Teacher",
+    "file": "03-assign-lessons.png",
+    "title": "Assign lessons"
+  },
+  {
+    "role": "Teacher",
+    "file": "04-students-and-requests.png",
+    "title": "Students and class requests"
+  },
+  {
+    "role": "Teacher",
+    "file": "05-student-progress.png",
+    "title": "Student progress"
+  },
+  {
+    "role": "Teacher",
+    "file": "06-class-report.png",
+    "title": "Class report"
+  },
+  {
+    "role": "Teacher",
+    "file": "07-reading-queue.png",
+    "title": "Reading review queue"
+  },
+  {
+    "role": "Teacher",
+    "file": "08-reading-assessment.png",
+    "title": "Reading assessment"
+  },
+  {
+    "role": "Teacher",
+    "file": "09-class-messages.png",
+    "title": "Class messages"
+  },
+  {
+    "role": "Teacher",
+    "file": "11-account-settings.png",
+    "title": "Account settings"
+  }
+]
