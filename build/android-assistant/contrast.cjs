@@ -10,7 +10,7 @@ for(const night of [false,true]) {
     const c=[0,2,4].map(i=>parseInt(colors[name].slice(i,i+2),16)/255).map(c=>c<=.04045?c/12.92:((c+.055)/1.055)**2.4);
     return c[0]*.2126+c[1]*.7152+c[2]*.0722;
   };
-  for(const [fg,bg] of [['assistant_ink','assistant_surface'],['assistant_soft','assistant_bg'],['assistant_soft','assistant_surface'],['assistant_on_blue','assistant_blue'],['assistant_hero_soft','assistant_blue'],['assistant_mint_ink','assistant_mint'],['assistant_error','assistant_error_bg']]) {
+  for(const [fg,bg] of [['assistant_ink','assistant_surface'],['assistant_soft','assistant_chat_bg'],['assistant_muted','assistant_surface'],['assistant_on_primary','assistant_primary'],['assistant_primary','assistant_tint'],['assistant_ink','assistant_error_bg']]) {
     const a=luminance(fg),b=luminance(bg),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
     console.log(`${night?'dark':'light'} ${fg}/${bg}: ${ratio.toFixed(2)}:1`);
     if(ratio<4.5)process.exitCode=1;

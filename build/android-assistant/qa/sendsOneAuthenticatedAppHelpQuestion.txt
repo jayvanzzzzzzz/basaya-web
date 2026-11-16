@@ -1,7 +1,7 @@
 
 ph.basaya.app.ui.assistant.AssistantScreenTest:.
 
-Time: 4.614
+Time: 6.37
 
 OK (1 test)
 

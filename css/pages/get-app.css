@@ -1,4 +1,4 @@
-/* GET THE APP — login page button + QR pop-up (js/get-app.js) The QR always stays black on a white tile so phones can read it. */
+/* GET THE APP Ã¢â‚¬â€ login page button + QR pop-up (js/get-app.js) The QR always stays black on a white tile so phones can read it. */
 
 /* Trigger under the sign-in card */
 .get-app-trigger {
@@ -155,710 +155,232 @@
   transform: rotate(-8deg) scale(1.08);
 }
 
-/* Dialog shell */
+/* Editorial download dialog. QR artwork stays still and on white in both themes. */
 .get-app {
+  --app-navy: #1f2559;
+  --app-paper: var(--surface);
+  --app-muted: var(--ink-2);
+  position: fixed;
+  inset: 0;
   width: 100%;
   max-width: none;
   height: 100%;
   max-height: none;
   margin: 0;
-  padding: 1rem;
+  padding: 1.5rem;
   border: 0;
   background: transparent;
   color: var(--ink);
+  overscroll-behavior: contain;
 }
-
-.get-app[open] {
-  display: grid;
-  place-items: center;
-}
-
+.get-app[open] { display: grid; place-items: center; }
 .get-app::backdrop {
-  background: rgba(14, 11, 46, 0.55);
-  backdrop-filter: blur(8px) saturate(1.2);
-  -webkit-backdrop-filter: blur(8px) saturate(1.2);
-  animation: fadeIn 260ms var(--ease-out);
+  background: rgba(15, 19, 42, .64);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
-
-:root[data-theme="dark"] .get-app::backdrop {
-  background: rgba(8, 9, 12, 0.66);
-}
-
 .get-app__card {
   position: relative;
   display: grid;
-  width: min(100%, 58rem);
-  max-height: calc(100vh - 2rem);
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  width: min(100%, 57rem);
+  max-height: calc(100dvh - 3rem);
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow:
-    0 6px 0 var(--card-lip),
-    var(--shadow-lg);
-  animation: getAppIn 560ms var(--ease-spring);
+  border-radius: 20px;
+  background: var(--app-paper);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .22);
+  animation: appDialogIn 220ms ease-out;
 }
-
-@keyframes getAppIn {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 28px, 0) scale(0.94) rotateX(8deg);
-  }
-}
-
-.get-app.is-closing .get-app__card {
-  animation: getAppOut 220ms var(--ease-in-out) forwards;
-}
-
-.get-app.is-closing::backdrop {
-  animation: fadeIn 220ms var(--ease-in-out) reverse forwards;
-}
-
-@keyframes getAppOut {
-  to {
-    opacity: 0;
-    transform: translate3d(0, 16px, 0) scale(0.96);
-  }
-}
+.get-app.is-closing .get-app__card,
+.get-app.is-closing .get-app__present { animation: appDialogOut 220ms ease-in forwards; }
+@keyframes appDialogIn { from { opacity: 0; transform: translateY(12px); } }
+@keyframes appDialogOut { to { opacity: 0; transform: translateY(8px); } }
 
 .get-app__close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 3;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
   display: grid;
-  width: 2.4rem;
-  height: 2.4rem;
   place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: 12px;
   background: var(--surface-2);
-  color: var(--ink-3);
-  transition:
-    transform 360ms var(--ease-spring),
-    background-color var(--dur-fast) ease,
-    color var(--dur-fast) ease;
+  color: var(--ink-2);
+  transition: background-color 180ms, color 180ms;
 }
-
-.get-app__close:hover {
-  background: var(--danger-soft);
-  color: var(--danger);
-  transform: rotate(90deg);
+.get-app__close:hover { background: var(--primary-soft); color: var(--primary); }
+.get-app__close::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: 190px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 160ms, visibility 160ms, transform 160ms;
 }
-
-.get-app__close svg {
-  width: 1.05rem;
-  height: 1.05rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 2.2;
-}
-
-/* Left: the scanner stage */
+.get-app__close:is(:hover, :focus-visible)::after { opacity: 1; visibility: visible; transform: none; }
+.get-app svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.get-app :is(button, a):focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
 .get-app__stage {
-  position: relative;
-  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 1.2rem;
-  overflow: hidden;
-  padding: 2.4rem 2rem 2rem;
-  background: var(--hero-gradient);
+  gap: 20px;
+  padding: 30px 28px 24px;
+  background: var(--app-navy);
   color: #fff;
 }
-
-.get-app__stage::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.4px);
-  background-size: 18px 18px;
-  mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 75%);
-  -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 75%);
-  content: "";
+.get-app__brand {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  column-gap: 10px;
+  align-self: stretch;
+  align-items: center;
+  margin: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.5px;
 }
-
-/* Soft halo pulsing behind the QR */
-.get-app__stage::after {
-  position: absolute;
-  top: 46%;
-  left: 50%;
-  z-index: -1;
-  width: 19rem;
-  height: 19rem;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 65%);
-  content: "";
-  transform: translate(-50%, -50%);
-  animation: getAppHalo 3.6s ease-in-out infinite;
-}
-
-@keyframes getAppHalo {
-  50% {
-    opacity: 0.55;
-    transform: translate(-50%, -50%) scale(1.12);
-  }
-}
-
+.get-app__brand img { grid-row: span 2; object-fit: contain; }
+.get-app__brand span { color: #c9cce3; font-family: var(--font-body); font-size: 12px; font-weight: 400; letter-spacing: 0; }
 .get-app__badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.8rem 0.35rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.16);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  backdrop-filter: blur(6px);
-  animation: fadeDown 500ms var(--ease-out) 200ms backwards;
-}
-
-.get-app__badge svg {
-  width: 1.1rem;
-  height: 1.1rem;
-  fill: #a4e86b;
-}
-
-.get-app__scanner {
-  position: relative;
-  animation: getAppScannerIn 700ms var(--ease-spring) 120ms backwards;
-}
-
-@keyframes getAppScannerIn {
-  from {
-    opacity: 0;
-    transform: scale(0.82) rotate(-6deg);
-  }
-}
-
-/* Mascot peeking over the top-left edge */
-.get-app__mascot {
-  position: absolute;
-  top: -2.4rem;
-  left: -2.1rem;
-  z-index: 2;
-  width: 4.6rem;
-  height: 4.6rem;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 14px rgba(20, 10, 80, 0.35));
-  transform-origin: 70% 90%;
-  animation:
-    getAppPeek 700ms var(--ease-spring) 600ms backwards,
-    float 4.5s ease-in-out 1.3s infinite;
-}
-
-@keyframes getAppPeek {
-  from {
-    opacity: 0;
-    transform: translate(1.2rem, 1.4rem) rotate(18deg) scale(0.6);
-  }
-}
-
-/* The QR tile — always white for reliable scanning */
-.get-app__qr {
-  position: relative;
-  width: clamp(12rem, 24vw, 15.5rem);
-  aspect-ratio: 1;
-  padding: 0.85rem;
-  border-radius: 1.4rem;
-  background: #fff;
-  box-shadow:
-    0 6px 0 rgba(30, 20, 110, 0.3),
-    0 26px 50px -18px rgba(20, 10, 80, 0.6);
-  transform: rotate(-2deg);
-  transition: transform 500ms var(--ease-spring);
-}
-
-.get-app__scanner:hover .get-app__qr {
-  transform: rotate(0deg) scale(1.03);
-}
-
-.get-app__qr img,
-.get-app__present-qr img {
-  width: 100%;
-  height: 100%;
-  border-radius: 0.6rem;
-  image-rendering: pixelated;
-}
-
-/* Scan line sweeping down the code */
-.get-app__scanline {
-  position: absolute;
-  right: 0.6rem;
-  left: 0.6rem;
-  top: 0.6rem;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, #7c68f0 20%, #4f8bff 80%, transparent);
-  box-shadow:
-    0 0 12px 2px rgba(91, 76, 244, 0.55),
-    0 0 30px 6px rgba(79, 139, 255, 0.25);
-  pointer-events: none;
-  animation: getAppScan 2.8s var(--ease-in-out) infinite;
-}
-
-@keyframes getAppScan {
-  0% {
-    opacity: 0;
-    transform: translateY(0);
-  }
-  10% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(calc(var(--scan-distance, 13.4rem)));
-  }
-  60%,
-  100% {
-    opacity: 0;
-    transform: translateY(calc(var(--scan-distance, 13.4rem)));
-  }
-}
-
-.get-app__qr {
-  --scan-distance: calc(clamp(12rem, 24vw, 15.5rem) - 1.4rem);
-}
-
-/* Scanner brackets in the corners, gently breathing */
-.get-app__corner {
-  position: absolute;
-  width: 1.9rem;
-  height: 1.9rem;
-  border: 0 solid var(--gold);
-  animation: getAppBracket 2.8s var(--ease-in-out) infinite;
-}
-
-.get-app__corner--tl {
-  top: -0.65rem;
-  left: -0.65rem;
-  border-top-width: 4px;
-  border-left-width: 4px;
-  border-top-left-radius: 1rem;
-  --dx: -3px;
-  --dy: -3px;
-}
-
-.get-app__corner--tr {
-  top: -0.65rem;
-  right: -0.65rem;
-  border-top-width: 4px;
-  border-right-width: 4px;
-  border-top-right-radius: 1rem;
-  --dx: 3px;
-  --dy: -3px;
-}
-
-.get-app__corner--bl {
-  bottom: -0.65rem;
-  left: -0.65rem;
-  border-bottom-width: 4px;
-  border-left-width: 4px;
-  border-bottom-left-radius: 1rem;
-  --dx: -3px;
-  --dy: 3px;
-}
-
-.get-app__corner--br {
-  right: -0.65rem;
-  bottom: -0.65rem;
-  border-right-width: 4px;
-  border-bottom-width: 4px;
-  border-bottom-right-radius: 1rem;
-  --dx: 3px;
-  --dy: 3px;
-}
-
-@keyframes getAppBracket {
-  50% {
-    transform: translate(var(--dx), var(--dy));
-  }
-}
-
-.get-app__stage-caption {
-  margin: 0.4rem 0 0;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.82rem;
+  gap: 7px;
+  margin-top: 16px;
+  color: #d9f2df;
+  font-size: 12px;
   font-weight: 600;
-  animation: fadeIn 600ms var(--ease-out) 500ms backwards;
+  letter-spacing: .04em;
 }
-
-/* Right: instructions */
-.get-app__body {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 2.4rem 2.2rem 2rem;
+.get-app__badge svg { fill: currentColor; stroke: none; width: 17px; height: 17px; }
+.get-app__scanner { width: min(100%, 248px); }
+.get-app__qr {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 12px;
+  border: 1px solid #e1e3eb;
+  border-radius: 12px;
+  background: #fff;
 }
+.get-app__qr img, .get-app__present-qr img { width: 100%; height: 100%; object-fit: contain; }
+.get-app__stage-caption { display: grid; gap: 6px; margin: 0; text-align: center; color: #c9cce3; font-size: 12px; line-height: 1.6; }
+.get-app__stage-caption strong { color: #fff; font-family: var(--font-display); font-size: 17px; font-weight: 500; }
+.get-app__stage-note { width: 100%; margin: auto 0 0; padding-top: 22px; border-top: 1px solid #444975; color: #c9cce3; font-size: 12px; text-align: center; }
+.get-app__body { display: flex; flex-direction: column; gap: 18px; min-width: 0; padding: 38px 32px 26px; }
+.get-app__eyebrow { padding-right: 40px; color: var(--primary); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.get-app__body h2 { margin: 0; font-size: clamp(24px, 2.6vw, 31px); line-height: 1.25; letter-spacing: -.045em; font-weight: 600; }
+.get-app__lede { margin: -5px 0 0; color: var(--app-muted); font-size: 14px; line-height: 1.75; }
+.get-app__actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.get-app__actions .button { min-height: 46px; border-radius: 10px; box-shadow: none; font-size: 13px; white-space: normal; text-shadow: none; transition: background-color 180ms, border-color 180ms, transform 180ms; }
+.get-app__actions .button.primary { background: var(--login-action, #1f2559); color: var(--login-action-ink, #fff); }
+.get-app__actions .button.secondary { background: transparent; color: var(--ink-2); border-color: var(--border); }
+.get-app__actions .button:hover { filter: none; transform: translateY(-1px); box-shadow: none; border-color: var(--primary); }
+.get-app__actions .button.primary:hover { background: color-mix(in srgb, var(--login-action, #1f2559) 90%, var(--surface)); }
+.get-app__actions .button:active { transform: translateY(1px); }
+.get-app__section-title { margin: 4px 0 -6px; font-family: var(--font-body); font-size: 13px; font-weight: 700; }
+.get-app__steps { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; counter-reset: app-step; }
+.get-app__steps li { position: relative; min-height: 26px; padding: 2px 0 0 36px; color: var(--app-muted); font-size: 12px; line-height: 1.7; counter-increment: app-step; }
+.get-app__steps li::before { content: "0" counter(app-step); position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 8px; color: var(--primary); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.get-app__steps b { color: var(--ink); font-weight: 600; }
+.get-app__fallback { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border); }
+.get-app__fallback-title { margin: 0 0 8px; color: var(--app-muted); font-size: 12px; }
+.get-app__link { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.get-app__file { display: grid; gap: 2px; min-width: 0; font-size: 13px; font-weight: 600; }
+.get-app__file span { color: var(--app-muted); font-size: 12px; font-weight: 400; }
+.get-app__file:hover { text-decoration: underline; text-underline-offset: 3px; }
+.get-app__link code:not(.sr-only) { flex-basis: 100%; color: var(--ink); font-size: 12px; overflow-wrap: anywhere; user-select: all; }
+.get-app__copy { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 6px; min-height: 44px; padding: 8px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); color: var(--ink); font-size: 12px; font-weight: 600; transition: background-color 180ms, border-color 180ms; }
+.get-app__copy svg { width: 16px; height: 16px; }
+.get-app__copy:hover { border-color: var(--primary); background: var(--primary-soft); }
+.get-app__copy.is-copied { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.get-app__account-note { margin: -2px 0 0; color: var(--app-muted); font-size: 12px; }
 
-.get-app__body > * {
-  animation: fadeUp 520ms var(--ease-out) backwards;
-}
-
-.get-app__body > :nth-child(2) { animation-delay: 60ms; }
-.get-app__body > :nth-child(3),
-.get-app__body > :nth-child(4) { animation-delay: 110ms; }
-.get-app__body > :nth-child(5) { animation-delay: 160ms; }
-.get-app__body > :nth-child(6) { animation-delay: 210ms; }
-.get-app__body > :nth-child(7) { animation-delay: 260ms; }
-
-.get-app__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--primary);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.get-app__eyebrow::before {
-  width: 0.9rem;
-  height: 0.18rem;
-  border-radius: 999px;
-  background: var(--brand-gradient);
-  content: "";
-}
-
-.get-app__body h2 {
-  margin: -0.4rem 2.5rem 0 0;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-.get-app__lede {
-  margin: -0.3rem 0 0;
-  color: var(--ink-2);
-  line-height: 1.6;
-}
-
-.get-app__lede--phone {
-  display: none;
-}
-
-/* Numbered steps (CSS counter, so they renumber on phones) */
-.get-app__steps {
-  display: grid;
-  gap: 0.6rem;
-  margin: 0;
-  padding: 0;
-  counter-reset: step;
-  list-style: none;
-}
-
-/* Block (not flex) so bold words stay inside the sentence */
-.get-app__steps li {
-  position: relative;
-  min-height: 1.6rem;
-  padding: 0.1rem 0 0 2.3rem;
-  color: var(--ink-2);
-  font-size: 0.88rem;
-  line-height: 1.5;
-  counter-increment: step;
-}
-
-.get-app__steps li::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: grid;
-  width: 1.6rem;
-  height: 1.6rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 700;
-  content: counter(step);
-}
-
-.get-app__steps b {
-  color: var(--ink);
-}
-
-/* Fallback link */
-.get-app__fallback {
-  padding: 0.95rem 1rem;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-}
-
-.get-app__fallback-title {
-  margin: 0 0 0.55rem;
-  color: var(--ink);
-  font-size: 0.84rem;
-  font-weight: 650;
-}
-
-.get-app__link {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.get-app__link code {
-  min-width: 0;
-  flex: 1;
-  padding: 0.55rem 0.7rem;
-  overflow-wrap: anywhere;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1.5;
-  user-select: all;
-}
-
-.get-app__copy {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-size: 0.8rem;
-  font-weight: 650;
-  box-shadow: 0 2px 0 var(--card-lip);
-  transition:
-    color var(--dur) ease,
-    border-color var(--dur) ease,
-    background-color var(--dur) ease,
-    transform var(--dur-fast) var(--ease-out);
-}
-
-.get-app__copy:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.get-app__copy:active {
-  transform: translateY(2px);
-}
-
-.get-app__copy svg {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.9;
-}
-
-.get-app__copy.is-copied {
-  border-color: var(--success);
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.get-app__copy.is-copied span {
-  animation: checkPop 320ms var(--ease-spring);
-}
-
-.get-app__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-top: auto;
-}
-
-.get-app__actions .button {
-  flex: 1;
-}
-
-.get-app__actions svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-/* Full-screen QR */
+/* The classroom view uses the same dialog, with only its active view focusable. */
+.get-app.is-presenting { padding: 0; }
 .get-app__present {
   position: fixed;
   inset: 0;
-  z-index: 5;
   display: grid;
-  place-items: center;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: 20px 32px;
   overflow: auto;
-  padding: 2rem 1rem;
-  background: var(--hero-gradient);
+  background: var(--app-navy);
   color: #fff;
-  animation: getAppPresentIn 520ms var(--ease-out);
+  animation: appDialogIn 220ms ease-out;
 }
+.get-app__present-header, .get-app__present-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
+.get-app__present-header { padding-bottom: 16px; border-bottom: 1px solid #444975; }
+.get-app__present-kicker { display: flex; align-items: center; gap: 9px; margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 600; }
+.get-app__present-kicker img { width: 40px; height: 40px; object-fit: contain; }
+.get-app__present-kicker span { margin-left: 10px; padding-left: 18px; border-left: 1px solid #666b91; color: #c9cce3; font-family: var(--font-body); font-size: 12px; font-weight: 400; }
+.get-app .get-app__present .button.secondary { min-height: 44px; border: 1px solid #686d98; border-radius: 10px; background: rgba(255,255,255,.08); box-shadow: none; color: #fff; font-size: 13px; }
+.get-app .get-app__present .button.secondary:hover { background: rgba(255,255,255,.16); transform: translateY(-1px); box-shadow: none; }
+.get-app__present :is(button, a):focus-visible { outline-color: #f6d36a; }
+.get-app__present-inner { display: grid; align-content: center; justify-items: center; gap: 12px; width: 100%; text-align: center; }
+.get-app__present-eyebrow { color: #f6d36a; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.get-app__present h2 { margin: 0; color: #fff; font-size: clamp(23px, 3.3vw, 38px); font-weight: 500; line-height: 1.25; letter-spacing: -.04em; }
+.get-app__present-inner > p { margin: 0; color: #c9cce3; font-size: 14px; }
+.get-app__present-qr { width: min(610px, calc(100vw - 64px), max(180px, calc(100dvh - 350px))); aspect-ratio: 1; margin: 6px 0; padding: clamp(12px, 2vw, 22px); border: 1px solid #e1e3eb; border-radius: 16px; background: #fff; }
+.get-app__present-inner .get-app__present-caption { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 6px; font-size: 12px; }
+.get-app__present-caption b { color: #fff; font-weight: 500; }
+.get-app__present-caption > span[aria-hidden] { margin-inline: 6px; color: #f6d36a; }
+.get-app__present-footer { padding-top: 14px; border-top: 1px solid #444975; color: #c9cce3; font-size: 12px; }
+.get-app__present-footer kbd { padding: 2px 5px; border: 1px solid #686d98; border-radius: 4px; font: inherit; }
 
-@keyframes getAppPresentIn {
-  from {
-    clip-path: circle(0% at 50% 50%);
-  }
-  to {
-    clip-path: circle(150% at 50% 50%);
-  }
+@media (min-width: 681px) and (max-width: 900px) {
+  .get-app__card { grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr); }
+  .get-app__stage { padding-inline: 20px; }
+  .get-app__body { padding: 32px 24px 24px; }
+  .get-app__brand span { font-size: 12px; }
 }
-
-.get-app__present-inner {
-  display: grid;
-  justify-items: center;
-  gap: 1.1rem;
-  text-align: center;
+@media (max-width: 680px) {
+  .get-app { padding: 12px; }
+  .get-app__card { grid-template-columns: 1fr; max-width: 440px; max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .get-app__stage { align-items: flex-start; gap: 12px; padding: 20px 70px 20px 20px; }
+  .get-app__brand { font-size: 20px; }
+  .get-app__badge { margin: 0 0 0 54px; font-size: 12px; }
+  .get-app__scanner, .get-app__stage-caption, .get-app__stage-note { display: none; }
+  .get-app__close { top: 16px; right: 16px; border-color: #686d98; background: rgba(255,255,255,.12); color: #fff; }
+  .get-app__close:hover { background: rgba(255,255,255,.22); color: #fff; }
+  .get-app__close:focus-visible { outline-color: #f6d36a; }
+  .get-app__body { gap: 16px; padding: 22px 20px; }
+  .get-app__body h2 { font-size: 26px; }
+  .get-app__lede { font-size: 13px; }
+  .get-app__actions .button { min-height: 48px; }
+  .get-app__present { padding: 16px; gap: 18px; }
+  .get-app__present-header { padding-bottom: 12px; }
+  .get-app__present-kicker { font-size: 18px; }
+  .get-app__present-kicker span, .get-app__back-detail { display: none; }
+  .get-app__present-inner { gap: 12px; }
+  .get-app__present h2 { max-width: 310px; }
+  .get-app__present-inner > p { max-width: 290px; font-size: 13px; }
+  .get-app__present-qr { width: min(480px, calc(100vw - 40px), max(180px, calc(100dvh - 340px))); }
+  .get-app__present-footer { flex-wrap: wrap; gap: 12px; }
 }
-
-.get-app__present-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
+@media (max-height: 540px) and (min-width: 681px) {
+  .get-app__present { grid-template-columns: 1fr; padding-block: 12px; }
+  .get-app__present-inner { grid-template-columns: 1fr 1fr; column-gap: 32px; max-width: 800px; margin: auto; text-align: left; justify-items: start; }
+  .get-app__present-qr { grid-column: 2; grid-row: 1 / span 4; width: min(36vw, max(180px, calc(100dvh - 160px))); justify-self: center; }
+  .get-app__present h2 { font-size: 27px; }
+  .get-app__present-inner .get-app__present-caption { justify-content: start; }
 }
-
-.get-app__present-kicker img {
-  width: 2.4rem;
-  height: 2.4rem;
-  object-fit: contain;
-}
-
-.get-app__present h2 {
-  margin: 0;
-  color: #fff;
-  font-size: clamp(1.8rem, 4.5vw, 3.2rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-.get-app__present-qr {
-  --scan-distance: calc(min(62vh, 80vw) - 2.2rem);
-  position: relative;
-  width: min(62vh, 80vw);
-  aspect-ratio: 1;
-  padding: 1.2rem;
-  border-radius: 2rem;
-  background: #fff;
-  box-shadow:
-    0 8px 0 rgba(30, 20, 110, 0.3),
-    0 40px 80px -24px rgba(20, 10, 80, 0.6);
-  animation: popIn 600ms var(--ease-spring) 150ms backwards;
-}
-
-.get-app__present-qr .get-app__scanline {
-  top: 1rem;
-  right: 1rem;
-  left: 1rem;
-}
-
-.get-app__present-link {
-  max-width: 90vw;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.85);
-  font-family: var(--font-mono);
-  font-size: clamp(0.72rem, 1.6vw, 0.95rem);
-  overflow-wrap: anywhere;
-}
-
-.get-app__present .button.secondary {
-  border-color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  box-shadow: 0 3px 0 rgba(30, 20, 110, 0.3);
-}
-
-/* Tablets */
-@media (max-width: 860px) {
-  .get-app__card {
-    grid-template-columns: 1fr;
-  }
-
-  .get-app__stage {
-    padding: 2.6rem 1.5rem 1.6rem;
-  }
-}
-
-/* Phones: a phone can't scan itself, so just download */
-@media (max-width: 640px) {
-  .get-app[open] {
-    align-items: end;
-    padding: 0;
-  }
-
-  .get-app__card {
-    max-height: 92vh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    animation: getAppSheetIn 480ms var(--ease-out);
-  }
-
-  @keyframes getAppSheetIn {
-    from {
-      transform: translate3d(0, 100%, 0);
-    }
-  }
-
-  .get-app.is-closing .get-app__card {
-    animation: getAppSheetOut 220ms var(--ease-in-out) forwards;
-  }
-
-  @keyframes getAppSheetOut {
-    to {
-      transform: translate3d(0, 100%, 0);
-    }
-  }
-
-  .get-app__stage {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 0.8rem;
-    padding: 1.3rem 4rem 1.3rem 1.3rem;
-  }
-
-  .get-app__scanner .get-app__qr,
-  .get-app__scanner .get-app__corner,
-  .get-app__stage-caption,
-  .get-app__lede--scan,
-  .get-app__steps .get-app__step--scan,
-  .get-app__fallback-title,
-  .get-app__present-open {
-    display: none;
-  }
-
-  .get-app__scanner {
-    order: -1;
-  }
-
-  .get-app__mascot {
-    position: static;
-    width: 3.2rem;
-    height: 3.2rem;
-  }
-
-  .get-app__lede--phone {
-    display: block;
-  }
-
-  .get-app__body {
-    padding: 1.5rem 1.3rem 1.6rem;
-  }
-
-  .get-app__download {
-    min-height: 3.3rem;
-    font-size: 1rem;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .get-app *, .get-app::backdrop, .get-app-trigger, .get-app-trigger::after, .get-app-trigger * { animation: none !important; transition: none !important; }
 }

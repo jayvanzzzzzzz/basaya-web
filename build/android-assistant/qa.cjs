@@ -45,8 +45,15 @@ if (action === 'begin') {
   run('shell','input','keyevent','224');
   run('shell','wm','dismiss-keyguard');
 } else if (action === 'screen') {
+  const focus = run('shell','dumpsys','window','windows').toString().split('\n').find(line=>line.includes('mCurrentFocus')) || '';
+  if (!focus.includes('com.example.basaya/')) throw Error('BaSaya is not in the foreground. No screenshot captured.');
   fs.writeFileSync(path.join(dir, arg + '.png'), run('exec-out','screencap','-p'));
   console.log(path.join(dir, arg + '.png'));
+} else if (action === 'owned-screens') {
+  for (const name of ['assistant-web-welcome','assistant-web-guides']) {
+    fs.writeFileSync(path.join(dir,name+'.png'),run('exec-out','run-as','com.example.basaya','cat','cache/'+name+'.png'));
+  }
+  console.log('Exported Assistant-only native screenshots.');
 } else if (action === 'diagnose') {
   const output = run('logcat','-d','-t','2000','-s','TestRunner','AndroidRuntime','ActivityTaskManager').toString();
   fs.writeFileSync(path.join(dir,'device-log.txt'),output);

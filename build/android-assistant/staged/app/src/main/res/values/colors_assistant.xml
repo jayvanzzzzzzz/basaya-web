@@ -1,16 +1,22 @@
 <resources>
-    <color name="assistant_bg">#F5F4FB</color>
-    <color name="assistant_surface">#FFFFFF</color>
-    <color name="assistant_ink">#192B48</color>
-    <color name="assistant_soft">#53647B</color>
-    <color name="assistant_blue">#1755D1</color>
-    <color name="assistant_on_blue">#FFFFFF</color>
-    <color name="assistant_hero_soft">#E1ECFF</color>
-    <color name="assistant_mint">#95F0D2</color>
-    <color name="assistant_mint_ink">#103E35</color>
-    <color name="assistant_yellow">#FFE18B</color>
-    <color name="assistant_tint">#EAF0FF</color>
-    <color name="assistant_border">#CCD7EB</color>
-    <color name="assistant_error">#A12945</color>
-    <color name="assistant_error_bg">#FFF0F2</color>
+    <color name="assistant_bg">#FFFAF2</color>
+    <color name="assistant_surface">#FFFEFA</color>
+    <color name="assistant_chat_bg">#F6F4FC</color>
+    <color name="assistant_disabled">#EEEDF6</color>
+    <color name="assistant_ink">#242B52</color>
+    <color name="assistant_soft">#515B77</color>
+    <color name="assistant_muted">#626B83</color>
+    <color name="assistant_primary">#5B4CF4</color>
+    <color name="assistant_on_primary">#FFFFFF</color>
+    <color name="assistant_tint">#EEEBFF</color>
+    <color name="assistant_border">#E1E1ED</color>
+    <color name="assistant_border_strong">#CACBDD</color>
+    <color name="assistant_error_bg">#FFF1DC</color>
+<color name="assistant_blue">#1755D1</color>
+<color name="assistant_on_blue">#FFFFFF</color>
+<color name="assistant_hero_soft">#E1ECFF</color>
+<color name="assistant_mint">#95F0D2</color>
+<color name="assistant_mint_ink">#103E35</color>
+<color name="assistant_yellow">#FFE18B</color>
+<color name="assistant_error">#A12945</color>
 </resources>

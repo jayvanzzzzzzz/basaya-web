@@ -1,0 +1,30 @@
+<resources>
+    <string name="assistant_title">BASAya Assistant</string>
+    <string name="assistant_page_description">Kaagapay mo sa paggamit ng BASAya. May mga gabay din kahit offline.</string>
+    <string name="assistant_back">Bumalik</string>
+    <string name="assistant_guides">Mga gabay</string>
+    <string name="assistant_close_guides">Isara ang mga gabay</string>
+    <string name="assistant_subtitle">Gabay sa paggamit ng BASAya</string>
+    <string name="assistant_welcome">Kumusta! Paano kita matutulungan sa paggamit ng BASAya?</string>
+    <string name="assistant_hint">Sumulat ng tanong…</string>
+    <string name="assistant_input_label">Tanong sa BASAya Assistant</string>
+    <string name="assistant_send">Ipadala</string>
+    <string name="assistant_sending">Sandali…</string>
+    <string name="assistant_retry">Suriin muli ang koneksyon</string>
+    <string name="assistant_privacy">AI · Huwag magbahagi ng personal na detalye.</string>
+    <string name="assistant_disclaimer">Ang bawat tanong ay hiwalay. Ipinapadala sa AI ang tanong at maaaring magkamali ang sagot. Para sa aralin at resulta, kausapin ang guro sa Class Chat.</string>
+    <string name="assistant_offline">Walang internet. Magagamit pa rin ang mga gabay.</string>
+    <string name="assistant_checking">Sinusuri ang availability…</string>
+    <string name="assistant_unavailable">Hindi available ang AI ngayon. Gamitin muna ang mga gabay.</string>
+    <string name="assistant_thinking">Sumasagot ang BASAya Assistant</string>
+    <string name="assistant_wait">Maaari muling magtanong sa loob ng %1$d segundo.</string>
+    <plurals name="assistant_remaining"><item quantity="one">%d question left</item><item quantity="other">%d questions left</item></plurals>
+    <string name="assistant_unlimited">Debug · No daily limit</string>
+    <string name="assistant_reset">Naubos na ang tanong mo. Magre-reset sa %1$s.</string>
+    <string name="assistant_failed">Hindi naipadala</string>
+    <string name="assistant_guides_title">Mga mabilisang gabay</string>
+    <string name="assistant_guides_subtitle">Magagamit kahit walang AI o internet.</string>
+    <string name="assistant_search_label">Maghanap ng gabay</string>
+    <string name="assistant_search_hint">Klase, password…</string>
+    <string name="assistant_no_help">Walang katugmang gabay.</string>
+</resources>

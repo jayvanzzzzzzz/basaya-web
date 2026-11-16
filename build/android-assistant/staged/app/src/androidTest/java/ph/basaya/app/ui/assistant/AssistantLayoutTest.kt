@@ -36,7 +36,7 @@ class AssistantLayoutTest {
                 val density = context.resources.displayMetrics.density
                 fun px(dp: Int) = (dp * density).toInt()
                 val assistant = LayoutInflater.from(context).inflate(R.layout.activity_assistant, null) as ViewGroup
-                assistant.findViewById<TextView>(R.id.assistantStatus).setText(R.string.assistant_ready)
+                assistant.findViewById<TextView>(R.id.assistantStatus).setText(R.string.assistant_checking)
                 fun measure(view: View) {
                     view.measure(View.MeasureSpec.makeMeasureSpec(px(width), View.MeasureSpec.EXACTLY),
                         View.MeasureSpec.makeMeasureSpec(px(800), View.MeasureSpec.EXACTLY))
