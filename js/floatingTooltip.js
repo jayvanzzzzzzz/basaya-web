@@ -1,4 +1,5 @@
 let tooltipSequence = 0;
+const tooltipOwners = new WeakMap();
 
 /** Body-level tooltips escape a modal's overflow without changing its scrolling. */
 export function attachFloatingTooltips(root, selector = '[data-floating-tooltip]') {
@@ -12,6 +13,7 @@ export function attachFloatingTooltips(root, selector = '[data-floating-tooltip]
 
   function hide() {
     if (anchor) {
+      if (tooltipOwners.get(anchor) === tooltip) tooltipOwners.delete(anchor);
       const ids = (anchor.getAttribute('aria-describedby') || '').split(/\s+/).filter(id => id && id !== tooltip.id);
       if (ids.length) anchor.setAttribute('aria-describedby', ids.join(' '));
       else anchor.removeAttribute('aria-describedby');
@@ -39,8 +41,13 @@ export function attachFloatingTooltips(root, selector = '[data-floating-tooltip]
   function refresh() {
     const next = hovered || focused;
     if (!next || next.disabled || next.closest('[hidden]')) { hide(); return; }
+    // Nested page/modal listeners must not create two tooltips for the same control.
+    const owner = tooltipOwners.get(next);
+    if (owner && owner !== tooltip) { hide(); return; }
+    if (next.hasAttribute('title')) next.removeAttribute('title');
     if (anchor !== next) {
       hide(); anchor = next;
+      tooltipOwners.set(next, tooltip);
       tooltip.textContent = next.getAttribute('aria-label') || next.dataset.floatingTooltip;
       const ids = (next.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
       next.setAttribute('aria-describedby', [...ids, tooltip.id].join(' '));
@@ -63,8 +70,12 @@ export function attachFloatingTooltips(root, selector = '[data-floating-tooltip]
   root.addEventListener('click', click); root.addEventListener('keydown', keydown);
   window.addEventListener('scroll', position, true); window.addEventListener('resize', position);
   window.visualViewport?.addEventListener('resize', position); window.visualViewport?.addEventListener('scroll', position);
-  const observer = new MutationObserver(() => { if (anchor) position(); });
-  observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'disabled'] });
+  const observer = new MutationObserver(() => {
+    if (!anchor) return;
+    if (anchor.hasAttribute('title')) anchor.removeAttribute('title');
+    position();
+  });
+  observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'title'] });
   return () => {
     dismiss(); observer.disconnect(); tooltip.remove();
     root.removeEventListener('pointerover', over); root.removeEventListener('pointerout', out);

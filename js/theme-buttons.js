@@ -4,7 +4,7 @@ export function syncThemeButtons() {
   const next = dark ? "light" : "dark";
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
     button.setAttribute("aria-label", `Switch to ${next} mode`);
-    button.title = `Switch to ${next} mode`;
+    button.removeAttribute('title');
     button.setAttribute("aria-pressed", String(dark));
   });
   document.querySelectorAll("[data-theme-choice]").forEach((button) => {

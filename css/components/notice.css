@@ -117,6 +117,7 @@
   min-width: 0;
   flex: 1;
   gap: 0.1rem;
+  overflow-wrap: anywhere;
 }
 
 .notice__text strong {

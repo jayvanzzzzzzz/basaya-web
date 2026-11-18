@@ -28,6 +28,8 @@ const globalRef = () => db.doc(`assistantUsage/${new Date(time).toISOString().sl
 try {
   for (const uid of ["student", "other", "fresh", "fail", "timeout", "rate", "day", "token"]) await db.doc(`users/${uid}`).set({ role: "student" });
   await db.doc("users/teacher").set({ role: "teacher" });
+  await db.doc("users/admin").set({ role: "admin" });
+  await db.doc("users/unknown").set({ role: "visitor" });
   await test("HTTP endpoint handles preflight and requires sign-in without cache", async () => {
     const call = async method => {
       const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(s) { this.code = s; return this; }, json(body) { this.body = body; return this; }, end() { return this; } };
@@ -50,9 +52,9 @@ try {
     assert.equal(validateQuestion("  How to join?  "), "How to join?");
     assert.equal(validateQuestion("e\u0301"), "é");
   });
-  await test("student authentication role and key configuration checked before AI", async () => {
-    await errorCode(ask("teacher", { question: "hello" }), "student_only");
-    await errorCode(ask("missing", { question: "hello" }), "student_only");
+  await test("supported authentication roles and key configuration checked before AI", async () => {
+    await errorCode(ask("unknown", { question: "hello" }), "role_not_allowed");
+    await errorCode(ask("missing", { question: "hello" }), "role_not_allowed");
     const disabled = createAssistant({ firestore: db, now: () => time });
     assert.equal((await disabled("student", { action: "status" })).available, false);
     await errorCode(disabled("student", { question: "hello" }), "not_configured");
@@ -150,6 +152,63 @@ try {
       const headers = { Authorization: `Bearer ${emulator.token("student")}`, "Content-Type": "application/json" };
       assert.equal((await fetch(`${emulator.documents}/${path}`, { headers })).status, 403);
       assert.equal((await fetch(`${emulator.documents}/${path}`, { method: "PATCH", headers, body: JSON.stringify({ fields: { count: { integerValue: "0" } } }) })).status, 403);
+    }
+  });
+  await test("teacher and admin get isolated role references and language matching", async () => {
+    for (const role of ["teacher", "admin"]) {
+      advance();
+      const status = await ask(role, { action: "status" });
+      assert.equal(status.limit, 10); assert.equal(status.remaining, 10);
+      const result = await ask(role, { question: "How do I use the website?" });
+      assert.equal(result.remaining, 9);
+      assert.equal(result.nextAllowedAt, time + 10_000);
+      const prompt = lastBody.messages[0].content;
+      assert.ok(prompt.includes(`for the ${role} website portal`));
+      assert.ok(prompt.includes("Match the language"));
+      assert.ok(!prompt.includes("ALWAYS answer"));
+      assert.ok(!prompt.includes("Exception to the unrelated"));
+      assert.ok(prompt.includes(role === "teacher" ? "Approve student requests" : "Teacher accounts"));
+      assert.ok(!prompt.includes(role === "teacher" ? "Set a temporary password" : "Approve student requests"));
+      await errorCode(ask(role, { question: "Another question" }), "cooldown");
+      time += 9_999;
+      await errorCode(ask(role, { question: "Another question" }), "cooldown");
+      time += 1;
+      const before = calls;
+      const cached = await ask(role, { question: "How do I use the website?" });
+      assert.equal(cached.cached, true); assert.equal(cached.remaining, 8); assert.equal(calls, before);
+    }
+  });
+  await test("staff ten-question cap counts cached answers and survives instances and debug UID", async () => {
+    for (const role of ["teacher", "admin"]) {
+      for (let i = 0; i < 8; i++) { advance(); await ask(role, { question: "How do I use the website?" }); }
+      advance();
+      const another = createAssistant({ firestore: db, apiKey: "test-key", now: () => time, fetchImpl: fakeFetch, debugUid: role });
+      await errorCode(another(role, { question: "How do I use the website?" }), "daily_limit");
+      const status = await another(role, { action: "status" });
+      assert.equal(status.remaining, 0); assert.equal(status.unlimited, false);
+    }
+    time += 86_400_000;
+    assert.equal((await ask("teacher", { action: "status" })).remaining, 10);
+    assert.equal((await ask("admin", { action: "status" })).remaining, 10);
+  });
+  await test("role changes cannot reuse another role's cached answer", async () => {
+    advance(); await ask("teacher", { question: "How do I use the website?" });
+    await db.doc("users/teacher").update({ role: "admin" }); advance();
+    const result = await ask("teacher", { question: "How do I use the website?" });
+    assert.equal(result.cached, false);
+    assert.ok(lastBody.messages[0].content.includes("for the admin website portal"));
+  });
+  await test("bundled staff handbook matches public references", async () => {
+    const source = await readFile(new URL("../js/handbookHelp.js", import.meta.url), "utf8");
+    const bundle = await readFile(new URL("../notify-api/lib/handbookHelp.js", import.meta.url), "utf8");
+    assert.equal(bundle.slice(bundle.indexOf("\n") + 1), source);
+  });
+  await test("maximum-length Unicode questions fit staff provider reservations", async () => {
+    for (const role of ["teacher", "admin"]) {
+      const uid = `long-${role}`;
+      await db.doc(`users/${uid}`).set({ role }); advance();
+      await ask(uid, { question: "界".repeat(LIMITS.maxLength) });
+      assert.equal(lastBody.messages[1].content.length, LIMITS.maxLength);
     }
   });
   console.log(`Assistant backend: ${tests} scenarios passed.`);

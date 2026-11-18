@@ -90,14 +90,15 @@ const server = http.createServer(async (req, res) => {
         .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, s => /type="module"/.test(s) ? '' : s)
         .replace('</body>', `<script type="module">
           import {renderMessages,leaveMessages} from './views/messages.js';
+          import {watchTeacherTooltips,leaveTeacherTooltips} from './views/classActions.js';
           import {page} from '../js/helpers.js';
           import '../js/theme.js';
           document.querySelector('#loading-screen').hidden=true;
           document.querySelector('#app-view').hidden=false;
           document.querySelector('[data-nav="messages"]').classList.add('active');
-          const render=async()=>{window.ready=false;leaveMessages();const id=location.hash.split('/')[2];await renderMessages(id);window.ready=true;};
+          const render=async()=>{window.ready=false;leaveTeacherTooltips();leaveMessages();const id=location.hash.split('/')[2];await renderMessages(id);document.querySelectorAll('.main-nav [data-nav],.sidebar button[aria-label]').forEach(control=>control.setAttribute('data-teacher-tooltip',''));watchTeacherTooltips();window.ready=true;};
           window.addEventListener('hashchange',render);
-          window.leavePreview=()=>{leaveMessages();page('Other page','');document.querySelector('#page-content').replaceChildren();};
+          window.leavePreview=()=>{leaveTeacherTooltips();leaveMessages();page('Other page','');document.querySelector('#page-content').replaceChildren();};
           if(!location.hash)location.hash='#/messages/rizal';else await render();
         </script></body>`);
       type = 'text/html';
@@ -175,10 +176,11 @@ async function screenshot(page, name) { await page.evaluate(()=>window.scrollTo(
       }
       await page.setViewportSize({ width: 1440, height: 1000 });
       const input = page.locator('[data-input]'); await input.fill('A class message');
-      for (const selector of ['[data-members]', '[data-send]', '[data-message-actions]']) {
+      for (const selector of ['[data-members]', '[data-send]', '[data-message-actions]', '.main-nav [data-nav="messages"]']) {
         const control = page.locator(selector).first();
         assert.ok(await control.getAttribute('aria-label')); assert.equal(await control.locator('svg').count(), 1);
         await control.hover(); await page.locator('.floating-tooltip:visible').waitFor(); await page.waitForTimeout(250);
+        assert.equal(await page.locator('.floating-tooltip:visible').count(),1,'Page and teacher-shell handlers show one tooltip');
         assert.equal(await page.locator('.floating-tooltip:visible').textContent(), await control.getAttribute('aria-label'));
         assert.ok(await page.locator('.floating-tooltip:visible').evaluate(el => { const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight; }));
         if(selector==='[data-send]') { report.push({theme,state:'tooltip',textIssues:await readable(page)}); await screenshot(page,'send-tooltip-'+theme); }
@@ -239,8 +241,14 @@ async function screenshot(page, name) { await page.evaluate(()=>window.scrollTo(
     assert.equal(await page.locator('[data-count]').textContent(),'1850/2000'); await input.fill('');
     await page.locator('[data-id="question"]').hover();await page.locator('[data-message-actions="question"]').click();
     await page.locator('.chat-message-menu [role="menuitem"]').click();
-    assert.equal(await page.locator('.chat-message-menu [role="menuitem"]').textContent(),'Confirm delete for everyone');
-    await page.locator('.chat-message-menu [role="menuitem"]').click(); await page.waitForFunction(()=>!document.querySelector('[data-id="question"]'));
+    await page.getByRole('dialog').waitFor();
+    assert.equal(await page.getByRole('dialog').getByRole('heading').textContent(),'Delete this message?');
+    await page.getByRole('dialog').getByRole('button',{name:'Cancel',exact:true}).click();
+    assert.equal(await page.locator('[data-id="question"]').count(),1,'Cancel keeps the message');
+    await page.locator('[data-id="question"]').hover();await page.locator('[data-message-actions="question"]').click();
+    await page.locator('.chat-message-menu [role="menuitem"]').click();
+    await page.getByRole('dialog').getByRole('button',{name:'Delete message',exact:true}).click();
+    await page.waitForFunction(()=>!document.querySelector('[data-id="question"]'));
     await page.evaluate(()=>window.chatTest.summary());
     await page.waitForFunction(()=>document.querySelectorAll('.inbox-class__preview')[1].textContent.includes('real-time class preview'));
     await page.evaluate(()=>window.chatTest.history());

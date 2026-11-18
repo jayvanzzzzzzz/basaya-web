@@ -274,7 +274,7 @@ const chipHtml = (word) =>
   `<span class="word-chip" data-word-chip="${escapeHtml(word)}" tabindex="0">
     <span class="word-chip__text">${escapeHtml(word)}</span>
     <span class="word-chip__state" aria-hidden="true"></span>
-    <button type="button" class="word-chip__remove lesson-remove-button" data-remove-word aria-label="Remove ${escapeHtml(word)}" title="Remove ${escapeHtml(word)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+    <button type="button" class="word-chip__remove lesson-remove-button" data-remove-word aria-label="Remove ${escapeHtml(word)}" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
   </span>`;
 
 export function gameLevelHtml(level = {}) {
@@ -286,7 +286,7 @@ export function gameLevelHtml(level = {}) {
           <strong data-card-number>Level</strong>
           <span class="game-builder__status" data-level-status></span>
         </div>
-        <button type="button" class="text-button danger lesson-remove-button" data-remove-game-level aria-label="Remove game level" title="Remove game level"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-game-level aria-label="Remove game level" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </header>
 
       <div class="game-builder__body">
@@ -595,8 +595,31 @@ function flash(element) {
 }
 
 /** Wires every level inside `container` (works for levels added later too). `lessonWords()` returns the lesson's 3–7 letter words, used for suggestions. */
-export function wireGameLevels(container, { onSkipGame, lessonWords } = {}) {
+export function wireGameLevels(container, { onSkipGame, lessonWords, confirmRemoval = async () => true } = {}) {
   if (lessonWords) lessonWordsOf = lessonWords;
+  const pendingRemovals = new WeakSet();
+  async function removeChip(level, chip, edit = false, animate = false) {
+    if (!chip || pendingRemovals.has(chip)) return;
+    pendingRemovals.add(chip);
+    try {
+      const word = chip.dataset.wordChip;
+      const message = edit
+        ? `Move “${word}” out of the game word list and back into the input for editing?`
+        : `Remove “${word}” from this game level?`;
+      if (!await confirmRemoval('game word', message) || !chip.isConnected) return;
+      if (animate) {
+        chip.classList.add('is-leaving');
+        await new Promise(resolve => setTimeout(resolve, 160));
+      }
+      const input = $('[data-word-input]', level);
+      if (edit) input.value = word;
+      chip.remove();
+      refreshLevel(level);
+      input.focus({ preventScroll: true });
+    } finally {
+      pendingRemovals.delete(chip);
+    }
+  }
   container.addEventListener("input", (event) => {
     const level = event.target.closest("[data-game-level]");
     if (!level) return;
@@ -668,16 +691,12 @@ export function wireGameLevels(container, { onSkipGame, lessonWords } = {}) {
       const last = $$("[data-word-chip]", level).pop();
       if (!last) return;
       event.preventDefault();
-      input.value = last.dataset.wordChip;
-      last.remove();
-      refreshLevel(level);
+      void removeChip(level, last, true);
     }
     const chip = event.target.closest("[data-word-chip]");
     if (chip && (event.key === "Delete" || event.key === "Backspace")) {
       event.preventDefault();
-      chip.remove();
-      refreshLevel(level);
-      $("[data-word-input]", level).focus();
+      void removeChip(level, chip);
     }
   });
 
@@ -696,11 +715,7 @@ export function wireGameLevels(container, { onSkipGame, lessonWords } = {}) {
     if (!level) return;
     if (event.target.closest("[data-remove-word]")) {
       const chip = event.target.closest("[data-word-chip]");
-      chip.classList.add("is-leaving");
-      setTimeout(() => {
-        chip.remove();
-        refreshLevel(level);
-      }, 160);
+      void removeChip(level, chip, false, true);
       return;
     }
     if (event.target.closest("[data-skip-game-tip]")) {

@@ -145,7 +145,8 @@ export function renderAssistant() {
     const panel = $("#assistant-help"), toggle = $("#assistant-help-toggle");
     panel.hidden = !panel.hidden; toggle.setAttribute("aria-expanded", String(!panel.hidden));
     toggle.setAttribute("aria-label", panel.hidden ? "Mga gabay" : "Isara ang mga gabay");
-    toggle.title = panel.hidden ? "Mga gabay" : "Isara ang mga gabay";
+    toggle.dataset.tooltip = panel.hidden ? "Mga gabay" : "Isara ang mga gabay";
+    toggle.removeAttribute('title');
     if (!panel.hidden) $("#assistant-search").focus();
   });
   input.addEventListener("keydown", event => {

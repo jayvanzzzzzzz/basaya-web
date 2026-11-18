@@ -302,7 +302,7 @@
   transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
 }
 
-.lesson-add-button[data-floating-tooltip]::after {
+:is(.lesson-add-button, .lesson-remove-button)[data-floating-tooltip]::after {
   content: none;
   display: none;
 }

@@ -1,0 +1,226 @@
+[
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "edit",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "lectures",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "light",
+    "width": 320,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 1440,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 768,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 390,
+    "issues": []
+  },
+  {
+    "mode": "add",
+    "section": "pronunciation",
+    "theme": "dark",
+    "width": 320,
+    "issues": []
+  }
+]

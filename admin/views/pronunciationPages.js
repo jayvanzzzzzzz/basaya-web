@@ -1,7 +1,22 @@
 import { $, $$, escapeHtml, safeHttpUrl, toast } from "../../js/helpers.js";
+import { audioPreviewHtml } from './lessonMediaPlayer.js';
 
 export const MAX_PRONUNCIATION_PAGES = 8;
 export const MAX_PRONUNCIATION_CHARACTERS = 200;
+
+export function audioGenerateButton(kind) {
+  const attribute = {
+    lecture: 'data-generate-sentence-audio',
+    sentence: 'data-generate-pronunciation-sentence',
+    word: 'data-generate-pronunciation-audio',
+  }[kind];
+  const label = kind === 'word' ? 'Generate word audio' : 'Generate sentence audio';
+  const iconSize = kind === 'word' ? 26 : 24;
+  return `<button type="button" class="button secondary small audio-generate-button" ${attribute} data-floating-tooltip data-audio-label="${label}" aria-label="${label}">
+    <svg class="audio-generate-symbol" viewBox="0 0 24 24" width="${iconSize}" height="${iconSize}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 5-5 4H2v6h3l5 4V5Z"/><path d="M13 9a5 5 0 0 1 0 6M16 12a8 8 0 0 1-1 6"/><path d="m19 2 .9 2.6L22.5 5.5l-2.6.9L19 9l-.9-2.6-2.6-.9 2.6-.9L19 2Z"/></svg>
+    <svg class="audio-generate-spinner" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9"/></svg>
+  </button>`;
+}
 
 // Get Ready vocabulary is lowercase; punctuation and case do not create duplicates.
 export function readyWords(sentences) {
@@ -27,16 +42,16 @@ function pageHtml(page = {}) {
       </span>
     </label>
     <div class="audio-actions">
-      <button type="button" class="button secondary small" data-generate-pronunciation-sentence>Generate sentence audio</button>
-      <button type="button" class="text-button danger pronunciation-remove-page lesson-remove-button" data-remove-pronunciation-page aria-label="Remove page" title="Remove page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+      ${audioGenerateButton('sentence')}
+      <button type="button" class="text-button danger pronunciation-remove-page lesson-remove-button" data-remove-pronunciation-page data-floating-tooltip aria-label="Remove page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
     </div>
-    <div class="audio-preview" data-audio-preview>${url ? `<audio controls src="${escapeHtml(url)}"></audio><small class="muted">Existing sentence audio</small>` : ""}</div>
+    <div class="audio-preview" data-audio-preview>${audioPreviewHtml(url)}</div>
     <small class="muted" data-pronunciation-audio-status role="status"></small>
     <div class="pronunciation-word-picker" data-page-ready-picker></div>
   </div>`;
 }
 
-export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, previews, generate, saveAudio, audioProblem }) {
+export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, previews, generate, saveAudio, audioProblem, confirmRemoval = async () => true }) {
   const panel = $('[data-panel="pronunciation"]', modal);
   const list = $('[data-pronunciation-pages]', panel);
   const wordList = $('[data-pronunciation-words]', panel);
@@ -44,6 +59,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
   const navigation = $('[data-pronunciation-page-navigation]', modal);
   const ribbons = $('[data-pronunciation-page-ribbons]', modal);
   let activePage = 0;
+  let removingWord = false;
   const legacy = Boolean(saved?.words?.length && !saved?.pages?.length);
   panel.dataset.pronunciationMode = legacy ? "legacy" : "sentences";
   sentenceSection.hidden = legacy;
@@ -86,6 +102,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     const visibleWords = [];
     $$('[data-pronunciation-word]', wordList).forEach(row => {
       row.hidden = panel.dataset.pronunciationMode === 'sentences' && !chosen.has(row.dataset.readyWordSource || keyOf($('[data-pronunciation-text]', row).value));
+      if (row.hidden) row.querySelectorAll('audio').forEach(audio => audio.pause());
       if (!row.hidden) visibleWords.push(row);
     });
     visibleWords.forEach((row, i) => {
@@ -139,7 +156,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
         refreshWord(row);
       }
       row.dataset.readyWordSource = key;
-      $('[data-remove-pronunciation-word]', row).hidden = true;
+      $('[data-remove-pronunciation-word]', row).hidden = false;
       return row;
     });
     wordList.replaceChildren(...rows);
@@ -158,6 +175,24 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     $('[data-add-pronunciation-word]', panel).hidden = true;
     showPage();
   };
+  async function removeReadyWord(key, page, moveFocus = false) {
+    const chosen = selections.get(page);
+    if (removingWord || !chosen?.has(key)) return;
+    removingWord = true;
+    try {
+      const word = $('[data-pronunciation-text]', cache.get(key)).value.trim() || key;
+      if (!await confirmRemoval('Get Ready word', `Remove “${word}” from this page’s Get Ready words? You can add it again by selecting it in the sentence.`)) return;
+      if (!panel.isConnected || !page.isConnected || !chosen.has(key)) return;
+      chosen.delete(key);
+      sync({ renderPicker: false });
+      panel.dispatchEvent(new panel.ownerDocument.defaultView.Event('change', { bubbles: true }));
+      if (moveFocus) {
+        $$('[data-ready-word]', page).find(button => button.dataset.readyWord === key)?.focus({ preventScroll: true });
+      }
+    } finally {
+      removingWord = false;
+    }
+  }
   sync();
   panel.addEventListener('input', event => {
     if (event.target.matches('[data-pronunciation-sentence]')) sync();
@@ -170,13 +205,20 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     const button = event.target.closest('[data-ready-word]');
     if (!button) return;
     event.preventDefault();
-    selections.get(button.closest('[data-pronunciation-page]'))?.delete(button.dataset.readyWord);
-    sync({ renderPicker: false });
+    void removeReadyWord(button.dataset.readyWord, button.closest('[data-pronunciation-page]'));
   });
   modal.addEventListener('click', async event => {
     const button = event.target.closest('button');
     if (!button) return;
+    if (button.matches('[data-remove-pronunciation-word]') && panel.dataset.pronunciationMode === 'sentences') {
+      // The general lesson handler handles legacy lists; sentence pages keep per-page selections.
+      event.stopImmediatePropagation();
+      const row = button.closest('[data-pronunciation-word]');
+      await removeReadyWord(row.dataset.readyWordSource, $$('[data-pronunciation-page]', list)[activePage], true);
+      return;
+    }
     if (button.matches('[data-enable-pronunciation-pages]')) {
+      if (!await confirmRemoval('original word practice', 'Switch to sentence pages? The original word list will be replaced when you save the lesson.')) return;
       panel.dataset.pronunciationMode = 'sentences';
       sentenceSection.hidden = false;
       $('[data-pronunciation-legacy]', panel).hidden = true;
@@ -192,6 +234,8 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
     }
     if (button.matches('[data-remove-pronunciation-page]') && list.children.length > 1) {
       const removed = button.closest('[data-pronunciation-page]');
+      if (!await confirmRemoval('pronunciation page')) return;
+      if (!removed.isConnected || list.children.length <= 1) return;
       const removedIndex = $$('[data-pronunciation-page]', list).indexOf(removed);
       removed.querySelectorAll('audio').forEach(audio => audio.pause());
       removed.remove();

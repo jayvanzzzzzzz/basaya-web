@@ -21,6 +21,7 @@ import {
   $$,
   empty,
   escapeHtml,
+  notify,
   openModal,
   page,
   safeHttpUrl,
@@ -44,7 +45,8 @@ import { openLessonViewer, loadLessonSections as getLessonSections } from "./les
 import { openDeleteLesson } from "./lessonDeletion.js";
 import { confirmDuplicateTitle, findDuplicate, sameTitle } from "./duplicateTitle.js";
 import { missingChecklist } from "./missingChecklist.js";
-import { mountPronunciationPages } from "./pronunciationPages.js";
+import { mountPronunciationPages, audioGenerateButton } from "./pronunciationPages.js";
+import { audioPreviewHtml, mountLessonMediaPlayers } from './lessonMediaPlayer.js';
 
 const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
 const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
@@ -423,7 +425,7 @@ function studioHtml(lesson = {}, sections = {}) {
         <div class="lecture-page-navigation__controls">
           <h4 class="lecture-page-navigation__title">Lecture Pages <span class="lesson-subheading__count" data-lecture-page-count></span></h4>
           <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
-          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-lecture-page aria-label="Add lecture page" title="Add lecture page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-lecture-page aria-label="Add lecture page" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
         </div>
       </div>
 
@@ -431,7 +433,7 @@ function studioHtml(lesson = {}, sections = {}) {
         <div class="lecture-page-navigation__controls">
           <h4 class="lecture-page-navigation__title">Game Levels <span class="lesson-subheading__count" data-game-level-count></span></h4>
           <div class="lecture-page-ribbons" data-game-level-ribbons aria-label="Game levels"></div>
-          <button type="button" class="button secondary small lesson-add-button lesson-add-level-button" data-add-game-level aria-label="Add game level" title="Add game level"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 8-4 8 4-8 4-8-4ZM3 11l8 4 5-2.5M3 16l8 4 2-1M17 18h6M20 15v6"/></svg></button>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-level-button" data-add-game-level aria-label="Add game level" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 8-4 8 4-8 4-8-4ZM3 11l8 4 5-2.5M3 16l8 4 2-1M17 18h6M20 15v6"/></svg></button>
         </div>
       </div>
 
@@ -439,7 +441,7 @@ function studioHtml(lesson = {}, sections = {}) {
         <div class="lecture-page-navigation__controls">
           <h4 class="lecture-page-navigation__title">Pronunciation Pages <span class="lesson-subheading__count" data-pronunciation-page-count></span></h4>
           <div class="lecture-page-ribbons" data-pronunciation-page-ribbons aria-label="Pronunciation pages"></div>
-          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-pronunciation-page aria-label="Add pronunciation page" title="Add pronunciation page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-pronunciation-page aria-label="Add pronunciation page" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
         </div>
       </div>
 
@@ -499,7 +501,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
           <div class="lesson-subheading">
             <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
-            <button type="button" class="button secondary small lesson-add-button lesson-add-question-button" data-add-question aria-label="Add quiz question" title="Add quiz question"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M8 11a2 2 0 0 1 4 0c0 1.5-2 1.5-2 3M10 17h.01M17 17h6M20 14v6"/></svg></button>
+            <button type="button" class="button secondary small lesson-add-button lesson-add-question-button" data-add-question aria-label="Add quiz question" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M8 11a2 2 0 0 1 4 0c0 1.5-2 1.5-2 3M10 17h.01M17 17h6M20 14v6"/></svg></button>
           </div>
           <div data-quiz-questions></div>
         </section>
@@ -529,7 +531,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
             <div class="lesson-subheading">
               <h4>Activity pages <span class="lesson-subheading__count" data-card-count></span></h4>
-              <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-activity-page aria-label="Add activity page" title="Add activity page"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+              <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-activity-page aria-label="Add activity page" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
             </div>
             <div data-activity-pages></div>
           </div>
@@ -553,12 +555,12 @@ function studioHtml(lesson = {}, sections = {}) {
           <div data-pronunciation-sentence-section>
             <p class="muted">Up to 200 characters per page, including spaces and punctuation.</p>
             <div class="sentence-builder" data-pronunciation-pages></div>
-            <p class="muted">Click a word to add it to Get Ready. Selected words turn green with a checkmark. Double-click a selected word to remove it.</p>
+            <p class="muted">Click a word to add it to Get Ready. Selected words turn green with a checkmark. Use the trash icon beside a Get Ready word, or double-click a selected word, to remove it after confirmation.</p>
             <div class="pronunciation-word-picker" data-pronunciation-word-picker></div>
           </div>
           <div class="lesson-subheading">
             <h4>Get Ready words <span class="lesson-subheading__count" data-card-count></span></h4>
-            <button type="button" class="button secondary small lesson-add-button" data-add-pronunciation-word aria-label="Add Get Ready word" title="Add Get Ready word"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button type="button" class="button secondary small lesson-add-button" data-add-pronunciation-word aria-label="Add Get Ready word" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
           </div>
           <div data-pronunciation-words></div>
         </section>
@@ -606,7 +608,7 @@ function activityPageHtml(page = {}) {
     <article class="builder-card" data-activity-page data-correct-indices="${correctIndices}">
       <div class="builder-card__header">
         <strong data-card-number>Activity page</strong>
-        <button type="button" class="text-button danger lesson-remove-button" data-remove-activity-page aria-label="Remove activity page" title="Remove activity page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-activity-page aria-label="Remove activity page" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <label>
         Enter the sentence here
@@ -670,7 +672,7 @@ function lecturePageHtml(page = {}) {
     <article class="builder-card" data-lecture-page>
       <div class="builder-card__header">
         <strong data-lecture-page-title>Lecture page</strong>
-        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-page aria-label="Remove lecture page" title="Remove lecture page"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-page aria-label="Remove lecture page" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <div class="sentence-builder" data-sentences>
         ${sentences
@@ -683,7 +685,7 @@ function lecturePageHtml(page = {}) {
           )
           .join("")}
       </div>
-      <button type="button" class="link-button lesson-add-button lesson-add-sentence-button" data-add-lecture-sentence aria-label="Add lecture sentence" title="Add lecture sentence"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h16M3 10h13M3 15h8M3 20h8M16 17h7M19.5 13.5v7"/></svg></button>
+      <button type="button" class="link-button lesson-add-button lesson-add-sentence-button" data-add-lecture-sentence aria-label="Add lecture sentence" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h16M3 10h13M3 15h8M3 20h8M16 17h7M19.5 13.5v7"/></svg></button>
     </article>
   `;
 }
@@ -697,11 +699,11 @@ function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null
         <textarea data-sentence-text placeholder="Write the sentence for this page.">${escapeHtml(sentence)}</textarea>
       </label>
       <div class="audio-actions">
-        <button type="button" class="button secondary small" data-generate-sentence-audio>Generate audio</button>
-        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-sentence aria-label="Remove lecture sentence" title="Remove lecture sentence"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+        ${audioGenerateButton('lecture')}
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-sentence aria-label="Remove lecture sentence" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <div class="audio-preview" data-audio-preview>
-        ${audioUrl ? `<audio controls src="${escapeHtml(audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
+        ${audioPreviewHtml(audioUrl)}
       </div>
     </div>
   `;
@@ -740,23 +742,23 @@ function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
   const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
   return `
     <div class="pronunciation-editor" data-pronunciation-word data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}" data-audio-ref="${escapeHtml(audioRef)}">
-      <div>
+      <div class="pronunciation-word-field">
         <label>
           <span data-card-number>Word</span>
           <input data-pronunciation-text value="${escapeHtml(word)}" placeholder="Arkipelago" />
-          <small class="muted syllable-preview" data-syllable-preview>${syllablePreviewText(syllabify(word))}</small>
         </label>
-        <div class="dict-missing" data-dict-missing role="status" hidden>
-          <span data-dict-missing-text></span>
-          <button type="button" class="button secondary small lesson-add-button" data-add-to-dictionary data-floating-tooltip aria-label="Add word to dictionary"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11a2 2 0 0 1 2 2v6M5 3a2 2 0 0 0-2 2v13a3 3 0 0 0 3 3h6M5 3v14M3 18a2 2 0 0 1 2-2h7M8 7h6M8 10h4M18 14v8M14 18h8"/></svg></button>
+        <div class="pronunciation-word-actions">
+          ${audioGenerateButton('word')}
+          <button type="button" class="text-button danger lesson-remove-button" data-remove-pronunciation-word data-floating-tooltip aria-label="Remove from Get Ready"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
         </div>
       </div>
-      <div class="audio-actions">
-        <button type="button" class="button secondary small" data-generate-pronunciation-audio>Generate audio</button>
-        <button type="button" class="text-button danger lesson-remove-button" data-remove-pronunciation-word aria-label="Remove Get Ready word" title="Remove Get Ready word"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+      <small class="muted syllable-preview" data-syllable-preview>${syllablePreviewText(syllabify(word))}</small>
+      <div class="dict-missing" data-dict-missing role="status" hidden>
+        <span data-dict-missing-text></span>
+        <button type="button" class="button secondary small lesson-add-button" data-add-to-dictionary data-floating-tooltip aria-label="Add word to dictionary"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11a2 2 0 0 1 2 2v6M5 3a2 2 0 0 0-2 2v13a3 3 0 0 0 3 3h6M5 3v14M3 18a2 2 0 0 1 2-2h7M8 7h6M8 10h4M18 14v8M14 18h8"/></svg></button>
       </div>
       <div class="audio-preview" data-audio-preview>
-        ${audioUrl ? `<audio controls src="${escapeHtml(audioUrl)}"></audio><small class="muted">Existing cloud audio</small>` : ""}
+        ${audioPreviewHtml(audioUrl, { word: true })}
       </div>
     </div>
   `;
@@ -789,7 +791,7 @@ function questionHtml(question = {}) {
     <article class="builder-card" data-question>
       <div class="builder-card__header">
         <strong data-card-number>Quiz question</strong>
-        <button type="button" class="text-button danger lesson-remove-button" data-remove-question aria-label="Remove quiz question" title="Remove quiz question"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-question aria-label="Remove quiz question" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
       </div>
       <label>Question<textarea data-question-text placeholder="Write a question.">${escapeHtml(question.question || "")}</textarea></label>
 
@@ -1084,6 +1086,8 @@ async function openLessonModal(existing = null) {
 
   openModal(studioHtml(existing || {}, sections), (modal, close) => {
     const disposeTooltips = attachFloatingTooltips(modal);
+    const confirmRemoval = async (item, message = 'This removes the item from the lesson draft. Save the lesson to keep this change.') =>
+      await confirmAction({ title: `Remove ${item}?`, message, confirm: 'Remove', danger: true }) && modal.isConnected;
     const activityPages = $("[data-activity-pages]", modal);
     const lecturePages = $("[data-lecture-pages]", modal);
     const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
@@ -1093,9 +1097,8 @@ async function openLessonModal(existing = null) {
     const addGameLevelButton = $("[data-add-game-level]", modal);
 
     // One clip at a time: replaying (or starting another clip) stops the one already playing, so the same audio never overlaps itself and sounds like an echo.
-    const previewPlayer = new Audio();
+    const disposeMediaPlayers = mountLessonMediaPlayers(modal);
     const stopOtherAudio = (current) => {
-      if (previewPlayer !== current) previewPlayer.pause();
       $$("audio", modal).forEach((audio) => {
         if (audio !== current) audio.pause();
       });
@@ -1105,6 +1108,7 @@ async function openLessonModal(existing = null) {
     new MutationObserver((_, observer) => {
       if (modal.isConnected) return;
       disposeTooltips();
+      disposeMediaPlayers();
       stopOtherAudio(null);
       $$("[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]", modal).forEach(row => {
         const preview = previews.get(row);
@@ -1155,6 +1159,7 @@ async function openLessonModal(existing = null) {
     const pronunciationPages = mountPronunciationPages(modal, sections.pronunciation, {
       wordHtml: pronunciationWordHtml, refreshWord: refreshSyllablePreview,
       previews, generate: createPreview, saveAudio: saveSpeech, audioProblem: lectureAudioProblem,
+      confirmRemoval,
     });
     quizQuestions.innerHTML = initialQuestions.map(questionHtml).join("");
     gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
@@ -1179,6 +1184,7 @@ async function openLessonModal(existing = null) {
         .join("");
 
       pages.forEach((page, index) => {
+        if (index !== activeLecturePage) $$("audio", page).forEach(audio => audio.pause());
         page.hidden = index !== activeLecturePage;
         $("[data-lecture-page-title]", page).textContent = `Page ${index + 1} of ${pages.length}`;
       });
@@ -1248,6 +1254,7 @@ async function openLessonModal(existing = null) {
 
     $$("[data-game-level]", gameLevels).forEach(refreshLevel);
     wireGameLevels(gameLevels, {
+      confirmRemoval,
       // Root-word and over-long-word suggestions come from this lesson's content.
       lessonWords: () =>
         wordsFromText(
@@ -1268,6 +1275,7 @@ async function openLessonModal(existing = null) {
     skipActivity.addEventListener("change", updateActivityEditor);
 
     const showStep = (step) => {
+      stopOtherAudio(null);
       $$(".lesson-tab", modal).forEach((button) =>
         button.classList.toggle("active", button.dataset.step === step),
       );
@@ -1342,28 +1350,6 @@ async function openLessonModal(existing = null) {
       const button = event.target.closest("button");
       if (!button) return;
 
-      if (button.matches("[data-play-preview]")) {
-        const row = button.closest(
-          "[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]",
-        );
-        const preview = previews.get(row);
-
-        if (!preview?.objectUrl) {
-          toast("Generate audio first.");
-          return;
-        }
-
-        stopOtherAudio(previewPlayer);
-        previewPlayer.src = preview.objectUrl;
-        previewPlayer.currentTime = 0;
-        previewPlayer
-          .play()
-          .catch((error) => {
-            if (error.name !== "AbortError") toast("Could not play the audio preview.");
-          });
-        return;
-      }
-
       if (button.matches("[data-close]")) {
         if (await mayLeave()) close();
         return;
@@ -1375,6 +1361,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-remove-activity-page]")) {
+        if (!await confirmRemoval('activity page')) return;
         button.closest("[data-activity-page]").remove();
       }
 
@@ -1402,6 +1389,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-remove-lecture-page]")) {
+        if (!await confirmRemoval('lecture page')) return;
         button.closest("[data-lecture-page]").remove();
         renderLecturePageRibbons();
       }
@@ -1420,6 +1408,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-remove-lecture-sentence]")) {
+        if (!await confirmRemoval('lecture sentence')) return;
         button.closest("[data-lecture-sentence]").remove();
       }
 
@@ -1445,6 +1434,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-remove-pronunciation-word]")) {
+        if (!await confirmRemoval('Get Ready word')) return;
         button.closest("[data-pronunciation-word]").remove();
       }
 
@@ -1454,6 +1444,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-remove-question]")) {
+        if (!await confirmRemoval('quiz question')) return;
         button.closest("[data-question]").remove();
       }
 
@@ -1467,6 +1458,7 @@ async function openLessonModal(existing = null) {
       }
 
       if (button.matches("[data-remove-game-level]")) {
+        if (!await confirmRemoval('game level')) return;
         const level = button.closest("[data-game-level]");
         const removedIndex = $$("[data-game-level]", gameLevels).indexOf(level);
         level.remove();
@@ -1612,9 +1604,13 @@ async function openLessonModal(existing = null) {
           skipActivity,
         });
 
-        toast(saveState.dictionaryMissing.length
-          ? `Lesson saved. Add ${saveState.dictionaryMissing.join(', ')} to the dictionary, then save again to share their audio.`
-          : existing ? "Lesson updated." : "Lesson published.");
+        notify({
+          title: existing ? "Lesson updated" : "Lesson published",
+          message: saveState.dictionaryMissing.length
+            ? `Add ${saveState.dictionaryMissing.join(', ')} to the dictionary, then save again to share their audio.`
+            : "Your lesson and learning activities have been saved.",
+          tone: saveState.dictionaryMissing.length ? "info" : "success",
+        });
         close();
         await renderLessons();
 
@@ -1640,7 +1636,7 @@ async function openLessonModal(existing = null) {
 /** Everything the author can change in the editor, to tell whether leaving loses work. */
 function editorSnapshot(form) {
   return JSON.stringify([
-    $$("input, textarea, select", form).map((field) =>
+    $$("input, textarea, select", form).filter(field => !field.closest('[data-lesson-media]')).map((field) =>
       field.type === "checkbox" || field.type === "radio" ? field.checked : field.value,
     ),
     $$("[data-activity-page]", form).map((page) => page.dataset.correctIndices || ""),
@@ -1691,6 +1687,7 @@ function confirmDiscard(isNew) {
 }
 
 async function createPreview(button, row, text) {
+  if (button.disabled || button.getAttribute('aria-busy') === 'true') return;
   const previousPreview = previews.get(row);
   const generationCount = previousPreview?.generationCount || 0;
 
@@ -1699,14 +1696,17 @@ async function createPreview(button, row, text) {
     return;
   }
 
+  const originalLabel = button.getAttribute('aria-label');
+  const baseLabel = button.dataset.audioLabel || 'Generate audio';
   button.disabled = true;
-  const originalLabel = button.textContent;
-  button.textContent = "Generating…";
+  button.setAttribute('aria-busy', 'true');
+  button.setAttribute('aria-label', 'Generating audio');
 
   try {
     const { blob, wordStarts } = await generateSpeech(text);
     const previous = previews.get(row);
 
+    row.querySelectorAll('audio').forEach(audio => audio.pause());
     if (previous?.objectUrl) {
       URL.revokeObjectURL(previous.objectUrl);
     }
@@ -1721,26 +1721,20 @@ async function createPreview(button, row, text) {
       generationCount: nextGenerationCount,
     });
 
-    $("[data-audio-preview]", row).innerHTML = `
-      <button
-        type="button"
-        class="audio-listen-button"
-        data-play-preview
-        aria-label="Play generated audio"
-        title="Listen to generated audio"
-      >🔊</button>
-      <small class="muted">Preview ready</small>
-    `;
-
     const remainingGenerations = MAX_AUDIO_GENERATIONS_PER_SENTENCE - nextGenerationCount;
-    button.textContent = remainingGenerations
-      ? `Generate again (${remainingGenerations} left)`
-      : "Generation limit reached";
+    $("[data-audio-preview]", row).innerHTML = audioPreviewHtml(objectUrl, {
+      word: row.matches('[data-pronunciation-word]'), generated: true, limit: !remainingGenerations,
+    });
+
+    button.setAttribute('aria-label', remainingGenerations
+      ? `${baseLabel} again (${remainingGenerations} left)`
+      : 'Audio generation limit reached');
   } catch (error) {
     console.error(error);
     toast(error.message || "Audio could not be generated.");
-    button.textContent = originalLabel;
+    button.setAttribute('aria-label', originalLabel || baseLabel);
   } finally {
+    button.removeAttribute('aria-busy');
     button.disabled = (previews.get(row)?.generationCount || 0) >= MAX_AUDIO_GENERATIONS_PER_SENTENCE;
   }
 }

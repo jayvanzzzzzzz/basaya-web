@@ -6,13 +6,18 @@ const require = createRequire(new URL('../notify-api/package.json', import.meta.
 const { parseHTML } = require('linkedom');
 const source = await readFile(new URL('../admin/views/pronunciationPages.js', import.meta.url), 'utf8');
 const escapeHtml = text => String(text ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+const mediaSource = await readFile(new URL('../admin/views/lessonMediaPlayer.js', import.meta.url), 'utf8');
+const audioPreviewHtml = new Function('escapeHtml', mediaSource.replace(/^import .*?;\s*/gm, '').replaceAll('export ', '') + '\nreturn audioPreviewHtml;')(escapeHtml);
 function setup(saved) {
   const { document, window } = parseHTML(`<html><body><div data-pronunciation-page-navigation hidden><span data-pronunciation-page-count></span><div data-pronunciation-page-ribbons></div><button data-add-pronunciation-page></button></div><section data-panel="pronunciation"><div data-pronunciation-legacy><button data-enable-pronunciation-pages></button></div><div data-pronunciation-sentence-section><div data-pronunciation-pages></div><div data-pronunciation-word-picker></div></div><button data-add-pronunciation-word></button><div data-pronunciation-words></div></section></body></html>`);
   window.Element.prototype.pause = () => {};
+  window.Element.prototype.focus = () => {};
+  const confirmations = [];
+  let confirmation = async () => true;
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const helpers = { $, $$, escapeHtml, safeHttpUrl: url => url?.startsWith('https://') ? url : '', toast() {} };
-  const { readyWords, mountPronunciationPages } = new Function('helpers', 'document', source.replace(/^import .*?;\s*/, () => 'const { $, $$, escapeHtml, safeHttpUrl, toast } = helpers;\n').replaceAll('export ', '') + '\nreturn { readyWords, mountPronunciationPages };')(helpers, document);
+  const { readyWords, mountPronunciationPages } = new Function('helpers', 'document', 'audioPreviewHtml', 'const { $, $$, escapeHtml, safeHttpUrl, toast } = helpers;\n' + source.replace(/^import .*?;\s*/gm, '').replaceAll('export ', '') + '\nreturn { readyWords, mountPronunciationPages };')(helpers, document, audioPreviewHtml);
   const previews = new WeakMap(), uploads = [];
   const wordHtml = (word, audioRef = '', cloudAudio = null) => `<div data-pronunciation-word data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}"><input data-pronunciation-text value="${escapeHtml(word)}"><button data-remove-pronunciation-word></button><button data-generate-pronunciation-audio></button></div>`;
   $('[data-pronunciation-words]').innerHTML = (saved?.words || []).map((word, i) => wordHtml(word, '', saved.cloudAudio?.[i])).join('');
@@ -23,12 +28,14 @@ function setup(saved) {
   };
   const controller = mountPronunciationPages(document, saved, {
     wordHtml, refreshWord() {}, previews, audioProblem,
+    confirmRemoval: async (...args) => { confirmations.push(args); return confirmation(); },
     generate: async (_button, row, text) => { previews.set(row, { blob: new Blob(['audio']), text, wordStarts: [0] }); },
     saveAudio: async options => { uploads.push(options); return { audioUrl: `https://test/${options.pageNumber}`, storageKey: `page-${options.pageNumber}` }; },
   });
   const click = async selector => { $(selector).dispatchEvent(new window.Event('click', { bubbles: true })); await flush(); };
   const input = (selector, value) => { $(selector).value = value; $(selector).dispatchEvent(new window.Event('input', { bubbles: true })); };
-  return { $, $$, document, window, controller, previews, uploads, readyWords, click, input, audioProblem };
+  return { $, $$, document, window, controller, previews, uploads, readyWords, click, input, audioProblem,
+    confirmations, setConfirmation: answer => { confirmation = typeof answer === 'function' ? answer : async () => answer; } };
 }
 const t = setup();
 assert.equal(t.$('[data-pronunciation-character-count]').textContent, '0/200');
@@ -53,9 +60,11 @@ assert.ok(firstWordButton.classList.contains('is-selected'));
 assert.equal(firstWordButton.querySelector('[data-ready-check]').hidden, false);
 await t.click('[data-ready-word="may"]');
 firstWordButton.dispatchEvent(new t.window.Event('dblclick', { bubbles: true }));
+await flush();
 assert.equal(firstWordButton.getAttribute('aria-pressed'), 'false');
 assert.equal(firstWordButton.querySelector('[data-ready-check]').hidden, true);
 assert.equal(t.$$('[data-pronunciation-word]').length, 0);
+assert.equal(t.confirmations.length, 1, 'Double-click removal asks for confirmation');
 await t.click('[data-ready-word="may"]');
 await t.click('[data-ready-word="magandang"]');
 await t.click('[data-ready-word="bahay"]');
@@ -128,6 +137,35 @@ assert.equal(tabs.$('[data-pronunciation-page-navigation]').hidden,true);
 const studio = await readFile(new URL('../admin/views/lessons.js', import.meta.url), 'utf8');
 const extract = (start, end) => studio.slice(studio.indexOf(start), studio.indexOf(end, studio.indexOf(start)));
 const build = (body, deps) => new Function('deps', `const { ${Object.keys(deps).join(', ')} } = deps;\n${body}`)(deps);
+const removal = setup({ words: ['May'], cloudAudio: [wordAudio], pages: [
+  { sentence: 'May bahay.', readyWords: ['May'], cloudAudio: { audioUrl: 'https://model/first', text: 'May bahay.' } },
+  { sentence: 'May puno.', readyWords: ['May'], cloudAudio: { audioUrl: 'https://model/second', text: 'May puno.' } },
+] });
+const sharedRow = removal.$('[data-pronunciation-word]');
+assert.equal(removal.$('[data-remove-pronunciation-word]').hidden, false);
+removal.setConfirmation(false);
+await removal.click('[data-remove-pronunciation-word]');
+assert.equal(removal.$('#pronunciation-page-0 [data-ready-word="may"]').getAttribute('aria-pressed'), 'true', 'Cancel preserves word selection');
+await removal.click('[data-remove-pronunciation-page]');
+assert.equal(removal.$$('[data-pronunciation-page]').length, 2, 'Cancel preserves the pronunciation page');
+let approveRemoval;
+removal.setConfirmation(() => new Promise(resolve => { approveRemoval = resolve; }));
+const beforeConfirmations = removal.confirmations.length;
+await removal.click('[data-remove-pronunciation-word]');
+await removal.click('[data-remove-pronunciation-word]');
+assert.equal(removal.confirmations.length, beforeConfirmations + 1, 'Repeated clicks open one word confirmation');
+assert.equal(sharedRow.hidden, false, 'Word stays visible until approval');
+approveRemoval(true); await flush();
+assert.equal(sharedRow.hidden, true);
+assert.deepEqual((await removal.controller.read('lesson')).pages.map(page => page.readyWords), [[], ['may']], 'Only the active page loses the word');
+await removal.click('#pronunciation-page-0 [data-ready-word="may"]');
+assert.equal(sharedRow, removal.$('[data-pronunciation-word]'));
+assert.equal(JSON.parse(sharedRow.dataset.cloudAudio).audioUrl, wordAudio.audioUrl, 'Re-adding reuses word audio');
+removal.setConfirmation(true);
+await removal.click('[data-pronunciation-page-ribbon="1"]');
+await removal.click('[data-remove-pronunciation-word]');
+assert.deepEqual((await removal.controller.read('lesson')).pages.map(page => page.readyWords), [['may'], []]);
+assert.deepEqual((await setup(await removal.controller.read('lesson')).controller.read('lesson')).pages.map(page => page.readyWords), [['may'], []], 'Confirmed removal survives save and reopen');
 const sharedWord = setup({words:['May'],pages:[
   {sentence:'May bahay.',readyWords:['May']},
   {sentence:'May puno.',readyWords:[]},

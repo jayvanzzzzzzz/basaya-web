@@ -67,7 +67,7 @@
 .is-student-hub .st-topbar__brand img { width: 2.6rem; height: 2.6rem; }
 .is-student-hub .st-topbar :is(.st-bell, .theme-toggle) { width: 2.75rem; height: 2.75rem; border-radius: 14px; }
 .is-student-hub .st-topbar__me { min-height: 2.75rem; }
-.is-student-hub .st-topbar :is(.st-bell, .theme-toggle, .st-topbar__me) { position: relative; }
+.is-student-hub .st-topbar :is(.st-bell, .theme-toggle, .st-topbar__me) { position: relative; overflow: visible; }
 .is-student-hub .st-topbar :is(.st-bell, .theme-toggle, .st-topbar__me)::after {
   position: absolute; top: calc(100% + .6rem); right: 0; z-index: 40; width: max-content; max-width: min(18rem, calc(100vw - 2rem));
   padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink);

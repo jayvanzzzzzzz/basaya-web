@@ -8,8 +8,10 @@ import { renderAccount } from "./views/account.js";
 import { renderDictionary } from "../teacher/views/dictionary.js";
 import { refreshDeletionBadge } from "./views/classDeletion.js";
 import { renderAdminDashboard } from "./views/dashboard.js";
+import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 
 export async function renderRoute() {
+  leaveHandbook();
   if (!state.user) return;
   shell("admin-summary", "Admin");
   const route = currentRoute();
@@ -26,6 +28,7 @@ export async function renderRoute() {
     else if (route === "/classes") await renderClasses();
     else if (route === "/lessons") await renderLessons();
     else if (route === "/dictionary") await renderDictionary();
+    else if (route === "/handbook") renderHandbook("admin");
     else if (route === "/settings") renderAccount();
     else navigate("/dashboard");
     // Keep the "All classes" badge (pending deletion requests) current on every page.

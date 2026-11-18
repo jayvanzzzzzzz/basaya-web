@@ -229,7 +229,8 @@ export async function renderMessages(classId) {
     link.setAttribute('aria-label', link.querySelector('strong')?.textContent || link.textContent.trim());
     return { link, previous };
   });
-  const disposeTooltips = attachFloatingTooltips(document.body, '.teacher-messages [data-floating-tooltip], .messages-members-dialog [data-floating-tooltip], body:has(.teacher-messages) :is([data-theme-toggle], #account-menu-toggle, .main-nav [data-nav])');
+  // Sidebar/account/theme tooltips are owned by the shared teacher shell.
+  const disposeTooltips = attachFloatingTooltips(document.body, '.teacher-messages [data-floating-tooltip], .messages-members-dialog [data-floating-tooltip]');
   stopTooltips = () => {
     disposeTooltips();
     navLabels.forEach(({ link, previous }) => {

@@ -24,14 +24,31 @@ export function missingChecklist(host, { verb, onJump }) {
   let toast = null;
   let items = [];
   let doneTimer;
+  let resizeAnimation;
+
+  // Keep the card anchored while the checklist shrinks or becomes the ready message.
+  const resize = (paint) => {
+    const height = toast.getBoundingClientRect().height;
+    resizeAnimation?.cancel();
+    paint();
+    const nextHeight = toast.offsetHeight;
+    if (Math.abs(height - nextHeight) < 1 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    resizeAnimation = toast.animate(
+      { height: [`${height}px`, `${nextHeight}px`] },
+      { duration: 200, easing: "ease-out" },
+    );
+  };
 
   const dismiss = () => {
     if (!toast) return;
     const leaving = toast;
     toast = null;
     clearTimeout(doneTimer);
+    resizeAnimation?.cancel();
     leaving.classList.add("is-leaving");
-    leaving.addEventListener("animationend", () => leaving.remove(), { once: true });
+    leaving.addEventListener("animationend", (event) => {
+      if (event.target === leaving && event.animationName === "missingOut") leaving.remove();
+    });
     setTimeout(() => leaving.remove(), 400); // in case animations are off
   };
 
@@ -106,8 +123,12 @@ export function missingChecklist(host, { verb, onJump }) {
     show(next) {
       items = next;
       clearTimeout(doneTimer);
-      if (!toast) create();
-      render();
+      if (!toast) {
+        create();
+        render();
+      } else {
+        resize(render);
+      }
     },
     /** Refreshes an open toast; does nothing once it's closed. */
     update(next) {
@@ -115,9 +136,9 @@ export function missingChecklist(host, { verb, onJump }) {
       items = next;
       if (items.length) {
         clearTimeout(doneTimer);
-        render();
+        resize(render);
       } else if (!toast.classList.contains("is-done")) {
-        showDone();
+        resize(showDone);
       }
     },
   };

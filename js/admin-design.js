@@ -13,4 +13,5 @@ function syncAdminDesign() {
 syncAdminDesign();
 const observer = new MutationObserver(syncAdminDesign);
 observer.observe(app, { childList: true, subtree: true });
-attachFloatingTooltips(document.body, 'button[aria-label]:not([data-floating-tooltip]):not([data-act]), [data-admin-nav-tooltip]');
+// Buttons with dedicated CSS or page-level tooltips keep that single tooltip owner.
+attachFloatingTooltips(document.body, 'button[aria-label]:not([data-floating-tooltip], [data-act], [data-tooltip], [data-report-tooltip], .lesson-add-button, .lesson-remove-button, .site-info__close), [data-admin-nav-tooltip]');

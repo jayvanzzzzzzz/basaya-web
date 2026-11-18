@@ -17,6 +17,7 @@ import { leaveStudentNotifications } from './views/studentNotifications.js';
 import { leaveTeacherTooltips, watchTeacherTooltips } from './views/classActions.js';
 import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
 import { renderTeacherLanding } from './views/landing.js';
+import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 
 let statsLoaded = false;
 
@@ -32,6 +33,7 @@ async function loadSidebarStats() {
 }
 
 export async function renderRoute() {
+  leaveHandbook();
   if (!state.user) return;
   leaveDashboardNotifications();
   leaveDashboardMenus();
@@ -77,6 +79,7 @@ export async function renderRoute() {
     else if (route === "/classes") await renderDashboard();
     else if (route === "/settings") await renderAccountSettings();
     else if (route === "/dictionary") await renderDictionary();
+    else if (route === "/handbook") renderHandbook("teacher");
     else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
     else if (/^\/classes\/[^/]+\/students$/.test(route)) {
       await renderStudentsPage(classId);

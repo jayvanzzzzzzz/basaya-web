@@ -80,6 +80,7 @@
 /* Login page: floating in the top-right corner */
 .theme-toggle--floating {
   position: fixed;
+  overflow: visible;
   top: 1rem;
   right: 1rem;
   z-index: 20;
@@ -87,6 +88,37 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   animation: popIn var(--dur-slow) var(--ease-out) 300ms backwards;
+}
+
+/* Public pages share one styled label; page-specific styles use the same pseudo-element. */
+.theme-toggle--floating::after {
+  content: attr(aria-label);
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: min(200px, calc(100vw - 2rem));
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 0.75rem/1.5 var(--font-body);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-3px);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+}
+
+.theme-toggle--floating:is(:hover, :focus-visible)::after {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle--floating::after { transition: none; }
 }
 
 /* Switching animation Modern browsers: the new theme grows in a circle from the button (View Transitions, driven by js/theme.js). Others: a soft cross-fade. */

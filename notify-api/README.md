@@ -4,7 +4,7 @@ The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 
 | Endpoint | Who can call it | What it does |
 |---|---|---|
-| `POST /api/assistant` | student | App-help AI with server-side quotas and Groq. See [web assistant setup and verification](../audit/ASSISTANT-WEB.md). |
+| `POST /api/assistant` | student, teacher, admin | Role-specific app-help AI with server-side quotas and Groq. Students: 5 questions/day; teachers/admins: 10 questions/day per account, including cached repeats. All roles: 10-second cooldown and one pending request per account. Allowances reset at midnight UTC; shared provider/app budgets still apply. Staff replies match the question language. Edit `js/handbookHelp.js` and run `node tools/build-assistant-help.mjs` from the web root to update staff references. See [web assistant setup and verification](../audit/ASSISTANT-WEB.md). |
 | `POST /api/assessment` | approved student | Serves content without answer keys; accepts answers/audio and derives scores, completion and skill summaries on the server. See [assessment validation and rollout](../audit/ASSESSMENT-VALIDATION.md). |
 | `POST /api/join-class` | student | Validates `{ code }`, rate-limits guesses, and creates a pending request. Does not enroll the student. |
 | `POST /api/review-join-requests` | the class's teacher | Reviews `{ classId, requests: [{ studentId, requestId, progressMode? }], action: "approve" or "decline" }`. For returning students, `progressMode` is `"restore"` (default) or `"fresh"`. Up to 50 decisions per call, each in its own transaction. |
