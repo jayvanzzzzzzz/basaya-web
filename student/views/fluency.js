@@ -1,4 +1,5 @@
-import { $, escapeHtml, navigate } from '../../js/helpers.js';
+import { $, escapeHtml, navigate, openModal } from '../../js/helpers.js';
+import { lookupWord } from '../../js/dictionary.js';
 import { content, icon, talkingBuddy, setTalking } from '../ui.js';
 import { onLeave } from '../router.js';
 import { Microphone } from '../speech.js';
@@ -27,6 +28,25 @@ export async function renderFluency(lesson) {
   const act = async (operation, clip) => { await session.act(operation, clip); if (operation === 'upload' || operation === 'next') retakingPage = null; notice = ''; draw(); void persistSync(); };
   const page = () => session.state.pages[session.state.page];
   const word = () => page().words[session.state.word];
+  function showMeaning() {
+    const spelling = word()?.word || '';
+    stopAudio();
+    openModal(`<div class="st-word-info"><span class="st-word-info__icon">${icon('book')}</span><h2>${escapeHtml(spelling)}</h2><div data-reading-meaning role="status">Hinahanap ang kahulugan…</div><button class="button primary" type="button" data-close-info>Isara</button></div>`, (backdrop, close) => {
+      backdrop.querySelector('.modal').classList.add('st-modal');
+      backdrop.querySelector('[data-close-info]').addEventListener('click', close);
+      backdrop.querySelector('[data-close-info]').focus();
+      onLeave(close);
+      const body = backdrop.querySelector('[data-reading-meaning]');
+      void lookupWord(spelling).then(entry => {
+        if (!active || !body.isConnected) return;
+        const sense = entry?.senses?.[0];
+        backdrop.querySelector('h2').textContent = entry?.accent || entry?.word || spelling;
+        body.innerHTML = `${sense?.pos ? `<span class="st-word-info__pos">${escapeHtml(sense.pos)}</span>` : ''}${sense?.definitions?.length ? `<ol class="st-word-info__meanings">${sense.definitions.map(value => `<li>${escapeHtml(value)}</li>`).join('')}</ol>` : '<p>Wala pang kahulugan sa Diksiyonaryo para sa salitang ito.</p>'}${sense?.examples?.length ? `<ul class="st-word-info__examples">${sense.examples.map(value => `<li>${escapeHtml(value)}</li>`).join('')}</ul>` : ''}`;
+      }).catch(() => {
+        if (active && body.isConnected) body.textContent = 'Hindi makuha ang kahulugan. Isara at subukan muli.';
+      });
+    });
+  }
   function setChecking(checking) {
     if (!active) return;
     const hint = $('#reading-mic-hint');
@@ -81,7 +101,7 @@ export async function renderFluency(lesson) {
       <header class="st-reading__top"><a class="st-icon-button" href="#${path}" aria-label="Bumalik">${icon('close')}</a><div class="st-reading__pages" aria-label="Mga pahina">${state.pages.map((_, i) => `<span class="${i === state.page ? 'is-current' : i < state.page ? 'is-done' : ''}">${i < state.page ? '✓' : i + 1}</span>`).join('')}</div><strong>${state.page + 1}/${state.pages.length}</strong></header>
       <div class="st-reading__heading"><h1>${warm ? 'Handa, bigkas!' : preview ? 'Pakinggan ang iyong pagbasa' : 'Ikaw naman ang bumasa'}</h1><p>${warm ? 'Sanayin muna natin ang mga salita.' : preview ? 'Masaya ka na ba sa iyong recording?' : 'Pakinggan, pagkatapos ay basahin nang malakas.'}</p></div>
       <div class="st-reading__steps"><span class="${warm ? 'is-active' : 'is-done'}">1 <b>Get Ready</b></span><i></i><span class="${!warm && !preview ? 'is-active' : preview ? 'is-done' : ''}">2 <b>Basahin</b></span><i></i><span class="${preview ? 'is-active' : ''}">3 <b>Pakinggan</b></span></div>
-      <div class="st-reading__stage">${talkingBuddy('st-buddy st-buddy--idle st-reading__buddy')}<article class="st-reading__card ${warm ? 'st-reading__card--word' : ''}"><span class="st-reading__card-label">${warm ? `SALITA ${state.word + 1} / ${item.words.length}` : `PAGBASA ${state.page + 1}`}</span><${warm ? 'h2' : 'p'} class="st-reading__text">${escapeHtml(warm ? selectedWord?.word || '' : item.sentence)}</${warm ? 'h2' : 'p'}><button class="st-reading__listen" type="button" data-reading-listen ${busy ? 'disabled' : ''}>${icon('speaker')}<span>${warm ? 'Pakinggan ang salita' : 'Pakinggan ang halimbawa'}</span></button></article></div>
+      <div class="st-reading__stage">${talkingBuddy('st-buddy st-buddy--idle st-reading__buddy')}<article class="st-reading__card ${warm ? 'st-reading__card--word' : ''}"><span class="st-reading__card-label">${warm ? `SALITA ${state.word + 1} / ${item.words.length}` : `PAGBASA ${state.page + 1}`}</span><${warm ? 'h2' : 'p'} class="st-reading__text">${escapeHtml(warm ? selectedWord?.word || '' : item.sentence)}</${warm ? 'h2' : 'p'}><div class="st-reading__word-actions">${warm ? `<button class="st-reading__listen st-reading__meaning" type="button" data-reading-meaning-button ${busy ? 'disabled' : ''}>${icon('info')}<span>Kahulugan</span></button>` : ''}<button class="st-reading__listen ${warm ? 'st-reading__listen--icon' : ''}" type="button" data-reading-listen aria-label="${warm ? 'Pakinggan ang salita' : 'Pakinggan ang halimbawa'}" title="${warm ? 'Pakinggan ang salita' : 'Pakinggan ang halimbawa'}" ${busy ? 'disabled' : ''}>${icon('speaker')}${warm ? '' : '<span>Pakinggan ang halimbawa</span>'}</button></div></article></div>
       ${preview ? `<div class="st-reading__preview"><div class="st-reading__preview-heading"><span class="st-reading__recording-icon">${icon('mic')}</span><div><strong>Ang aking recording</strong></div></div><div class="st-reading__transport"><button type="button" class="st-reading__play" data-reading-play aria-label="Pakinggan ang recording">${icon('play')}</button><div class="st-reading__track"><div class="st-reading__wave" aria-hidden="true">${[9,18,12,27,19,33,14,24,36,18,29,13,32,22,15,28,11,21,9].map(height => `<i style="--bar:${height}px"></i>`).join('')}</div><input type="range" min="0" max="1000" value="0" step="1" disabled data-reading-seek aria-label="Posisyon ng recording"><div class="st-reading__time"><span id="reading-current-time">0:00</span><span id="reading-duration">0:00</span></div></div></div><audio preload="metadata" id="reading-preview" hidden></audio>${session.pending ? '<p class="st-reading__saved">Hinihintay ang upload</p>' : ''}</div>` : ''}
       <div class="st-reading__feedback-slot ${warm ? 'is-word-feedback' : ''}"><div class="st-reading__notice st-reading__remark" role="status" aria-live="polite" aria-atomic="true"></div></div>
       ${!preview ? `<div class="st-reading__record"><div class="st-reading__mic-stage"><span class="st-reading__voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><button type="button" class="st-reading__mic" data-reading-mic aria-label="Hawakan ang mikropono habang bumabasa" aria-pressed="false" ${!canRecord || busy ? 'disabled' : ''}>${icon('mic')}</button><span class="st-reading__voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div><p id="reading-mic-hint">${canRecord ? warm ? 'Hawakan ang mic at bigkasin ang salita' : 'Hawakan ang mic habang bumabasa' : 'Pakinggan muna ang halimbawa'}</p><small>Bitawan ang mic kapag tapos na</small></div>` : ''}
@@ -140,7 +160,7 @@ export async function renderFluency(lesson) {
     const failed = () => { stopAudio(); if (active) { notice = 'Hindi mapatugtog ang halimbawa. Subukan muli.'; draw(); } };
     if (current.audioUrl) {
       player = new Audio(current.audioUrl); player.onended = finish; player.onerror = failed;
-      stopHighlight = followAlong($('.st-reading__text'), player, current.wordStarts);
+      stopHighlight = followAlong($('.st-reading__text'), player, current.wordStarts, { softHighlight: true });
       player.play().catch(failed);
     } else if (state.stage === 'words' && window.speechSynthesis) {
       const speech = new SpeechSynthesisUtterance(text); speech.lang = 'fil-PH'; speech.onend = finish; speech.onerror = failed; window.speechSynthesis.speak(speech);
@@ -212,6 +232,7 @@ export async function renderFluency(lesson) {
   const click = async event => {
     const button = event.target.closest('button');
     if (!button || busy || held || processing) return;
+    if (button.matches('[data-reading-meaning-button]')) return showMeaning();
     if (button.matches('[data-reading-listen]')) return listen();
     if (button.matches('[data-reading-play]')) {
       const audio = $('#reading-preview');

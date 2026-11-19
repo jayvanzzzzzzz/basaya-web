@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root = path.resolve(__dirname, '..');
+const artifacts = process.env.BASAYA_QA_OUTPUT || path.join(root, 'audit/handbook');
 let browser, tests = 0;
 const server = http.createServer(async (req, res) => {
   try {
@@ -49,7 +50,7 @@ const server = http.createServer(async (req, res) => {
 });
 const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${name}`); };
 (async () => {
-  await fs.mkdir(path.join(root,'audit/handbook'),{recursive:true});
+  await fs.mkdir(artifacts,{recursive:true});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
@@ -64,7 +65,7 @@ const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${n
         for(const [width,height,label] of [[1440,1050,'desktop'],[900,1100,'tablet'],[390,844,'mobile']]) {
           await page.setViewportSize({width,height});await open(role);
           assert.equal(await page.locator('[data-nav="handbook"]').getAttribute('href'),'#/handbook');
-          assert.equal(await page.locator('[data-guide]').count(),role==='teacher'?9:8);
+          assert.equal(await page.locator('[data-guide]').count(),role==='teacher'?30:26);
           assert.equal(await page.locator('#handbook-chat-title').innerText(),'BASAya AI Chat Support');
           assert.equal(await page.locator('#handbook-status').isHidden(),true);
           assert.equal(await page.getByText('10 questions daily. A 10-second pause between questions.',{exact:true}).count(),0);
@@ -74,7 +75,7 @@ const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${n
             await page.waitForTimeout(300); // Let existing portal theme transitions settle.
             assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
             const bounds=await page.locator('.handbook__conversation').boundingBox();assert.ok(bounds.x>=0 && bounds.x+bounds.width<=width+1);
-            await page.screenshot({path:path.join(root,`audit/handbook/${role}-${label}-${theme}.png`),fullPage:true});
+            await page.screenshot({path:path.join(artifacts,`${role}-${label}-${theme}.png`),fullPage:true});
           }
         }
       }
@@ -83,7 +84,17 @@ const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${n
     await test('search guides and insert a suggested question without sending',async()=>{
       await page.locator('#handbook-search').fill('password');
       assert.ok(await page.locator('[data-guide]:visible').count()>0);
-      assert.ok(await page.locator('[data-guide]:visible').count()<9);
+      assert.ok(await page.locator('[data-guide]:visible').count()<30);
+      for (const query of ['remove student','alisin student','tanggalin mag-aaral','Paano i-remove yung student sa class?']) {
+        await page.locator('#handbook-search').fill(query);
+        assert.ok(await page.locator('[data-guide="remove-student"]').isVisible(),query);
+      }
+      await page.locator('[data-guide="remove-student"] summary').click();
+      assert.match(await page.locator('[data-guide="remove-student"] p').innerText(),/archived/);
+      assert.match(await page.locator('[data-guide="remove-student"] p').innerText(),/account stays/);
+      await page.locator('[data-guide="remove-student"] [data-ask]').click();
+      assert.equal(await page.locator('#handbook-question').inputValue(),'How do I remove a student from my class?');
+      assert.equal(await page.evaluate(()=>fixture.calls),0);
       await page.locator('#handbook-search').fill('xyzxyz');assert.equal(await page.locator('#handbook-no-guides').isVisible(),true);
       await page.locator('#handbook-search').fill('');
       await page.locator('.handbook__suggestions button').first().click();
@@ -95,7 +106,7 @@ const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${n
       await page.locator('.handbook__thinking').waitFor();assert.equal(await page.locator('.handbook__dots i').count(),3);
       const animations=await page.locator('.handbook__dots i').evaluateAll(nodes=>nodes.map(n=>[getComputedStyle(n).animationName,getComputedStyle(n).animationDelay]));
       assert.ok(animations.every(a=>a[0]==='handbook-thinking'));assert.equal(new Set(animations.map(a=>a[1])).size,3);
-      await page.screenshot({path:path.join(root,'audit/handbook/thinking.png'),fullPage:true});
+      await page.screenshot({path:path.join(artifacts,'thinking.png'),fullPage:true});
       await page.locator('#handbook-form').evaluate(form=>form.requestSubmit());assert.equal(await page.evaluate(()=>fixture.calls),1);
       await page.evaluate(()=>fixture.release());await page.locator('.handbook__reveal').first().waitFor();
       const delays=await page.locator('.handbook__reveal').evaluateAll(nodes=>nodes.map(n=>n.style.animationDelay));assert.ok(new Set(delays).size>=3);
@@ -107,11 +118,11 @@ const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${n
       assert.equal(await page.locator('#handbook-quota').innerText(),'9 of 10 questions left today');
       assert.equal(await page.locator('#handbook-send').isDisabled(),true);
       assert.match(await page.locator('#handbook-status').innerText(),/again in/);
-      await page.screenshot({path:path.join(root,'audit/handbook/answer.png'),fullPage:true});
+      await page.screenshot({path:path.join(artifacts,'answer.png'),fullPage:true});
       await page.setViewportSize({width:390,height:844});
       await page.evaluate(()=>document.documentElement.dataset.theme='dark');await page.waitForTimeout(300);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-      await page.screenshot({path:path.join(root,'audit/handbook/answer-mobile-dark.png'),fullPage:true});
+      await page.screenshot({path:path.join(artifacts,'answer-mobile-dark.png'),fullPage:true});
       await page.setViewportSize({width:1440,height:1050});
       await page.evaluate(()=>document.documentElement.dataset.theme='light');
     });

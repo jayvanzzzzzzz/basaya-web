@@ -6,6 +6,8 @@ import { auth, db } from "./firebase.js";
 import { $ } from "./helpers.js";
 import { fieldError, focusFirstError } from "./field-errors.js";
 import { passwordProblem, passwordRulesMarkup, watchPasswordRules } from "./password-rules.js";
+import { confirmAction } from "./action-confirmation.js";
+import { requireTermsAgreement } from "./registration-terms.js";
 
 // Student sign-up (register.html), the same as the Android app's RegisterActivity:
 // a Firebase Auth account plus users/{uid} with role "student". Lessons come later from
@@ -51,6 +53,7 @@ const authMessage = (code) =>
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (submit.disabled || !requireTermsAgreement()) return;
   $("#register-error").textContent = "";
   const data = Object.fromEntries(new FormData(form));
   const firstName = data.firstName.trim();
@@ -72,6 +75,10 @@ form.addEventListener("submit", async (event) => {
   };
   Object.entries(errors).forEach(([field, message]) => setError(field, message));
   if (focusFirstError(form)) return;
+
+  const before = JSON.stringify([...new FormData(form)]);
+  if (!await confirmAction({ title: "Gumawa ng account?", message: "Gagawin ang student account gamit ang impormasyong inilagay mo.", confirm: "Gumawa ng account", student: true })) return;
+  if (!requireTermsAgreement() || submit.disabled || before !== JSON.stringify([...new FormData(form)])) return;
 
   setBusy(true);
   let credential;

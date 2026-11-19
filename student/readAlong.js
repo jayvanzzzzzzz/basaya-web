@@ -48,17 +48,26 @@ function estimateStarts(words, duration) {
  * Follows `player` through the sentence in `line` (filled by fillSentence) until the returned
  * function is called. `wordStarts` are the saved timings, or null to estimate them.
  */
-export function followAlong(line, player, wordStarts) {
+export function followAlong(line, player, wordStarts, { softHighlight = false } = {}) {
   const words = [...line.querySelectorAll(".st-word")];
   const bubble = line.querySelector(".st-word-bubble");
   if (!words.length || !bubble) return () => {};
 
-  let starts = wordStarts?.length === words.length ? wordStarts : null;
+  let starts = wordStarts?.length === words.length && wordStarts.every((time, i) =>
+    Number.isFinite(time) && time >= 0 && (i === 0 || time >= wordStarts[i - 1])) ? wordStarts : null;
   let current = -1;
   let frame = 0;
+  line.classList.toggle('st-read-along--soft', softHighlight);
 
   const show = (index) => {
     words.forEach((word, i) => word.classList.toggle("is-read", i < index));
+    if (softHighlight) {
+      // Fade the background in place, including at line breaks. Never restyle the letters
+      // or move a single pill across intervening words on a wrapped sentence.
+      words.forEach((word, i) => word.classList.toggle('is-speaking', i === index));
+      current = index;
+      return;
+    }
     const word = words[index];
     // The first word: the pill fades in where it is; after that it glides.
     if (current === -1) bubble.style.transition = "opacity var(--dur-fast) var(--ease-out)";
@@ -95,5 +104,6 @@ export function followAlong(line, player, wordStarts) {
     cancelAnimationFrame(frame);
     bubble.classList.remove("is-on");
     words.forEach((word) => word.classList.remove("is-read"));
+    words.forEach((word) => word.classList.remove('is-speaking'));
   };
 }

@@ -6,6 +6,7 @@
 
 const ICON_PREV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>';
 const ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>';
+let nextPagerId = 0;
 
 // The words on the controls; the student side passes its own in Filipino.
 const ENGLISH = {
@@ -18,14 +19,18 @@ const ENGLISH = {
   nextLabel: "Next page",
   rows: "Rows",
   rowsLabel: "Rows per page",
+  jump: "Go to page",
+  jumpRange: (pages) => `Enter a page from 1 to ${pages}.`,
+  go: "Go",
+  cancel: "Cancel",
 };
 
 /** Page numbers to show, with "gap" where pages are skipped: 1 … 4 5 6 … 12 */
 function pageList(current, pages) {
-  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+  if (pages <= 5) return Array.from({ length: pages }, (_, i) => i + 1);
   const list = [1];
-  const from = Math.max(2, Math.min(current - 1, pages - 4));
-  const to = Math.min(pages - 1, Math.max(current + 1, 5));
+  const from = Math.max(2, Math.min(current - 1, pages - 3));
+  const to = Math.min(pages - 1, Math.max(current + 1, 4));
   if (from > 2) list.push("gap");
   for (let page = from; page <= to; page += 1) list.push(page);
   if (to < pages - 1) list.push("gap");
@@ -63,6 +68,9 @@ export function paginate({
   const t = { ...ENGLISH, ...text };
   let current = page;
   let size = pageSizes.includes(pageSize) ? pageSize : pageSizes[0];
+  let totalPages = 1;
+  let jumpTrigger = null;
+  const jumpId = `pagination-jump-${++nextPagerId}`;
 
   after.parentElement
     .querySelectorAll(":scope > .pagination[data-for]")
@@ -80,6 +88,8 @@ export function paginate({
     const visible = all.filter((row) => !row.hidden);
     const total = visible.length;
     const pages = Math.max(1, Math.ceil(total / size));
+    totalPages = pages;
+    jumpTrigger = null;
     current = Math.min(Math.max(1, current), pages);
     const start = (current - 1) * size;
     const end = Math.min(start + size, total);
@@ -103,9 +113,9 @@ export function paginate({
 
     const noun = total === 1 ? label[0] : label[1];
     const pageButtons = pageList(current, pages)
-      .map((item) =>
+      .map((item, index) =>
         item === "gap"
-          ? '<li><span class="pagination__gap" aria-hidden="true">…</span></li>'
+          ? `<li><button type="button" class="pagination__button pagination__gap" data-page-jump="${index}" aria-label="${t.jump}" title="${t.jump}" aria-expanded="false" aria-controls="${jumpId}">…</button></li>`
           : `<li><button type="button" class="pagination__button" data-page="${item}" aria-label="${t.page(item)}"${item === current ? ' aria-current="page"' : ""}>${item}</button></li>`,
       )
       .join("");
@@ -124,7 +134,15 @@ export function paginate({
         <select aria-label="${t.rowsLabel}">
           ${pageSizes.map((value) => `<option value="${value}"${value === size ? " selected" : ""}>${value}</option>`).join("")}
         </select>
-      </label>`;
+      </label>
+      <div class="pagination__jump" id="${jumpId}" role="group" aria-label="${t.jump}" hidden>
+        <label for="${jumpId}-input">${t.jump}</label>
+        <input id="${jumpId}-input" type="number" inputmode="numeric" min="1" max="${pages}" step="1" required value="${current}" aria-describedby="${jumpId}-range ${jumpId}-error" />
+        <button type="button" class="pagination__button" data-jump-go>${t.go}</button>
+        <button type="button" class="pagination__button" data-jump-cancel>${t.cancel}</button>
+        <p class="pagination__jump-range" id="${jumpId}-range">${t.jumpRange(pages)}</p>
+        <p class="pagination__jump-error" id="${jumpId}-error" aria-live="polite" hidden></p>
+      </div>`;
 
     if (focus) {
       const target =
@@ -132,6 +150,31 @@ export function paginate({
         nav.querySelector('[aria-current="page"]');
       target?.focus({ preventScroll: true });
     }
+  }
+
+  function closeJump(restoreFocus = true) {
+    const trigger = jumpTrigger;
+    nav.querySelector('.pagination__jump')?.setAttribute('hidden', '');
+    nav.querySelectorAll('[data-page-jump]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+    jumpTrigger = null;
+    if (restoreFocus) trigger?.focus({ preventScroll: true });
+  }
+
+  function jumpToPage() {
+    const input = nav.querySelector('.pagination__jump input');
+    const value = Number(input.value);
+    if (!/^\d+$/.test(input.value) || !Number.isSafeInteger(value) || value < 1 || value > totalPages) {
+      const error = nav.querySelector('.pagination__jump-error');
+      error.textContent = t.jumpRange(totalPages);
+      error.hidden = false;
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+      return;
+    }
+    current = value;
+    render({ animate: true, focus: String(value) });
+    notify();
+    scrollToList();
   }
 
   // Bring the top of the list into view after switching pages.
@@ -142,6 +185,24 @@ export function paginate({
   }
 
   nav.addEventListener("click", (event) => {
+    const jump = event.target.closest('[data-page-jump]');
+    if (jump) {
+      const wasOpen = jump.getAttribute('aria-expanded') === 'true';
+      closeJump(false);
+      if (wasOpen) return;
+      jumpTrigger = jump;
+      jump.setAttribute('aria-expanded', 'true');
+      nav.querySelector('.pagination__jump').hidden = false;
+      const input = nav.querySelector('.pagination__jump input');
+      input.value = current;
+      input.removeAttribute('aria-invalid');
+      nav.querySelector('.pagination__jump-error').hidden = true;
+      input.focus({ preventScroll: true });
+      input.select();
+      return;
+    }
+    if (event.target.closest('[data-jump-go]')) { jumpToPage(); return; }
+    if (event.target.closest('[data-jump-cancel]')) { closeJump(); return; }
     const button = event.target.closest("button[data-page]");
     if (!button || button.disabled) return;
     const target = button.dataset.page;
@@ -150,6 +211,29 @@ export function paginate({
     render({ animate: true, focus: target });
     notify();
     scrollToList();
+  });
+
+  nav.addEventListener('keydown', event => {
+    if (nav.querySelector('.pagination__jump')?.hidden !== false) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeJump();
+    } else if (event.key === 'Enter' && event.target.matches('.pagination__jump input')) {
+      event.preventDefault();
+      event.stopPropagation();
+      jumpToPage();
+    }
+  });
+
+  nav.addEventListener('input', event => {
+    if (!event.target.matches('.pagination__jump input')) return;
+    event.target.removeAttribute('aria-invalid');
+    nav.querySelector('.pagination__jump-error').hidden = true;
+  });
+
+  nav.addEventListener('focusout', event => {
+    if (event.relatedTarget && !nav.contains(event.relatedTarget)) closeJump(false);
   });
 
   nav.addEventListener("change", (event) => {

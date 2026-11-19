@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path');
 const auditText=require('./text-readability-audit.cjs');
 const {chromium}=require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'),artifacts=path.join(root,'audit/student-progress-design');
+const root=path.resolve(__dirname,'..'),artifacts=process.env.BASAYA_QA_OUTPUT||path.join(root,'audit/student-progress-design');
 const fixture=`
 import {SKILLS,summarize,lessonParts} from '/js/scoring.js';
 export const state={user:{uid:'teacher',email:'teacher@example.test'},profile:{displayName:'Test Teacher'}},db={};
@@ -52,6 +52,7 @@ const server=http.createServer(async(req,res)=>{try{
  errors.length=0;
  const url=`http://127.0.0.1:${server.address().port}/teacher/student-progress-preview.html`;
  await page.goto(url);await page.waitForFunction(()=>window.ready);await page.evaluate(()=>document.fonts.ready);
+ assert.equal(await page.locator('.print-meta').isVisible(),false,'School letterhead is print-only');
  assert.equal(await page.locator('.sp-skill-table tbody tr').count(),5);
  assert.equal(await page.locator('.sp-skill-table').getByText('Lessons read · completion only',{exact:true}).count(),0);
  assert.equal(await page.locator('.sp-skill-table').getByText('Saying the words aloud',{exact:true}).count(),0);
@@ -106,15 +107,21 @@ const server=http.createServer(async(req,res)=>{try{
  const waitDownload=page.waitForEvent('download');await page.locator('#export-excel').click();const download=await waitDownload;await download.saveAs(path.join(artifacts,'student-progress.xlsx'));assert.ok(download.suggestedFilename().endsWith('.xlsx'));
  const workbook=await page.evaluate(async bytes=>{const w=new window.ExcelJS.Workbook();await w.xlsx.load(new Uint8Array(bytes));return w.worksheets.map(s=>({name:s.name,values:s.getSheetValues()}))},[...await fs.readFile(path.join(artifacts,'student-progress.xlsx'))]);
  assert.deepEqual(workbook.map(s=>s.name),['Summary','Teacher notes','Lessons','Words to practice','Guide']);assert.ok(JSON.stringify(workbook).includes('Reyes, Ana'));assert.ok(JSON.stringify(workbook).includes('Skipped'));
- await page.evaluate(()=>window.print=()=>{window.dispatchEvent(new Event('beforeprint'));window.printTheme=document.documentElement.dataset.theme;window.dispatchEvent(new Event('afterprint'));window.printed=true});await page.locator('#print-report').click();assert.equal(await page.evaluate(()=>window.printed),true);assert.equal(await page.evaluate(()=>window.printTheme),'light');assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
- await page.emulateMedia({media:'print'});await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));await page.pdf({path:path.join(artifacts,'student-progress.pdf'),format:'A4',printBackground:true});
+ const portalTitle=await page.title();
+ await page.evaluate(()=>window.print=()=>{window.dispatchEvent(new Event('beforeprint'));window.printTheme=document.documentElement.dataset.theme;window.printTitle=document.title;window.dispatchEvent(new Event('afterprint'));window.printed=true});await page.locator('#print-report').click();await page.waitForFunction(()=>window.printed);assert.equal(await page.evaluate(()=>window.printTheme),'light');assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
+ assert.equal(await page.evaluate(()=>window.printTitle),'Batangas II Mariveles National Highschool');assert.equal(await page.title(),portalTitle);
+ await page.emulateMedia({media:'print'});await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
+ assert.equal(await page.locator('#page-header').isVisible(),false);
+ assert.equal(await page.locator('.print-meta__school-name').innerText(),'BATANGAS II MARIVELES NATIONAL HIGHSCHOOL');
+ assert.equal(await page.locator('.print-meta__seal').evaluate(img=>img.complete&&img.naturalWidth>0),true);
+ await page.pdf({path:path.join(artifacts,'student-progress.pdf'),format:'A4',printBackground:true,displayHeaderFooter:true});
  assert.equal(await page.locator('.progress-table tbody tr:visible').count(),6,'Print includes all lessons');
  assert.equal(await page.locator('.pagination:visible').count(),0,'Pagination is hidden in print');
  assert.ok(await page.locator('.progress-table').evaluate(e=>e.getBoundingClientRect().width<=document.querySelector('.content').getBoundingClientRect().width+1),'Print table overflow');
  await page.emulateMedia({media:'screen',reducedMotion:'reduce'});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));assert.equal(await page.locator('.sp-action').first().evaluate(e=>getComputedStyle(e).transitionDuration),'0s');
  await page.evaluate(()=>window.ExcelJS={Workbook:class{constructor(){throw Error('QA export failure')}}});await page.locator('#export-excel').click();await page.waitForFunction(()=>document.querySelector('#report-export-status').textContent.includes('failed'));assert.ok(await page.locator('#export-excel').isEnabled());
  await page.locator('#open-class-report').click();assert.equal(await page.evaluate(()=>location.hash),'#/classes/classroom/report');
- await page.locator('[data-theme-toggle]').click();const saved=await page.evaluate(()=>localStorage.getItem('basaya-theme'));await page.reload();await page.waitForFunction(()=>window.ready);assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),saved);
+ await page.evaluate(()=>{const button=document.createElement('button');button.dataset.themeChoice='light';document.body.append(button);button.click();button.remove();});const saved=await page.evaluate(()=>localStorage.getItem('basaya-theme'));await page.reload();await page.waitForFunction(()=>window.ready);assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),saved);
  for(const variant of ['no-data','limited','pending','empty','moved','unavailable']){
   await page.goto(url+'?'+variant);await page.waitForFunction(()=>window.ready);await page.setViewportSize({width:390,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   if(variant==='no-data'){assert.equal(await page.locator('.sp-help-flag').count(),0);assert.equal(await page.locator('.sp-score--empty').count(),4);assert.equal(await page.locator('.remark--no-data').count(),4)}

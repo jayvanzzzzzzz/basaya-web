@@ -26,6 +26,7 @@ import {
   readSchedule,
   scheduleStatus,
   toInputValue,
+  wireLessonSchedule,
 } from "../../js/schedule.js";
 import { openClassModal } from "./dashboard.js";
 import { hasUnreadChat, onChatSummaries } from "./messages.js";
@@ -157,24 +158,27 @@ function openScheduleModal(classId, link, lesson, onSaved) {
   openModal(
     `<h2>Lesson schedule</h2>
      <p>${escapeHtml(lesson.title)}</p>
-     <form id="schedule-form">
+     <form id="schedule-form" data-confirm-manually>
        <div class="form-grid">
          <label>Opens on <input type="datetime-local" name="openAt" value="${toInputValue(link.openAt)}" /></label>
          <label>Due on <input type="datetime-local" name="dueAt" value="${toInputValue(link.dueAt)}" /></label>
        </div>
-       <p class="lesson-schedule__hint">Leave a date empty to remove it. Students can't open the lesson before it opens, and it locks after the deadline.</p>
+       <p class="lesson-schedule__hint">Leave a date empty to remove it. New dates must be today or later, and the deadline must follow the opening date. A deadline on the opening day is set to 11:59 PM.</p>
        <div class="modal-actions">
          <button class="button secondary" type="button" id="schedule-cancel">Cancel</button>
          <button class="button primary" type="submit">Save schedule</button>
        </div>
      </form>`,
     (backdrop, close) => {
+      const form = backdrop.querySelector("#schedule-form");
+      wireLessonSchedule(form, { existingSchedule: link });
       backdrop.querySelector("#schedule-cancel").addEventListener("click", close);
-      backdrop.querySelector("#schedule-form").addEventListener("submit", async (e) => {
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        // An already-closed lesson may keep its past deadline.
-        const schedule = readSchedule(e.currentTarget, { allowPastDeadline: true });
+        // Historical dates may be kept, but newly chosen past dates are rejected.
+        const schedule = readSchedule(e.currentTarget, { existingSchedule: link });
         if (schedule.error) return toast(schedule.error);
+        if (!await confirmAction({ title: 'Save lesson schedule?', message: 'Students will access this lesson according to the new opening and due dates.', confirm: 'Save schedule' })) return;
         try {
           await saveSchedule(classId, link, schedule);
           toast("Schedule saved.");

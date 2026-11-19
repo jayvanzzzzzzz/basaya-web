@@ -11,9 +11,14 @@ const loose = (text) => text.replace(/o/g, "u").replace(/e/g, "i");
  * avoiding partial matches inside a different word. Legacy grading stays below.
  */
 export function matchesGetReadyWord(targetWord, transcript) {
-  const target = loose(normalize(targetWord));
+  // Recognizers may write Filipino glides as i/iy or u/uw before a vowel.
+  // Normalize complete spans so split transcripts ("opi nion") work too.
+  const readyKey = text => loose(text
+    .replace(/([bcdfghjklmnpqrstvwxz])iy?([aeo])/g, "$1y$2")
+    .replace(/([bcdfghjklmnpqrstvxyz])uw?([aei])/g, "$1w$2"));
+  const target = readyKey(normalize(targetWord));
   if (!target) return false;
-  const words = (transcript.match(/[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*/gu) || []).map(word => loose(normalize(word))).filter(Boolean);
+  const words = (transcript.match(/[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*/gu) || []).map(word => normalize(word)).filter(Boolean);
   const matches = heard => {
     if (heard === target) return true;
     if (heard.length !== target.length + 1) return false;
@@ -26,8 +31,9 @@ export function matchesGetReadyWord(targetWord, transcript) {
     let heard = '';
     for (let end = start; end < words.length; end++) {
       heard += words[end];
-      if (heard.length > target.length + 1) break;
-      if (matches(heard)) return true;
+      const candidate = readyKey(heard);
+      if (candidate.length > target.length + 1) break;
+      if (matches(candidate)) return true;
     }
   }
   return false;

@@ -1,4 +1,5 @@
 import { $, escapeHtml, initials, toast } from "../../js/helpers.js";
+import { showChatDate } from "../../js/chatDateExceptions.js";
 import {
   STUDENT_MAX,
   canDeleteOwn,
@@ -101,8 +102,9 @@ function messageHtml(message, previous, delivery) {
   const teacher = message.role === "teacher";
   const title = classTeacher?.id === message.senderId ? classTeacher.title : "";
   const name = (teacher ? teacherName(message.senderName, title) : message.senderName) || (teacher ? "Guro" : "Kaklase");
-  const day = newDay ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
+  const day = showChatDate(message, previous, dayLabel) ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
 
+  if (message.join && message.deleted) return "";
   if (message.join) {
     return `${day}<li class="chat-notice">${chatIcon("join")}<span>${escapeHtml(joinText(name, true))}</span>
       <time datetime="${new Date(message.sentAt).toISOString()}">${timeOf(message.sentAt)}</time></li>`;

@@ -105,12 +105,49 @@
 }
 
 .pagination__gap {
-  display: inline-grid;
-  min-width: 1.6rem;
-  place-items: center;
-  color: var(--ink-3);
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--ink-2);
   letter-spacing: 0.1em;
 }
+
+.pagination__gap[aria-expanded="true"] {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.pagination__jump {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .65rem;
+  padding-top: .85rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink-2);
+  font-size: .875rem;
+  text-align: start;
+}
+
+.pagination__jump label { font-weight: 650; }
+.pagination__jump input {
+  width: 6rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: .45rem .6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.pagination__jump input[aria-invalid="true"] { border-color: var(--danger); }
+.pagination__jump .pagination__button { min-height: 44px; }
+.pagination__jump-range,
+.pagination__jump-error { flex: 1 1 100%; margin: 0; }
+.pagination__jump-error { color: var(--danger); }
 
 .pagination__size {
   display: inline-flex;

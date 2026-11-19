@@ -65,7 +65,6 @@ export async function renderRoute() {
     .forEach((link) => {
       const section = link.dataset.nav;
       link.setAttribute('aria-label', link.querySelector('strong')?.textContent || section);
-      link.setAttribute('data-teacher-tooltip', '');
       const isActive =
         section === "classes"
           ? route === "/classes" || route.startsWith("/classes/")
@@ -96,7 +95,6 @@ export async function renderRoute() {
       await Promise.all([getTeacherLessons(), getAllLessons()]);
       await renderClass(classId);
     } else navigate("/dashboard");
-    document.querySelectorAll('.sidebar button[aria-label]').forEach(button => button.setAttribute('data-teacher-tooltip', ''));
     watchTeacherTooltips();
   } catch (error) {
     console.error(error);

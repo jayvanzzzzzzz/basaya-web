@@ -5,15 +5,30 @@ import { titledFullName } from "../../js/chat.js?v=removed-preview";
 
 // Print (and "Save as PDF") and Excel export for the Class Report and student progress pages. Print styles: css/layout/print.css.
 
+const SCHOOL_NAME = "Batangas II Mariveles National Highschool";
+const SCHOOL_SEAL = new URL("../../img/deped-bataan.png", import.meta.url).href;
+
 // Always print in the light theme: dark pages waste ink and print poorly.
 let themeBeforePrint = null;
+let titleBeforePrint = null;
 window.addEventListener("beforeprint", () => {
-  themeBeforePrint = document.documentElement.dataset.theme;
+  themeBeforePrint ??= document.documentElement.dataset.theme;
   document.documentElement.dataset.theme = "light";
+  if (document.querySelector(".print-meta")) {
+    titleBeforePrint ??= document.title;
+    // Browsers use the document title in their own printed header and PDF name.
+    document.title = SCHOOL_NAME;
+    document.documentElement.style.setProperty("--school-report-print-date", JSON.stringify(
+      new Date().toLocaleString(undefined, { year: "2-digit", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }),
+    ));
+  }
 });
 window.addEventListener("afterprint", () => {
   if (themeBeforePrint) document.documentElement.dataset.theme = themeBeforePrint;
   themeBeforePrint = null;
+  if (titleBeforePrint !== null) document.title = titleBeforePrint;
+  titleBeforePrint = null;
+  document.documentElement.style.removeProperty("--school-report-print-date");
 });
 
 const ICON_PRINT =
@@ -38,7 +53,11 @@ export function addExportActions({ excel, iconOnly = false }) {
      <button class="button secondary report-action${iconOnly ? " report-action--icon" : ""}" id="export-excel" type="button" aria-label="Export Excel"${iconOnly ? ' data-report-tooltip="Export Excel"' : ' title="Download an Excel file (.xlsx)"'}>${ICON_SHEET}<span${iconOnly ? ' class="rp-action-label"' : ""}>Export Excel</span></button>
      ${iconOnly ? '<span class="rp-sr-only" id="report-export-status" role="status"></span>' : ""}`,
   );
-  $("#print-report").addEventListener("click", () => window.print());
+  $("#print-report").addEventListener("click", async () => {
+    // Decode the local seal before opening the preview, including the first print.
+    await Promise.all([...document.querySelectorAll(".print-meta img")].map((img) => img.decode().catch(() => {})));
+    window.print();
+  });
   $("#export-excel").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     const label = button.querySelector("span");
@@ -68,10 +87,19 @@ export function addExportActions({ excel, iconOnly = false }) {
 
 /** Print-only heading: what this is, for which class, by whom, and when. */
 export const printMeta = (title, lines = []) => `<header class="print-meta" aria-hidden="true">
-    <div class="print-meta__brand"><img src="../img/logo.png" alt="" /><span>BASAya</span></div>
+    <div class="print-meta__letterhead">
+      <img class="print-meta__seal" src="${SCHOOL_SEAL}" width="100" height="100" alt="DepEd Bataan seal" />
+      <div class="print-meta__school">
+        <span class="print-meta__republic">Republic of the Philippines</span>
+        <span class="print-meta__department">Department of Education</span>
+        <span class="print-meta__division">Region III - Central Luzon &middot; Schools Division of Bataan</span>
+        <strong class="print-meta__school-name">${SCHOOL_NAME}</strong>
+        <span class="print-meta__location">Mariveles, Bataan</span>
+      </div>
+    </div>
     <div class="print-meta__text">
-      <strong>${escapeHtml(title)}</strong>
-      ${lines.filter(Boolean).map((line) => `<span>${escapeHtml(line)}</span>`).join("")}
+      <strong class="print-meta__report-title">${escapeHtml(title)}</strong>
+      <div class="print-meta__details">${lines.filter(Boolean).map((line) => `<span>${escapeHtml(line)}</span>`).join("")}</div>
     </div>
   </header>`;
 

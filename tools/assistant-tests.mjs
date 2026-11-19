@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { HANDBOOK_VERSION } from "../notify-api/lib/handbookHelp.js";
 import { startFirestoreTestServer } from "./firestore-test-server.mjs";
 import { createAssistant, validateQuestion, LIMITS } from "../notify-api/lib/assistant.js";
 import handler from "../notify-api/handlers/assistant.js";
@@ -167,7 +169,7 @@ try {
       assert.ok(prompt.includes("Match the language"));
       assert.ok(!prompt.includes("ALWAYS answer"));
       assert.ok(!prompt.includes("Exception to the unrelated"));
-      assert.ok(prompt.includes(role === "teacher" ? "Approve student requests" : "Teacher accounts"));
+      assert.ok(prompt.includes(role === "teacher" ? "Teacher access & student accounts" : "Admin access & classroom membership"));
       assert.ok(!prompt.includes(role === "teacher" ? "Set a temporary password" : "Approve student requests"));
       await errorCode(ask(role, { question: "Another question" }), "cooldown");
       time += 9_999;
@@ -210,6 +212,44 @@ try {
       await ask(uid, { question: "界".repeat(LIMITS.maxLength) });
       assert.equal(lastBody.messages[1].content.length, LIMITS.maxLength);
     }
+  });
+  await test("staff questions receive the correct workflow in English, Filipino and Taglish without full-handbook overflow", async () => {
+    const cases = [
+      ["teacher", "How do I remove a student?", "Remove a student from class:", "account stays"],
+      ["teacher", "Paano tanggalin ang estudyante sa klase?", "Remove a student from class:", "archived"],
+      ["teacher", "Paano i-remove yung student sa class?", "Remove a student from class:", "Remove student"],
+      ["teacher", "How do I remove a lesson?", "Remove a lesson from class:", "cannot be undone"],
+      ["teacher", "Why divided by 12?", "Pronunciation grading rubric:", "9/12 = 75%"],
+      ["teacher", "Same day deadline", "Opening dates & deadlines:", "11:59 PM"],
+      ["teacher", "Export Excel report", "Print / PDF & Excel reports:", ".xlsx"],
+      ["admin", "Paano alisin ang estudyante sa klase?", "Admin access & classroom membership:", "assigned teacher"],
+      ["admin", "How do I remove a teacher?", "Remove teacher access:", "unassigned"],
+      ["admin", "Set temporary password", "Student reset email or temporary password:", "Suggest another"],
+      ["admin", "Generate lesson audio", "Generate and preview lesson audio:", "prepared audio"],
+      ["admin", "Undo deleting a lesson", "Delete a library lesson & Undo:", "Undo"],
+    ];
+    for (const [index, [role, question, heading, fact]] of cases.entries()) {
+      const uid = `workflow-${index}`;
+      await db.doc(`users/${uid}`).set({ role });advance();
+      await ask(uid, { question });
+      const prompt = lastBody.messages[0].content;
+      assert.ok(prompt.includes(heading), question);
+      assert.ok(prompt.includes(fact), question);
+      assert.ok(prompt.includes("your inability to perform an action does not mean their role cannot do it"));
+      assert.ok(Buffer.byteLength(prompt + question) + 256 + lastBody.max_completion_tokens <= LIMITS.tokensPerMinute);
+      assert.equal((await ask(uid, { action: "status" })).helpVersion, HANDBOOK_VERSION);
+    }
+  });
+  await test("new handbook version cannot reuse an old unsupported-answer cache", async () => {
+    const question = "How do I remove a student?";
+    const uid = "old-staff-cache";
+    await db.doc(`users/${uid}`).set({ role: "teacher" });advance();
+    const hash = createHash("sha256").update(`teacher:2026-11-18:tagalog-v2:openai/gpt-oss-20b:${question.toLowerCase()}`).digest("hex");
+    await db.doc(`assistantUsers/${uid}`).set({ day: new Date(time).toISOString().slice(0,10), count: 1, cacheHash: hash, cacheAnswer: "I cannot confirm that feature." });
+    const before = calls;
+    const result = await ask(uid, { question });
+    assert.equal(result.cached,false);assert.equal(calls,before+1);
+    assert.ok(lastBody.messages[0].content.includes("Remove a student from class:"));
   });
   console.log(`Assistant backend: ${tests} scenarios passed.`);
 } finally { await db.terminate(); await deleteApp(app); await emulator.stop(); }

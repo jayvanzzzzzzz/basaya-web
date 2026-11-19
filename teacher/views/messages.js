@@ -1,4 +1,5 @@
 import { confirmAction } from "../../js/action-confirmation.js";
+import { showChatDate } from "../../js/chatDateExceptions.js";
 import { $, displayName, escapeHtml, initials, navigate, page, toast } from "../../js/helpers.js";
 import { state, getTeacherClasses } from "../../js/state.js";
 import {
@@ -288,13 +289,14 @@ function chatShellHtml(classroom) {
 }
 
 function messageHtml(message, previous, delivery) {
+  if (message.join && message.deleted) return "";
   const mine = message.senderId === state.user.uid;
   const newDay = !previous || dayLabel(previous.sentAt) !== dayLabel(message.sentAt);
   // Messages from the same person within 5 minutes stack under one name.
   const grouped =
     !newDay && previous && !previous.join && previous.senderId === message.senderId && message.sentAt - previous.sentAt < 5 * 60 * 1000;
   const name = message.senderName || (message.role === "teacher" ? "Teacher" : "Student");
-  const day = newDay ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
+  const day = showChatDate(message, previous, dayLabel) ? `<li class="chat-day"><span>${escapeHtml(dayLabel(message.sentAt))}</span></li>` : "";
 
   if (message.join) {
     return `${day}<li class="chat-notice">${icon("join")}<span>${escapeHtml(joinText(name, false))}</span>

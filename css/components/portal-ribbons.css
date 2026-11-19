@@ -1,0 +1,25 @@
+/* Load after portal page styles: selected labels and badges share a theme-safe
+   color pair instead of retaining white text from the old gradient ribbons. */
+body :is(.student-ribbon[aria-pressed="true"],
+  .lesson-picker__ribbon[aria-pressed="true"], .lecture-page-ribbon.active,
+  .admin-class-filter.is-active, .admin-lesson-filter.is-active,
+  .class-lesson-tab.is-active, .request-ribbon[aria-selected="true"]) {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border-color: var(--primary-ring);
+}
+
+body :is(.student-ribbon[aria-pressed="true"] .student-ribbon__count,
+  .lesson-picker__ribbon[aria-pressed="true"] .lesson-picker__ribbon-count,
+  .admin-class-filter.is-active .admin-class-filter__count,
+  .admin-lesson-filter.is-active .admin-lesson-filter__count,
+  .class-lesson-tab.is-active .class-lesson-tab__count,
+  .request-ribbon[aria-selected="true"] .request-ribbon__count) {
+  background: var(--surface);
+  color: var(--primary-strong);
+  opacity: 1;
+}
+
+body .admin-class-filter.is-active[data-empty] { opacity: 1; }
+body .request-ribbon[aria-selected="true"] .request-ribbon__copy small { color: var(--ink-2); }
+body .request-ribbon[aria-selected="true"] .request-ribbon__icon { color: inherit; }

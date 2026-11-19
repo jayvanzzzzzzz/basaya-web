@@ -11,6 +11,7 @@ import { state, getAllLessons } from "../../js/state.js";
 import { $, escapeHtml, toast, navigate, page, openModal } from "../../js/helpers.js";
 import {
   readSchedule,
+  wireLessonSchedule,
   notifyStudents,
   linkLessonId,
   linkMode,
@@ -265,7 +266,7 @@ export async function renderAddLessonPage(classId) {
            <label>Due on
              <input type="datetime-local" name="dueAt" value="${escapeHtml(settings.dueAt)}" />
            </label>
-           <p class="lesson-schedule__hint">Leave empty to open right away with no deadline. Students are notified when you add the lesson.</p>
+           <p class="lesson-schedule__hint">Leave empty to open right away with no deadline. Past dates are unavailable. A deadline on the opening day is set to 11:59 PM. Students are notified when you add the lesson.</p>
          </fieldset>
          <div class="modal-actions">
            <button class="button secondary" type="button" data-cancel>Cancel</button>
@@ -274,6 +275,7 @@ export async function renderAddLessonPage(classId) {
        </form>`,
       (backdrop, close) => {
         const form = backdrop.querySelector("#add-lessons-form");
+        wireLessonSchedule(form);
         const submit = form.querySelector("[data-confirm]");
         const selectedMode = () => (form.elements.mode.value === "practice" ? "practice" : "assessment");
 
@@ -317,7 +319,7 @@ export async function renderAddLessonPage(classId) {
           const mode = selectedMode();
           const adding = toAdd(mode);
           if (!adding.length) return;
-          const schedule = readSchedule(form);
+          const schedule = readSchedule(form, { newLesson: true });
           if (schedule.error) return toast(schedule.error);
 
           setBusy(`Adding ${lessonsLabel(adding.length)}…`);

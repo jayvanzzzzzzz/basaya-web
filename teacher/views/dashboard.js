@@ -351,7 +351,6 @@ export async function renderDashboard() {
     </div>
   `;
 
-  document.querySelectorAll('.sidebar button[aria-label]').forEach(button => button.setAttribute('data-teacher-tooltip', ''));
   watchTeacherTooltips();
   wireCardMenus();
   const dismissCardMenus = event => {

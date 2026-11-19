@@ -1,7 +1,7 @@
 import { $, escapeHtml, initials, page } from "./helpers.js";
 import { state } from "./state.js";
 import { postToApi } from "./api.js";
-import { handbookHelp } from "./handbookHelp.js";
+import { handbookHelp, matchesHandbookSearch } from "./handbookHelp.js";
 import { attachFloatingTooltips } from "./floatingTooltip.js";
 
 let cleanup = () => {};
@@ -133,9 +133,9 @@ export function renderHandbook(role) {
     input.value = guides.find(g => g.id === button.dataset.ask).question; input.focus(); update();
   }));
   find("#handbook-search").addEventListener("input", event => {
-    const query = event.target.value.toLocaleLowerCase().trim(); let count = 0;
+    const query = event.target.value.trim(); let count = 0;
     guides.forEach(guide => {
-      const match = `${guide.title} ${guide.text}`.toLocaleLowerCase().includes(query);
+      const match = matchesHandbookSearch(guide, query);
       find(`[data-guide="${guide.id}"]`).hidden = !match; count += Number(match);
     });
     find("#handbook-no-guides").hidden = count > 0;

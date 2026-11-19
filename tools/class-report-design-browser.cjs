@@ -8,7 +8,7 @@ const path = require('node:path');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const auditText = require('./text-readability-audit.cjs');
 const root = path.resolve(__dirname, '..');
-const artifacts = path.join(root, 'audit/class-report-design');
+const artifacts = process.env.BASAYA_QA_OUTPUT || path.join(root, 'audit/class-report-design');
 const fixture = `
 import {SKILLS,summarize} from '/js/scoring.js';
 export const state={user:{uid:'teacher',email:'teacher@example.test'},profile:{displayName:'Test Teacher'}};
@@ -66,10 +66,11 @@ const server = http.createServer(async(req,res)=>{
   const page=await browser.newPage({viewport:{width:1440,height:1000},colorScheme:'light'});
   // Use the unmodified pinned CDN library cached locally, so browser network policy
   // does not prevent verification of the real workbook generation/download.
-  await page.route('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',route=>route.fulfill({path:path.join(artifacts,'exceljs.min.js'),contentType:'text/javascript'}));
+  await page.route('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',route=>route.fulfill({path:path.join(root,'audit/class-report-design/exceljs.min.js'),contentType:'text/javascript'}));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const url=`http://127.0.0.1:${server.address().port}/teacher/report-preview.html`;
   await page.goto(url);await page.waitForFunction(()=>window.ready);await page.evaluate(()=>document.fonts.ready);
+  assert.equal(await page.locator('.print-meta').isVisible(),false,'School letterhead is print-only');
   assert.equal(await page.locator('.rp-table--skills tbody tr').count(),5);
   assert.equal(await page.locator('.rp-table--skills tbody tr').first().locator('td').nth(1).innerText(),'Completion only');
   assert.equal(await page.locator('.rp-participation').first().getAttribute('aria-label'),'12 of 15 students with results');
@@ -111,13 +112,20 @@ const server = http.createServer(async(req,res)=>{
   assert.ok(JSON.stringify(workbook).includes('Grade 7 — Rizal'));
   assert.ok(JSON.stringify(workbook).includes('Not enough data'));
   // Exercise browser print action and the real theme restoration hooks.
-  await page.evaluate(()=>{window.print=()=>{window.dispatchEvent(new Event('beforeprint'));window.printTheme=document.documentElement.dataset.theme;window.dispatchEvent(new Event('afterprint'));window.printed=true}});
+  const portalTitle=await page.title();
+  await page.evaluate(()=>{window.print=()=>{window.dispatchEvent(new Event('beforeprint'));window.printTheme=document.documentElement.dataset.theme;window.printTitle=document.title;window.dispatchEvent(new Event('afterprint'));window.printed=true}});
   await page.locator('#print-report').click();
+  await page.waitForFunction(()=>window.printed);
   assert.equal(await page.evaluate(()=>window.printed),true);
   assert.equal(await page.evaluate(()=>window.printTheme),'light');
+  assert.equal(await page.evaluate(()=>window.printTitle),'Batangas II Mariveles National Highschool');
+  assert.equal(await page.title(),portalTitle,'Portal title returns after printing or canceling');
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
   await page.emulateMedia({media:'print'});await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
-  await page.pdf({path:path.join(artifacts,'class-report.pdf'),format:'A4',printBackground:true});
+  assert.equal(await page.locator('#page-header').isVisible(),false,'School letterhead replaces duplicate screen heading');
+  assert.equal(await page.locator('.print-meta__school-name').innerText(),'BATANGAS II MARIVELES NATIONAL HIGHSCHOOL');
+  assert.equal(await page.locator('.print-meta__seal').evaluate(img=>img.complete&&img.naturalWidth>0),true,'Local school seal loads');
+  await page.pdf({path:path.join(artifacts,'class-report.pdf'),format:'A4',printBackground:true,displayHeaderFooter:true});
   assert.ok(await page.locator('.rp-table--skills').evaluate(e=>e.getBoundingClientRect().width<=document.querySelector('.content').getBoundingClientRect().width+1),'Print table overflow');
   await page.emulateMedia({media:'screen',reducedMotion:'reduce'});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));
   assert.equal(await page.locator('#print-report').evaluate(e=>getComputedStyle(e).transitionDuration),'0s');
@@ -128,11 +136,11 @@ const server = http.createServer(async(req,res)=>{
   assert.ok(await page.locator('#export-excel').isEnabled());
   // Reload after print-media simulation to exercise the saved theme afresh.
   await page.reload();await page.waitForFunction(()=>window.ready);
-  await page.locator('[data-theme-toggle]').click();
+  await page.evaluate(()=>{const button=document.createElement('button');button.dataset.themeChoice='light';document.body.append(button);button.click();button.remove();});
   assert.equal(await page.evaluate(()=>localStorage.getItem('basaya-theme')),'light');
   await page.reload();await page.waitForFunction(()=>window.ready);
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'light');
-  await page.locator('[data-theme-toggle]').click();
+  await page.evaluate(()=>{const button=document.createElement('button');button.dataset.themeChoice='dark';document.body.append(button);button.click();button.remove();});
   await page.goto(url+'?no-data');await page.waitForFunction(()=>window.ready);
   assert.equal(await page.locator('.rp-participation').first().getAttribute('aria-label'),'0 of 15 students with results');
   assert.equal(await page.locator('.rp-table--skills tbody tr').nth(1).locator('td').first().innerText(),'—');

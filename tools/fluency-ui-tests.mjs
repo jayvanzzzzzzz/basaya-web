@@ -28,13 +28,24 @@ let frameId=0, highlightedExamples=0;
 const frames=new Map();
 const context=vm.createContext({document,window,console,Blob,AbortController,structuredClone,setTimeout,clearTimeout,requestAnimationFrame:fn=>{frames.set(++frameId,fn);return frameId},cancelAnimationFrame:id=>frames.delete(id),crypto:{randomUUID:()=>`record-${++recorded}`},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},SpeechSynthesisUtterance:class{},Audio:class{
   duration=2;currentTime=.5;
-  pause(){} play(){for(const[id,fn]of [...frames]){frames.delete(id);fn()};assert.ok($('.st-word-bubble.is-on'),'Example audio highlights its current word');highlightedExamples++;queueMicrotask(()=>this.onended?.());return Promise.resolve()}
+  pause(){} play(){for(const[id,fn]of [...frames]){frames.delete(id);fn()};assert.ok($('.st-word.is-speaking'),'Example audio softly highlights its current word');assert.equal($('.st-word-bubble.is-on'),null,'No moving pill crosses the sentence');highlightedExamples++;queueMicrotask(()=>this.onended?.());return Promise.resolve()}
 }});
 window.Element.prototype.pause=function(){this.paused=true;this.dispatchEvent(new window.Event('pause'))};
 context.location={hostname:'localhost'};
 window.Element.prototype.play=function(){this.paused=false;this.dispatchEvent(new window.Event('play'));return Promise.resolve()};
 const module=exports=>new vm.SyntheticModule(Object.keys(exports),function(){for(const[key,value]of Object.entries(exports))this.setExport(key,value)},{context});
-const helpers=module({$,escapeHtml:value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),navigate(){}});
+const helpers=module({$,escapeHtml:value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),navigate(){},openModal(html,mount){
+  const backdrop=document.createElement('div');backdrop.className='test-modal';
+  backdrop.innerHTML=`<div class="modal">${html}</div>`;document.body.append(backdrop);
+  mount(backdrop,()=>backdrop.remove());
+}});
+let dictionaryError=false, missingMeaning=false;
+const dictionary=module({lookupWord:async spelling=>{
+  assert.equal(spelling.toLowerCase(),'nagbigay');
+  if(dictionaryError)throw Error('offline');
+  return missingMeaning?null:{word:'nagbigay',senses:[{pos:'pandiwa',definitions:['<b>Nagkaloob</b>'],examples:['Nagbigay siya ng tulong.']}]};
+}});
+const confirmation=module({confirmAction:async()=>true});
 const ui=module({content:()=>document.querySelector('main'),icon:()=>'<svg></svg>',talkingBuddy:()=>'<div class="st-reading__buddy"></div>',setTalking(){}});
 const router=module({onLeave:fn=>leaves.push(fn)});
 const speech=module({Microphone:class{
@@ -48,13 +59,30 @@ const readAlong=new vm.SourceTextModule(await readFile(new URL('../student/readA
 await readAlong.link(()=>{throw Error('Unexpected read-along import')});
 await readAlong.evaluate();
 const controller=new vm.SourceTextModule(await readFile(new URL('../student/views/fluency.js',import.meta.url),'utf8'),{context});
-await controller.link(name=>name.endsWith('readAlong.js')?readAlong:name.endsWith('helpers.js')?helpers:name.endsWith('ui.js')?ui:name.endsWith('router.js')?router:name.endsWith('speech.js')?speech:name.endsWith('data.js')?data:service);
+await controller.link(name=>name.endsWith('dictionary.js')?dictionary:name.endsWith('action-confirmation.js')?confirmation:name.endsWith('readAlong.js')?readAlong:name.endsWith('helpers.js')?helpers:name.endsWith('ui.js')?ui:name.endsWith('router.js')?router:name.endsWith('speech.js')?speech:name.endsWith('data.js')?data:service);
 await controller.evaluate();
 await controller.namespace.renderFluency({id:'lesson'});
 assert.match($('.st-reading__card-label').textContent,/SALITA 2/);
 assert.equal($('.st-reading__top > strong').textContent,'1/2');
 assert.equal(document.querySelector('.st-lives'),null,'Word warmup has no lives');
 const event=(type,fields={})=>Object.assign(new window.Event(type,{bubbles:true,cancelable:true}),fields);
+assert.equal($('[data-reading-listen]').textContent.trim(),'','Word speaker is icon only');
+assert.equal($('[data-reading-listen]').getAttribute('aria-label'),'Pakinggan ang salita');
+assert.equal($('[data-reading-meaning-button]').textContent,'Kahulugan');
+state.pages[0].words[1].word='Nagbigay';
+for(const mode of ['found','missing','error','retry']){
+  dictionaryError=mode==='error';missingMeaning=mode==='missing';
+  $('[data-reading-meaning-button]').dispatchEvent(event('click'));await flush();await flush();
+  if(mode==='missing')assert.match($('[data-reading-meaning]').textContent,/Wala pang kahulugan/);
+  else if(mode==='error')assert.match($('[data-reading-meaning]').textContent,/Hindi makuha ang kahulugan/);
+  else {
+    assert.match($('[data-reading-meaning]').textContent,/Nagkaloob/);
+    assert.equal($('[data-reading-meaning] b'),null,'Dictionary content is escaped');
+  }
+  $('[data-close-info]').dispatchEvent(event('click'));
+  assert.equal($('.test-modal'),null,'Meaning dialog closes');
+}
+state.pages[0].words[1].word='magandang';
 async function hold(){
   $('[data-reading-mic]').dispatchEvent(event('pointerdown',{pointerType:'mouse',button:0,pointerId:1}));
   await flush();

@@ -7,7 +7,7 @@ const path = require('node:path');
 const auditText = require('./text-readability-audit.cjs');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root = path.resolve(__dirname, '..');
-const artifacts = path.join(root, 'audit/class-design');
+const artifacts = process.env.BASAYA_QA_OUTPUT || path.join(root, 'audit/class-design');
 const fixture = `
 export const state = {user:{uid:'teacher'},allLessons:[
  {id:'one',title:'Ang ating pamayanan',description:'Pagyamanin ang pag-unawa sa mga kuwento ng ating komunidad.'},
@@ -23,11 +23,11 @@ export const where = () => {};
 export const query = c => c;
 export const getDoc = async () => ({id:'classroom',exists:()=>true,data:()=>({teacherId:'teacher',className:'Grade 7 — Rizal',gradeLevel:'7',section:'Rizal',description:'Our shared space for Filipino language, stories, and discovery.',classCode:'RZ7ABC'})});
 export const getDocs = async c => ({docs: (c.endsWith('/students') ? [{id:'student',data:()=>({displayName:'Preview student'})}] : c.endsWith('/classLessons') ? (location.search.includes('empty') ? [] : [
- {id:'one',data:()=>({lessonId:'one',order:1,mode:'assessment',dueAt:date(3),notifyPending:true})},
+ {id:'one',data:()=>({lessonId:'one',order:1,mode:'assessment',openAt:date(-2),dueAt:date(3),notifyPending:true})},
  {id:'two__practice',data:()=>({lessonId:'two',order:2,mode:'practice',openAt:date(2)})},
  {id:'three',data:()=>({lessonId:'three',order:3,mode:'assessment',dueAt:date(-1)})}
 ]) : [{data:()=>({classId:'classroom',percent:65})}])});
-export const updateDoc = async () => {window.writes=(window.writes||0)+1};
+export const updateDoc = async (path, values) => {window.writes=(window.writes||0)+1;window.savedSchedule=values;};
 export const deleteDoc = updateDoc;
 export const writeBatch = () => ({set(){},delete(){},commit:updateDoc});
 export const postToApi = async () => {};
@@ -88,7 +88,13 @@ const server = http.createServer(async (req,res) => {
     await page.goto(url);await page.waitForFunction(()=>window.ready);
     await page.evaluate(()=>document.fonts.ready);
     for(const mode of ['light','dark']) {
-      if(await page.evaluate(()=>document.documentElement.dataset.theme)!==mode) await page.locator('[data-theme-toggle]').click();
+      // Theme controls now live in account settings. Exercise the real delegated
+      // theme handler with a temporary preview control instead of a sidebar toggle.
+      await page.evaluate(mode => {
+        const control = document.createElement('button');
+        control.dataset.themeChoice = mode;
+        document.body.append(control);control.click();control.remove();
+      }, mode);
       await page.waitForTimeout(800);
       for(const [name,width] of [['desktop',1440],['laptop',1100],['tablet',768],['mobile',390],['small-mobile',320]]) {
         await page.setViewportSize({width,height:1000});
@@ -153,6 +159,40 @@ const server = http.createServer(async (req,res) => {
       assert.equal(await page.locator('.floating-tooltip:visible').evaluate(el=>getComputedStyle(el).animationDuration),'0.16s');
       await schedule.click();await page.locator('[role="dialog"]').waitFor();
       assert.ok(await page.locator('[role="dialog"]').getAttribute('aria-labelledby'));
+      const calendarChecks = await page.evaluate(() => {
+        const form = document.querySelector('#schedule-form');
+        const {openAt, dueAt} = form.elements;
+        const original = {openAt:openAt.value, dueAt:dueAt.value};
+        const now = new Date();
+        const day = offset => {
+          const date = new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
+          return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        };
+        const set = (input, value) => {input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));};
+        const writes = window.writes || 0;
+        const results = {};
+        results.openCalendarMinimum = openAt.min === day(0)+'T00:00';
+        set(openAt,day(-1)+'T09:00');
+        results.pastDayUnavailable = openAt.validity.rangeUnderflow;
+        form.requestSubmit();
+        results.pastOpeningCannotSave = (window.writes || 0) === writes && form.isConnected;
+        set(openAt,day(2)+'T09:00');
+        results.dueCalendarMinimum = dueAt.min === day(2)+'T00:00';
+        set(dueAt,day(1)+'T18:00');
+        results.earlierDueUnavailable = dueAt.validity.rangeUnderflow;
+        form.requestSubmit();
+        results.earlierDueCannotSave = (window.writes || 0) === writes && form.isConnected;
+        set(openAt,'');set(dueAt,day(-1)+'T23:59');
+        form.requestSubmit();
+        results.pastDueCannotSave = (window.writes || 0) === writes && form.isConnected;
+        set(openAt,day(2)+'T09:00');set(dueAt,day(2)+'T10:00');
+        results.sameDayDeadline = dueAt.value === day(2)+'T23:59';
+        // Restore the actual saved values for dialog screenshots and keyboard checks.
+        openAt.value=original.openAt;dueAt.value=original.dueAt;
+        openAt.dispatchEvent(new Event('input',{bubbles:true}));
+        return results;
+      });
+      for (const [name, passed] of Object.entries(calendarChecks)) assert.equal(passed,true,`${mode}: ${name}`);
       await page.waitForTimeout(250);
       assert.deepEqual(await auditText(page),[],`${mode} dialog: readability`);
       await page.screenshot({path:path.join(artifacts,`schedule-dialog-${mode}.png`),fullPage:true});
@@ -191,6 +231,28 @@ const server = http.createServer(async (req,res) => {
       await page.locator('.class-lesson__content p').first().evaluate((el,original)=>el.textContent=original,original);
       await page.setViewportSize({width:1440,height:1000});
     }
+    // Exercise the actual classroom Save handler with local write adapters.
+    await page.locator('[data-schedule="two__practice"]').click();
+    const opening = await page.locator('#schedule-form [name=openAt]').inputValue();
+    await page.locator('#schedule-form [name=dueAt]').fill(opening.slice(0,10)+'T08:00');
+    assert.equal(await page.locator('#schedule-form [name=dueAt]').inputValue(),opening.slice(0,10)+'T23:59');
+    await page.locator('#schedule-form [type=submit]').click();
+    await page.locator('.action-confirmation .button.primary').click();
+    await page.locator('#schedule-form').waitFor({state:'detached'});
+    assert.deepEqual(await page.evaluate(()=>({hours:window.savedSchedule.dueAt.toDate().getHours(),minutes:window.savedSchedule.dueAt.toDate().getMinutes()})),{hours:23,minutes:59});
+    await page.locator('[data-schedule="one"]').click();
+    const oldOpening = await page.locator('#schedule-form [name=openAt]').inputValue();
+    await page.locator('#schedule-form [type=submit]').click();
+    await page.locator('.action-confirmation .button.primary').click();
+    await page.locator('#schedule-form').waitFor({state:'detached'});
+    assert.equal(await page.evaluate(()=>window.savedSchedule.openAt.toDate().getDate()),Number(oldOpening.slice(8,10)));
+    await page.locator('[data-schedule="three"]').click();
+    const oldDue = await page.locator('#schedule-form [name=dueAt]').inputValue();
+    await page.locator('#schedule-form [type=submit]').click();
+    await page.locator('.action-confirmation .button.primary').click();
+    await page.locator('#schedule-form').waitFor({state:'detached'});
+    assert.equal(await page.evaluate(()=>window.savedSchedule.dueAt.toDate().getDate()),Number(oldDue.slice(8,10)));
+    console.log('PASS: classroom calendar minimums, rejected past opening/deadline saves, date order, saved 11:59 PM deadline, and preserved historical opening/deadline values. All writes use local adapters.');
     await page.reload();await page.waitForFunction(()=>window.ready);
     assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
     await page.emulateMedia({reducedMotion:'reduce'});

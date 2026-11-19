@@ -22,6 +22,10 @@ const PAGE_TEXT = {
   nextLabel: "Susunod na pahina",
   rows: "Bawat pahina",
   rowsLabel: "Ilang salita bawat pahina",
+  jump: "Pumunta sa pahina",
+  jumpRange: (pages) => `Maglagay ng pahina mula 1 hanggang ${pages}.`,
+  go: "Pumunta",
+  cancel: "Kanselahin",
 };
 
 let timer = null;

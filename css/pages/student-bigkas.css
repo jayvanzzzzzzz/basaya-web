@@ -45,6 +45,34 @@
 .st-reading .st-reading__text { line-height: 1.85; border: 0; padding: 0; background: transparent; }
 .st-reading .st-reading__card--word .st-reading__text { line-height: 1.4; color: var(--ink); }
 .st-reading .st-reading__listen { min-height: 44px; border: 1px solid var(--border); background: var(--primary-soft); color: var(--primary); border-radius: 12px; font-size: .85rem; line-height: 1.5; }
+.st-reading__word-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.st-reading__card--word .st-reading__word-actions { justify-content: center; }
+.st-reading .st-reading__word-actions .st-reading__listen { min-height: 48px; cursor: pointer; }
+.st-reading .st-reading__listen--icon { width: 48px; height: 48px; padding: 0; justify-content: center; flex: 0 0 48px; }
+.st-reading .st-reading__word-actions .st-reading__listen:not(.st-reading__meaning):not(.st-reading__listen--icon) {
+  justify-content: center; min-height: 52px; padding: 12px 18px;
+  background: var(--primary); color: var(--hub-primary-text); border-color: var(--primary);
+  box-shadow: 0 3px 0 var(--primary-lip); font-weight: 700;
+}
+.st-reading .st-reading__word-actions .st-reading__listen:not(.st-reading__meaning):not(.st-reading__listen--icon):active:not(:disabled) {
+  transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-lip);
+}
+/* Keep the sentence and its letter colors fixed; only the soft background fades. */
+.st-reading__text.st-read-along--soft .st-word-bubble { display: none; }
+.st-reading__text.st-read-along--soft .st-word,
+.st-reading__text.st-read-along--soft .st-word.is-speaking { background: transparent; color: inherit; }
+.st-reading__text.st-read-along--soft .st-word::before {
+  content: ''; position: absolute; inset: -.04em -.12em; z-index: -1;
+  border-radius: .3em; background: color-mix(in srgb, var(--primary) 24%, var(--surface));
+  opacity: 0; transition: opacity 180ms ease-out; pointer-events: none;
+}
+.st-reading__text.st-read-along--soft .st-word.is-speaking::before { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .st-reading__text.st-read-along--soft .st-word::before,
+  .st-reading__text.st-read-along--soft .st-word::after { transition: none; }
+}
+.st-reading .st-reading__word-actions button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.st-reading .st-reading__word-actions button:disabled { opacity: .55; cursor: default; }
 .st-reading .st-reading__record { padding: 1.5rem; margin: 1.5rem auto 0; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); width: min(100%,32rem); }
 .st-reading .st-reading__mic { background: var(--primary); color: var(--hub-primary-text); border: 1px solid var(--primary); box-shadow: 0 4px 0 var(--primary-lip); border-radius: 30px; }
 .st-reading .st-reading__mic.is-holding { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); box-shadow: 0 0 0 6px var(--danger-soft); }

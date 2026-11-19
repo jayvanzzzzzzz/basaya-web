@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root = path.resolve(__dirname, '..');
-const artifacts = path.join(root, 'audit/add-lesson-design');
+const artifacts = process.env.BASAYA_QA_OUTPUT || path.join(root, 'audit/add-lesson-design');
 let browser;
 const fixture = `
 export const $ = (s,root=document) => root.querySelector(s);
@@ -35,7 +35,7 @@ export const writeBatch = () => {throw Error('Unexpected write during visual QA'
 export const linkMode = link => link.mode;
 export const linkLessonId = link => link.lessonId;
 export const practiceLinkId = id => id+'__practice';
-export const readSchedule = () => ({});
+export const Timestamp = {fromDate: date => ({toDate: () => date})};
 export const notifyStudents = async () => {};
 export const navigate = route => {location.hash=route;};
 export const toast = message => {window.lastToast=message;};
@@ -54,7 +54,10 @@ const server = http.createServer(async (req,res) => {
         .replace('</body>',`<script type="module">import {renderAddLessonPage} from '/teacher/views/addLesson.js'; document.querySelector('#loading-screen').hidden=true; document.querySelector('#app-view').hidden=false; document.querySelector('[data-nav="classes"]').classList.add('active'); await renderAddLessonPage('class'); window.ready=true;</script></body>`);
       type='text/html';
     } else if(name==='teacher/views/addLesson.js') {
-      body=(await fs.readFile(path.join(root,name),'utf8')).replace(/from\s+(["'])([^"']+)\1/g,(match,q,source)=>source.endsWith('pagination.js')||source.endsWith('lessonViewer.js')?match:"from '/fixture.mjs'");
+      body=(await fs.readFile(path.join(root,name),'utf8')).replace(/from\s+(["'])([^"']+)\1/g,(match,q,source)=>source.endsWith('pagination.js')||source.endsWith('lessonViewer.js')||source.endsWith('schedule.js')?match:"from '/fixture.mjs'");
+    } else if(name==='js/schedule.js') {
+      body=(await fs.readFile(path.join(root,name),'utf8')).replace(/^import .*;\r?\n/gm,'').replace('export const notifyStudents =','const notifyStudents =').replace('export const notifyDeadline =','const notifyDeadline =');
+      body="import {Timestamp} from '/fixture.mjs';\nexport {notifyStudents} from '/fixture.mjs';\n"+body;
     } else if(['admin/views/lessonViewer.js','admin/views/gameLevels.js'].includes(name)) {
       body=(await fs.readFile(path.join(root,name),'utf8')).replace(/from\s+(["'])([^"']+)\1/g,(match,q,source)=>source.endsWith('gameLevels.js')?match:"from '/fixture.mjs'");
     } else if(name==='fixture.mjs') {
@@ -158,6 +161,51 @@ const server = http.createServer(async (req,res) => {
   assert.match(await page.locator('#add-lessons-skipped').textContent(),/already in this class/);
   await page.locator('[name=mode][value=practice]').check();
   assert.equal(await page.locator('[data-confirm]').textContent(),'Add 2 lessons');
+  const scheduleChecks = await page.evaluate(async () => {
+    const {readSchedule} = await import('/js/schedule.js');
+    const form = document.querySelector('#add-lessons-form');
+    const {openAt, dueAt} = form.elements;
+    const date = new Date();
+    const day = offset => {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+    const set = (input, value) => {input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));};
+    const results = {};
+    results.todayMinimum = openAt.min === day(0)+'T00:00' && dueAt.min === day(0)+'T00:00';
+    set(openAt, day(-1)+'T09:00');
+    results.pastOpening = openAt.validity.rangeUnderflow && Boolean(readSchedule(form,{newLesson:true}).error);
+    set(openAt, day(2)+'T09:00');
+    results.deadlineMinimum = dueAt.min === day(2)+'T00:00';
+    set(dueAt, day(1)+'T23:59');
+    results.beforeOpening = dueAt.validity.rangeUnderflow && Boolean(readSchedule(form,{newLesson:true}).error);
+    set(dueAt, day(2)+'T08:00');
+    results.sameDay = dueAt.value === day(2)+'T23:59' && form.checkValidity();
+    results.savedEndOfDay = readSchedule(form,{newLesson:true}).dueAt.toDate().getHours() === 23;
+    set(dueAt, day(3)+'T15:30');
+    results.laterDayTime = dueAt.value === day(3)+'T15:30' && form.checkValidity();
+    set(openAt, day(3)+'T16:00');
+    results.changedOpening = dueAt.value === day(3)+'T23:59';
+    set(openAt, day(3)+'T23:59');
+    results.noAvailableTime = Boolean(readSchedule(form,{newLesson:true}).error);
+    set(openAt, '');
+    set(dueAt, day(0)+'T09:00');
+    results.immediateSameDay = dueAt.value === day(0)+'T23:59';
+    set(dueAt, day(-1)+'T23:59');
+    results.pastDeadline = dueAt.validity.rangeUnderflow && Boolean(readSchedule(form,{newLesson:true}).error);
+    // Save validation also covers values inserted without an input event.
+    openAt.value=day(2)+'T09:00';dueAt.value=day(2)+'T07:00';
+    const saved = readSchedule(form,{newLesson:true});
+    results.saveNormalization = !saved.error && saved.dueAt.toDate().getMinutes() === 59 && dueAt.value.endsWith('T23:59');
+    openAt.value=day(-2)+'T09:00';dueAt.value=day(-1)+'T12:00';
+    results.existingSchedule = !readSchedule(form,{allowPastDeadline:true}).error;
+    set(openAt,'');set(dueAt,'');
+    const empty = readSchedule(form,{newLesson:true});
+    results.optionalDates = empty.openAt === null && empty.dueAt === null && form.checkValidity();
+    return results;
+  });
+  for (const [name, passed] of Object.entries(scheduleChecks)) assert.equal(passed,true,name);
+  console.log('PASS: new lesson calendar limits, past dates, date order, 11:59 PM same-day deadlines, opening changes, save validation, optional dates and existing schedule compatibility.');
   for(const theme of ['light','dark']) {
     await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
     for(const width of [1440,768,390,320]) {

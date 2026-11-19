@@ -23,6 +23,22 @@ stop(); assert.equal(frames.size, 0); assert.equal(line.querySelector('.is-on, .
 audio.currentTime = 3.8; stop = followAlong(line, audio, null); tick();
 assert.equal(line.querySelectorAll('.is-read').length, 2, 'Older audio estimates word positions from duration');
 stop();
+// The pronunciation screen fades word backgrounds without replacing text or moving a pill.
+const nodes = [...line.querySelectorAll('.st-word')];
+audio.currentTime = .2;
+stop = followAlong(line, audio, [0, 1.5, 3], { softHighlight: true });
+tick();
+assert.equal(line.querySelector('.st-word-bubble.is-on'), null);
+assert.equal(line.querySelector('.is-speaking'), nodes[0]);
+audio.currentTime = 1.6; tick();
+assert.equal(line.querySelector('.is-speaking'), nodes[1]);
+assert.equal(line.querySelectorAll('.is-speaking').length, 1);
+assert.equal(line.querySelectorAll('.st-word')[0], nodes[0], 'Letters keep the same DOM nodes');
+audio.currentTime = 3.2; tick();
+assert.equal(line.querySelector('.is-speaking'), nodes[2]);
+audio.currentTime = .2; tick();
+assert.equal(line.querySelector('.is-speaking'), nodes[0], 'Seeking backward updates the highlight');
+stop(); assert.equal(frames.size, 0); assert.equal(line.querySelector('.is-speaking, .is-read'), null);
 for (const starts of [[0, .5, 1], [0, 2, 1], [-1, 0, 1], [0], [0, NaN, 1], null]) {
   const content = { pages: [{ sentence: 'Basa, basa muli.', cloudAudio: { audioUrl: 'https://model/audio', wordStarts: starts } }] };
   assert.deepEqual(fluencyPages(content), serverPages(content));
