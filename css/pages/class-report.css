@@ -102,6 +102,7 @@
 
 .rp-panel__head {
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
@@ -122,6 +123,35 @@
   color: var(--ink-3);
   font-size: 0.82rem;
 }
+
+.rp-student-search {
+  display: grid;
+  min-width: 0;
+  gap: .4rem;
+  width: 18rem;
+  max-width: 100%;
+  color: var(--ink-2);
+  font-size: .8rem;
+}
+
+.rp-student-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: .65rem .8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.rp-student-search input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.report-table [data-report-row] { cursor: pointer; }
 
 .rp-columns {
   display: grid;
@@ -723,6 +753,7 @@ body:has(.report-page) :is(button, a, [tabindex="0"], summary):focus-visible { o
 }
 @media print {
   body:has(.report-page) { --rp-paper: #fff; --rp-hover: transparent; }
+  .rp-student-search, #report-student-empty { display: none; }
   .rp-table--skills { min-width: 0; table-layout: auto; }
   .rp-table--skills col { width: auto; }
   .rp-table--skills :is(th,td) { padding: .5rem .3rem; }

@@ -263,7 +263,7 @@ export async function renderClassReport(classId) {
     .map(({ student, progress }) => {
       const name = `<a class="rp-student" href="${studentHref(student)}"><span class="rp-avatar">${escapeHtml(initials(student.name))}</span><strong>${escapeHtml(student.name)}</strong></a>`;
       if (progress.error) {
-        return `<tr data-report-row class="rp-row--muted">
+        return `<tr data-report-row class="rp-row--muted" data-student-name="${escapeHtml(student.name)}">
           <th scope="row">${name}</th>
           <td colspan="${scoredSkills.length + 1}" class="rp-muted">Progress not available</td>
           <td><span class="rp-status rp-status--muted">Moved</span></td>
@@ -275,7 +275,7 @@ export async function renderClassReport(classId) {
         : progress.hasData
           ? '<span class="rp-status rp-status--good">On track</span>'
           : '<span class="rp-status rp-status--muted">Not started</span>';
-      return `<tr data-report-row>
+      return `<tr data-report-row data-student-name="${escapeHtml(student.name)}">
         <th scope="row">${name}</th>
         ${scoredSkills
           .map((skill) => {
@@ -368,8 +368,13 @@ export async function renderClassReport(classId) {
       <section class="rp-panel">
         <header class="rp-panel__head">
           <div><h2>Students</h2><p>Scores are first-try accuracy. Students who need help are listed first.</p></div>
+          <label class="rp-student-search" for="report-student-search">
+            <span>Search students</span>
+            <input id="report-student-search" type="search" placeholder="Search by name…" aria-controls="report-student-results" />
+          </label>
         </header>
-        <div class="rp-table-wrap" tabindex="0" role="region" aria-label="Student results table, scroll horizontally for all columns"><table class="rp-table report-table">
+        <p id="report-student-empty" class="rp-empty" role="status" hidden>No students match your search.</p>
+        <div class="rp-table-wrap" tabindex="0" role="region" aria-label="Student results table, scroll horizontally for all columns"><table id="report-student-results" class="rp-table report-table">
           <thead><tr>
             <th scope="col">Student</th>
             ${scoredSkills.map((skill) => `<th scope="col" class="rp-score">${escapeHtml(skill.name)}</th>`).join("")}
@@ -382,9 +387,28 @@ export async function renderClassReport(classId) {
       ${printSignature()}
     </div>`;
 
+  const table = $(".report-table");
+  const rows = [...table.querySelectorAll("[data-report-row]")];
+  const search = $("#report-student-search");
+  search.addEventListener("input", () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    rows.forEach((row) => {
+      row.hidden = !row.dataset.studentName.toLocaleLowerCase().includes(query);
+    });
+    $("#report-student-empty").hidden = rows.some((row) => !row.hidden);
+  });
+
+  table.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (event.target.closest("a, button, input, select, textarea")) return;
+    const row = event.target.closest("[data-report-row]");
+    row?.querySelector(".rp-student")?.click();
+  });
+
   paginate({
-    rows: () => [...document.querySelectorAll("[data-report-row]")],
-    after: $(".report-table").parentElement,
+    rows: () => rows,
+    after: table.parentElement,
+    search,
     label: ["student", "students"],
   });
 }

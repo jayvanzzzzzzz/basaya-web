@@ -74,6 +74,40 @@ const server = http.createServer(async(req,res)=>{
   assert.equal(await page.locator('.rp-table--skills tbody tr').count(),5);
   assert.equal(await page.locator('.rp-table--skills tbody tr').first().locator('td').nth(1).innerText(),'Completion only');
   assert.equal(await page.locator('.rp-participation').first().getAttribute('aria-label'),'12 of 15 students with results');
+  // Search covers every page, resets pagination, and includes unavailable progress.
+  const visibleStudents=page.locator('[data-report-row]:visible');
+  const search=page.getByRole('searchbox',{name:'Search students'});
+  assert.equal(await visibleStudents.count(),10);
+  await page.locator('.pagination [data-page="next"]').click();
+  assert.equal(await visibleStudents.count(),6);
+  await search.fill('  CRUZ  ');
+  assert.equal(await visibleStudents.count(),5);
+  assert.ok((await visibleStudents.allTextContents()).every(text=>text.includes('Cruz')));
+  assert.equal(await page.locator('.pagination [aria-current="page"]').textContent(),'1');
+  await search.fill('no matching student');
+  assert.equal(await visibleStudents.count(),0);
+  assert.ok(await page.locator('#report-student-empty').isVisible());
+  assert.equal(await page.locator('.pagination').isVisible(),false);
+  await search.fill('Reyes, Ana 16');
+  assert.equal(await visibleStudents.count(),1);
+  assert.ok(await visibleStudents.first().locator('.rp-row--muted, .rp-status--muted').count());
+  const movedHref=await visibleStudents.locator('a.rp-student').getAttribute('href');
+  await visibleStudents.locator('td').last().click();
+  assert.equal(await page.evaluate(()=>location.hash),movedHref);
+  await search.fill('Santos, Clara 3');
+  const href=await visibleStudents.locator('a.rp-student').getAttribute('href');
+  await visibleStudents.locator('td').first().click();
+  assert.equal(await page.evaluate(()=>location.hash),href);
+  await search.fill('Cruz, Benjamin 2');
+  const link=visibleStudents.locator('a.rp-student');
+  const keyboardHref=await link.getAttribute('href');
+  await link.focus();await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(()=>location.hash),keyboardHref);
+  await search.fill('');
+  assert.equal(await visibleStudents.count(),10);
+  assert.equal(await page.locator('#report-student-empty').isVisible(),false);
+  // Start visual checks without focus or scroll offsets left by interaction checks.
+  await page.goto(url);await page.waitForFunction(()=>window.ready);await page.evaluate(()=>document.fonts.ready);
   const snapshots=[];
   for(const theme of ['light','dark']){
    await page.evaluate(theme=>{document.documentElement.dataset.theme=theme;localStorage.setItem('basaya-theme',theme)},theme);

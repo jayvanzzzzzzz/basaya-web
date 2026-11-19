@@ -1,0 +1,16 @@
+{
+  "snapshots": [
+    "desktop-light",
+    "laptop-light",
+    "tablet-light",
+    "mobile-light",
+    "small-mobile-light",
+    "desktop-dark",
+    "laptop-dark",
+    "tablet-dark",
+    "mobile-dark",
+    "small-mobile-dark"
+  ],
+  "errors": [],
+  "checks": "Responsive/theme/readability/tooltips/real XLSX/print PDF/export failure/empty/no-data/reduced motion passed"
+}
