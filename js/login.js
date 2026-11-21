@@ -1,9 +1,7 @@
 import {
-  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithCustomToken,
-  signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -13,14 +11,12 @@ import { $ } from "./helpers.js";
 import { clearFieldErrors, fieldError } from "./field-errors.js";
 import { confirmAction } from "./action-confirmation.js";
 import { recentAccounts, rememberAccount, removeAccount } from "./recent-accounts.js";
-import { watchGooglePopup } from "./google-popup.js";
 
 const loading = document.getElementById("loading-screen");
 const loginView = document.getElementById("login-view");
 const loginForm = $("#login-form");
 const loginButton = loginForm.querySelector('[type="submit"]');
 const loginButtonLabel = loginButton.querySelector(".login-submit__label");
-const googleLoginButton = $("#google-login");
 let signingIn = false;
 let signInAttempt = 0;
 let selectedAccount = null;
@@ -58,23 +54,19 @@ function showSignIn(account = null) {
     name.textContent = account.name;
     selectedProfile.append(avatar(account), name);
   }
-  const google = account?.provider === "google.com";
   $("#signin-title").textContent = account ? "Welcome back" : "Sign in";
   $("#login-email-field").hidden = !!account;
   $("#email").value = account?.email || "";
   $("#email").readOnly = !!account;
   passwordInput.value = "";
-  passwordInput.required = !google;
+  passwordInput.required = true;
   setPasswordVisible(false);
-  $("#login-password-field").hidden = google;
-  loginForm.querySelector(".auth-forgot").hidden = google;
-  loginButton.hidden = google;
-  loginForm.querySelector(".auth-register").hidden = !!account;
-  loginForm.querySelector(".auth-google-divider").hidden = !!account;
-  googleLoginButton.hidden = !!account && !google;
+  $("#login-password-field").hidden = false;
+  loginForm.querySelector(".auth-forgot").hidden = false;
+  loginButton.hidden = false;
   $("#login-error").textContent = "";
   clearFieldErrors(loginForm);
-  if (account) (google ? googleLoginButton : passwordInput).focus();
+  if (account) passwordInput.focus();
   else $("#email").focus();
 }
 
@@ -97,7 +89,7 @@ function showRecentAccounts(focus = false) {
     const name = document.createElement("strong");
     name.textContent = account.name;
     const hint = document.createElement("small");
-    hint.textContent = account.provider === "google.com" ? "Continue with Google" : "Enter password to sign in";
+    hint.textContent = "Enter password to sign in";
     label.append(name, hint);
     choose.append(avatar(account), label);
     choose.addEventListener("click", () => showSignIn(account));
@@ -281,7 +273,6 @@ window.addEventListener("pageshow", clearSignedOutCredentials);
 function setSigningIn(active) {
   signingIn = active;
   loginButton.disabled = active;
-  googleLoginButton.disabled = active;
   backToAccounts.disabled = active;
   $("#email").disabled = active;
   passwordInput.disabled = active;
@@ -326,43 +317,9 @@ loginForm.addEventListener("submit", async (event) => {
     $("#login-error").textContent =
       error.code === "auth/invalid-credential"
       ? "Incorrect email, username, or password."
-      : error.message;
-  }
-});
-
-googleLoginButton.addEventListener("click", async () => {
-  if (signingIn) return;
-  const attempt = ++signInAttempt;
-  const error = $("#login-error");
-  error.textContent = "";
-  setSigningIn(true);
-  const stopWatching = watchGooglePopup(auth.app.options.authDomain, () => {
-    if (attempt === signInAttempt && !auth.currentUser) setSigningIn(false);
-  });
-  try {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account", ...(selectedAccount ? { login_hint: selectedAccount.email } : {}) });
-    await signInWithPopup(auth, provider);
-  } catch (signInError) {
-    if (attempt !== signInAttempt) return;
-    if (!["auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(signInError.code)) {
-      console.error("Google sign-in failed", signInError);
-      error.textContent =
-        signInError.code === "auth/operation-not-allowed"
-          ? "Google sign-in is disabled for this Firebase project. Enable the Google provider in Firebase Authentication settings, then try again."
-          : signInError.code === "auth/popup-blocked"
-          ? "Allow pop-up windows to continue with Google."
-          : signInError.code === "auth/unauthorized-domain"
-            ? "This domain is not authorized for Firebase Authentication yet."
-            : signInError.code === "auth/account-exists-with-different-credential"
-              ? "An account already uses this email. Sign in with your existing method."
-              : signInError.code === "auth/network-request-failed"
-                ? "Connection problem. Please try again."
-                : "Could not verify your Google account. Please try again.";
-    }
-  } finally {
-    stopWatching();
-    if (attempt === signInAttempt && !auth.currentUser) setSigningIn(false);
+      : error.code === "auth/user-disabled"
+        ? "Your account is deactivated. Contact your school administrator."
+        : error.message;
   }
 });
 
@@ -379,6 +336,12 @@ onAuthStateChanged(auth, async (user) => {
     }
     const role = profileSnap.data()?.role;
     const destination = ROLE_DESTINATIONS[role];
+    if (role === "teacher" && profileSnap.data().disabled === true) {
+      await signOut(auth);
+      revealLogin();
+      $("#login-error").textContent = "Your teacher account is deactivated. Contact your school administrator.";
+      return;
+    }
 
     if (!profileSnap.exists() && user.providerData.some(({ providerId }) => providerId === "google.com")) {
       window.location.replace("complete-profile.html");

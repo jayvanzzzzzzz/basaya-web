@@ -65,7 +65,7 @@ const test = async (name, run) => { await run(); tests++; console.log(`PASS: ${n
         for(const [width,height,label] of [[1440,1050,'desktop'],[900,1100,'tablet'],[390,844,'mobile']]) {
           await page.setViewportSize({width,height});await open(role);
           assert.equal(await page.locator('[data-nav="handbook"]').getAttribute('href'),'#/handbook');
-          assert.equal(await page.locator('[data-guide]').count(),role==='teacher'?30:26);
+          assert.equal(await page.locator('[data-guide]').count(),role==='teacher'?30:27);
           assert.equal(await page.locator('#handbook-chat-title').innerText(),'BASAya AI Chat Support');
           assert.equal(await page.locator('#handbook-status').isHidden(),true);
           assert.equal(await page.getByText('10 questions daily. A 10-second pause between questions.',{exact:true}).count(),0);

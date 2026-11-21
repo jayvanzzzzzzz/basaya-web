@@ -35,6 +35,7 @@ async function sendVerification(uid) {
 
 export default async function handler(req, res) {
   allowCors(req, res);
+  res.setHeader("X-BASAya-Teacher-Accounts", "deactivation-v2");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
   res.setHeader("Cache-Control", "no-store");
@@ -42,7 +43,8 @@ export default async function handler(req, res) {
     const token = await requireToken(req, res, { allowPendingTeacher: true });
     if (!token) return;
     const { action, userId, ...input } = req.body || {};
-    if (["create", "statuses", "correct-email"].includes(action) && !await requireAdmin(token.uid, res)) return;
+    if (["create", "statuses", "deactivate", "reactivate"].includes(action) && !await requireAdmin(token.uid, res)) return;
+    if (["deactivate", "reactivate"].includes(action) && !userId) throw fail(400, "Choose a teacher account.");
     if (action === "create") {
       const firstName = typeof input.firstName === "string" ? input.firstName.trim() : "";
       const lastName = typeof input.lastName === "string" ? input.lastName.trim() : "";
@@ -74,7 +76,7 @@ export default async function handler(req, res) {
       if (!Array.isArray(input.userIds) || input.userIds.length > 100 || input.userIds.some(id => typeof id !== "string" || !ID_PATTERN.test(id)))
         throw fail(400, "Invalid account list.");
       const result = input.userIds.length ? await adminAuth().getUsers(input.userIds.map(uid => ({ uid }))) : { users: [] };
-      return res.status(200).json({ users: result.users.map(u => ({ uid: u.uid, emailVerified: u.emailVerified })) });
+      return res.status(200).json({ users: result.users.map(u => ({ uid: u.uid, emailVerified: u.emailVerified, disabled: u.disabled === true })) });
     }
     const target = userId || token.uid;
     if (typeof target !== "string" || !ID_PATTERN.test(target)) throw fail(400, "Invalid teacher account.");
@@ -82,17 +84,19 @@ export default async function handler(req, res) {
     const ref = db().doc(`users/${target}`);
     const profile = await ref.get();
     if (profile.get("role") !== "teacher") throw fail(404, "Teacher account not found.");
-    if (action === "correct-email") {
+    if (action === "deactivate" || action === "reactivate") {
+      const disabled = action === "deactivate";
       const user = await adminAuth().getUser(target);
-      if (!profile.get("emailVerificationRequired") || user.emailVerified)
-        throw fail(400, "Only pending email addresses can be corrected here.");
-      const email = typeof input.email === "string" ? input.email.trim() : "";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw fail(400, "Enter a valid email address.");
-      await adminAuth().updateUser(target, { email, emailVerified: false });
-      await ref.update({ email, verificationSentAt: 0 });
-      let emailSent = false;
-      try { await sendVerification(target); emailSent = true; } catch { /* Retry remains available. */ }
-      return res.status(200).json({ ok: true, emailSent });
+      await adminAuth().updateUser(target, { disabled });
+      try {
+        await ref.update({ disabled });
+      } catch (error) {
+        // Keep Authentication and the profile consistent if the profile write fails.
+        await adminAuth().updateUser(target, { disabled: user.disabled === true });
+        throw error;
+      }
+      if (disabled) await adminAuth().revokeRefreshTokens(target);
+      return res.status(200).json({ ok: true, userId: target, disabled });
     }
     if (action === "resend") return res.status(200).json({ ok: true, ...await sendVerification(target) });
     if (action === "complete" && target === token.uid) {

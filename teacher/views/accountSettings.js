@@ -18,7 +18,9 @@ import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } 
 import { teacherName } from "../../js/chat.js?v=removed-preview";
 import { genderMarkup, titleForGender } from "../../js/teacherTitle.js";
 import { teacherNameFields, readTeacherName } from "../../js/teacher-name.js";
-import { usernameRequest } from "../../js/username-auth.js";
+import { bindUsernameSettings } from "../../js/username-settings.js";
+import { setupAccountSections } from "../../js/account-sections.js";
+import { verifyProfilePassword, profilePasswordError } from "../../js/profile-password.js";
 
 export function renderAccountSettings() {
   const isCurrent = captureRoute("/settings");
@@ -56,18 +58,23 @@ export function renderAccountSettings() {
             </span>
             <div>
               <span class="account-settings__eyebrow">Personal details</span>
-              <h3>How your classroom knows you</h3>
+              <h3>Profile information</h3>
               <p>Keep the name on your teacher profile up to date.</p>
             </div>
           </div>
           <form id="account-profile-form" class="account-settings__form">
+            <label>
+              Email Address
+              <input type="email" value="${escapeHtml(email)}" readonly />
+              <small>This email stays available for password recovery.</small>
+            </label>
             ${teacherNameFields(profile)}
             ${genderMarkup(profile.gender, !profile.gender)}
             <p class="title-chips__preview" data-title-preview></p>
             <label>
-              Contact email
-              <input type="email" value="${escapeHtml(email)}" readonly />
-              <small>This email stays available for password recovery.</small>
+              Current password
+              <input name="currentPassword" type="password" required autocomplete="current-password" data-missing="Enter your current password to save your profile." placeholder="Confirm with your current password" />
+              <small>Required each time you save profile information.</small>
             </label>
             <div class="account-settings__form-footer">
               <span>Used across your BASAya classrooms.</span>
@@ -83,7 +90,7 @@ export function renderAccountSettings() {
             </span>
             <div>
               <span class="account-settings__eyebrow">Account security</span>
-              <h3>A fresh password, a secure account</h3>
+              <h3>Account security</h3>
               <p>Choose a strong password you haven't used elsewhere.</p>
             </div>
           </div>
@@ -152,17 +159,14 @@ export function renderAccountSettings() {
   `;
 
   syncThemeButtons();
-  document.querySelectorAll('[data-settings-section]').forEach(link => {
-    link.addEventListener('click', event => {
-      event.preventDefault();
-      const form = document.getElementById(link.dataset.settingsSection);
-      form.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' });
-      form.querySelector('input').focus({ preventScroll: true });
-    });
-  });
-  document.querySelectorAll('#account-password-form input[type="password"], #account-username-form input[type="password"]').forEach(input => {
+  setupAccountSections($('.account-settings'), [
+    { key: 'profile', label: 'Profile Info', selectors: ['.account-settings__card--profile'] },
+    { key: 'username', label: 'Username', selectors: ['.account-settings__card:has(#account-username-form)'] },
+    { key: 'security', label: 'Account Security', selectors: ['.account-settings__card--password'] },
+  ]);
+  document.querySelectorAll('#account-password-form input[type="password"], #account-username-form input[type="password"], #account-profile-form input[type="password"]').forEach(input => {
     const wrapper = document.createElement('span');
-    wrapper.className = 'account-settings__password-field';
+    wrapper.className = 'account-settings__password-field password-field';
     input.before(wrapper);
     wrapper.append(input);
     const toggle = document.createElement('button');
@@ -181,44 +185,9 @@ export function renderAccountSettings() {
     wrapper.append(toggle);
   });
   watchTeacherTooltips();
-  const usernameForm = $('#account-username-form');
-  const passwordAccount = auth.currentUser?.providerData.some(provider => provider.providerId === 'password');
-  if (!passwordAccount) {
-    $('#username-status').textContent = 'Your account needs a password before you can use username sign-in. Use Forgot password from the sign-in page to set one, then sign in again.';
-    usernameForm.querySelector('[type="submit"]').disabled = true;
-  }
-  usernameForm.addEventListener('submit', async event => {
-    event.preventDefault();
-    const submit = usernameForm.querySelector('[type="submit"]');
-    if (submit.disabled) return;
-    const username = usernameForm.elements.username.value.trim().toLowerCase();
-    const password = usernameForm.elements.currentPassword.value;
-    const status = $('#username-status');
-    status.textContent = '';
-    submit.disabled = true;
-    submit.textContent = 'Saving…';
-    usernameForm.setAttribute('aria-busy', 'true');
-    try {
-      const result = await usernameRequest('save', { username, password }, auth.currentUser);
-      state.profile = { ...state.profile, username: result.username };
-      usernameForm.elements.username.value = result.username;
-      status.textContent = `Username saved. You can now sign in as ${result.username}.`;
-    } catch (error) {
-      status.textContent = error.status === 401 ? 'Check your current password and try again. If your session expired, sign in again.' : error.message;
-    } finally {
-      const passwordField = usernameForm.elements.currentPassword;
-      passwordField.value = '';
-      passwordField.type = 'password';
-      const toggle = passwordField.parentElement.querySelector('.account-settings__reveal');
-      toggle?.setAttribute('aria-pressed', 'false');
-      toggle?.setAttribute('aria-label', 'Show current password');
-      submit.disabled = false;
-      submit.textContent = 'Save username';
-      usernameForm.setAttribute('aria-busy', 'false');
-    }
-  });
+  bindUsernameSettings($('#account-username-form'));
   $('#account-password-form').addEventListener('reset', () => {
-    document.querySelectorAll('.account-settings__reveal').forEach(toggle => {
+    document.querySelectorAll('#account-password-form .account-settings__reveal').forEach(toggle => {
       toggle.previousElementSibling.type = 'password';
       toggle.setAttribute('aria-pressed', 'false');
       toggle.setAttribute('aria-label', toggle.getAttribute('aria-label').replace('Hide', 'Show'));
@@ -245,10 +214,12 @@ export function renderAccountSettings() {
     const gender = values.get("gender");
     const title = gender ? titleForGender(gender) : (profile.title || "");
     const submit = form.querySelector('[type="submit"]');
+    if (submit.disabled) return;
     submit.disabled = true;
     submit.textContent = 'Saving…';
 
     try {
+      await verifyProfilePassword(auth.currentUser, form.elements.currentPassword);
       await updateDoc(doc(db, "users", state.user.uid), {
         ...name,
         ...(gender ? { gender } : {}),
@@ -263,9 +234,14 @@ export function renderAccountSettings() {
       if (!isCurrent()) return;
       shell();
       toast("Profile details saved.");
-      renderAccountSettings();
+      $('.account-settings__hero h2').textContent = state.profile.displayName;
+      showPreview();
     } catch (error) {
-      toast(error.message);
+      const passwordError = profilePasswordError(error);
+      if (passwordError) {
+        fieldError(form.elements.currentPassword, passwordError);
+        form.elements.currentPassword.focus();
+      } else toast(error.message);
     } finally {
       submit.disabled = false;
       submit.textContent = 'Save profile';

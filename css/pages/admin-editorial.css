@@ -93,6 +93,12 @@ body[data-portal="admin"] :is(.teacher-table__menu-popup,.admin-class-menu-popup
 body[data-portal="admin"] :is(.teacher-table__menu-popup,.admin-class-menu-popup,.admin-lesson-menu-popup) button { min-height: 44px; }
 body[data-portal="admin"] :is(.student-ribbon,.admin-class-filter,.filter-tab) { min-height: 44px; border-radius: 8px; box-shadow: none; transition: background-color 200ms, border-color 200ms; }
 body[data-portal="admin"] :is(.student-ribbon[aria-pressed="true"],.admin-class-filter.is-active,.filter-tab.active) { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-ring); }
+body[data-portal="admin"] .student-ribbons { gap: .35rem; margin-bottom: 1rem; padding: .35rem; border: 1px solid var(--border-strong); border-radius: 11px; background: var(--admin-tint); }
+body[data-portal="admin"] .student-ribbon { min-height: 44px; padding: .45rem .75rem; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); }
+body[data-portal="admin"] .student-ribbon:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+body[data-portal="admin"] .student-ribbon[aria-pressed="true"] { border-color: var(--admin-action); background: var(--admin-action); color: var(--admin-action-ink); }
+body[data-portal="admin"] .student-ribbon__label { display: inline-flex; align-items: center; min-height: 24px; line-height: 1.25; }
+body[data-portal="admin"] .student-ribbon[aria-pressed] .student-ribbon__count { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-width: 24px; height: 24px; padding: 0 .3rem; border-radius: 5px; background: color-mix(in srgb, currentColor 10%, transparent); color: inherit; line-height: 1; font-variant-numeric: tabular-nums; }
 body[data-portal="admin"] :is(.admin-lesson-filters,.admin-class-filters) { margin: .8rem 0 1rem; max-width: 100%; border-radius: 9px; background: var(--admin-paper); }
 body[data-portal="admin"] .admin-lesson-filter { min-height: 44px; box-shadow: none; animation: none; }
 body[data-portal="admin"] .admin-lesson-filter.is-active { background: var(--primary-soft); color: var(--primary); }
@@ -175,3 +181,28 @@ body[data-portal="admin"] #page-content > * { animation: none; }
   body[data-portal="admin"] .button:hover:not(:disabled) { transform: none; }
   body[data-portal="admin"] .admin-add-button:hover:not(:disabled) svg { transform: none; }
 }
+/* Teacher access: status ribbon and persistent labels with a soft pulse. */
+body[data-portal="admin"] .teacher-status-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; width: 420px; max-width: 100%; margin-bottom: 1.25rem; padding: .35rem; border: 1px solid var(--border-strong); border-radius: 11px; background: var(--admin-tint); }
+body[data-portal="admin"] .teacher-status-filters button { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-height: 44px; padding: .45rem .65rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink-2); font: 500 .78rem/1.25 var(--font-body); cursor: pointer; transition: background-color 180ms, border-color 180ms; }
+body[data-portal="admin"] .teacher-status-filters button:hover { color: var(--ink); background: var(--primary-soft); }
+body[data-portal="admin"] .teacher-status-filters button[aria-pressed="true"] { border-color: var(--admin-action); background: var(--admin-action); color: var(--admin-action-ink); }
+body[data-portal="admin"] .teacher-status-filters__label { display: inline-flex; align-items: center; min-height: 24px; line-height: 1.25; }
+body[data-portal="admin"] .teacher-status-filters__count { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-width: 24px; height: 24px; padding: 0 .3rem; border-radius: 5px; background: color-mix(in srgb, currentColor 10%, transparent); color: inherit; font-size: .72rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+body[data-portal="admin"] .teacher-status-filters button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+body[data-portal="admin"] .teacher-account-status { --status-ink: #187343; --status-dot: #23975a; display: inline-flex; align-items: center; gap: .6rem; color: var(--status-ink); font-size: .76rem; font-weight: 600; white-space: nowrap; }
+body[data-portal="admin"] .teacher-account-status--deactivated { --status-ink: #9b4b0b; --status-dot: #d97716; }
+:root[data-theme="dark"] body[data-portal="admin"] .teacher-account-status { --status-ink: #83e5ab; --status-dot: #67d996; }
+:root[data-theme="dark"] body[data-portal="admin"] .teacher-account-status--deactivated { --status-ink: #ffc07c; --status-dot: #f6a451; }
+body[data-portal="admin"] .teacher-account-status i { position: relative; width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--status-dot); }
+body[data-portal="admin"] .teacher-account-status i::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; box-sizing: border-box; border: 2px solid var(--status-dot); border-radius: 50%; background: color-mix(in srgb, var(--status-dot) 22%, transparent); transform: translate(-50%, -50%); transform-origin: center; animation: teacher-status-pulse 2.4s ease-out infinite; }
+body[data-portal="admin"] .teacher-account-status--mobile { display: none; }
+body[data-portal="admin"] .teacher-status-notice { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem 1rem; margin: 0 0 1rem; color: var(--ink-2); font-size: .76rem; line-height: 1.7; }
+body[data-portal="admin"] .teacher-status-notice .button { min-height: 44px; padding: .4rem .75rem; font-size: .75rem; }
+@media (max-width: 600px) {
+  body[data-portal="admin"] .teacher-account-status--mobile { display: inline-flex; margin-top: .55rem; }
+  body[data-portal="admin"] .teacher-table__status-column { display: none; }
+}
+@keyframes teacher-status-pulse { 0% { transform: translate(-50%, -50%) scale(.65); opacity: 1; } 45% { opacity: .65; } 85%, 100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; } }
+@media (max-width: 420px) { body[data-portal="admin"] .teacher-status-filters { width: 100%; gap: .15rem; padding: .25rem; } body[data-portal="admin"] .teacher-status-filters button { gap: .3rem; padding-inline: .3rem; font-size: .7rem; } body[data-portal="admin"] .teacher-status-filters__count { min-width: 20px; height: 22px; padding-inline: .15rem; font-size: .65rem; } }
+@media (max-width: 380px) { body[data-portal="admin"] .teacher-status-filters button { gap: .2rem; padding-inline: .2rem; font-size: .64rem; } body[data-portal="admin"] .teacher-status-filters__count { min-width: 18px; height: 20px; font-size: .6rem; } }
+@media (prefers-reduced-motion: reduce) { body[data-portal="admin"] .teacher-account-status i::after { animation: none; opacity: .35; } }

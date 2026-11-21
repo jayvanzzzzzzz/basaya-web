@@ -1,26 +1,102 @@
 import { confirmAction } from "../../js/action-confirmation.js";
 import { captureRoute } from "../../js/route-lifecycle.js";
 import {
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
   sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { auth, db } from "../../js/firebase.js";
+import { auth } from "../../js/firebase.js";
 import { state, getAllTeachers } from "../../js/state.js";
-import { $, escapeHtml, toast, notify, initials, page, empty, openModal, currentRoute } from "../../js/helpers.js";
+import { $, escapeHtml, toast, notify, initials, page, empty, openModal } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import { fieldError } from "../../js/field-errors.js";
 import { postToApi, sendPasswordReset } from "../../js/api.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
-import { genderMarkup, titleForGender, titleLabel } from "../../js/teacherTitle.js";
+import { genderMarkup, titleLabel } from "../../js/teacherTitle.js";
 import { teacherNameFields, readTeacherName } from "../../js/teacher-name.js";
-import { assignClasses, classIdsOf, teacherLabel, teacherOptions } from "./classTeacher.js";
 
 let pager = null;
+let statusFilter = "all";
+let teacherQuery = "";
+const STATUS_TTL = 30_000;
+const STATUS_TIMEOUT = 8_000;
+const statusCache = new Map();
+const accessVersions = new Map();
+const changingAccess = new Set();
+let cacheOwner = null;
+let view = null;
+let renderRevision = 0;
+
+// Rows can appear after refresh, filtering or pagination; use one pulse clock.
+document.addEventListener("animationstart", event => {
+  if (event.animationName !== "teacher-status-pulse") return;
+  event.target.getAnimations({ subtree: true }).forEach(animation => {
+    if (animation.animationName === "teacher-status-pulse") animation.startTime = 0;
+  });
+}, true);
+
+function setStatusNotice(context, message = "", retry = false) {
+  if (!context.isCurrent()) return;
+  const notice = $("#teacher-status-notice");
+  if (!notice) return;
+  notice.hidden = !message;
+  notice.querySelector("[role=status]").textContent = message;
+  notice.querySelector("button").hidden = !retry;
+}
+
+async function refreshStatuses(context, force = false) {
+  if (!context.isCurrent() || context.refreshing) return;
+  const targets = context.teachers.filter(t => !changingAccess.has(t.id) &&
+    (force || !statusCache.has(t.id) || Date.now() - statusCache.get(t.id).checkedAt >= STATUS_TTL));
+  if (!targets.length) return;
+  context.refreshing = true;
+  setStatusNotice(context, "Refreshing account statuses…");
+  const controller = new AbortController();
+  context.controller = controller;
+  let timer;
+  const versions = new Map(targets.map(t => [t.id, accessVersions.get(t.id) || 0]));
+  try {
+    const work = async () => {
+      // Bound concurrency for larger directories; each API batch supports 100 users.
+      let offset = 0;
+      const worker = async () => {
+        while (offset < targets.length && !controller.signal.aborted && context.isCurrent()) {
+          const batch = targets.slice(offset, offset + 100);
+          offset += 100;
+          const { users } = await postToApi("teacher-onboarding", { action: "statuses", userIds: batch.map(t => t.id) }, { signal: controller.signal });
+          if (controller.signal.aborted || !context.isCurrent()) return;
+          for (const user of users) {
+            if ((accessVersions.get(user.uid) || 0) !== versions.get(user.uid) || changingAccess.has(user.uid)) continue;
+            const teacher = context.byId.get(user.uid);
+            if (!teacher) continue;
+            teacher.emailVerified = user.emailVerified;
+            if (typeof user.disabled === "boolean") teacher.disabled = user.disabled;
+            statusCache.set(user.uid, { emailVerified: teacher.emailVerified, disabled: teacher.disabled, checkedAt: Date.now() });
+            context.updateRow(teacher);
+          }
+          context.updateFilters();
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, Math.ceil(targets.length / 100)) }, worker));
+    };
+    await Promise.race([work(), new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error("Status check timed out"));
+      }, STATUS_TIMEOUT);
+    })]);
+    setStatusNotice(context);
+  } catch {
+    controller.abort();
+    setStatusNotice(context, "Couldn’t refresh account statuses. The teacher list is still available; displayed statuses may be out of date.", true);
+  } finally {
+    clearTimeout(timer);
+    context.refreshing = false;
+  }
+}
+
+function accountStatusMarkup(teacher, mobile = false) {
+  const inactive = teacher.disabled === true;
+  return `<span class="teacher-account-status teacher-account-status--${inactive ? "deactivated" : "active"}${mobile ? " teacher-account-status--mobile" : ""}"><i aria-hidden="true"></i>${inactive ? "Deactivated" : "Active"}</span>`;
+}
 
 function verificationMarkup(teacher) {
   if (teacher.emailVerificationRequired !== true) return "";
@@ -38,7 +114,7 @@ function verificationMarkup(teacher) {
 
 function verificationActions(teacher) {
   if (teacher.emailVerificationRequired !== true || teacher.emailVerified === true) return "";
-  return `<button type="button" class="teacher-table__menu-item" data-verify="${escapeHtml(teacher.id)}">Resend verification email</button><button type="button" class="teacher-table__menu-item" data-correct-email="${escapeHtml(teacher.id)}">Correct pending email</button>`;
+  return `<button type="button" class="teacher-table__menu-item" data-verify="${escapeHtml(teacher.id)}">Resend verification email</button>`;
 }
 
 function wireVerificationActions() {
@@ -50,25 +126,7 @@ function wireVerificationActions() {
       await renderTeachers();
     } catch (error) { toast(error.message); } finally { button.disabled = false; }
   }));
-  document.querySelectorAll("[data-correct-email]").forEach(button => button.addEventListener("click", () => {
-    closeTeacherMenus();
-    const teacher = state.teachers.find(t => t.id === button.dataset.correctEmail);
-    openModal(`<h2>Correct pending email</h2><form class="form-card" id="correct-teacher-email"><label>Email<input name="email" type="email" required value="${escapeHtml(teacher.email)}"></label><p role="alert" class="form-error"></p><button class="button primary" type="submit">Save and send verification</button></form>`, (modal, close) => {
-      modal.querySelector("form").addEventListener("submit", async event => {
-        event.preventDefault();
-        const submit = modal.querySelector("button");
-        if (submit.disabled) return;
-        submit.disabled = true;
-        try {
-          const result = await postToApi("teacher-onboarding", { action: "correct-email", userId: teacher.id, email: modal.querySelector("input").value.trim() });
-          close();
-          await renderTeachers();
-          toast(result.emailSent ? "Email corrected. Verification email sent." : "Email corrected, but verification email could not be sent. Use Resend verification email.");
-        } catch (error) { modal.querySelector("[role=alert]").textContent = error.message; }
-        finally { submit.disabled = false; }
-      });
-    });
-  }));
+
 }
 
 function closeTeacherMenus() {
@@ -95,23 +153,28 @@ document.addEventListener("keydown", (event) => {
 });
 
 export async function renderTeachers() {
-  const isCurrent = captureRoute("/teachers");
+  const revision = ++renderRevision;
+  view?.controller?.abort();
+  const routeCurrent = captureRoute("/teachers");
+  const owner = auth.currentUser?.uid || "";
+  const isCurrent = () => revision === renderRevision && routeCurrent() && (auth.currentUser?.uid || "") === owner;
   if (!isCurrent()) return;
+  if (cacheOwner !== owner) {
+    statusCache.clear();
+    accessVersions.clear();
+    cacheOwner = owner;
+  }
   await getAllTeachers();
   if (!isCurrent()) return;
-  const pending = state.teachers.filter(t => t.emailVerificationRequired === true);
-  pending.forEach(teacher => { delete teacher.emailVerified; });
-  try {
-    for (let offset = 0; offset < pending.length; offset += 100) {
-      const { users } = await postToApi("teacher-onboarding", { action: "statuses", userIds: pending.slice(offset, offset + 100).map(t => t.id) });
-      if (!isCurrent()) return;
-      for (const user of users) {
-        const teacher = pending.find(t => t.id === user.uid);
-        if (teacher) teacher.emailVerified = user.emailVerified;
-      }
+  for (const teacher of state.teachers) {
+    const cached = statusCache.get(teacher.id);
+    if (cached && typeof teacher.disabled === "boolean" && cached.disabled !== teacher.disabled) {
+      statusCache.delete(teacher.id);
+    } else if (cached) {
+      teacher.emailVerified = cached.emailVerified;
+      if (typeof cached.disabled === "boolean") teacher.disabled = cached.disabled;
     }
-  } catch { /* Show unavailable status rather than assume verification. */ }
-  if (!isCurrent()) return;
+  }
 
   page(
     "Teacher accounts",
@@ -132,27 +195,33 @@ export async function renderTeachers() {
             ${state.teachers.length === 1 ? "teacher" : "teachers"}
           </span>
         </div>
+        <div class="teacher-status-filters" role="group" aria-label="Filter teachers by account status">
+          ${[["all", "All"], ["active", "Active"], ["deactivated", "Deactivated"]].map(([value, label]) => `<button type="button" data-teacher-filter="${value}" aria-pressed="${statusFilter === value}"><span class="teacher-status-filters__label">${label}</span><span class="teacher-status-filters__count">${state.teachers.filter(t => value === "all" || (t.disabled === true ? "deactivated" : "active") === value).length}</span></button>`).join("")}
+        </div>
         <label class="admin-directory-search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
           <span class="sr-only">Search teachers by name</span>
-          <input type="search" id="teacher-name-search" placeholder="Search by teacher name..." autocomplete="off" />
+          <input type="search" id="teacher-name-search" placeholder="Search by teacher name..." autocomplete="off" value="${escapeHtml(teacherQuery)}" />
         </label>
+        <div id="teacher-status-notice" class="teacher-status-notice" hidden><span role="status"></span><button type="button" class="button secondary">Retry status check</button></div>
         <div class="teacher-table-wrap">
         <table class="table teacher-table">
           <thead>
-            <tr><th scope="col">Teacher</th><th scope="col">Email address</th><th scope="col" aria-label="Teacher actions"></th></tr>
+            <tr><th scope="col">Teacher</th><th scope="col">Email address</th><th scope="col" class="teacher-table__status-column">Status</th><th scope="col" aria-label="Teacher actions"></th></tr>
           </thead>
           <tbody>
             ${state.teachers
               .map(
-                (t) => `<tr data-teacher-name="${escapeHtml(t.displayName || "Unnamed teacher")}">
+                (t) => `<tr data-teacher-id="${escapeHtml(t.id)}" data-teacher-name="${escapeHtml(t.displayName || "Unnamed teacher")}" data-teacher-status="${t.disabled === true ? "deactivated" : "active"}">
                   <td>
                     <div class="teacher-table__person">
                       <span class="teacher-table__name">${escapeHtml(t.displayName || "Unnamed teacher")}</span>
                       ${titleLabel(t.title) ? `<span class="teacher-table__title">${escapeHtml(titleLabel(t.title))}</span>` : ""}
                     </div>
+                    ${accountStatusMarkup(t, true)}
                   </td>
                   <td class="teacher-table__email">${escapeHtml(t.email || "No email on file")}${verificationMarkup(t)}</td>
+                  <td class="teacher-table__status-column">${accountStatusMarkup(t)}</td>
                   <td>
                     <div class="teacher-table__menu">
                       <button
@@ -165,17 +234,13 @@ export async function renderTeachers() {
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                       </button>
                       <div class="teacher-table__menu-popup" hidden>
-                        <button type="button" class="teacher-table__menu-item" data-edit="${escapeHtml(t.id)}">
-                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
-                          <span>Edit details</span>
-                        </button>
                         ${verificationActions(t)}<button type="button" class="teacher-table__menu-item" data-reset="${escapeHtml(t.id)}">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3" /></svg>
                           <span>Reset password</span>
                         </button>
-                        <button type="button" class="teacher-table__menu-item teacher-table__menu-item--danger" data-delete="${escapeHtml(t.id)}">
-                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
-                          <span>Remove teacher</span>
+                        <button type="button" class="teacher-table__menu-item" data-toggle-access="${escapeHtml(t.id)}">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="${t.disabled === true ? "m8 12 3 3 5-6" : "M9 8v8M15 8v8"}"/></svg>
+                          <span>${t.disabled === true ? "Reactivate teacher" : "Deactivate teacher"}</span>
                         </button>
                       </div>
                     </div>
@@ -184,7 +249,7 @@ export async function renderTeachers() {
               )
               .join("")}
             <tr class="admin-directory-search-empty" hidden>
-              <td colspan="3">No teachers match that name.</td>
+              <td colspan="4">No teachers match this search and status.</td>
             </tr>
           </tbody>
         </table>
@@ -200,18 +265,31 @@ export async function renderTeachers() {
   $("#add-teacher")?.addEventListener("click", openAddTeacherModal);
   $("#add-teacher-empty")?.addEventListener("click", openAddTeacherModal);
 
-  $("#teacher-name-search")?.addEventListener("input", (event) => {
-    const query = event.currentTarget.value.trim().toLowerCase();
+  function applyFilters() {
+    const query = teacherQuery.trim().toLowerCase();
     const rows = [...document.querySelectorAll(".teacher-table tbody tr[data-teacher-name]")];
     let visibleCount = 0;
     rows.forEach((row) => {
-      const matches = row.dataset.teacherName.toLowerCase().includes(query);
+      const matches = row.dataset.teacherName.toLowerCase().includes(query) &&
+        (statusFilter === "all" || row.dataset.teacherStatus === statusFilter);
       row.hidden = !matches;
       if (matches) visibleCount += 1;
     });
     const emptyRow = $(".admin-directory-search-empty");
     if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+  }
+  $("#teacher-name-search")?.addEventListener("input", event => {
+    teacherQuery = event.currentTarget.value;
+    applyFilters();
   });
+  document.querySelectorAll("[data-teacher-filter]").forEach(button => button.addEventListener("click", () => {
+    statusFilter = button.dataset.teacherFilter;
+    closeTeacherMenus();
+    document.querySelectorAll("[data-teacher-filter]").forEach(tab => tab.setAttribute("aria-pressed", String(tab === button)));
+    applyFilters();
+    pager?.reset();
+  }));
+  applyFilters();
 
   pager = paginate({
     rows: () => [...document.querySelectorAll(".teacher-table tbody tr[data-teacher-name]")],
@@ -220,18 +298,48 @@ export async function renderTeachers() {
     label: ["teacher", "teachers"],
   });
 
+  const rows = new Map([...document.querySelectorAll("tr[data-teacher-id]")].map(row => [row.dataset.teacherId, row]));
+  const context = {
+    isCurrent, owner, teachers: state.teachers, byId: new Map(state.teachers.map(t => [t.id, t])),
+    updateRow(teacher) {
+      if (!isCurrent()) return;
+      const row = rows.get(teacher.id);
+      if (!row) return;
+      row.dataset.teacherStatus = teacher.disabled === true ? "deactivated" : "active";
+      row.querySelectorAll(".teacher-account-status").forEach(mark => {
+        mark.classList.toggle("teacher-account-status--deactivated", teacher.disabled === true);
+        mark.classList.toggle("teacher-account-status--active", teacher.disabled !== true);
+        mark.lastChild.textContent = teacher.disabled === true ? "Deactivated" : "Active";
+      });
+      row.querySelector(".teacher-table__email").innerHTML = escapeHtml(teacher.email || "No email on file") + verificationMarkup(teacher);
+      const accessButton = row.querySelector("[data-toggle-access]");
+      accessButton.querySelector("span").textContent = teacher.disabled === true ? "Reactivate teacher" : "Deactivate teacher";
+      accessButton.querySelector("path").setAttribute("d", teacher.disabled === true ? "m8 12 3 3 5-6" : "M9 8v8M15 8v8");
+      const resend = row.querySelector("[data-verify]");
+      if (resend) resend.hidden = teacher.emailVerified === true;
+    },
+    updateFilters() {
+      if (!isCurrent()) return;
+      document.querySelectorAll("[data-teacher-filter]").forEach(tab => {
+        const value = tab.dataset.teacherFilter;
+        tab.querySelector(".teacher-status-filters__count").textContent = context.teachers.filter(t => value === "all" || (t.disabled === true ? "deactivated" : "active") === value).length;
+      });
+      applyFilters();
+      pager?.refresh();
+    },
+  };
+  view = context;
+  $("#teacher-status-notice button")?.addEventListener("click", () => { void refreshStatuses(context, true); });
+
   wireVerificationActions();
   state.teachers.forEach((t) => {
-    const editButton = [...document.querySelectorAll("[data-edit]")].find(
-      (button) => button.dataset.edit === t.id,
-    );
     const resetButton = [...document.querySelectorAll("[data-reset]")].find(
       (button) => button.dataset.reset === t.id,
     );
-    const deleteButton = [...document.querySelectorAll("[data-delete]")].find(
-      (button) => button.dataset.delete === t.id,
+    const accessButton = [...document.querySelectorAll("[data-toggle-access]")].find(
+      (button) => button.dataset.toggleAccess === t.id,
     );
-    const row = editButton?.closest("tr");
+    const row = accessButton?.closest("tr");
     const toggle = row?.querySelector(".teacher-table__menu-toggle");
     const popup = row?.querySelector(".teacher-table__menu-popup");
 
@@ -241,19 +349,16 @@ export async function renderTeachers() {
       popup.hidden = !willOpen;
       toggle.setAttribute("aria-expanded", String(willOpen));
     });
-    editButton?.addEventListener("click", () => {
-      closeTeacherMenus();
-      openEditTeacherModal(t);
-    });
     resetButton?.addEventListener("click", () => {
       closeTeacherMenus();
       resetPassword(t);
     });
-    deleteButton?.addEventListener("click", () => {
+    accessButton?.addEventListener("click", () => {
       closeTeacherMenus();
-      openRemoveTeacherModal(t);
+      changeTeacherAccess(t, accessButton, context);
     });
   });
+  void refreshStatuses(context);
 }
 
 function openAddTeacherModal() {
@@ -312,37 +417,6 @@ function openAddTeacherModal() {
   );
 }
 
-function openEditTeacherModal(teacher) {
-  openModal(
-    `<h2>Edit teacher</h2>
-     <form id="edit-teacher-form" class="form-card">
-       ${teacherNameFields(teacher)}
-       ${genderMarkup(teacher.gender, !teacher.gender)}
-       <p class="muted">Email: ${escapeHtml(teacher.email || "—")}. Use "Reset password" to let them set a new password.</p>
-       <div class="modal-actions"><button class="button primary" type="submit">Save changes</button></div>
-     </form>`,
-    (modal, close) => {
-      modal
-        .querySelector("#edit-teacher-form")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const values = new FormData(e.currentTarget);
-          const name = readTeacherName(e.currentTarget);
-          const gender = values.get("gender");
-          const title = gender ? titleForGender(gender) : (teacher.title || "");
-          try {
-            await updateDoc(doc(db, "users", teacher.id), { ...name, ...(gender ? { gender } : {}), title });
-            toast("Teacher account updated.");
-            close();
-            await renderTeachers();
-          } catch (error) {
-            toast(error.message);
-          }
-        });
-    },
-  );
-}
-
 /** Sends the BaSaya-branded reset email (notify-api). If the API can't send it (e.g. Gmail isn't set up yet), falls back to Firebase's standard reset email. */
 async function resetPassword(teacher) {
   const name = teacherName(teacher);
@@ -384,184 +458,40 @@ async function resetPassword(teacher) {
   }
 }
 
-const ICON_USER_MINUS =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 11h6" /></svg>';
-const ICON_LOCK =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>';
-const ICON_CLASSES =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M3.5 9.5h17M9 9.5v10" /></svg>';
-const ICON_SHIELD =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6l-7-2.5Z" /><path d="m9 12 2.2 2.2L15.5 10" /></svg>';
-
 const teacherName = (teacher) => teacher.displayName || teacher.email || "this teacher";
 
-function openRemoveTeacherModal(teacher) {
-  const name = teacherName(teacher);
-  openModal(
-    `<div class="remove-teacher">
-      <div class="remove-teacher__head">
-        <span class="remove-teacher__icon">${ICON_USER_MINUS}</span>
-        <div>
-          <h2>Remove teacher access?</h2>
-          <p>Review what changes before you continue.</p>
-        </div>
-      </div>
-      <div class="remove-teacher__person">
-        <span class="remove-teacher__avatar" aria-hidden="true">${escapeHtml(initials(name))}</span>
-        <span class="remove-teacher__who">
-          <strong>${escapeHtml(name)}</strong>
-          <span>${escapeHtml(teacher.email || "No email on file")}</span>
-        </span>
-        <span class="remove-teacher__role">Teacher</span>
-      </div>
-      <ul class="remove-teacher__impact">
-        <li class="is-lost">${ICON_LOCK}<span><strong>Portal access ends right away</strong><small>They can no longer sign in to the teacher portal.</small></span></li>
-        <li class="is-kept">${ICON_CLASSES}<span>
-          <strong data-class-impact>Their classes stay</strong>
-          <small data-class-detail>Classes remain and show as Unassigned until you reassign them.</small>
-          <label class="remove-teacher__move" hidden>
-            <span>Move their classes to</span>
-            <select name="moveTo">
-              <option value="">Leave unassigned for now</option>
-              ${teacherOptions("", teacher.id)}
-            </select>
-          </label>
-        </span></li>
-        <li class="is-kept">${ICON_SHIELD}<span><strong>Lessons and student progress are kept</strong><small>Nothing students have done is deleted.</small></span></li>
-      </ul>
-      <p class="form-error" id="remove-teacher-error" role="alert"></p>
-      <div class="modal-actions">
-        <button type="button" class="button secondary" data-cancel>Keep teacher</button>
-        <button type="button" class="button danger" data-confirm-remove>Remove teacher</button>
-      </div>
-    </div>`,
-    (modal, close) => {
-      $("[data-cancel]", modal).addEventListener("click", close);
-      setTimeout(() => $("[data-cancel]", modal).focus(), 50);
-
-      // Once we know how many classes they lead, offer to hand them to another teacher.
-      let count = 0;
-      const moveTo = $("[name=moveTo]", modal);
-      const describeClasses = () => {
-        if (!count) return;
-        const target = state.teachers.find((t) => t.id === moveTo.value);
-        const classes = `${count} ${count === 1 ? "class" : "classes"}`;
-        $("[data-class-impact]", modal).textContent = target
-          ? `${classes} move to ${teacherLabel(target)}`
-          : `${classes} ${count === 1 ? "stays" : "stay"}, now unassigned`;
-        $("[data-class-detail]", modal).textContent = target
-          ? "Their students, lesson plans and progress go with them."
-          : "They show as Unassigned until you reassign them in All classes.";
-      };
-      moveTo.addEventListener("change", describeClasses);
-      classIdsOf(teacher.id)
-        .then((ids) => {
-          count = ids.length;
-          describeClasses();
-          // Only worth asking when there are classes and someone to take them.
-          $(".remove-teacher__move", modal).hidden = !count || moveTo.options.length < 2;
-        })
-        .catch(() => {});
-
-      const confirmButton = $("[data-confirm-remove]", modal);
-      confirmButton.addEventListener("click", async () => {
-        confirmButton.disabled = true;
-        confirmButton.textContent = "Removing…";
-        const target = state.teachers.find((t) => t.id === moveTo.value);
-        try {
-          // Hand the classes over first, so they're never left without a teacher.
-          const moved = target ? await classIdsOf(teacher.id) : [];
-          await assignClasses(moved, target?.id);
-          // Deleting the Firestore profile revokes access (the role check in
-          // teacher/app.js fails for this UID). The Firebase Auth account itself
-          // stays: only the Admin SDK can delete another user's Auth record.
-          await deleteDoc(doc(db, "users", teacher.id));
-          close();
-          await removeRow(teacher.id);
-          showRemovedNotice(teacher, moved, target);
-        } catch (error) {
-          $("#remove-teacher-error", modal).textContent = `Couldn't remove the teacher: ${error.message}`;
-          confirmButton.disabled = false;
-          confirmButton.textContent = "Remove teacher";
-        }
-      });
-    },
-  );
-}
-
-/** Fades the teacher's row out, collapses its space, then updates the count and pages. */
-async function removeRow(teacherId) {
-  state.teachers = state.teachers.filter((t) => t.id !== teacherId);
-  const row = document
-    .querySelector(`[data-delete="${CSS.escape(teacherId)}"]`)
-    ?.closest("tr");
-  if (!state.teachers.length || !row) {
-    if (currentRoute() === "/teachers") await renderTeachers();
-    return;
+async function changeTeacherAccess(teacher, button, context) {
+  if (button.disabled) return;
+  const isCurrent = captureRoute('/teachers');
+  const reactivate = teacher.disabled === true;
+  button.disabled = true;
+  try {
+    if (!await confirmAction({
+      title: reactivate ? 'Reactivate teacher?' : 'Deactivate teacher?',
+      message: reactivate
+        ? teacherName(teacher) + ' will be able to sign in again. Their classes and records stay assigned to them.'
+        : teacherName(teacher) + ' will be signed out and unable to sign in. Their account, classes, lessons and student records will be kept. You can reactivate them later.',
+      confirm: reactivate ? 'Reactivate teacher' : 'Deactivate teacher',
+      danger: !reactivate,
+    })) return;
+    if (!context.isCurrent()) return;
+    changingAccess.add(teacher.id);
+    accessVersions.set(teacher.id, (accessVersions.get(teacher.id) || 0) + 1);
+    const result = await postToApi('teacher-onboarding', { action: reactivate ? 'reactivate' : 'deactivate', userId: teacher.id });
+    teacher.disabled = typeof result.disabled === "boolean" ? result.disabled : !reactivate;
+    if (cacheOwner === context.owner) {
+      accessVersions.set(teacher.id, (accessVersions.get(teacher.id) || 0) + 1);
+      statusCache.set(teacher.id, { disabled: teacher.disabled, emailVerified: teacher.emailVerified, checkedAt: Date.now() });
+    }
+    toast(reactivate ? 'Teacher account reactivated.' : 'Teacher account deactivated. Classes and records have been kept.');
+    if (isCurrent() && context.isCurrent()) {
+      context.updateRow(teacher);
+      context.updateFilters();
+    }
+  } catch (error) {
+    toast(error.message || 'Could not update teacher access. Please try again.');
+  } finally {
+    changingAccess.delete(teacher.id);
+    button.disabled = false;
   }
-
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    row.classList.add("is-leaving");
-    await new Promise((resolve) => setTimeout(resolve, 520));
-    // Swap the cells for one spacer of the same height, then shrink it.
-    const height = row.getBoundingClientRect().height;
-    row.classList.add("is-collapsing");
-    row.innerHTML = `<td colspan="3"><div style="height:${height}px"></div></td>`;
-    await row.firstElementChild.firstElementChild.animate(
-      [{ height: `${height}px` }, { height: "0px" }],
-      { duration: 280, easing: "cubic-bezier(0.65, 0, 0.35, 1)" },
-    ).finished;
-  }
-  row.remove();
-
-  const count = $(".teacher-directory__count");
-  if (count) {
-    const total = state.teachers.length;
-    count.innerHTML = `<strong>${total}</strong> ${total === 1 ? "teacher" : "teachers"}`;
-  }
-  pager?.refresh();
-}
-
-/** "Removed" notice with Undo, which restores the account and moves any classes back. */
-function showRemovedNotice(teacher, moved = [], target = null) {
-  const name = teacherName(teacher);
-  const { id, ...profile } = teacher;
-  notify({
-    tone: "danger",
-    avatar: initials(name),
-    title: `${name} was removed`,
-    message: moved.length
-      ? `Access revoked. ${moved.length} ${moved.length === 1 ? "class" : "classes"} moved to ${teacherLabel(target)}.`
-      : "Portal access has been revoked.",
-    duration: 8000,
-    action: {
-      label: "Undo",
-      busyLabel: "Restoring…",
-      run: async () => {
-        try {
-          await setDoc(doc(db, "users", id), profile);
-          await assignClasses(moved, id);
-        } catch (error) {
-          notify({ tone: "danger", title: "Couldn't restore the teacher", message: error.message });
-          return;
-        }
-        if (currentRoute() === "/teachers") {
-          await renderTeachers();
-          document
-            .querySelector(`[data-delete="${CSS.escape(id)}"]`)
-            ?.closest("tr")
-            ?.classList.add("is-restored");
-        }
-        notify({
-          tone: "success",
-          avatar: initials(name),
-          title: `${name} is back`,
-          message: moved.length
-            ? "Their access and classes have been restored."
-            : "Their portal access has been restored.",
-          duration: 4500,
-        });
-      },
-    },
-  });
 }

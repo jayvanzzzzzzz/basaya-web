@@ -29,9 +29,13 @@ export async function requireToken(req, res, { allowPendingTeacher = false } = {
     return null;
   }
   try {
-    const decoded = await adminAuth().verifyIdToken(token);
+    const decoded = await adminAuth().verifyIdToken(token, true);
+    const profile = await db().doc(`users/${decoded.uid}`).get();
+    if (profile.get("role") === "teacher" && profile.get("disabled") === true) {
+      res.status(403).json({ error: "Your teacher account is deactivated. Contact your school administrator." });
+      return null;
+    }
     if (!allowPendingTeacher) {
-      const profile = await db().doc(`users/${decoded.uid}`).get();
       if (profile.get("role") === "teacher" && profile.get("emailVerificationRequired") === true &&
           !teacherAccessReady(profile.data(), await adminAuth().getUser(decoded.uid))) {
         res.status(403).json({ error: "Verify your email and finish setting your password before using teacher features." });

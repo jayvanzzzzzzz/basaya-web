@@ -11,6 +11,7 @@ service cloud.firestore {
       return signedIn() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid))
           .data.role == "teacher" &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('disabled', false) != true &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('emailVerificationRequired', false) != true ||
           (request.auth.token.get('email_verified', false) == true &&
             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('mustChangePassword', false) != true));
@@ -73,14 +74,15 @@ service cloud.firestore {
                                                                                                                                                                                     
         allow update: if signedIn() &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['username']) && (
-          isAdmin() ||
+          (isAdmin() && (resource.data.role != 'teacher' ||
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['firstName', 'middleName', 'lastName', 'displayName', 'gender', 'title', 'email', 'photoURL']))) ||
           (request.auth.uid == userId &&
             request.resource.data.role == resource.data.role &&
             (resource.data.role != 'teacher' ||
               (!resource.data.keys().hasAny(['gender']) && !request.resource.data.keys().hasAny(['gender'])) ||
               (request.resource.data.gender == 'female' && request.resource.data.title == 'maam') ||
               (request.resource.data.gender == 'male' && request.resource.data.title == 'sir')) &&
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt']))
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt', 'disabled']))
         );
                                                                                                                                                                                     
         allow delete: if isAdmin();    

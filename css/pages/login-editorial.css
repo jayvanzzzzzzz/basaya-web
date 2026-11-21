@@ -38,7 +38,7 @@
 .login-editorial .auth-showcase__pause { width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid rgba(255,255,255,.24); border-radius: 10px; background: rgba(255,255,255,.06); transition: background-color 200ms, transform 200ms; }
 .login-editorial .auth-showcase__pause:hover { background: rgba(255,255,255,.15); transform: translateY(-2px); }
 .login-editorial .auth-panel { gap: 1rem; min-width: 0; padding: clamp(3rem,6vh,5rem) clamp(.5rem,2.5vw,2.5rem) 1rem 0; }
-.login-editorial .auth-panel > :first-child, .login-editorial .auth-panel > #login-form { margin-top: auto; }
+.login-editorial .auth-panel > :first-child, .login-editorial .auth-panel > #login-form { margin-top: 0; }
 .login-editorial .auth-panel .form-card { width: min(100%,26rem); padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; animation: none; gap: 1.25rem; }
 .login-editorial .auth-panel .form-card h2 { margin-bottom: .8rem; font-size: 2rem; font-weight: 600; letter-spacing: -.045em; }
 .login-editorial .auth-panel .form-card h2::after { display: none; }
@@ -79,6 +79,10 @@
 .login-editorial :is(.password-field__toggle,.auth-showcase__pause,.theme-toggle--floating)::after { content: attr(aria-label); position: absolute; z-index: 20; right: 0; top: calc(100% + 8px); width: max-content; max-width: 180px; padding: .45rem .65rem; border-radius: 6px; background: var(--ink); color: var(--bg); font: 500 11px/1.5 var(--font-body); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-3px); transition: opacity 160ms, transform 160ms, visibility 160ms; }
 .login-editorial .auth-showcase__pause { position: relative; }
 .login-editorial :is(.password-field__toggle,.auth-showcase__pause,.theme-toggle--floating):is(:hover,:focus-visible)::after { opacity: 1; visibility: visible; transform: none; }
+@media (min-width: 901px) {
+  .login-editorial .auth-copy { padding-bottom: clamp(2rem,5vw,4.5rem); }
+  .login-editorial .auth-panel > :first-child, .login-editorial .auth-panel > #login-form { margin-top: 3rem; }
+}
 @media (max-width: 1100px) and (min-width: 901px) {
   .login-editorial .auth-copy { padding-inline: 2rem; }
   .login-editorial .auth-panel { padding-right: .5rem; }

@@ -93,9 +93,11 @@ Free limits: a personal Gmail account can send about 500 emails a day, far more 
 
 If the branded reset email can't be sent (for example the App Password isn't set yet), the admin site falls back to Firebase's standard reset email, so teachers can still reset their password.
 
-## Teacher username sign-in
+## Teacher and admin username sign-in
 
-Teachers can add/change a unique, lowercase username in Account settings using their current Firebase password. Email sign-in and recovery remain available. `/api/username-save` and `/api/username-login` share `api/class-membership.js` through Vercel rewrites; no extra serverless function is added.
+Admin Account Settings updates passwords directly through Firebase after current-password verification. It no longer calls the legacy approval-email endpoints or shows a password-reset email card.
+
+Teachers and admins can add/change a unique, lowercase username in Account settings using their current Firebase password. Email sign-in and recovery remain available. `/api/username-save` and `/api/username-login` share `api/class-membership.js` through Vercel rewrites; no extra serverless function is added.
 
 Deploy the updated `firestore.rules` first (aliases are private and client profile username writes are denied), then deploy `notify-api`, then the web files and regenerated `offline-shell.js`. The existing `FIREBASE_SERVICE_ACCOUNT` and `ALLOWED_ORIGINS` settings are reused. `FIREBASE_WEB_API_KEY` can override the public BaSaya web key when using another Firebase deployment. No paid Firebase Functions or Identity Platform upgrade is needed.
 

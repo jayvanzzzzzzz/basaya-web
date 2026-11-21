@@ -6,10 +6,14 @@ import { startFirestoreTestServer } from "./firestore-test-server.mjs";
 
 const rows = new Map([["users/admin", { role: "admin" }], ["users/student", { role: "student" }]]);
 const users = new Map();
-let mailFails = false, profileFails = false, sent = 0, sequence = 0;
+let mailFails = false, profileFails = false, sent = 0, sequence = 0, accessWriteFails = false;
+const revoked = [];
 let generatedLink = "https://firebase.example/action?oobCode=secure-test-code";
 const snapshot = path => ({ exists: rows.has(path), get: key => rows.get(path)?.[key], data: () => rows.get(path), ref: ref(path) });
-const ref = path => ({ path, get: async () => snapshot(path), update: async data => rows.set(path, { ...rows.get(path), ...data }) });
+const ref = path => ({ path, get: async () => snapshot(path), update: async data => {
+  if (accessWriteFails && 'disabled' in data) throw Error('profile unavailable');
+  rows.set(path, { ...rows.get(path), ...data });
+} });
 const database = {
   doc: ref,
   batch: () => {
@@ -19,7 +23,12 @@ const database = {
   runTransaction: async run => run({ get: async r => snapshot(r.path), update: (r, data) => rows.set(r.path, { ...rows.get(r.path), ...data }) }),
 };
 const authentication = {
-  verifyIdToken: async uid => ({ uid, auth_time: Date.now() / 1000 }),
+  verifyIdToken: async (uid, checkRevoked) => {
+    assert.equal(checkRevoked, true, 'API must check disabled/revoked sessions');
+    if (users.get(uid)?.disabled) throw Error('account disabled');
+    return { uid, auth_time: Date.now() / 1000 };
+  },
+  revokeRefreshTokens: async uid => { revoked.push(uid); },
   createUser: async data => {
     if ([...users.values()].some(u => u.email === data.email)) throw Object.assign(Error(), { code: "auth/email-already-exists" });
     const user = { ...data, uid: `teacher${++sequence}` }; users.set(user.uid, user); return user;
@@ -128,10 +137,11 @@ await test('resend cooldown; teacher cannot resend for someone else', async () =
   assert.equal((await request({ action: 'resend' }, uid)).code, 429);
   assert.equal((await request({ action: 'resend', userId: uid }, 'student')).code, 403);
 });
-await test('pending email correction updates auth and profile, sends link', async () => {
+await test('admin cannot correct an existing teacher email through the API', async () => {
+  const previousEmail = users.get(uid).email;
   const result = await request({ action: 'correct-email', userId: uid, email: 'corrected@school.edu' });
-  assert.equal(result.code, 200); assert.equal(result.body.emailSent, true);
-  assert.equal(users.get(uid).email, 'corrected@school.edu'); assert.equal(rows.get(`users/${uid}`).email, 'corrected@school.edu');
+  assert.equal(result.code, 400);
+  assert.equal(users.get(uid).email, previousEmail); assert.equal(rows.get(`users/${uid}`).email, previousEmail);
 });
 await test('unverified users cannot complete setup; only admin reads statuses', async () => {
   assert.equal((await request({ action: 'complete', password: 'MyPassword2' }, uid)).code, 403);
@@ -159,6 +169,53 @@ await test('API guard blocks pending accounts and permits legacy/ready accounts'
   assert.equal(await http.requireUser({ headers: { authorization: 'Bearer legacy' } }, res), 'legacy');
 });
 
+await test('only admins can change access, and only for a teacher', async () => {
+  for (const action of ['deactivate', 'reactivate']) {
+    assert.equal((await request({ action, userId: uid }, 'student')).code, 403);
+    assert.equal((await request({ action, userId: uid }, uid)).code, 403);
+    assert.equal((await request({ action, userId: 'student' })).code, 404);
+    assert.equal((await request({ action })).code, 400);
+  }
+});
+await test('deactivation disables auth, revokes sessions and preserves profile and class assignments', async () => {
+  rows.set('classes/preserved', { teacherId: uid, title: 'Rizal', students: ['student'] });
+  const before = { ...rows.get(`users/${uid}`) };
+  const result = await request({ action: 'deactivate', userId: uid });
+  assert.equal(result.code, 200);
+  assert.equal(result.body.disabled, true);
+  assert.equal(users.get(uid).disabled, true);
+  assert.deepEqual(rows.get(`users/${uid}`), { ...before, disabled: true });
+  assert.equal(rows.get('classes/preserved').teacherId, uid);
+  assert.deepEqual(rows.get('classes/preserved').students, ['student']);
+  assert.ok(revoked.includes(uid));
+  const status = await request({ action: 'statuses', userIds: [uid] });
+  assert.equal(status.body.users[0].disabled, true);
+  assert.equal((await request({ action: 'resend' }, uid)).code, 401);
+});
+await test('reactivation restores sign-in and retains setup flags and records; retries are safe', async () => {
+  assert.equal((await request({ action: 'reactivate', userId: uid })).code, 200);
+  assert.equal((await request({ action: 'reactivate', userId: uid })).code, 200);
+  assert.equal(users.get(uid).disabled, false);
+  assert.equal(rows.get(`users/${uid}`).disabled, false);
+  assert.equal(rows.get(`users/${uid}`).mustChangePassword, false);
+  assert.equal(rows.get('classes/preserved').teacherId, uid);
+  const http = modules.get(new URL('../notify-api/lib/http.js', import.meta.url).href).namespace;
+  assert.equal(await http.requireUser({ headers: { authorization: `Bearer ${uid}` } }, { status() { return this; }, json() {} }), uid);
+});
+await test('failed profile status write rolls authentication back without deleting data', async () => {
+  accessWriteFails = true;
+  assert.equal((await request({ action: 'deactivate', userId: uid })).code, 500);
+  accessWriteFails = false;
+  assert.equal(users.get(uid).disabled, false);
+  assert.equal(rows.get(`users/${uid}`).disabled, false);
+  assert.equal(rows.get('classes/preserved').teacherId, uid);
+});
+await test('profile-disabled teachers cannot call even the pending-account API', async () => {
+  rows.get(`users/${uid}`).disabled = true;
+  assert.equal((await request({ action: 'resend' }, uid)).code, 403);
+  rows.get(`users/${uid}`).disabled = false;
+});
+
 if (process.argv[2]) {
   const emulator = await startFirestoreTestServer(...process.argv.slice(2));
   const fields = data => Object.fromEntries(Object.entries(data).map(([key, value]) => [key, typeof value === 'boolean' ? { booleanValue: value } : { stringValue: value }]));
@@ -179,6 +236,19 @@ if (process.argv[2]) {
     await test('rules deny pending teacher lesson access; preserve legacy access', async () => {
       assert.equal((await get('lessons/sample', 'pending')).status, 403);
       assert.equal((await get('lessons/sample', 'legacy')).status, 200);
+    });
+    await test('rules block deactivated teachers and prevent self-reactivation', async () => {
+      await patch('users/inactive', { role: 'teacher', disabled: true });
+      assert.equal((await get('lessons/sample', 'inactive')).status, 403);
+      assert.equal((await patch('users/inactive', { disabled: false }, 'inactive')).status, 403);
+      assert.equal((await patch('users/legacy', { disabled: true }, 'legacy')).status, 403);
+    });
+    await test('admin cannot edit teacher identity but teacher can maintain their own profile', async () => {
+      await patch('users/directory-admin', { role: 'admin' });
+      for (const key of ['firstName', 'lastName', 'middleName', 'displayName', 'email', 'photoURL']) {
+        assert.equal((await patch('users/legacy', { [key]: 'Changed' }, 'directory-admin')).status, 403);
+      }
+      assert.equal((await patch('users/legacy', { displayName: 'My updated name' }, 'legacy')).status, 200);
     });
     await test('rules prevent clearing required setup flags and reading private password hash', async () => {
       assert.equal((await patch('users/pending', { mustChangePassword: false }, 'pending')).status, 403);

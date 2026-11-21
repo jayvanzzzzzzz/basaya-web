@@ -1,0 +1,15 @@
+diff --git a/verify-teacher.html b/verify-teacher.html
+index 0c18348..e454b27 100644
+--- a/verify-teacher.html
++++ b/verify-teacher.html
+@@ -54,6 +54,10 @@
+           <p id="setup-description">Checking your teacher account&hellip;</p>
+           <div class="verify-email" id="setup-email-wrap" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><div><span>Your teacher email</span><strong id="setup-email"></strong></div></div>
+           <p id="setup-message" class="verify-message" role="status" aria-live="polite"></p>
++          <div id="email-link-actions" class="verify-actions" hidden>
++            <button class="button primary" id="confirm-email-link" type="button">Verify my email</button>
++            <p class="verify-help">Confirming here helps keep your verification link secure.</p>
++          </div>
+           <div id="verification-actions" class="verify-actions" hidden>
+             <button class="button primary" id="check-verification" type="button">I&rsquo;ve verified my email <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+             <button class="button secondary" id="resend-verification" type="button">Resend verification email</button>

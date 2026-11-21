@@ -26,14 +26,18 @@ export default async function handler(req, res) {
     const uid = saving ? token.uid : alias.get("uid");
     if (typeof uid !== "string" || !uid || uid.includes("/")) throw invalidCredentials();
     const profile = await firestore.doc(`users/${uid}`).get();
-    if (profile.get("role") !== "teacher" || (!saving && profile.get("username") !== username)) throw invalidCredentials();
+    if (!["teacher", "admin"].includes(profile.get("role"))) {
+      if (saving) return res.status(403).json({ error: "Only teachers and admins can save a username." });
+      throw invalidCredentials();
+    }
+    if (!saving && profile.get("username") !== username) throw invalidCredentials();
     const user = await authentication.getUser(uid);
     await verifyPassword(authentication, user, password);
     if (saving) return res.status(200).json({ username: await reserveUsername(firestore, uid, username) });
     // Keep the same uid, roles, and existing account. No email is returned.
     return res.status(200).json({ token: await authentication.createCustomToken(uid) });
   } catch (error) {
-    if (error.status) return res.status(error.status).json({ error: error.message });
+    if (error.status) return res.status(error.status).json({ error: saving && error.status === 401 ? "Incorrect current password. Please try again." : error.message });
     if (["auth/user-not-found", "auth/user-disabled", "auth/id-token-revoked"].includes(error.code)) return res.status(401).json({ error: "Incorrect username or password." });
     // Do not log credentials, identity responses, or tokens.
     return res.status(503).json({ error: "Could not complete this request. Please try again." });

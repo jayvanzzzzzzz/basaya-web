@@ -2,7 +2,7 @@ import {
   onAuthStateChanged,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { auth, db } from "../js/firebase.js";
 import { state } from "../js/state.js";
@@ -65,7 +65,10 @@ window.addEventListener("pageshow", () => {
   }
 });
 
+let stopAccessWatch = null;
 onAuthStateChanged(auth, async (user) => {
+  stopAccessWatch?.();
+  stopAccessWatch = null;
   console.log("teacher/app.js — user:", user);
   setLoading(true);
   state.user = user;
@@ -80,7 +83,7 @@ onAuthStateChanged(auth, async (user) => {
   try {
     const profile = await getDoc(doc(db, "users", user.uid));
     console.log("Profile exists:", profile.exists(), "Role:", profile.data()?.role);
-    if (!profile.exists() || profile.data().role !== "teacher") {
+    if (!profile.exists() || profile.data().role !== "teacher" || profile.data().disabled === true) {
       console.log("Role check failed — bouncing to login");
       await signOut(auth);
       window.location.replace("../index.html");
@@ -92,6 +95,13 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
     state.profile = profile.data();
+    stopAccessWatch = onSnapshot(doc(db, "users", user.uid), async snapshot => {
+      if (!snapshot.exists() || snapshot.data().role !== "teacher" || snapshot.data().disabled === true) {
+        state.profile = null;
+        await signOut(auth);
+        window.location.replace("../index.html");
+      }
+    });
     shell();
     await renderRoute();
   } catch (error) {

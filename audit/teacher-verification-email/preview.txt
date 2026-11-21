@@ -1,0 +1,16 @@
+Hi Maria,
+
+Your administrator created a BASAya teacher account for you.
+Teacher email: maria.reyes@school.edu
+
+Verify your email to get started:
+https://basaya.onrender.com/verify-teacher.html?oobCode=preview-only-not-a-real-code&lang=en
+
+After verifying, sign in with the temporary password shared privately by your administrator. You will choose your own password before entering the teacher portal.
+
+Button or link not working? Copy the full verification link into your browser. If it has expired, sign in to BASAya and request another verification email.
+
+If you were not expecting a BASAya teacher account, ignore this email. Need help? Contact your school administrator.
+
+BASAya | Teacher account setup
+https://basaya.onrender.com

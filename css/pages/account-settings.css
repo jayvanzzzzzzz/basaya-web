@@ -1,4 +1,18 @@
 /* ACCOUNT SETTINGS */
+.account-settings--sections .account-settings__tabs { display: grid; gap: .65rem; width: 100%; margin-top: .65rem; padding-top: 1rem; border-top: 1px solid var(--border-strong); }
+.account-settings--sections .account-settings__tabs button { display: flex; align-items: center; gap: .7rem; min-height: 64px; padding: .7rem .85rem; border: 1px solid var(--border-strong); border-left-width: 4px; border-radius: 10px; background: var(--account-paper, var(--surface)); color: var(--ink); box-shadow: 0 2px 4px rgba(0,0,0,.05); font: inherit; font-weight: 600; font-size: .83rem; text-align: left; cursor: pointer; transition: background-color 180ms, border-color 180ms, box-shadow 180ms; }
+.account-settings--sections .account-settings__tabs button:hover { background: var(--primary-soft); border-color: var(--primary-ring); box-shadow: 0 3px 8px rgba(0,0,0,.08); }
+.account-settings--sections .account-settings__tabs button[aria-selected="true"] { background: var(--account-action, var(--primary)); border-color: var(--account-action, var(--primary)); color: var(--account-action-ink, var(--surface)); font-weight: 700; box-shadow: 0 4px 10px rgba(0,0,0,.12); }
+.account-settings--sections .account-settings__tab-icon { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; border: 1px solid currentColor; border-radius: 8px; }
+.account-settings--sections .account-settings__tabs svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.account-settings--sections .account-settings__tab-arrow { flex: 0 0 16px; margin-left: auto; opacity: .65; }
+.account-settings--sections .account-settings__tabs button[aria-selected="true"] .account-settings__tab-arrow { opacity: 1; }
+.account-settings--sections .account-settings__tabs button:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 3px; }
+.account-settings--sections .account-settings__panel { display: grid; gap: 1.5rem; min-width: 0; }
+.account-settings--sections .account-settings__panel[hidden] { display: none; }
+.account-settings--sections .account-settings__hero-icon { display: none; }
+.account-settings--sections .account-settings__panel:focus-visible { outline: 2px solid var(--primary-ring); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .account-settings--sections .account-settings__tabs button { transition: none; } }
 .account-settings {
   display: grid;
   gap: 1.25rem;

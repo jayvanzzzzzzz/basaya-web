@@ -13,6 +13,8 @@ export async function verifyPassword(authentication, user, password, fetcher = f
     signal: AbortSignal.timeout(10000),
   });
   const result = await response.json();
+  if (response.status === 403 || response.status >= 500) throw Object.assign(new Error("Password verification is temporarily unavailable. Please try again later."), { status: 503 });
+  if (result.error?.message === "TOO_MANY_ATTEMPTS_TRY_LATER") throw Object.assign(new Error("Too many attempts. Please try again later."), { status: 429 });
   // Never bypass MFA, accept another uid, or expose Firebase's account lookup errors.
   if (!response.ok || result.localId !== user.uid || !result.idToken || result.mfaPendingCredential) throw invalidCredentials();
   const verified = await authentication.verifyIdToken(result.idToken, true);
@@ -25,7 +27,7 @@ export async function reserveUsername(firestore, uid, username) {
     const nextRef = firestore.doc(`usernames/${username}`);
     const profile = await tx.get(profileRef);
     const next = await tx.get(nextRef);
-    if (profile.get("role") !== "teacher") throw Object.assign(new Error("Only teachers can set a username."), { status: 403 });
+    if (!["teacher", "admin"].includes(profile.get("role"))) throw Object.assign(new Error("Only teachers and admins can set a username."), { status: 403 });
     if (next.exists && next.get("uid") !== uid) throw Object.assign(new Error("That username is already taken."), { status: 409 });
     const old = normalizeUsername(profile.get("username"));
     const oldRef = old && old !== username && validUsername(old) ? firestore.doc(`usernames/${old}`) : null;
