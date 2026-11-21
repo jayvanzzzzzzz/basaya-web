@@ -7,7 +7,18 @@ const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-
 const root = path.resolve(__dirname, '..');
 const out = path.join(root, 'audit/teacher-onboarding');
 const authFixture = `
-export const applyActionCode=async()=>{if(window.scenario==='expired')throw Error('expired');window.linkApplied=true};
+export const checkActionCode=async()=>{
+  window.linkChecks=(window.linkChecks||0)+1;
+  if(window.scenario==='expired')throw Object.assign(Error('expired'),{code:'auth/expired-action-code'});
+  if(['used-signed-out','already-verified'].includes(window.scenario))throw Object.assign(Error('used'),{code:'auth/invalid-action-code'});
+  if(window.checkFailure)throw Object.assign(Error('offline'),{code:'auth/network-request-failed'});
+  return{operation:window.scenario==='wrong-operation'?'PASSWORD_RESET':'VERIFY_EMAIL',data:{email:'maria@school.edu'}};
+};
+export const applyActionCode=async()=>{
+  window.applyAttempts=(window.applyAttempts||0)+1;
+  if(window.applyFailure)throw Object.assign(Error('offline'),{code:'auth/network-request-failed'});
+  window.linkApplied=true;window.verified=true;
+};
 export const onAuthStateChanged=(_auth,cb)=>queueMicrotask(()=>cb(window.user));
 export const reload=async user=>{user.emailVerified=!!window.verified};
 export const signOut=async()=>{window.user=null};
@@ -74,8 +85,9 @@ const server = http.createServer(async (req, res) => {
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
   await page.addInitScript(()=>{
-    window.scenario=new URL(location.href).searchParams.get('scenario');window.verified=window.scenario==='verified';window.failMail=false;window.calls=[];window.messages=[];
-    window.user=window.scenario==='signed-out'?null:{email:'maria@school.edu',emailVerified:window.verified,getIdToken:async()=> 'test-token'};
+    window.scenario=new URL(location.href).searchParams.get('scenario');window.verified=['verified','already-verified'].includes(window.scenario);window.failMail=false;window.calls=[];window.messages=[];
+    window.checkFailure=window.scenario==='network-check';window.applyFailure=window.scenario==='network-apply';
+    window.user=['signed-out','used-signed-out'].includes(window.scenario)?null:{email:'maria@school.edu',emailVerified:window.verified,getIdToken:async()=> 'test-token'};
   });
   const base='http://127.0.0.1:'+server.address().port;
   await page.goto(base+'/admin-test.html');await page.waitForFunction(()=>window.ready);
@@ -144,9 +156,34 @@ const server = http.createServer(async (req, res) => {
   assert.equal(await page.locator('#setup-message').getAttribute('data-tone'),'error');
   await page.screenshot({path:path.join(out,'expired-link.png'),fullPage:true});
   assert.ok(!page.url().includes('oobCode'));
-  await page.goto(base+'/verify-teacher.html?scenario=signed-out&oobCode=test');await page.locator('#setup-signin').waitFor();assert.match(await page.locator('#setup-message').textContent(),/verified successfully/);
+  await page.goto(base+'/verify-teacher.html?scenario=signed-out&oobCode=test');await page.locator('#confirm-email-link').waitFor();
+  assert.equal(await page.evaluate(()=>!!window.linkApplied),false,'Opening a link must not redeem it');
+  assert.ok(page.url().includes('oobCode'));
+  await page.reload();await page.locator('#confirm-email-link').waitFor();
+  assert.equal(await page.evaluate(()=>!!window.linkApplied),false,'Refreshing a confirmation page must not consume the code');
+  await page.locator('#confirm-email-link').click();await page.locator('#setup-signin').waitFor();assert.match(await page.locator('#setup-message').textContent(),/verified successfully/);
+  assert.equal(await page.evaluate(()=>window.applyAttempts),1);
+  assert.ok(!page.url().includes('oobCode'));
   assert.equal(await page.locator('#setup-title').textContent(),'Email verified');
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),savedTheme);
   await page.screenshot({path:path.join(out,'verified-signed-out.png'),fullPage:true});
+  await page.goto(base+'/verify-teacher.html?scenario=network-check&oobCode=test');await page.locator('#confirm-email-link').waitFor();
+  assert.match(await page.locator('#setup-message').textContent(),/Could not reach/);
+  assert.ok(page.url().includes('oobCode'),'Connection failures must retain the code for retry');
+  assert.equal(await page.evaluate(()=>!!window.linkApplied),false);
+  await page.evaluate(()=>window.checkFailure=false);await page.locator('#confirm-email-link').click();await page.locator('#setup-password-form').waitFor();
+  assert.match(await page.locator('#setup-message').textContent(),/verified successfully/);
+  await page.goto(base+'/verify-teacher.html?scenario=network-apply&oobCode=test');await page.locator('#confirm-email-link').waitFor();
+  await page.locator('#confirm-email-link').click();await page.waitForFunction(()=>document.querySelector('#setup-message').textContent.includes('Could not reach'));
+  assert.ok(page.url().includes('oobCode'));
+  await page.evaluate(()=>window.applyFailure=false);await page.locator('#confirm-email-link').click();await page.locator('#setup-password-form').waitFor();
+  assert.equal(await page.evaluate(()=>window.applyAttempts),2);
+  await page.goto(base+'/verify-teacher.html?scenario=already-verified&oobCode=test');await page.locator('#setup-password-form').waitFor();
+  assert.match(await page.locator('#setup-message').textContent(),/already verified/);
+  await page.goto(base+'/verify-teacher.html?scenario=used-signed-out&oobCode=test');await page.locator('#setup-signin').waitFor();
+  assert.match(await page.locator('#setup-message').textContent(),/no longer valid/);
+  assert.equal(await page.evaluate(()=>!!window.linkApplied),false);
+  await page.goto(base+'/verify-teacher.html?scenario=wrong-operation&oobCode=test');await page.locator('#verification-actions').waitFor();
+  assert.equal(await page.evaluate(()=>!!window.linkApplied),false,'Do not redeem password-reset or other action types');
   assert.deepEqual(errors,[]);console.log('PASS expired links, cross-browser verification, code removal, and no browser exceptions');
 })().catch(error=>{console.error(error);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();server.close()});

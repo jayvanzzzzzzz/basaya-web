@@ -1,4 +1,4 @@
-import { applyActionCode, onAuthStateChanged, reload, signOut, signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { checkActionCode, applyActionCode, onAuthStateChanged, reload, signOut, signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "./firebase.js";
 import { postToApi } from "./api.js";
@@ -13,6 +13,49 @@ let ready = false;
 let checking = false;
 let resendUntil = 0;
 let linkVerified = false;
+let pendingCode = new URL(location.href).searchParams.get("oobCode");
+let linkState = pendingCode ? "checking" : "none";
+let linkEmail = "";
+let linkErrorCode = "";
+
+function removeLinkCode() {
+  pendingCode = null;
+  const url = new URL(location.href);
+  url.searchParams.delete("oobCode");
+  history.replaceState(null, "", url.pathname + url.search + url.hash);
+}
+
+function handleLinkError(error) {
+  linkErrorCode = error.code || "";
+  if (["auth/expired-action-code", "auth/invalid-action-code"].includes(linkErrorCode)) {
+    linkState = "invalid";
+    removeLinkCode();
+    showMessage(linkErrorCode === "auth/expired-action-code"
+      ? "This verification link has expired. Sign in and request a new verification email."
+      : "This link is no longer valid. It may already have been used. Sign in to check your email verification status, or request a new email.", "error");
+  } else {
+    linkState = "retry";
+    const messages = {
+      "auth/network-request-failed": "Could not reach the verification service. Check your connection, then select Try again. Your link has not been marked expired.",
+      "auth/too-many-requests": "The verification service is temporarily limiting requests. Please wait a little, then try again.",
+      "auth/user-disabled": "This account has been disabled. Contact your administrator for help.",
+    };
+    const detail = /^auth\/[a-z-]+$/.test(linkErrorCode) ? ` (${linkErrorCode})` : "";
+    showMessage(messages[linkErrorCode] || `We could not verify this link right now${detail}. Try again, or contact your administrator if it continues.`, "error");
+  }
+}
+
+async function inspectLink() {
+  try {
+    const info = await checkActionCode(auth, pendingCode);
+    if (info.operation !== "VERIFY_EMAIL" || !info.data.email) {
+      throw Object.assign(new Error("Not an email verification link"), { code: "auth/invalid-action-code" });
+    }
+    linkEmail = info.data.email;
+    linkState = "valid";
+    linkErrorCode = "";
+  } catch (error) { handleLinkError(error); }
+}
 
 function setStage(stage, verified = false) {
   document.body.dataset.stage = stage;
@@ -42,7 +85,21 @@ async function showAccount() {
     $("#setup-signin").hidden = !!user;
     $("#setup-signout").hidden = !user;
     $("#setup-email-wrap").hidden = true;
+    $("#email-link-actions").hidden = true;
     $(".verify-panel").setAttribute("aria-busy", "true");
+    if (["valid", "retry"].includes(linkState)) {
+      setStage("verify");
+      $("#setup-title").textContent = linkState === "valid" ? "Confirm your email" : "Let’s try that again";
+      $("#setup-description").textContent = linkState === "valid"
+        ? "Select Verify my email below to confirm this address for your BASAya teacher account."
+        : "Your link could not be checked. You can retry without requesting another email.";
+      $("#setup-signin").hidden = true;
+      $("#setup-email").textContent = linkEmail;
+      $("#setup-email-wrap").hidden = !linkEmail;
+      $("#confirm-email-link").textContent = linkState === "valid" ? "Verify my email" : "Try again";
+      $("#email-link-actions").hidden = false;
+      return;
+    }
     if (!user) {
       setStage("signin", linkVerified);
       $("#setup-title").textContent = linkVerified ? "Email verified" : "Your next chapter starts here";
@@ -57,6 +114,9 @@ async function showAccount() {
       $("#setup-title").textContent = "Use your teacher account";
       $("#setup-description").textContent = "This page is for teacher accounts. Sign out to use your teacher account.";
       return;
+    }
+    if (linkState === "invalid" && user.emailVerified) {
+      showMessage("Your signed-in teacher account is already verified. You can continue setting up your password.");
     }
     if (profile.data().emailVerificationRequired !== true || (user.emailVerified && profile.data().mustChangePassword !== true)) {
       location.replace("teacher/index.html");
@@ -87,6 +147,30 @@ $("#check-verification").addEventListener("click", async event => {
   if (auth.currentUser && !auth.currentUser.emailVerified) showMessage("Your email is still pending verification. Open the email link, then try again.");
   else if (!form.hidden) $("#setup-title").focus({ preventScroll: true });
   $("#check-verification").disabled = false;
+});
+
+$("#confirm-email-link").addEventListener("click", async event => {
+  const button = event.currentTarget;
+  if (button.disabled || !pendingCode) return;
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  message.textContent = "";
+  try {
+    if (linkState !== "valid") await inspectLink();
+    if (linkState === "valid") {
+      // Redeem only after an intentional user click, never on page load or link inspection.
+      await applyActionCode(auth, pendingCode);
+      linkVerified = true;
+      linkState = "verified";
+      removeLinkCode();
+      showMessage("Email verified successfully. You can continue here or return to the browser where you signed in.");
+    }
+  } catch (error) { handleLinkError(error); }
+  finally {
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+    await showAccount();
+  }
 });
 $("#resend-verification").addEventListener("click", async event => {
   const button = event.currentTarget;
@@ -141,17 +225,7 @@ form.addEventListener("submit", async event => {
 });
 form.addEventListener("input", () => { message.textContent = ""; });
 
-// Consume the Firebase code even when the email opens in a different browser.
-const code = new URL(location.href).searchParams.get("oobCode");
-if (code) {
-  history.replaceState(null, "", location.pathname);
-  try {
-    await applyActionCode(auth, code);
-    linkVerified = true;
-    showMessage("Email verified successfully. You can continue here or return to the browser where you signed in.");
-  } catch {
-    showMessage("This verification link has expired or was already used. Sign in and check your verification status, or request another email.", "error");
-  }
-}
+// Checking does not consume the one-time code; email scanners can safely inspect the page.
+if (pendingCode) await inspectLink();
 ready = true;
 onAuthStateChanged(auth, () => { if (ready) void showAccount(); });

@@ -6,6 +6,8 @@ Deploy the API, website, and `firestore.rules` together before creating teachers
 
 Local QA (no production writes): `node --experimental-vm-modules tools/teacher-onboarding-tests.mjs <java> <firestore-emulator.jar>` and `node tools/teacher-onboarding-browser.cjs` from the web root. The API suite can run without emulator arguments for the backend checks only.
 
+Verification links are inspected with `checkActionCode` on page load and redeemed with `applyActionCode` only after the teacher selects **Verify my email**. Refreshes and email scanners must not redeem codes. Transient service/network errors retain the code for retry and must not be reported as expiry. A signed-in teacher whose email is already verified can continue password setup even when reopening a used link. Local Auth integration check: `npx firebase-tools emulators:exec --only auth --project demo-basaya-verification --config build/teacher-link-auth/firebase.json "node tools/teacher-verification-auth-emulator.mjs"` (synthetic accounts only).
+
 The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 
 | Endpoint | Who can call it | What it does |

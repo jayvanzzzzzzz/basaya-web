@@ -7,6 +7,7 @@ import { startFirestoreTestServer } from "./firestore-test-server.mjs";
 const rows = new Map([["users/admin", { role: "admin" }], ["users/student", { role: "student" }]]);
 const users = new Map();
 let mailFails = false, profileFails = false, sent = 0, sequence = 0;
+let generatedLink = "https://firebase.example/action?oobCode=secure-test-code";
 const snapshot = path => ({ exists: rows.has(path), get: key => rows.get(path)?.[key], data: () => rows.get(path), ref: ref(path) });
 const ref = path => ({ path, get: async () => snapshot(path), update: async data => rows.set(path, { ...rows.get(path), ...data }) });
 const database = {
@@ -27,7 +28,7 @@ const authentication = {
   getUsers: async ids => ({ users: ids.map(({ uid }) => users.get(uid)).filter(Boolean) }),
   updateUser: async (uid, data) => { users.set(uid, { ...users.get(uid), ...data }); return users.get(uid); },
   deleteUser: async uid => users.delete(uid),
-  generateEmailVerificationLink: async () => "https://firebase.example/action?oobCode=secure-test-code",
+  generateEmailVerificationLink: async () => generatedLink,
 };
 const context = vm.createContext({ console, process, URL, Date, Buffer });
 const modules = new Map();
@@ -108,6 +109,15 @@ await test('email delivery failure preserves account and permits retry', async (
   assert.ok(rows.has(`users/${result.body.userId}`));
   mailFails = false;
   assert.equal((await request({ action: 'resend', userId: result.body.userId })).code, 200);
+});
+await test('do not email a broken verification URL when Firebase returns no action code', async () => {
+  generatedLink = 'https://firebase.example/action?mode=verifyEmail';
+  const count = sent;
+  const result = await create('missing-code@school.edu');
+  assert.equal(result.code, 200);
+  assert.equal(result.body.emailSent, false);
+  assert.equal(sent, count);
+  generatedLink = 'https://firebase.example/action?oobCode=secure-test-code';
 });
 await test('profile write failure removes orphan auth account', async () => {
   const count = users.size; profileFails = true;

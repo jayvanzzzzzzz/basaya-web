@@ -23,6 +23,7 @@ async function sendVerification(uid) {
   try {
     const firebaseLink = await adminAuth().generateEmailVerificationLink(user.email);
     const code = new URL(firebaseLink).searchParams.get("oobCode");
+    if (!code) throw new Error("Firebase did not return a verification action code.");
     const link = `${site}/verify-teacher.html?oobCode=${encodeURIComponent(code)}`;
     await sendMail({ to: user.email, ...teacherVerificationEmail({ name: profile.firstName || profile.displayName || user.displayName || "", email: user.email, link }) });
     return { email: user.email };
