@@ -1,6 +1,7 @@
 import { adminAuth, db } from "../lib/firebase.js";
 import { allowCors, requireToken, requireAdmin, ID_PATTERN } from "../lib/http.js";
 import { sendMail } from "../lib/mailer.js";
+import { teacherVerificationEmail } from "../lib/teacherVerificationEmail.js";
 import { titleForGender, strongPassword } from "../lib/teacherOnboarding.js";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
@@ -12,18 +13,18 @@ async function sendVerification(uid) {
   const user = await adminAuth().getUser(uid);
   if (user.emailVerified) return { email: user.email, alreadyVerified: true };
   // Reserve the cooldown transactionally so concurrent resend requests cannot flood the inbox.
-  await db().runTransaction(async tx => {
+  const profile = await db().runTransaction(async tx => {
     const profile = await tx.get(ref);
     if (Date.now() - (profile.get("verificationSentAt") || 0) < 60000)
       throw fail(429, "Please wait one minute before requesting another verification email.");
     tx.update(ref, { verificationSentAt: Date.now() });
+    return profile.data();
   });
   try {
     const firebaseLink = await adminAuth().generateEmailVerificationLink(user.email);
     const code = new URL(firebaseLink).searchParams.get("oobCode");
     const link = `${site}/verify-teacher.html?oobCode=${encodeURIComponent(code)}`;
-    await sendMail({ to: user.email, subject: "Verify your BASAya teacher email", text:
-      `Your administrator created a BASAya teacher account for you.\n\nVerify your email: ${link}\n\nThen sign in with the temporary password shared by your administrator. You will choose your own password before entering the teacher portal.\n\nIf this link has expired, sign in and request another verification email. If you did not expect this invitation, ignore it.` });
+    await sendMail({ to: user.email, ...teacherVerificationEmail({ name: profile.firstName || profile.displayName || user.displayName || "", email: user.email, link }) });
     return { email: user.email };
   } catch (error) {
     await ref.update({ verificationSentAt: 0 }).catch(() => {});

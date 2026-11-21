@@ -39,7 +39,14 @@ async function load(url) {
   if (modules.has(key)) return modules.get(key);
   let module;
   if (key.endsWith('/lib/firebase.js')) module = synthetic(key, { db: () => database, adminAuth: () => authentication });
-  else if (key.endsWith('/lib/mailer.js')) module = synthetic(key, { sendMail: async data => { if (mailFails) throw Error("mail unavailable"); assert.match(data.text, /verify-teacher.html\?oobCode=secure-test-code/); sent++; } });
+  else if (key.endsWith('/lib/mailer.js')) module = synthetic(key, { sendMail: async data => {
+    if (mailFails) throw Error("mail unavailable");
+    assert.match(data.text, /verify-teacher.html\?oobCode=secure-test-code/);
+    assert.match(data.html, /Verify my email/);
+    assert.match(data.html, /href="https:\/\/[^\"]+\/verify-teacher.html\?oobCode=secure-test-code"/);
+    assert.ok(!data.html.includes('Temporary1'), 'Never include the temporary password in the verification email');
+    sent++;
+  } });
   else if (url.protocol === 'node:') module = synthetic(key, crypto);
   else module = new vm.SourceTextModule(await readFile(url, 'utf8'), { context, identifier: key });
   modules.set(key, module);
