@@ -12,6 +12,25 @@ watchPasswordRules(form.elements.password, $("#setup-password-rules"));
 let ready = false;
 let checking = false;
 let resendUntil = 0;
+let linkVerified = false;
+
+function setStage(stage, verified = false) {
+  document.body.dataset.stage = stage;
+  $("#setup-step-label").textContent = stage === "password" ? "STEP 02 / MAKE IT YOURS" : stage === "verify" ? "STEP 01 / CONFIRM YOUR EMAIL" : "YOUR TEACHER ACCOUNT";
+  document.querySelectorAll("[data-setup-step]").forEach(step => {
+    const active = step.dataset.setupStep === stage;
+    if (active) step.setAttribute("aria-current", "step");
+    else step.removeAttribute("aria-current");
+    step.dataset.complete = String(step.dataset.setupStep === "verify" && (stage === "password" || verified));
+  });
+  $('[data-step-state="verify"]').textContent = stage === "password" || verified ? "Completed" : stage === "verify" ? "You’re here" : "Confirm your email";
+  $('[data-step-state="password"]').textContent = stage === "password" ? "You’re here" : "Up next";
+}
+
+function showMessage(text, tone = "info") {
+  message.textContent = text;
+  message.dataset.tone = tone;
+}
 
 async function showAccount() {
   if (checking) return;
@@ -22,7 +41,11 @@ async function showAccount() {
     form.hidden = true;
     $("#setup-signin").hidden = !!user;
     $("#setup-signout").hidden = !user;
+    $("#setup-email-wrap").hidden = true;
+    $(".verify-panel").setAttribute("aria-busy", "true");
     if (!user) {
+      setStage("signin", linkVerified);
+      $("#setup-title").textContent = linkVerified ? "Email verified" : "Your next chapter starts here";
       $("#setup-description").textContent = "Sign in with the email and temporary password provided by your administrator to finish account setup.";
       return;
     }
@@ -30,6 +53,8 @@ async function showAccount() {
     await user.getIdToken(true);
     const profile = await getDoc(doc(db, "users", user.uid));
     if (profile.data()?.role !== "teacher") {
+      setStage("signin");
+      $("#setup-title").textContent = "Use your teacher account";
       $("#setup-description").textContent = "This page is for teacher accounts. Sign out to use your teacher account.";
       return;
     }
@@ -38,24 +63,29 @@ async function showAccount() {
       return;
     }
     if (!user.emailVerified) {
+      setStage("verify");
       $("#setup-title").textContent = "Verify your email";
-      $("#setup-description").textContent = `Open the verification email sent to ${user.email} and click the link. Check your spam folder too. If the address is incorrect, ask your administrator to correct it.`;
+      $("#setup-description").textContent = "Open your verification email and follow the link inside. Then come back here to continue.";
+      $("#setup-email").textContent = user.email;
+      $("#setup-email-wrap").hidden = false;
       $("#verification-actions").hidden = false;
     } else {
+      setStage("password");
       $("#setup-title").textContent = "Choose your password";
       $("#setup-description").textContent = "Your email is verified. Replace the temporary password with a password only you know.";
       form.hidden = false;
     }
   } catch {
-    message.textContent = "Could not check your account. Check your connection and reload this page.";
-  } finally { checking = false; }
+    showMessage("Could not check your account. Check your connection and reload this page.", "error");
+  } finally { checking = false; $(".verify-panel").setAttribute("aria-busy", "false"); }
 }
 
 $("#check-verification").addEventListener("click", async event => {
   event.currentTarget.disabled = true;
   message.textContent = "";
   await showAccount();
-  if (auth.currentUser && !auth.currentUser.emailVerified) message.textContent = "Your email is still pending verification. Open the email link, then try again.";
+  if (auth.currentUser && !auth.currentUser.emailVerified) showMessage("Your email is still pending verification. Open the email link, then try again.");
+  else if (!form.hidden) $("#setup-title").focus({ preventScroll: true });
   $("#check-verification").disabled = false;
 });
 $("#resend-verification").addEventListener("click", async event => {
@@ -65,10 +95,10 @@ $("#resend-verification").addEventListener("click", async event => {
   message.textContent = "";
   try {
     const result = await postToApi("teacher-onboarding", { action: "resend" });
-    message.textContent = result.alreadyVerified ? "Your email is already verified. Select I’ve verified my email to continue." : `Verification email sent to ${result.email}.`;
+    showMessage(result.alreadyVerified ? "Your email is already verified. Select I’ve verified my email to continue." : `Verification email sent to ${result.email}.`);
     resendUntil = Date.now() + 60000;
   } catch (error) {
-    message.textContent = error.message;
+    showMessage(error.message, "error");
     if (error.status === 429) resendUntil = Date.now() + 60000;
   } finally { button.disabled = Date.now() < resendUntil; }
 });
@@ -82,16 +112,16 @@ setInterval(() => {
 }, 1000);
 $("#setup-signout").addEventListener("click", async () => {
   try { await signOut(auth); location.replace("index.html"); }
-  catch { message.textContent = "Could not sign out. Please try again."; }
+  catch { showMessage("Could not sign out. Please try again.", "error"); }
 });
 form.addEventListener("submit", async event => {
   event.preventDefault();
   const password = form.elements.password.value;
   const temporaryPassword = form.elements.temporaryPassword.value;
   const problem = passwordProblem(password);
-  if (problem) { message.textContent = problem; return; }
-  if (password === temporaryPassword) { message.textContent = "Choose a password different from your temporary password."; return; }
-  if (password !== form.elements.confirmPassword.value) { message.textContent = "The new passwords do not match."; return; }
+  if (problem) { showMessage(problem, "error"); return; }
+  if (password === temporaryPassword) { showMessage("Choose a password different from your temporary password.", "error"); return; }
+  if (password !== form.elements.confirmPassword.value) { showMessage("The new passwords do not match.", "error"); return; }
   const button = form.querySelector("button");
   if (button.disabled) return;
   button.disabled = true;
@@ -106,7 +136,7 @@ form.addEventListener("submit", async event => {
     form.reset();
     location.replace("teacher/index.html");
   } catch (error) {
-    message.textContent = error.code === "auth/invalid-credential" ? "The current or temporary password is incorrect." : error.message;
+    showMessage(error.code === "auth/invalid-credential" ? "The current or temporary password is incorrect." : error.message, "error");
   } finally { button.disabled = false; }
 });
 form.addEventListener("input", () => { message.textContent = ""; });
@@ -117,9 +147,10 @@ if (code) {
   history.replaceState(null, "", location.pathname);
   try {
     await applyActionCode(auth, code);
-    message.textContent = "Email verified successfully. You can continue here or return to the browser where you signed in.";
+    linkVerified = true;
+    showMessage("Email verified successfully. You can continue here or return to the browser where you signed in.");
   } catch {
-    message.textContent = "This verification link has expired or was already used. Sign in and check your verification status, or request another email.";
+    showMessage("This verification link has expired or was already used. Sign in and check your verification status, or request another email.", "error");
   }
 }
 ready = true;

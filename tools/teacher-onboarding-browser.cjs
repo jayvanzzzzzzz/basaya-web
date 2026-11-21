@@ -99,11 +99,27 @@ const server = http.createServer(async (req, res) => {
   await page.locator('[data-verify=pending]').click();await page.waitForFunction(()=>window.calls.some(c=>c.action==='resend'));
   console.log('PASS admin gender form, pending badge, creation/email failure separation and resend');
   await page.goto(base+'/verify-teacher.html');await page.locator('#verification-actions').waitFor();
-  for(const theme of ['light','dark'])for(const width of [320,390,768]){
+  assert.equal(await page.locator('[aria-current=step]').getAttribute('data-setup-step'),'verify');
+  await page.locator('[data-theme-toggle]').focus();
+  await page.locator('#theme-hint').waitFor({state:'visible'});
+  assert.equal(await page.locator('[data-theme-toggle]').evaluate(el=>getComputedStyle(el).outlineStyle),'solid');
+  const initialTheme=await page.evaluate(()=>document.documentElement.dataset.theme);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(initial=>document.documentElement.dataset.theme!==initial,initialTheme);
+  const savedTheme=await page.evaluate(()=>document.documentElement.dataset.theme);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('basaya-theme')),savedTheme);
+  await page.reload();await page.locator('#verification-actions').waitFor();
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),savedTheme);
+  assert.equal(await page.locator('#check-verification').evaluate(el=>getComputedStyle(el).transitionDuration),'0s');
+  for(const theme of ['light','dark'])for(const width of [320,390,768,1440]){
     await page.setViewportSize({width,height:844});await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'verification overflow');
     await page.screenshot({path:path.join(out,`verify-${width}-${theme}.png`),fullPage:true});
   }
+  await page.evaluate(()=>window.user.email='a.very.long.teacher.email.address.for.layout.testing@school.example.edu');
+  await page.setViewportSize({width:320,height:844});
+  await page.locator('#check-verification').click();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'long email overflow');
   await page.locator('#check-verification').click();assert.match(await page.locator('#setup-message').textContent(),/still pending/);
   await page.evaluate(()=>window.failMail=true);await page.locator('#resend-verification').click();
   await page.waitForFunction(()=>document.querySelector('#setup-message').textContent.includes('unavailable'));
@@ -111,6 +127,13 @@ const server = http.createServer(async (req, res) => {
   await page.evaluate(()=>window.failMail=false);await page.locator('#resend-verification').click();await page.waitForFunction(()=>document.querySelector('#resend-verification').disabled);
   assert.match(await page.locator('#setup-message').textContent(),/sent to maria/);
   await page.evaluate(()=>window.verified=true);await page.locator('#check-verification').click();await page.locator('#setup-password-form').waitFor();
+  assert.equal(await page.locator('[aria-current=step]').getAttribute('data-setup-step'),'password');
+  assert.equal(await page.locator('[data-setup-step=verify]').getAttribute('data-complete'),'true');
+  for(const theme of ['light','dark'])for(const width of [320,390,768,1440]){
+    await page.setViewportSize({width,height:1000});await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'password setup overflow');
+    await page.screenshot({path:path.join(out,`password-${width}-${theme}.png`),fullPage:true});
+  }
   await page.locator('[name=temporaryPassword]').fill('Temporary1');await page.locator('[name=password]').fill('Temporary1');await page.locator('[name=confirmPassword]').fill('Temporary1');
   await page.locator('#setup-password-form button').click();assert.match(await page.locator('#setup-message').textContent(),/different/);
   await page.locator('[name=password]').fill('MyPassword2');await page.locator('[name=confirmPassword]').fill('Mismatch3');await page.locator('#setup-password-form button').click();assert.match(await page.locator('#setup-message').textContent(),/do not match/);
@@ -118,7 +141,12 @@ const server = http.createServer(async (req, res) => {
   await page.locator('#setup-password-form button').click();await page.waitForURL('**/teacher/index.html');
   console.log('PASS pending access screen, responsive themes, resend failure/retry/cooldown, verification refresh and password setup');
   await page.goto(base+'/verify-teacher.html?scenario=expired&oobCode=test');await page.waitForFunction(()=>document.querySelector('#setup-message').textContent.includes('expired'));
+  assert.equal(await page.locator('#setup-message').getAttribute('data-tone'),'error');
+  await page.screenshot({path:path.join(out,'expired-link.png'),fullPage:true});
   assert.ok(!page.url().includes('oobCode'));
   await page.goto(base+'/verify-teacher.html?scenario=signed-out&oobCode=test');await page.locator('#setup-signin').waitFor();assert.match(await page.locator('#setup-message').textContent(),/verified successfully/);
+  assert.equal(await page.locator('#setup-title').textContent(),'Email verified');
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),savedTheme);
+  await page.screenshot({path:path.join(out,'verified-signed-out.png'),fullPage:true});
   assert.deepEqual(errors,[]);console.log('PASS expired links, cross-browser verification, code removal, and no browser exceptions');
 })().catch(error=>{console.error(error);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();server.close()});
