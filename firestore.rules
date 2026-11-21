@@ -66,11 +66,13 @@ service cloud.firestore {
             request.resource.data.role == "student" &&
             request.resource.data.get('classId', '') == '' &&
             request.resource.data.get('className', '') == '' &&
+            request.resource.data.get('username', '') == '' &&
             !request.resource.data.keys().hasAny(['joinRequest', 'progressSession', 'skillSummary'])) ||
           isAdmin()                                                                                                                                                                 
         );                                                                                                                                                                          
                                                                                                                                                                                     
-        allow update: if signedIn() && (
+        allow update: if signedIn() &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['username']) && (
           isAdmin() ||
           (request.auth.uid == userId &&
             request.resource.data.role == resource.data.role &&
@@ -126,9 +128,8 @@ service cloud.firestore {
     }
 
     match /usernames/{username} {
-      allow read: if true;
-      allow write: if signedIn() &&
-        request.resource.data.uid == request.auth.uid;
+      // Aliases are reserved and resolved only by the password-verifying API.
+      allow read, write: if false;
     }
 
     match /classes/{classId} {

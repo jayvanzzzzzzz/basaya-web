@@ -2,11 +2,13 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from "./firebase.js";
+import { usernameRequest } from "./username-auth.js";
 import { $ } from "./helpers.js";
 import { clearFieldErrors, fieldError } from "./field-errors.js";
 import { confirmAction } from "./action-confirmation.js";
@@ -307,7 +309,12 @@ loginForm.addEventListener("submit", async (event) => {
   setSigningIn(true);
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    if (email.includes("@")) {
+      await signInWithEmailAndPassword(auth, email, password);
+    } else {
+      const { token } = await usernameRequest("login", { username: email, password });
+      await signInWithCustomToken(auth, token);
+    }
   } catch (error) {
     if (attempt !== signInAttempt) return;
     setSigningIn(false);
@@ -318,7 +325,7 @@ loginForm.addEventListener("submit", async (event) => {
     }
     $("#login-error").textContent =
       error.code === "auth/invalid-credential"
-      ? "Incorrect email or password."
+      ? "Incorrect email, username, or password."
       : error.message;
   }
 });

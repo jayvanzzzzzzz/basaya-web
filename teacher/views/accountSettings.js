@@ -18,6 +18,7 @@ import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } 
 import { teacherName } from "../../js/chat.js?v=removed-preview";
 import { genderMarkup, titleForGender } from "../../js/teacherTitle.js";
 import { teacherNameFields, readTeacherName } from "../../js/teacher-name.js";
+import { usernameRequest } from "../../js/username-auth.js";
 
 export function renderAccountSettings() {
   const isCurrent = captureRoute("/settings");
@@ -41,6 +42,7 @@ export function renderAccountSettings() {
         </div>
         <span class="account-settings__status"><span class="teacher-status-dot" aria-hidden="true"></span>Teacher account</span>
         <nav class="account-settings__nav" aria-label="Settings sections">
+          <a href="#account-username-form" data-settings-section="account-username-form"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg> Username <span aria-hidden="true">&#8599;</span></a>
           <a href="#account-profile-form" data-settings-section="account-profile-form"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg> Profile details <span aria-hidden="true">↗</span></a>
           <a href="#account-password-form" data-settings-section="account-password-form"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg> Password &amp; security <span aria-hidden="true">↗</span></a>
         </nav>
@@ -105,6 +107,29 @@ export function renderAccountSettings() {
             </div>
           </form>
         </section>
+      <section class="account-settings__card" aria-labelledby="username-heading">
+        <div class="account-settings__card-heading">
+          <div>
+            <span class="account-settings__eyebrow">Sign-in details</span>
+            <h3 id="username-heading">Your username</h3>
+            <p>Add or change the username you use to sign in. Your email still works.</p>
+          </div>
+        </div>
+        <form id="account-username-form" class="account-settings__form">
+          <label>Username
+            <input name="username" type="text" value="${escapeHtml(profile.username || '')}" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="username-help" />
+            <small id="username-help">3–30 letters, numbers, or underscores. Usernames are saved in lowercase.</small>
+          </label>
+          <label>Current password
+            <input name="currentPassword" type="password" required autocomplete="current-password" placeholder="Confirm with your current password" />
+          </label>
+          <p class="muted" role="status" id="username-status"></p>
+          <div class="account-settings__form-footer">
+            <span>Use your username and existing password to sign in.</span>
+            <button class="button primary" type="submit">Save username</button>
+          </div>
+        </form>
+      </section>
       </div>
       <section class="account-settings__card account-settings__appearance" aria-labelledby="appearance-heading">
         <div><span class="account-settings__eyebrow">Make it yours</span><h3 id="appearance-heading">Appearance</h3><p>A comfortable view for every teaching day.</p></div>
@@ -135,7 +160,7 @@ export function renderAccountSettings() {
       form.querySelector('input').focus({ preventScroll: true });
     });
   });
-  document.querySelectorAll('#account-password-form input[type="password"]').forEach(input => {
+  document.querySelectorAll('#account-password-form input[type="password"], #account-username-form input[type="password"]').forEach(input => {
     const wrapper = document.createElement('span');
     wrapper.className = 'account-settings__password-field';
     input.before(wrapper);
@@ -156,6 +181,42 @@ export function renderAccountSettings() {
     wrapper.append(toggle);
   });
   watchTeacherTooltips();
+  const usernameForm = $('#account-username-form');
+  const passwordAccount = auth.currentUser?.providerData.some(provider => provider.providerId === 'password');
+  if (!passwordAccount) {
+    $('#username-status').textContent = 'Your account needs a password before you can use username sign-in. Use Forgot password from the sign-in page to set one, then sign in again.';
+    usernameForm.querySelector('[type="submit"]').disabled = true;
+  }
+  usernameForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = usernameForm.querySelector('[type="submit"]');
+    if (submit.disabled) return;
+    const username = usernameForm.elements.username.value.trim().toLowerCase();
+    const password = usernameForm.elements.currentPassword.value;
+    const status = $('#username-status');
+    status.textContent = '';
+    submit.disabled = true;
+    submit.textContent = 'Saving…';
+    usernameForm.setAttribute('aria-busy', 'true');
+    try {
+      const result = await usernameRequest('save', { username, password }, auth.currentUser);
+      state.profile = { ...state.profile, username: result.username };
+      usernameForm.elements.username.value = result.username;
+      status.textContent = `Username saved. You can now sign in as ${result.username}.`;
+    } catch (error) {
+      status.textContent = error.status === 401 ? 'Check your current password and try again. If your session expired, sign in again.' : error.message;
+    } finally {
+      const passwordField = usernameForm.elements.currentPassword;
+      passwordField.value = '';
+      passwordField.type = 'password';
+      const toggle = passwordField.parentElement.querySelector('.account-settings__reveal');
+      toggle?.setAttribute('aria-pressed', 'false');
+      toggle?.setAttribute('aria-label', 'Show current password');
+      submit.disabled = false;
+      submit.textContent = 'Save username';
+      usernameForm.setAttribute('aria-busy', 'false');
+    }
+  });
   $('#account-password-form').addEventListener('reset', () => {
     document.querySelectorAll('.account-settings__reveal').forEach(toggle => {
       toggle.previousElementSibling.type = 'password';

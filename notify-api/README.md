@@ -93,6 +93,16 @@ Free limits: a personal Gmail account can send about 500 emails a day, far more 
 
 If the branded reset email can't be sent (for example the App Password isn't set yet), the admin site falls back to Firebase's standard reset email, so teachers can still reset their password.
 
+## Teacher username sign-in
+
+Teachers can add/change a unique, lowercase username in Account settings using their current Firebase password. Email sign-in and recovery remain available. `/api/username-save` and `/api/username-login` share `api/class-membership.js` through Vercel rewrites; no extra serverless function is added.
+
+Deploy the updated `firestore.rules` first (aliases are private and client profile username writes are denied), then deploy `notify-api`, then the web files and regenerated `offline-shell.js`. The existing `FIREBASE_SERVICE_ACCOUNT` and `ALLOWED_ORIGINS` settings are reused. `FIREBASE_WEB_API_KEY` can override the public BaSaya web key when using another Firebase deployment. No paid Firebase Functions or Identity Platform upgrade is needed.
+
+Passwords are verified with Firebase's password endpoint before reserving an alias or issuing a custom sign-in token for the same UID. Passwords and returned Firebase credentials must never be logged or stored. MFA challenges fail closed. Google-only accounts must first establish a password using the existing recovery flow. Failed login responses do not disclose email addresses. Username changes atomically reserve the new alias and release the old one. Limits are 20 save attempts and 100 username login attempts per IP per hour, shared by users behind that IP; email login remains separate.
+
+Checks: `node --experimental-vm-modules tools/username-auth-tests.mjs`, `node tools/username-browser-qa.cjs`, and `node tools/username-rules-tests.mjs <java-path> <firestore-emulator-jar>` from the repository root. The browser checks use local authentication fixtures; they do not sign in to production.
+
 ## Optional: clean up rate-limit records
 
 `/api/contact` keeps one small document per sender IP (hashed) in `contactLimits`, with an `expiresAt` field. To have Firestore delete old ones automatically: Firebase Console → Firestore → **TTL policies** → add a policy on collection `contactLimits`, field `expiresAt`. Do the same for `resetLimits` (used by `/api/forgot-password`).

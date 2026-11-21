@@ -265,13 +265,15 @@
             <h2 id="signin-title">Sign in</h2>
             <label
               id="login-email-field"
-              >Email<input
+              >Email or username<input
                 id="email"
-                type="email"
-                autocomplete="email"
+                type="text"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
                 required
-                data-missing="Enter the email you sign in with."
-                placeholder="you@email.com"
+                data-missing="Enter your email or username."
+                placeholder="Email or username"
             /></label>
             <label
               id="login-password-field"

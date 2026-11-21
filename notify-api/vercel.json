@@ -4,6 +4,8 @@
     "api/class-membership.js": { "maxDuration": 60 }
   },
   "rewrites": [
+    { "source": "/api/username-save", "destination": "/api/class-membership?operation=username-save" },
+    { "source": "/api/username-login", "destination": "/api/class-membership?operation=username-login" },
     { "source": "/api/teacher-onboarding", "destination": "/api/class-membership?operation=teacher-onboarding" },
     { "source": "/api/assistant", "destination": "/api/class-membership?operation=assistant" },
     { "source": "/api/assessment", "destination": "/api/class-membership?operation=assessment" },
