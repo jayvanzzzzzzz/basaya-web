@@ -1,9 +1,9 @@
 // Real admin views and shell, isolated data; no live account changes.
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path');
 const {chromium}=require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'),out=path.join(root,'audit/admin-design');
+const root=path.resolve(__dirname,'..'),out=process.env.BASAYA_QA_ARTIFACTS||path.join(root,'audit/admin-design');
 const views=['teachers','students','classes','lessons','account'];
-const keep=['helpers.js','pagination.js','field-errors.js','password-rules.js','teacherTitle.js','floatingTooltip.js','buttonSaving.js','theme.js'];
+const keep=['helpers.js','pagination.js','field-errors.js','password-rules.js','teacherTitle.js','floatingTooltip.js','buttonSaving.js','theme.js','route-lifecycle.js','teacher-name.js'];
 const names=new Set();
 let browser,fixture;
 function rewrite(source){return source.replace(/import\s*{([\s\S]*?)}\s*from\s*["']([^"']+)["'];/g,(m,bindings,src)=>{
@@ -20,7 +20,7 @@ const server=http.createServer(async(req,res)=>{try{
    ${views.map(v=>`import {${v==='account'?'renderAccount':'render'+v[0].toUpperCase()+v.slice(1)}} from '/admin/views/${v}.js';`).join('\n')}
    import '/js/admin-design.js';
    const routes={teachers:renderTeachers,students:renderStudents,classes:renderClasses,lessons:renderLessons,settings:renderAccount};
-   async function render(){window.ready=false;document.querySelector('#loading-screen').hidden=true;shell('admin-summary','Admin');const route=location.hash.slice(2)||'teachers';document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===route));await routes[route]();window.ready=true;}
+   async function render(){window.ready=false;document.querySelector('#loading-screen').hidden=true;shell('admin-summary','Admin');const route=location.hash.slice(2)||'teachers';if(!location.hash)history.replaceState(null,'',location.pathname+location.search+'#/'+route);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===route));await routes[route]();window.ready=true;}
    window.addEventListener('hashchange',render);await render();
    </script></body>`);type='text/html';
  }else{

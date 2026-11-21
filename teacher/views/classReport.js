@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
@@ -146,7 +147,10 @@ async function exportClassExcel(classroom, entries, report) {
 
 /** #/classes/{classId}/report — the whole class at a glance. */
 export async function renderClassReport(classId) {
+  const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}/report`);
+  if (!isCurrent()) return;
   const context = await loadClassContext(classId);
+  if (!isCurrent()) return;
   if (!context) return navigate("/dashboard");
   const { classroom, lessons, students } = context;
 
@@ -180,6 +184,7 @@ export async function renderClassReport(classId) {
       progress: await loadStudentProgress(student.id, lessons, student.joinedAt),
     })),
   );
+  if (!isCurrent()) return;
   const report = classReport(entries);
   const remarks = classRemarks(report, entries, lessons);
   addExportActions({ excel: () => exportClassExcel(classroom, entries, report), iconOnly: true });

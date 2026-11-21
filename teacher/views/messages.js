@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import { showChatDate } from "../../js/chatDateExceptions.js";
 import { $, displayName, escapeHtml, initials, navigate, page, toast } from "../../js/helpers.js";
@@ -194,8 +195,12 @@ function classListHtml(activeId) {
 }
 
 export async function renderMessages(classId) {
+  const isCurrent = captureRoute(classId ? `/messages/${encodeURIComponent(classId)}` : "/messages");
+  if (!isCurrent()) return;
   await getTeacherClasses();
+  if (!isCurrent()) return;
   await watchChatSummaries();
+  if (!isCurrent()) return;
 
   const classroom = classId ? state.classes.find((item) => item.id === classId) : null;
   if (classId && !classroom) return navigate("/messages");

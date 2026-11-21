@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   collection,
   doc,
@@ -28,9 +29,12 @@ const EYE_ICON =
 const lessonsLabel = (n) => `${n} ${n === 1 ? "lesson" : "lessons"}`;
 
 export async function renderAddLessonPage(classId) {
+  const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}/add-lesson`);
+  if (!isCurrent()) return;
   if (!state.user) return navigate("/login");
 
   const classDoc = await getDoc(doc(db, "classes", classId));
+  if (!isCurrent()) return;
   if (!classDoc.exists() || classDoc.data().teacherId !== state.user.uid)
     return navigate("/dashboard");
   const classroom = { id: classDoc.id, ...classDoc.data() };
@@ -40,6 +44,7 @@ export async function renderAddLessonPage(classId) {
     getAllLessons(),
   ]);
   const links = linksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (!isCurrent()) return;
   // A lesson can be in the class once as an Assessment and once as Practice.
   const inClass = { assessment: new Set(), practice: new Set() };
   links.forEach((link) => inClass[linkMode(link)].add(linkLessonId(link)));

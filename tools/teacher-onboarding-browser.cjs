@@ -32,7 +32,7 @@ const apiFixture = `export async function postToApi(path,body){window.calls.push
 let browser;
 const imports = new Set();
 const rewrite = source => source.replace(/import\s*{([\s\S]*?)}\s*from\s*["']([^"']+)["'];/g, (match, bindings, source) => {
-  if(source.endsWith('/teacherTitle.js') || source.endsWith('/teacher-name.js'))return match;
+  if(source.endsWith('/teacherTitle.js') || source.endsWith('/teacher-name.js') || source.endsWith('/route-lifecycle.js'))return match;
   for(const binding of bindings.split(',').map(v=>v.trim()).filter(Boolean))imports.add(binding);
   return `import {${bindings}} from '/admin-fixture.js';`;
 });
@@ -47,7 +47,7 @@ const server = http.createServer(async (req, res) => {
     else if(name==='js/api.js')body=apiFixture;
     else if(name==='admin-fixture.js')body=adminFixture;
     else if(name==='admin-test.html'){
-      body=`<!doctype html><html><body><header id="header"></header><main id="page-content"></main><script type="module">import {renderTeachers} from '/admin/views/teachers.js';await renderTeachers();window.ready=true;</script></body></html>`;type='text/html';
+      body=`<!doctype html><html><body><header id="header"></header><main id="page-content"></main><script type="module">import {renderTeachers} from '/admin/views/teachers.js';history.replaceState(null,'',location.pathname+location.search+'#/teachers');await renderTeachers();window.ready=true;</script></body></html>`;type='text/html';
     } else if(name==='teacher/index.html'){body='<p>Teacher dashboard destination</p>';type='text/html';}
     else {
       const target=path.resolve(root,name);if(!target.startsWith(root+path.sep))throw Error('path');
@@ -66,7 +66,7 @@ const server = http.createServer(async (req, res) => {
     state:`{teachers:[],allClasses:[]}`,
     auth:`{currentUser:{uid:'admin'}}`,db:'{}',
     getAllTeachers:`async()=>{state.teachers=[{id:'pending',displayName:'Maria Reyes',email:'maria@school.edu',gender:'female',title:'maam',emailVerificationRequired:true,mustChangePassword:true}]}`,
-    postToApi:`async(path,body)=>{window.calls.push(body);if(body.action==='statuses')return{users:[{uid:'pending',emailVerified:false}]};return{emailSent:!window.failMail,email:body.email||'maria@school.edu'}}`,
+    postToApi:`async(path,body)=>{window.calls.push(body);if(body.action==='statuses'){const status=new URL(location.href).searchParams.get('status');return{users:status==='unavailable'?[]:[{uid:'pending',emailVerified:status==='verified'}]}}return{emailSent:!window.failMail,email:body.email||'maria@school.edu'}}`,
     '$':`(selector,root=document)=>root.querySelector(selector)`,
     escapeHtml:`value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))`,
     page:`(title,subtitle,actions)=>{document.querySelector('#header').innerHTML=actions}`,
@@ -92,6 +92,14 @@ const server = http.createServer(async (req, res) => {
   const base='http://127.0.0.1:'+server.address().port;
   await page.goto(base+'/admin-test.html');await page.waitForFunction(()=>window.ready);
   assert.match(await page.locator('.teacher-table__email').textContent(),/Pending verification/);
+  assert.equal(await page.locator('.teacher-verification--pending svg[aria-hidden=true]').count(),1);
+  await page.goto(base+'/admin-test.html?status=verified');await page.waitForFunction(()=>window.ready);
+  assert.equal(await page.locator('.teacher-verification--verified svg[aria-hidden=true]').count(),1);
+  assert.match(await page.locator('.teacher-verification').textContent(),/Verified.*Password setup pending/);
+  await page.goto(base+'/admin-test.html?status=unavailable');await page.waitForFunction(()=>window.ready);
+  assert.equal(await page.locator('.teacher-verification--unavailable svg[aria-hidden=true]').count(),1);
+  assert.match(await page.locator('.teacher-verification').textContent(),/Verification status unavailable/);
+  await page.goto(base+'/admin-test.html');await page.waitForFunction(()=>window.ready);
   await page.locator('#add-teacher').click();
   assert.equal(await page.locator('[name=title]').count(),0);
   assert.equal(await page.locator('[name=displayName]').count(),0);

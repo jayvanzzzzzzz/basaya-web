@@ -1,4 +1,5 @@
 import { confirmAction } from "../../js/action-confirmation.js";
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { $, escapeHtml, page } from '../../js/helpers.js';
 import { postToApi } from '../../js/api.js';
 import { latestReadingSubmissions } from '../../js/readingSubmissions.js';
@@ -132,6 +133,9 @@ function paintReviewDeadline(row, now = Date.now()) {
 }
 
 export async function renderFluencyReview(classId, studentId = null, submissionId = null) {
+  const path = `/classes/${encodeURIComponent(classId)}/readings${studentId ? `/${encodeURIComponent(studentId)}` : ""}${submissionId ? `/${encodeURIComponent(submissionId)}` : ""}`;
+  const isCurrent = captureRoute(path);
+  if (!isCurrent()) return;
   const base = `#/classes/${encodeURIComponent(classId)}/readings`;
   const studentUrl = uid => `${base}/${encodeURIComponent(uid)}`;
   const request = (operation, fields = {}) => postToApi('assessment', { operation: `fluency-${operation}`, classId, ...fields });

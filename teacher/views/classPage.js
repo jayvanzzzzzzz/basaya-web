@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import {
   Timestamp,
@@ -312,7 +313,10 @@ const progressPercent = (percent) => {
 };
 
 export async function renderClass(classId) {
+  const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}`);
+  if (!isCurrent()) return;
   const classDoc = await getDoc(doc(db, "classes", classId));
+  if (!isCurrent()) return;
   if (!classDoc.exists() || classDoc.data().teacherId !== state.user.uid)
     return navigate("/dashboard");
   const classroom = { id: classDoc.id, ...classDoc.data() };
@@ -346,6 +350,7 @@ export async function renderClass(classId) {
       ),
     ),
   ]);
+  if (!isCurrent()) return;
   const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const leaveCount = students.filter((student) => student.leaveRequest).length;
   const links = linksSnap.docs

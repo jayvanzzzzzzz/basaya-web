@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   collection,
   addDoc,
@@ -119,8 +120,11 @@ let stopCardMenus;
 export function leaveDashboardMenus() { stopCardMenus?.(); stopCardMenus = null; }
 
 export async function renderDashboard() {
+  const isCurrent = captureRoute("/classes");
+  if (!isCurrent()) return;
   leaveDashboardMenus();
   await getTeacherClasses();
+  if (!isCurrent()) return;
   const notices = new Map();
   const expanded = new Set();
   const closeCardMenus = () => {

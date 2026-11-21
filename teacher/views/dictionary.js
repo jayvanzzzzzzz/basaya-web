@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import { state } from "../../js/state.js";
 import { $, $$, escapeHtml, toast, page, openModal, displayName } from "../../js/helpers.js";
@@ -359,6 +360,8 @@ function askFirst({ title, text, yes, no = "Keep editing" }) {
 }
 
 export async function renderDictionary() {
+  const isCurrent = captureRoute("/dictionary");
+  if (!isCurrent()) return;
   page(
     "Dictionary",
     "Tagalog words students can look up, explained in Filipino",
@@ -413,6 +416,7 @@ export async function renderDictionary() {
   };
 
   const showList = () => {
+    if (!isCurrent()) return;
     open = null;
     matches = filtered();
     const text = input.value.trim();
@@ -437,17 +441,21 @@ export async function renderDictionary() {
   };
 
   const showEntry = (entry) => {
+    if (!isCurrent()) return;
     open = entry.key;
     results.innerHTML = entryHtml(entry);
     results.querySelector("h2").focus?.();
   };
 
   const load = async (focusWord = "") => {
+    if (!isCurrent()) return;
     results.innerHTML = `<p class="dict-empty">Loading…</p>`;
     try {
       everything = await allWords();
+      if (!isCurrent()) return;
       $("#dict-total").textContent = everything.length.toLocaleString();
     } catch (error) {
+      if (!isCurrent()) return;
       console.error(error);
       results.innerHTML = `<p class="dict-empty" role="alert">Couldn't load the dictionary. Check your connection. <button type="button" class="button secondary small" data-retry>Try again</button></p>`;
       return;
@@ -470,6 +478,7 @@ export async function renderDictionary() {
   input.addEventListener("input", () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
+      if (!isCurrent()) return;
       listPage = 1;
       setLetter(LETTERS.includes(normalizeWord(input.value)) ? normalizeWord(input.value) : input.value.trim() ? null : "");
       showList();

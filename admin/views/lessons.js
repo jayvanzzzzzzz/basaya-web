@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import {
   addDoc,
@@ -112,7 +113,10 @@ document.addEventListener("keydown", (event) => {
 });
 
 export async function renderLessons() {
+  const isCurrent = captureRoute("/lessons");
+  if (!isCurrent()) return;
   await getAllLessons();
+  if (!isCurrent()) return;
 
   // A–Z by title (ignoring case and accents; "Aralin 2" before "Aralin 10"); untitled last.
   const lessons = [...state.allLessons].sort((a, b) => {

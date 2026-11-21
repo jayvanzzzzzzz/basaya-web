@@ -1,6 +1,8 @@
 import { confirmAction } from "../../js/action-confirmation.js";
+import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   doc,
+  setDoc,
   updateDoc,
   deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -25,7 +27,13 @@ function verificationMarkup(teacher) {
   const label = teacher.emailVerified === true
     ? (teacher.mustChangePassword ? "Verified · Password setup pending" : "Verified")
     : teacher.emailVerified === false ? "Pending verification" : "Verification status unavailable";
-  return `<br><small>${label}</small>`;
+  const status = teacher.emailVerified === true ? "verified" : teacher.emailVerified === false ? "pending" : "unavailable";
+  const mark = {
+    verified: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>',
+    pending: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    unavailable: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
+  }[status];
+  return `<span class="teacher-verification teacher-verification--${status}"><svg viewBox="0 0 24 24" aria-hidden="true">${mark}</svg><span>${label}</span></span>`;
 }
 
 function verificationActions(teacher) {
@@ -87,18 +95,23 @@ document.addEventListener("keydown", (event) => {
 });
 
 export async function renderTeachers() {
+  const isCurrent = captureRoute("/teachers");
+  if (!isCurrent()) return;
   await getAllTeachers();
+  if (!isCurrent()) return;
   const pending = state.teachers.filter(t => t.emailVerificationRequired === true);
   pending.forEach(teacher => { delete teacher.emailVerified; });
   try {
     for (let offset = 0; offset < pending.length; offset += 100) {
       const { users } = await postToApi("teacher-onboarding", { action: "statuses", userIds: pending.slice(offset, offset + 100).map(t => t.id) });
+      if (!isCurrent()) return;
       for (const user of users) {
         const teacher = pending.find(t => t.id === user.uid);
         if (teacher) teacher.emailVerified = user.emailVerified;
       }
     }
   } catch { /* Show unavailable status rather than assume verification. */ }
+  if (!isCurrent()) return;
 
   page(
     "Teacher accounts",

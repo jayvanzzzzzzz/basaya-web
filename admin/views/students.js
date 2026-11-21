@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import {
   collection,
@@ -67,7 +68,10 @@ let selectedRibbon = "all";
 const countLabel = (count) => (count === 1 ? "student" : "students");
 
 export async function renderStudents() {
+  const isCurrent = captureRoute("/students");
+  if (!isCurrent()) return;
   const [students] = await Promise.all([getAllStudents(), getAllClasses()]);
+  if (!isCurrent()) return;
   const classNames = new Map(
     state.allClasses.map((c) => [c.id, classLabel(c)]),
   );

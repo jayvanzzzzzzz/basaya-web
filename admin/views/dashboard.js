@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { collection, getCountFromServer, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
 import { state, getAllTeachers, getAllClasses, getAllLessons } from '../../js/state.js';
@@ -6,6 +7,8 @@ import { greeting } from '../../js/teacherTitle.js';
 import { stat, row, panel, empty, welcome, icon, classroomCard } from '../../js/workspace-dashboard.js';
 
 export async function renderAdminDashboard() {
+  const isCurrent = captureRoute("/dashboard");
+  if (!isCurrent()) return;
   page('Dashboard', 'A clear view of your school, with the next steps that matter.');
   const root = document.createElement('div');
   root.className = 'workspace-overview';
@@ -18,7 +21,7 @@ export async function renderAdminDashboard() {
     getAllTeachers(), getAllClasses(), getAllLessons(),
     getCountFromServer(query(collection(db, 'users'), where('role', '==', 'student'))),
   ]);
-  if (!root.isConnected) return;
+  if (!isCurrent() || !root.isConnected) return;
   const ok = i => results[i].status === 'fulfilled';
   const teachers = ok(0) ? state.teachers : [];
   const classes = ok(1) ? state.allClasses : [];

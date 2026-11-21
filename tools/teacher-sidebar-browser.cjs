@@ -67,12 +67,13 @@ const server = http.createServer(async (req, res) => {
           document.querySelector('#loading-screen').hidden = true;
           document.querySelector('#app-view').hidden = false;
           document.querySelector('[data-nav="classes"]').classList.add('active');
+          if(!location.hash)history.replaceState(null,'',location.pathname+location.search+'#/classes');
           await renderDashboard(); window.ready = true;
           </script></body>`);
       type = 'text/html';
      } else if (name === 'teacher/views/accountSettings.js') {
       body = (await fs.readFile(path.join(root,name),'utf8')).replace(/import[\s\S]*?from\s+["'][^"']+["'];/g,'');
-      body = "import {syncThemeButtons} from '/js/theme.js'; import {shell} from '/shell.mjs'; import {$, state, page, escapeHtml, toast, updateDoc, doc, db} from '/fixture.mjs'; import {watchTeacherTooltips} from '/teacher/views/classActions.js'; import {genderMarkup,titleForGender} from '/js/teacherTitle.js'; import {teacherNameFields,readTeacherName} from '/js/teacher-name.js'; import {MIN_LENGTH,passwordProblem,passwordRulesMarkup,watchPasswordRules} from '/js/password-rules.js'; import {fieldError,focusFirstError} from '/js/field-errors.js'; const initials=name=>name.split(' ').map(n=>n[0]).slice(0,2).join(''); const teacherName=(name,title)=>title==='maam'?\"Ma'am \"+name.split(' ').at(-1):name; const auth={currentUser:{email:'maria.santos@school.edu'}}; const EmailAuthProvider={credential:()=>({})}; const reauthenticateWithCredential=async()=>{}; const updatePassword=async()=>{};\n" + body;
+      body = "import {syncThemeButtons} from '/js/theme.js'; import {shell} from '/shell.mjs'; import {$, state, page, escapeHtml, toast, updateDoc, doc, db} from '/fixture.mjs'; import {watchTeacherTooltips} from '/teacher/views/classActions.js'; import {captureRoute} from '/js/route-lifecycle.js'; import {genderMarkup,titleForGender} from '/js/teacherTitle.js'; import {teacherNameFields,readTeacherName} from '/js/teacher-name.js'; import {MIN_LENGTH,passwordProblem,passwordRulesMarkup,watchPasswordRules} from '/js/password-rules.js'; import {fieldError,focusFirstError} from '/js/field-errors.js'; const initials=name=>name.split(' ').map(n=>n[0]).slice(0,2).join(''); const teacherName=(name,title)=>title==='maam'?\"Ma'am \"+name.split(' ').at(-1):name; const auth={currentUser:{email:'maria.santos@school.edu',providerData:[{providerId:'password'}]}}; const EmailAuthProvider={credential:()=>({})}; const reauthenticateWithCredential=async()=>{}; const updatePassword=async()=>{};\n" + body;
     } else if (name === 'js/teacherTitle.js') {
       body = (await fs.readFile(path.join(root,name),'utf8')).replace(/import[^;]+;/g,'');
       body = "import {escapeHtml} from '/fixture.mjs'; const TEACHER_TITLES={maam:\"Ma'am\",sir:'Sir'}; const teacherName=name=>name;\n" + body;
@@ -86,8 +87,8 @@ const server = http.createServer(async (req, res) => {
       body = fixture + page + notices.slice(notices.indexOf('export function attentionMarkup'), notices.indexOf('// Separate subscriptions'));
     } else if (name === 'teacher/views/dashboard.js') {
       body = (await fs.readFile(path.join(root, name), 'utf8')).replace(/from\s+(["'])([^"']+)\1/g, (match, quote, source) =>
-        source.endsWith('classActions.js') || source.endsWith('pagination.js') ? match : `from '/fixture.mjs'`);
-    } else if (/^(css\/|img\/)/.test(name) || ['teacher/views/classActions.js', 'js/floatingTooltip.js', 'js/pagination.js', 'js/theme.js','js/theme-buttons.js','js/teacher-name.js','js/password-rules.js','js/field-errors.js'].includes(name)) {
+        source.endsWith('classActions.js') || source.endsWith('pagination.js') || source.endsWith('route-lifecycle.js') ? match : `from '/fixture.mjs'`);
+    } else if (/^(css\/|img\/)/.test(name) || ['teacher/views/classActions.js', 'js/floatingTooltip.js', 'js/pagination.js', 'js/theme.js','js/theme-buttons.js','js/route-lifecycle.js','js/teacher-name.js','js/password-rules.js','js/field-errors.js'].includes(name)) {
       const target = path.resolve(root, name);
       if (!target.startsWith(root + path.sep) || name.split(/[\\/]/).some(p => p.startsWith('.'))) throw Error('Invalid path');
       body = await fs.readFile(target);
@@ -143,7 +144,10 @@ const server = http.createServer(async (req, res) => {
     }
   }
   await page.emulateMedia({reducedMotion:'no-preference'});
-  await stickyCreate.hover();
+  await page.evaluate(()=>window.scrollTo({top:document.querySelector('#page-header').offsetTop+document.querySelector('#page-header').offsetHeight+80,behavior:'instant'}));
+  await page.waitForFunction(()=>document.querySelector('.page-header-bar').classList.contains('is-visible'));
+  const stickyBox=await stickyCreate.boundingBox();
+  await page.mouse.move(stickyBox.x+stickyBox.width/2,stickyBox.y+stickyBox.height/2);
   await page.waitForTimeout(250);
   assert.equal(await stickyCreate.evaluate(el=>getComputedStyle(el).transform),'matrix(1, 0, 0, 1, 0, -2)');
   await stickyCreate.focus();await page.mouse.move(0,0);
@@ -193,14 +197,14 @@ const server = http.createServer(async (req, res) => {
   await page.locator('[data-settings-section="account-password-form"]').click();
   await page.waitForFunction(()=>document.activeElement?.name==='currentPassword');
   assert.equal(await page.evaluate(()=>location.hash),'#/settings');
-  const reveal=page.getByRole('button',{name:'Show current password',exact:true});
+  const reveal=page.locator('#account-password-form').getByRole('button',{name:'Show current password',exact:true});
   await reveal.hover();
   await page.getByRole('tooltip').filter({hasText:'Show current password'}).waitFor();
   await reveal.click();
-  assert.equal(await page.locator('[name=currentPassword]').getAttribute('type'),'text');
-  await page.getByRole('button',{name:'Hide current password',exact:true}).click();
-  assert.equal(await page.locator('[name=currentPassword]').getAttribute('type'),'password');
-  await page.locator('[name=currentPassword]').fill('OldPassword1');
+  assert.equal(await page.locator('#account-password-form [name=currentPassword]').getAttribute('type'),'text');
+  await page.locator('#account-password-form').getByRole('button',{name:'Hide current password',exact:true}).click();
+  assert.equal(await page.locator('#account-password-form [name=currentPassword]').getAttribute('type'),'password');
+  await page.locator('#account-password-form [name=currentPassword]').fill('OldPassword1');
   await page.locator('[name=newPassword]').fill('NewPassword2');
   assert.equal(await page.locator('.password-rules .is-met').count(),4);
   await page.locator('[name=confirmPassword]').fill('WrongPassword3');

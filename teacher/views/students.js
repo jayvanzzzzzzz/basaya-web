@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   collection,
   doc,
@@ -30,10 +31,13 @@ const icon = key => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const studentAction = (key, label, attribute, id, hidden = false) => `<button type="button" class="roster-action${key === 'remove' ? ' roster-action--danger' : ''}" ${attribute}="${escapeHtml(id)}" aria-label="${label}" data-teacher-tooltip data-floating-tooltip="${label}"${hidden ? ' hidden' : ''}>${icon(key)}</button>`;
 
 export async function renderStudentsPage(classId) {
+  const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}/students`);
+  if (!isCurrent()) return;
   leaveJoinRequests();
   leaveLeaveRequests();
   leaveStudentNotifications();
   const classDoc = await getDoc(doc(db, "classes", classId));
+  if (!isCurrent()) return;
   if (!classDoc.exists() || classDoc.data().teacherId !== state.user.uid) {
     return navigate("/dashboard");
   }
@@ -42,6 +46,7 @@ export async function renderStudentsPage(classId) {
   const studentsSnap = await getDocs(
     collection(db, "classes", classId, "students"),
   );
+  if (!isCurrent()) return;
   const students = studentsSnap.docs
     .map((studentDoc) => ({
       id: studentDoc.id,

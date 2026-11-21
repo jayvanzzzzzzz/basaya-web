@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -15,6 +16,7 @@ import { syncThemeButtons } from '../../js/theme-buttons.js';
 // (api/request-admin-password-change → confirm-password-change.html).
 
 export function renderAccount() {
+  if (!captureRoute("/settings")()) return;
   page("Account settings", "");
 
   const email = state.user?.email || "";

@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { collection, getCountFromServer, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
 import { state, getTeacherClasses, getAllLessons } from '../../js/state.js';
@@ -12,6 +13,8 @@ import { setRequestTab } from './requestRibbons.js';
 import { renderRoute } from '../router.js';
 
 export async function renderTeacherLanding() {
+  const isCurrent = captureRoute("/dashboard");
+  if (!isCurrent()) return;
   page('Dashboard', 'Your teaching day starts here.', `<button class="button primary" type="button" id="overview-create-class">${icon('plus')} Create class</button>`);
   const root = document.createElement('div');
   root.className = 'workspace-overview';
@@ -29,7 +32,7 @@ export async function renderTeacherLanding() {
     }
     return;
   }
-  if (!root.isConnected) return;
+  if (!isCurrent() || !root.isConnected) return;
   const classes = [...state.classes];
   const notices = new Map();
   content.innerHTML = `<section class="overview-stats" aria-label="Teaching at a glance">

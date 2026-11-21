@@ -1,4 +1,4 @@
-import { $, currentRoute, navigate, shell, empty } from "../js/helpers.js";
+import { $, currentRoute, navigate, shell, empty, page } from "../js/helpers.js";
 import { state, getTeacherLessons, getAllLessons, getTeacherClasses } from "../js/state.js";
 import { renderDashboard, leaveDashboardMenus } from "./views/dashboard.js";
 import { renderAccountSettings } from "./views/accountSettings.js";
@@ -18,6 +18,7 @@ import { leaveTeacherTooltips, watchTeacherTooltips } from './views/classActions
 import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
 import { renderTeacherLanding } from './views/landing.js';
 import { renderHandbook, leaveHandbook } from '../js/handbook.js';
+import { beginRoute } from '../js/route-lifecycle.js';
 
 let statsLoaded = false;
 
@@ -33,6 +34,7 @@ async function loadSidebarStats() {
 }
 
 export async function renderRoute() {
+  const isCurrent = beginRoute();
   leaveHandbook();
   if (!state.user || !state.profile) return;
   leaveDashboardNotifications();
@@ -73,6 +75,9 @@ export async function renderRoute() {
       if (isActive) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
+  page("Loading…", "");
+  $("#page-content").replaceChildren();
+  $("#page-content").setAttribute("aria-busy", "true");
   try {
     if (route === "/dashboard") await renderTeacherLanding();
     else if (route === "/classes") await renderDashboard();
@@ -93,10 +98,12 @@ export async function renderRoute() {
       await renderAddLessonPage(classId);
     } else if (route.startsWith("/classes/")) {
       await Promise.all([getTeacherLessons(), getAllLessons()]);
+      if (!isCurrent()) return;
       await renderClass(classId);
     } else navigate("/dashboard");
-    watchTeacherTooltips();
+    if (isCurrent()) watchTeacherTooltips();
   } catch (error) {
+    if (!isCurrent()) return;
     console.error(error);
     $("#page-content").innerHTML = empty(
       "Something needs attention",
@@ -105,5 +112,7 @@ export async function renderRoute() {
       "retry",
     );
     $("#retry")?.addEventListener("click", renderRoute);
+  } finally {
+    if (isCurrent()) $("#page-content").removeAttribute("aria-busy");
   }
 }

@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { syncThemeButtons } from "../../js/theme-buttons.js";
 import {
   EmailAuthProvider,
@@ -19,6 +20,8 @@ import { genderMarkup, titleForGender } from "../../js/teacherTitle.js";
 import { teacherNameFields, readTeacherName } from "../../js/teacher-name.js";
 
 export function renderAccountSettings() {
+  const isCurrent = captureRoute("/settings");
+  if (!isCurrent()) return;
   page(
     "Account settings",
     "Your profile, your preferences, your space to teach.",
@@ -196,6 +199,7 @@ export function renderAccountSettings() {
         ...(gender ? { gender } : {}),
         title,
       };
+      if (!isCurrent()) return;
       shell();
       toast("Profile details saved.");
       renderAccountSettings();

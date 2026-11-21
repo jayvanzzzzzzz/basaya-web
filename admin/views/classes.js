@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   doc,
   serverTimestamp,
@@ -118,7 +119,10 @@ function gradeTabs(classes) {
 }
 
 export async function renderClasses() {
+  const isCurrent = captureRoute("/classes");
+  if (!isCurrent()) return;
   await Promise.all([getAllTeachers(), getAllClasses()]);
+  if (!isCurrent()) return;
 
   const teacherNameById = new Map(
     state.teachers.map((t) => [t.id, t.displayName || t.email || "Unnamed teacher"]),

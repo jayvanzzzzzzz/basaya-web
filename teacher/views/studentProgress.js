@@ -1,3 +1,4 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
@@ -212,7 +213,10 @@ function exportStudentExcel({ classroom, student, profile, progress, joined }) {
 
 /** #/classes/{classId}/students/{studentId} — one student's progress, with remarks. */
 export async function renderStudentProgress(classId, studentId) {
+  const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}/students/${encodeURIComponent(studentId)}`);
+  if (!isCurrent()) return;
   const context = await loadClassContext(classId);
+  if (!isCurrent()) return;
   if (!context) return navigate("/dashboard");
   const { classroom, lessons } = context;
   const student = context.students.find((item) => item.id === studentId);
@@ -224,6 +228,7 @@ export async function renderStudentProgress(classId, studentId) {
       .then((snap) => snap.data() || null)
       .catch(() => null),
   ]);
+  if (!isCurrent()) return;
   const joined = student.joinedAt?.toDate?.().toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",

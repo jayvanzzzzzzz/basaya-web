@@ -223,6 +223,28 @@ tr:hover .admin-class-table__mark {
   white-space: nowrap;
 }
 
+.teacher-verification {
+  display: flex;
+  align-items: flex-start;
+  gap: .35rem;
+  margin-top: .35rem;
+  color: var(--ink-2);
+  font-size: .72rem;
+  line-height: 1.55;
+}
+.teacher-verification svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  margin-top: 1px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.teacher-verification--verified { color: var(--success); }
+.teacher-verification--pending { color: var(--warning); }
 .teacher-table__email {
   color: var(--ink-3) !important;
   overflow-wrap: anywhere;
