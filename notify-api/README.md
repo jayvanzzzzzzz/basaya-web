@@ -1,5 +1,11 @@
 # BaSaya notify-api
 
+Teacher onboarding uses `POST /api/teacher-onboarding`, routed through the existing class-membership function. Admin actions: `create`, `statuses` (up to 100 user IDs), `resend`, and `correct-email`. Creation requires `firstName` and `lastName`; `middleName` is optional. Each name part allows up to 80 characters. The API trims and saves the parts and derives `displayName` in first-middle-last order. Pending teachers can `resend` for themselves and `complete` after email verification, recent sign-in, and choosing a strong password different from the temporary one. Verification messages use the existing `GMAIL_USER` / `GMAIL_APP_PASSWORD` mail transport. Set `SITE_URL` to the web deployment root that serves `verify-teacher.html` (including a subdirectory if used).
+
+Deploy the API, website, and `firestore.rules` together before creating teachers with the new form. The API owns `emailVerificationRequired`, `mustChangePassword`, and `verificationSentAt`; private `teacherInvitations` documents hold salted temporary-password hashes until setup completes and have no client access. New teachers are blocked from teacher API/rules access until setup completes. Existing profiles without `emailVerificationRequired: true` retain access. A successful create response includes `emailSent: false` when sending fails; retry sending for that account instead of recreating it. Resends have a one-minute cooldown. “Sent” indicates acceptance by the email service, not delivery to the inbox.
+
+Local QA (no production writes): `node --experimental-vm-modules tools/teacher-onboarding-tests.mjs <java> <firestore-emulator.jar>` and `node tools/teacher-onboarding-browser.cjs` from the web root. The API suite can run without emulator arguments for the backend checks only.
+
 The BaSaya website's small server. Runs free on Vercel (Hobby plan, no card).
 
 | Endpoint | Who can call it | What it does |

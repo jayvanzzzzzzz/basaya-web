@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root = path.resolve(__dirname, '..');
-const artifacts = path.join(root, 'audit/teacher-sidebar');
+const artifacts = process.env.BASAYA_QA_ARTIFACTS || path.join(root, 'audit/teacher-sidebar');
 let browser;
 const fixture = `
 export const $ = (s, root = document) => root.querySelector(s);
@@ -72,7 +72,7 @@ const server = http.createServer(async (req, res) => {
       type = 'text/html';
      } else if (name === 'teacher/views/accountSettings.js') {
       body = (await fs.readFile(path.join(root,name),'utf8')).replace(/import[\s\S]*?from\s+["'][^"']+["'];/g,'');
-      body = "import {syncThemeButtons} from '/js/theme.js'; import {shell} from '/shell.mjs'; import {$, state, page, escapeHtml, toast, updateDoc, doc, db} from '/fixture.mjs'; import {watchTeacherTooltips} from '/teacher/views/classActions.js'; import {titleChipsMarkup} from '/js/teacherTitle.js'; import {MIN_LENGTH,passwordProblem,passwordRulesMarkup,watchPasswordRules} from '/js/password-rules.js'; import {fieldError,focusFirstError} from '/js/field-errors.js'; const initials=name=>name.split(' ').map(n=>n[0]).slice(0,2).join(''); const teacherName=(name,title)=>title==='maam'?\"Ma'am \"+name.split(' ').at(-1):name; const auth={currentUser:{email:'maria.santos@school.edu'}}; const EmailAuthProvider={credential:()=>({})}; const reauthenticateWithCredential=async()=>{}; const updatePassword=async()=>{};\n" + body;
+      body = "import {syncThemeButtons} from '/js/theme.js'; import {shell} from '/shell.mjs'; import {$, state, page, escapeHtml, toast, updateDoc, doc, db} from '/fixture.mjs'; import {watchTeacherTooltips} from '/teacher/views/classActions.js'; import {genderMarkup,titleForGender} from '/js/teacherTitle.js'; import {teacherNameFields,readTeacherName} from '/js/teacher-name.js'; import {MIN_LENGTH,passwordProblem,passwordRulesMarkup,watchPasswordRules} from '/js/password-rules.js'; import {fieldError,focusFirstError} from '/js/field-errors.js'; const initials=name=>name.split(' ').map(n=>n[0]).slice(0,2).join(''); const teacherName=(name,title)=>title==='maam'?\"Ma'am \"+name.split(' ').at(-1):name; const auth={currentUser:{email:'maria.santos@school.edu'}}; const EmailAuthProvider={credential:()=>({})}; const reauthenticateWithCredential=async()=>{}; const updatePassword=async()=>{};\n" + body;
     } else if (name === 'js/teacherTitle.js') {
       body = (await fs.readFile(path.join(root,name),'utf8')).replace(/import[^;]+;/g,'');
       body = "import {escapeHtml} from '/fixture.mjs'; const TEACHER_TITLES={maam:\"Ma'am\",sir:'Sir'}; const teacherName=name=>name;\n" + body;
@@ -87,7 +87,7 @@ const server = http.createServer(async (req, res) => {
     } else if (name === 'teacher/views/dashboard.js') {
       body = (await fs.readFile(path.join(root, name), 'utf8')).replace(/from\s+(["'])([^"']+)\1/g, (match, quote, source) =>
         source.endsWith('classActions.js') || source.endsWith('pagination.js') ? match : `from '/fixture.mjs'`);
-    } else if (/^(css\/|img\/)/.test(name) || ['teacher/views/classActions.js', 'js/floatingTooltip.js', 'js/pagination.js', 'js/theme.js','js/password-rules.js','js/field-errors.js'].includes(name)) {
+    } else if (/^(css\/|img\/)/.test(name) || ['teacher/views/classActions.js', 'js/floatingTooltip.js', 'js/pagination.js', 'js/theme.js','js/theme-buttons.js','js/teacher-name.js','js/password-rules.js','js/field-errors.js'].includes(name)) {
       const target = path.resolve(root, name);
       if (!target.startsWith(root + path.sep) || name.split(/[\\/]/).some(p => p.startsWith('.'))) throw Error('Invalid path');
       body = await fs.readFile(target);
@@ -101,7 +101,7 @@ const server = http.createServer(async (req, res) => {
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
   const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('Browser error:', e.message);});
   await page.goto('http://127.0.0.1:'+server.address().port+'/teacher/preview.html');await page.waitForFunction(()=>window.ready);
   assert.equal(await page.locator('#teacher-summary').textContent(),'Maria Santos');
   assert.equal(await page.locator('#teacher-avatar').textContent(),'MS');
@@ -211,13 +211,13 @@ const server = http.createServer(async (req, res) => {
   await page.waitForFunction(()=>document.querySelector('#toast').textContent==='Password updated.');
   assert.equal(await page.locator('[name=newPassword]').inputValue(),'');
   await page.locator('[name=displayName]').fill('Maria Reyes');
-  await page.locator('.title-chips__chip').filter({hasText:"Ma'am"}).click();
+  await page.locator('[name=gender]').selectOption('female');
   assert.match(await page.locator('[data-title-preview]').textContent(),/Ma'am Reyes/);
   await page.getByRole('button',{name:'Save profile',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.account-settings__hero h2').textContent==='Maria Reyes');
   assert.equal(await page.locator('#teacher-summary').textContent(),'Maria Reyes');
   assert.equal(await page.locator('[name=displayName]').inputValue(),'Maria Reyes');
-  assert.equal(await page.locator('[name=title][value=maam]').isChecked(),true);
+  assert.equal(await page.locator('[name=gender]').inputValue(),'female');
   await page.locator('[data-nav=classes]').click();await page.locator('.teacher-dashboard').waitFor();
   await page.locator('[data-nav=settings]').click();await toggle.waitFor();
   assert.equal(await toggle.getAttribute('aria-pressed'),'false');await toggle.focus();await page.keyboard.press('Enter');
@@ -237,5 +237,20 @@ const server = http.createServer(async (req, res) => {
   }
   await page.emulateMedia({reducedMotion:'reduce'});
   assert.equal(await page.locator('.theme-options').evaluate(el=>getComputedStyle(el,'::before').transitionDuration),'0s');
+  await page.evaluate(async () => {
+    const { state } = await import('/fixture.mjs');
+    state.profile = { ...state.profile, firstName: 'Maria', lastName: 'Reyes', middleName: 'Santos', displayName: 'Maria Santos Reyes' };
+    const { renderAccountSettings } = await import('/teacher/views/accountSettings.js');
+    renderAccountSettings();
+  });
+  assert.equal(await page.locator('[name=displayName]').count(),0);
+  assert.equal(await page.locator('[name=middleName]').inputValue(),'Santos');
+  await page.locator('[name=firstName]').fill('Maria Ana');
+  await page.locator('[name=middleName]').fill('');
+  await page.getByRole('button',{name:'Save profile',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.account-settings__hero h2').textContent==='Maria Ana Reyes');
+  assert.equal(await page.locator('[name=firstName]').inputValue(),'Maria Ana');
+  assert.equal(await page.locator('[name=middleName]').inputValue(),'');
+  assert.equal(await page.locator('[name=lastName]').inputValue(),'Reyes');
   assert.deepEqual(errors,[]);console.log('PASS: profile identity, sidebar removals, logout control, account settings theme clicks and keyboard, persisted preference, route remount, no overflow at 1440/768/390/320. Screenshots: audit/teacher-sidebar');
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{await browser?.close();server.close()});

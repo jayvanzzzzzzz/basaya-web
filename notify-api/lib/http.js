@@ -1,3 +1,4 @@
+import { teacherAccessReady } from "./teacherOnboarding.js";
 import { adminAuth, db } from "./firebase.js";
 
 // Shared by the API endpoints: CORS for the web portals, and who is calling.
@@ -21,14 +22,23 @@ export function allowCors(req, res) {
 }
 
 /** The caller's decoded Firebase ID token (uid, auth_time…), or null (401 sent). */
-export async function requireToken(req, res) {
+export async function requireToken(req, res, { allowPendingTeacher = false } = {}) {
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) {
     res.status(401).json({ error: "Not signed in" });
     return null;
   }
   try {
-    return await adminAuth().verifyIdToken(token);
+    const decoded = await adminAuth().verifyIdToken(token);
+    if (!allowPendingTeacher) {
+      const profile = await db().doc(`users/${decoded.uid}`).get();
+      if (profile.get("role") === "teacher" && profile.get("emailVerificationRequired") === true &&
+          !teacherAccessReady(profile.data(), await adminAuth().getUser(decoded.uid))) {
+        res.status(403).json({ error: "Verify your email and finish setting your password before using teacher features." });
+        return null;
+      }
+    }
+    return decoded;
   } catch {
     res.status(401).json({ error: "Sign-in expired. Reload the page." });
     return null;

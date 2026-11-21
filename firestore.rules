@@ -10,7 +10,10 @@ service cloud.firestore {
     function isTeacher() {
       return signedIn() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid))
-          .data.role == "teacher";
+          .data.role == "teacher" &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('emailVerificationRequired', false) != true ||
+          (request.auth.token.get('email_verified', false) == true &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('mustChangePassword', false) != true));
     }
 
     function isAdmin() {
@@ -71,7 +74,11 @@ service cloud.firestore {
           isAdmin() ||
           (request.auth.uid == userId &&
             request.resource.data.role == resource.data.role &&
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary']))
+            (resource.data.role != 'teacher' ||
+              (!resource.data.keys().hasAny(['gender']) && !request.resource.data.keys().hasAny(['gender'])) ||
+              (request.resource.data.gender == 'female' && request.resource.data.title == 'maam') ||
+              (request.resource.data.gender == 'male' && request.resource.data.title == 'sir')) &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt']))
         );
                                                                                                                                                                                     
         allow delete: if isAdmin();    

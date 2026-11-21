@@ -1,27 +1,67 @@
 import { confirmAction } from "../../js/action-confirmation.js";
 import {
   doc,
-  setDoc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
-  createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { auth, secondaryAuth, db } from "../../js/firebase.js";
+import { auth, db } from "../../js/firebase.js";
 import { state, getAllTeachers } from "../../js/state.js";
 import { $, escapeHtml, toast, notify, initials, page, empty, openModal, currentRoute } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import { fieldError } from "../../js/field-errors.js";
-import { sendPasswordReset } from "../../js/api.js";
+import { postToApi, sendPasswordReset } from "../../js/api.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
-import { titleChipsMarkup, titleLabel } from "../../js/teacherTitle.js";
+import { genderMarkup, titleForGender, titleLabel } from "../../js/teacherTitle.js";
+import { teacherNameFields, readTeacherName } from "../../js/teacher-name.js";
 import { assignClasses, classIdsOf, teacherLabel, teacherOptions } from "./classTeacher.js";
 
 let pager = null;
+
+function verificationMarkup(teacher) {
+  if (teacher.emailVerificationRequired !== true) return "";
+  const label = teacher.emailVerified === true
+    ? (teacher.mustChangePassword ? "Verified · Password setup pending" : "Verified")
+    : teacher.emailVerified === false ? "Pending verification" : "Verification status unavailable";
+  return `<br><small>${label}</small>`;
+}
+
+function verificationActions(teacher) {
+  if (teacher.emailVerificationRequired !== true || teacher.emailVerified === true) return "";
+  return `<button type="button" class="teacher-table__menu-item" data-verify="${escapeHtml(teacher.id)}">Resend verification email</button><button type="button" class="teacher-table__menu-item" data-correct-email="${escapeHtml(teacher.id)}">Correct pending email</button>`;
+}
+
+function wireVerificationActions() {
+  document.querySelectorAll("[data-verify]").forEach(button => button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      const result = await postToApi("teacher-onboarding", { action: "resend", userId: button.dataset.verify });
+      toast(result.alreadyVerified ? "This email is already verified." : `Verification email sent to ${result.email}.`);
+      await renderTeachers();
+    } catch (error) { toast(error.message); } finally { button.disabled = false; }
+  }));
+  document.querySelectorAll("[data-correct-email]").forEach(button => button.addEventListener("click", () => {
+    closeTeacherMenus();
+    const teacher = state.teachers.find(t => t.id === button.dataset.correctEmail);
+    openModal(`<h2>Correct pending email</h2><form class="form-card" id="correct-teacher-email"><label>Email<input name="email" type="email" required value="${escapeHtml(teacher.email)}"></label><p role="alert" class="form-error"></p><button class="button primary" type="submit">Save and send verification</button></form>`, (modal, close) => {
+      modal.querySelector("form").addEventListener("submit", async event => {
+        event.preventDefault();
+        const submit = modal.querySelector("button");
+        if (submit.disabled) return;
+        submit.disabled = true;
+        try {
+          const result = await postToApi("teacher-onboarding", { action: "correct-email", userId: teacher.id, email: modal.querySelector("input").value.trim() });
+          close();
+          await renderTeachers();
+          toast(result.emailSent ? "Email corrected. Verification email sent." : "Email corrected, but verification email could not be sent. Use Resend verification email.");
+        } catch (error) { modal.querySelector("[role=alert]").textContent = error.message; }
+        finally { submit.disabled = false; }
+      });
+    });
+  }));
+}
 
 function closeTeacherMenus() {
   document.querySelectorAll(".teacher-table__menu-popup").forEach((menu) => {
@@ -48,6 +88,17 @@ document.addEventListener("keydown", (event) => {
 
 export async function renderTeachers() {
   await getAllTeachers();
+  const pending = state.teachers.filter(t => t.emailVerificationRequired === true);
+  pending.forEach(teacher => { delete teacher.emailVerified; });
+  try {
+    for (let offset = 0; offset < pending.length; offset += 100) {
+      const { users } = await postToApi("teacher-onboarding", { action: "statuses", userIds: pending.slice(offset, offset + 100).map(t => t.id) });
+      for (const user of users) {
+        const teacher = pending.find(t => t.id === user.uid);
+        if (teacher) teacher.emailVerified = user.emailVerified;
+      }
+    }
+  } catch { /* Show unavailable status rather than assume verification. */ }
 
   page(
     "Teacher accounts",
@@ -88,7 +139,7 @@ export async function renderTeachers() {
                       ${titleLabel(t.title) ? `<span class="teacher-table__title">${escapeHtml(titleLabel(t.title))}</span>` : ""}
                     </div>
                   </td>
-                  <td class="teacher-table__email">${escapeHtml(t.email || "No email on file")}</td>
+                  <td class="teacher-table__email">${escapeHtml(t.email || "No email on file")}${verificationMarkup(t)}</td>
                   <td>
                     <div class="teacher-table__menu">
                       <button
@@ -105,7 +156,7 @@ export async function renderTeachers() {
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
                           <span>Edit details</span>
                         </button>
-                        <button type="button" class="teacher-table__menu-item" data-reset="${escapeHtml(t.id)}">
+                        ${verificationActions(t)}<button type="button" class="teacher-table__menu-item" data-reset="${escapeHtml(t.id)}">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3" /></svg>
                           <span>Reset password</span>
                         </button>
@@ -156,6 +207,7 @@ export async function renderTeachers() {
     label: ["teacher", "teachers"],
   });
 
+  wireVerificationActions();
   state.teachers.forEach((t) => {
     const editButton = [...document.querySelectorAll("[data-edit]")].find(
       (button) => button.dataset.edit === t.id,
@@ -195,10 +247,10 @@ function openAddTeacherModal() {
   openModal(
     `<h2>Add teacher</h2>
      <form id="add-teacher-form" class="form-card">
-       <label>Full name<input name="displayName" required data-missing="Enter the teacher's full name, like Juan Dela Cruz." placeholder="Juan Dela Cruz" /></label>
-       ${titleChipsMarkup()}
+       ${teacherNameFields()}
+       ${genderMarkup()}
        <label>Email<input name="email" type="email" required data-missing="Enter the email the teacher will sign in with." placeholder="teacher@school.edu" /></label>
-       <label>Temporary password<input name="password" type="password" required data-missing="Set a temporary password for the teacher's first sign-in." minlength="${MIN_LENGTH}" placeholder="At least ${MIN_LENGTH} characters" /></label>
+       <label>Temporary password<input name="password" type="password" required autocomplete="new-password" maxlength="128" data-missing="Set a temporary password for the teacher's first sign-in." minlength="${MIN_LENGTH}" placeholder="At least ${MIN_LENGTH} characters" /></label>
        <p id="add-teacher-error" class="form-error" role="alert"></p>
        <div class="modal-actions"><button class="button primary" type="submit">Create account</button></div>
      </form>`,
@@ -208,8 +260,8 @@ function openAddTeacherModal() {
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           const form = new FormData(e.currentTarget);
-          const displayName = form.get("displayName").trim();
-          const title = form.get("title") || "";
+          const name = readTeacherName(e.currentTarget);
+          const gender = form.get("gender");
           const email = form.get("email").trim();
           const password = form.get("password");
           const errorEl = modal.querySelector("#add-teacher-error");
@@ -221,22 +273,12 @@ function openAddTeacherModal() {
             fields.password.focus();
             return;
           }
+          const submit = e.currentTarget.querySelector('[type="submit"]');
+          if (submit.disabled) return;
+          submit.disabled = true;
           try {
-            // Created on the secondary Auth instance so this doesn't replace the admin's own active session.
-            const cred = await createUserWithEmailAndPassword(
-              secondaryAuth,
-              email,
-              password,
-            );
-            await setDoc(doc(db, "users", cred.user.uid), {
-              role: "teacher",
-              displayName,
-              title,
-              email,
-              createdAt: serverTimestamp(),
-            });
-            await signOut(secondaryAuth);
-            toast(`Teacher account created for ${displayName}.`);
+            const result = await postToApi("teacher-onboarding", { action: "create", ...name, gender, email, password });
+            toast(result.emailSent ? 'Teacher account created. Verification email sent to ' + result.email + '.' : "Teacher account created, but verification email could not be sent. Use Resend verification email in the teacher menu.");
             close();
             await renderTeachers();
           } catch (error) {
@@ -251,7 +293,7 @@ function openAddTeacherModal() {
             } else {
               errorEl.textContent = error.message;
             }
-          }
+          } finally { submit.disabled = false; }
         });
     },
   );
@@ -261,8 +303,8 @@ function openEditTeacherModal(teacher) {
   openModal(
     `<h2>Edit teacher</h2>
      <form id="edit-teacher-form" class="form-card">
-       <label>Full name<input name="displayName" required data-missing="The teacher's name can't be blank. Enter their full name." value="${escapeHtml(teacher.displayName || "")}" /></label>
-       ${titleChipsMarkup(teacher.title)}
+       ${teacherNameFields(teacher)}
+       ${genderMarkup(teacher.gender, !teacher.gender)}
        <p class="muted">Email: ${escapeHtml(teacher.email || "—")}. Use "Reset password" to let them set a new password.</p>
        <div class="modal-actions"><button class="button primary" type="submit">Save changes</button></div>
      </form>`,
@@ -272,10 +314,11 @@ function openEditTeacherModal(teacher) {
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           const values = new FormData(e.currentTarget);
-          const displayName = values.get("displayName").trim();
-          const title = values.get("title") || "";
+          const name = readTeacherName(e.currentTarget);
+          const gender = values.get("gender");
+          const title = gender ? titleForGender(gender) : (teacher.title || "");
           try {
-            await updateDoc(doc(db, "users", teacher.id), { displayName, title });
+            await updateDoc(doc(db, "users", teacher.id), { ...name, ...(gender ? { gender } : {}), title });
             toast("Teacher account updated.");
             close();
             await renderTeachers();

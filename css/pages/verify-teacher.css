@@ -1,0 +1,18 @@
+.reset-card h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 5vw, 1.8rem);
+  line-height: 1.2;
+}
+.reset-card p {
+  overflow-wrap: anywhere;
+}
+.reset-card .button {
+  white-space: normal;
+}
+#setup-message:empty {
+  display: none;
+}
+#setup-password-form label {
+  display: grid;
+  gap: 0.4rem;
+}

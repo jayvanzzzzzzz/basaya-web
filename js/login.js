@@ -384,6 +384,12 @@ onAuthStateChanged(auth, async (user) => {
       $("#login-error").textContent = "This account has no portal access.";
       return;
     }
+    if (role === "teacher" && profileSnap.data().emailVerificationRequired === true &&
+        (!user.emailVerified || profileSnap.data().mustChangePassword === true)) {
+      sessionStorage.removeItem("basayaSignedOut");
+      window.location.replace("verify-teacher.html");
+      return;
+    }
     rememberAccount(user, profileSnap.data());
     sessionStorage.removeItem("basayaSignedOut");
     window.location.replace(destination);

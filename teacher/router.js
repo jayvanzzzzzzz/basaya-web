@@ -34,7 +34,7 @@ async function loadSidebarStats() {
 
 export async function renderRoute() {
   leaveHandbook();
-  if (!state.user) return;
+  if (!state.user || !state.profile) return;
   leaveDashboardNotifications();
   leaveDashboardMenus();
   leaveJoinRequests();

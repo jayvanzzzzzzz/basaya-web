@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>BASAya — Verify teacher account</title>
+  <link rel="icon" href="img/favicon.png">
+  <link rel="stylesheet" href="css/base/tokens.css">
+  <link rel="stylesheet" href="css/base/reset.css">
+  <link rel="stylesheet" href="css/base/typography.css">
+  <link rel="stylesheet" href="css/components/buttons.css">
+  <link rel="stylesheet" href="css/components/forms.css">
+  <link rel="stylesheet" href="css/components/password-rules.css">
+  <link rel="stylesheet" href="css/pages/reset-password.css">
+  <link rel="stylesheet" href="css/pages/verify-teacher.css">
+  <script type="module" src="js/theme.js"></script>
+</head>
+<body>
+  <main class="reset-page">
+    <a class="reset-brand" href="index.html"><img src="img/logo.png" alt="">BASAya</a>
+    <section class="reset-card" aria-labelledby="setup-title">
+      <div class="reset-state">
+        <h1 id="setup-title">Verify your email</h1>
+        <p id="setup-description">Checking your teacher account…</p>
+        <p id="setup-message" role="status" aria-live="polite"></p>
+        <div id="verification-actions" class="reset-state" hidden>
+          <button class="button primary" id="check-verification" type="button">I’ve verified my email</button>
+          <button class="button secondary" id="resend-verification" type="button">Resend verification email</button>
+        </div>
+        <form id="setup-password-form" class="reset-state" hidden>
+          <label>Current or temporary password<input name="temporaryPassword" type="password" autocomplete="current-password" required></label>
+          <label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+          <div id="setup-password-rules"></div>
+          <label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" required></label>
+          <button class="button primary" type="submit">Save password and continue</button>
+        </form>
+        <a class="button primary" id="setup-signin" href="index.html" hidden>Go to sign in</a>
+        <button class="button secondary" id="setup-signout" type="button" hidden>Sign out</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="js/verify-teacher.js"></script>
+</body>
+</html>

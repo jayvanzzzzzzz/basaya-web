@@ -58,7 +58,7 @@ $("#logout-button").addEventListener("click", async (event) => {
     button.focus({ preventScroll: true });
   }
 });
-window.addEventListener("hashchange", renderRoute);
+window.addEventListener("hashchange", () => { if (state.profile) renderRoute(); });
 window.addEventListener("pageshow", () => {
   if (sessionStorage.getItem("basayaSignedOut") === "true") {
     window.location.replace("../index.html");
@@ -84,6 +84,11 @@ onAuthStateChanged(auth, async (user) => {
       console.log("Role check failed — bouncing to login");
       await signOut(auth);
       window.location.replace("../index.html");
+      return;
+    }
+    if (profile.data().emailVerificationRequired === true &&
+        (!user.emailVerified || profile.data().mustChangePassword === true)) {
+      window.location.replace("../verify-teacher.html");
       return;
     }
     state.profile = profile.data();

@@ -15,7 +15,8 @@ import { watchTeacherTooltips } from './classActions.js';
 import { fieldError, focusFirstError } from "../../js/field-errors.js";
 import { MIN_LENGTH, passwordProblem, passwordRulesMarkup, watchPasswordRules } from "../../js/password-rules.js";
 import { teacherName } from "../../js/chat.js?v=removed-preview";
-import { titleChipsMarkup } from "../../js/teacherTitle.js";
+import { genderMarkup, titleForGender } from "../../js/teacherTitle.js";
+import { teacherNameFields, readTeacherName } from "../../js/teacher-name.js";
 
 export function renderAccountSettings() {
   page(
@@ -55,19 +56,8 @@ export function renderAccountSettings() {
             </div>
           </div>
           <form id="account-profile-form" class="account-settings__form">
-            <label>
-              Full name
-              <input
-                name="displayName"
-                required
-                data-missing="Enter your full name as it should appear on your profile."
-                maxlength="80"
-                autocomplete="name"
-                value="${escapeHtml(displayName)}"
-                placeholder="Your full name"
-              />
-            </label>
-            ${titleChipsMarkup(title, "How should students address you?")}
+            ${teacherNameFields(profile)}
+            ${genderMarkup(profile.gender, !profile.gender)}
             <p class="title-chips__preview" data-title-preview></p>
             <label>
               Contact email
@@ -175,7 +165,8 @@ export function renderAccountSettings() {
   const profileForm = $("#account-profile-form");
   const preview = $("[data-title-preview]", profileForm);
   const showPreview = () => {
-    const name = teacherName(profileForm.elements.displayName.value, profileForm.elements.title.value);
+    const selectedGender = profileForm.elements.gender.value;
+    const name = teacherName(readTeacherName(profileForm).displayName, selectedGender ? titleForGender(selectedGender) : title);
     preview.hidden = !name;
     preview.innerHTML = `Students will see: <strong>${escapeHtml(name)}</strong>`;
   };
@@ -186,20 +177,23 @@ export function renderAccountSettings() {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
-    const displayName = values.get("displayName").trim();
-    const title = values.get("title") || "";
+    const name = readTeacherName(form);
+    const gender = values.get("gender");
+    const title = gender ? titleForGender(gender) : (profile.title || "");
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
     submit.textContent = 'Saving…';
 
     try {
       await updateDoc(doc(db, "users", state.user.uid), {
-        displayName,
+        ...name,
+        ...(gender ? { gender } : {}),
         title,
       });
       state.profile = {
         ...state.profile,
-        displayName,
+        ...name,
+        ...(gender ? { gender } : {}),
         title,
       };
       shell();
