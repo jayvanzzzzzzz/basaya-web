@@ -1,4 +1,5 @@
 import { captureRoute } from "../../js/route-lifecycle.js";
+import { loadModules } from '../../js/modules.js';
 import {
   collection,
   doc,
@@ -19,7 +20,7 @@ import {
   practiceLinkId,
 } from "../../js/schedule.js";
 import { paginate } from "../../js/pagination.js";
-import { openLessonModal, DIFFICULTY_LABELS } from "./lessons.js";
+import { DIFFICULTY_LABELS } from "./lessons.js";
 import { openLessonViewer } from "../../admin/views/lessonViewer.js";
 
 const MODE_LABEL = { assessment: "Assessment", practice: "Practice" };
@@ -39,9 +40,10 @@ export async function renderAddLessonPage(classId) {
     return navigate("/dashboard");
   const classroom = { id: classDoc.id, ...classDoc.data() };
 
-  const [linksSnap] = await Promise.all([
+  const [linksSnap, , modules] = await Promise.all([
     getDocs(collection(db, "classes", classId, "classLessons")),
     getAllLessons(),
+    loadModules(),
   ]);
   const links = linksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   if (!isCurrent()) return;
@@ -159,9 +161,23 @@ export async function renderAddLessonPage(classId) {
       </section>`;
 
   $("#create-lesson-empty")?.addEventListener("click", () =>
-    openLessonModal(),
+    navigate('/lessons'),
   );
   if (!state.allLessons.length) return;
+
+  // A module is assigned as the same existing lesson links, in its saved order.
+  // No student unlocking rule is activated by assigning a module.
+  if (modules.length) {
+    $('#link-form .lesson-picker__toolbar').insertAdjacentHTML('afterend', `<section class="module-panel"><h2>Add a module</h2><p>Add its lessons in their saved learning order.</p><label>Module<select id="class-module"><option value="">Choose a module</option>${modules.map(module => `<option value="${escapeHtml(module.id)}">${escapeHtml(module.title)} (${module.lessonIds.length} lessons)</option>`).join('')}</select></label><button type="button" class="button secondary" id="add-class-module">Add module lessons</button></section>`);
+    $('#add-class-module').onclick = () => {
+      const module = modules.find(item => item.id === $('#class-module').value);
+      if (!module) return toast('Choose a module first.');
+      const ids = module.lessonIds.filter(id => state.allLessons.some(item => item.id === id));
+      if (ids.length !== module.lessonIds.length) return toast('This module contains a removed lesson. Edit the module before assigning it.');
+      if (ids.every(id => inClass.assessment.has(id) && inClass.practice.has(id))) return toast('All module lessons are already added as assessment and practice.');
+      openAddModal(ids, module);
+    };
+  }
 
   // Rows show when they're in the selected level and match the search.
   const applyFilters = () => {
@@ -235,7 +251,7 @@ export async function renderAddLessonPage(classId) {
     openAddModal(ids);
   });
 
-  function openAddModal(ids) {
+  function openAddModal(ids, module = null) {
     const toAdd = (mode) => ids.filter((id) => !inClass[mode].has(id));
     // If every picked lesson is already in as the remembered type, start on the other one.
     if (!toAdd(settings.mode).length) settings.mode = settings.mode === "practice" ? "assessment" : "practice";
@@ -345,6 +361,7 @@ export async function renderAddLessonPage(classId) {
                 lessonId,
                 teacherId: state.user.uid,
                 order: links.length + index + 1,
+                ...(module ? { moduleId: module.id, moduleTitle: module.title, moduleOrder: module.lessonIds.indexOf(lessonId) + 1, moduleRevision: module.revision } : {}),
                 createdAt: serverTimestamp(),
                 openAt: schedule.openAt,
                 dueAt: schedule.dueAt,

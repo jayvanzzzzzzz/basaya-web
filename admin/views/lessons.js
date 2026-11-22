@@ -1,14 +1,12 @@
 import { captureRoute } from "../../js/route-lifecycle.js";
+import { reserveLessonCopy } from '../../js/modules.js';
 import { confirmAction } from "../../js/action-confirmation.js";
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDocs,
   serverTimestamp,
-  setDoc,
-  updateDoc,
   writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
@@ -112,7 +110,8 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeLessonMenus();
 });
 
-export async function renderLessons() {
+export async function renderLessons(options = {}) {
+  const editLesson = options.onEdit || openLessonModal;
   const isCurrent = captureRoute("/lessons");
   if (!isCurrent()) return;
   await getAllLessons();
@@ -319,15 +318,15 @@ export async function renderLessons() {
       });
       viewButton?.addEventListener("click", () => {
         closeLessonMenus();
-        openLessonViewer(lesson, { loadSections: getLessonSections, onEdit: openLessonModal });
+        openLessonViewer(lesson, { loadSections: getLessonSections, onEdit: editLesson });
       });
       editButton?.addEventListener("click", () => {
         closeLessonMenus();
-        openLessonModal(lesson);
+        editLesson(lesson);
       });
       deleteButton?.addEventListener("click", () => {
         closeLessonMenus();
-        openDeleteLesson(lesson, renderLessons);
+        openDeleteLesson(lesson, options.onRefresh || renderLessons);
       });
     });
 
@@ -356,8 +355,8 @@ export async function renderLessons() {
       );
   }
 
-  $("#add-lesson")?.addEventListener("click", () => openLessonModal());
-  $("#add-lesson-empty")?.addEventListener("click", () => openLessonModal());
+  $("#add-lesson")?.addEventListener("click", () => editLesson());
+  $("#add-lesson-empty")?.addEventListener("click", () => editLesson());
 }
 
 // Saved as the Filipino key (the apps read it); shown in English.
@@ -406,15 +405,15 @@ function wireTitleDefaults(modal) {
   });
 }
 
-function studioHtml(lesson = {}, sections = {}) {
+function studioHtml(lesson = {}, sections = {}, copy = false) {
   return `
     <div class="lesson-studio">
       <div class="lesson-studio__heading">
         <div>
           <p class="eyebrow">BASAya lesson studio</p>
-          <h2>${lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
+          <h2>${copy ? "Edit a lesson copy" : lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
         </div>
-        <span class="lesson-studio__badge">Admin only</span>
+        <span class="lesson-studio__badge">Lesson studio</span>
       </div>
       <div class="lesson-studio__tabs">
         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
@@ -594,7 +593,7 @@ function studioHtml(lesson = {}, sections = {}) {
 
         <div class="lesson-studio__footer">
           <button type="button" class="button secondary" data-close>Cancel</button>
-          <button type="submit" class="button primary">${lesson.id ? "Save changes" : "Publish lesson"}</button>
+          <button type="submit" class="button primary">${copy ? "Save copy" : lesson.id ? "Save changes" : "Publish lesson"}</button>
         </div>
       </form>
     </div>
@@ -1083,12 +1082,17 @@ function missingFields(modal, { skipActivity, skipGame }) {
   return missing;
 }
 
-async function openLessonModal(existing = null) {
+async function openLessonModal(existing = null, options = {}) {
   const sections = existing ? await getLessonSections(existing.id) : {};
+  const isCurrent = captureRoute();
+  if (options.isCurrent && !options.isCurrent()) return;
+  const copySource = options.copy ? existing : null;
+  if (copySource) existing = { ...existing, id: null, title: options.copyTitle };
   // Cancel and × ask before throwing away edits; set once the editor is built.
   let mayLeave = async () => true;
 
-  openModal(studioHtml(existing || {}, sections), (modal, close) => {
+  const mount = options.mount || openModal;
+  mount(studioHtml(existing || {}, sections, Boolean(copySource)), (modal, close) => {
     const disposeTooltips = attachFloatingTooltips(modal);
     const confirmRemoval = async (item, message = 'This removes the item from the lesson draft. Save the lesson to keep this change.') =>
       await confirmAction({ title: `Remove ${item}?`, message, confirm: 'Remove', danger: true }) && modal.isConnected;
@@ -1121,7 +1125,12 @@ async function openLessonModal(existing = null) {
       observer.disconnect();
     }).observe(document.body, { childList: true, subtree: true });
     const pronunciationWords = $("[data-pronunciation-words]", modal);
-    const saveState = { lessonId: existing?.id || '', dictionaryMissing: [] };
+    const saveState = { lessonId: existing?.id || '', dictionaryMissing: [], copySource };
+    if (copySource) {
+      const title = modal.querySelector('[name="title"]');
+      title.readOnly = true;
+      title.title = 'The next available copy number is assigned when saved.';
+    }
     const quizQuestions = $("[data-quiz-questions]", modal);
     const gameLevels = $("[data-game-levels]", modal);
     const skipGame = $("[data-skip-game]", modal);
@@ -1355,7 +1364,8 @@ async function openLessonModal(existing = null) {
       if (!button) return;
 
       if (button.matches("[data-close]")) {
-        if (await mayLeave()) close();
+        if ($("#lesson-form", modal).dataset.saving === 'true') return;
+        if (await mayLeave()) { close(); options.onCancel?.(); }
         return;
       }
 
@@ -1575,8 +1585,8 @@ async function openLessonModal(existing = null) {
       }
 
       // Skipping the Gawain or the game deletes what this lesson already has saved for it, so ask first.
-      const savedPages = skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
-      const savedLevels = skipGame.checked ? sections.game?.length || 0 : 0;
+      const savedPages = !copySource && skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
+      const savedLevels = !copySource && skipGame.checked ? sections.game?.length || 0 : 0;
       if (savedPages || savedLevels) {
         submit.disabled = true;
         const confirmed = await confirmDeleteSkipped({ pages: savedPages, levels: savedLevels });
@@ -1589,7 +1599,7 @@ async function openLessonModal(existing = null) {
         }
       }
 
-      if (!await confirmAction({ title: existing ? 'Save lesson changes?' : 'Publish this lesson?', message: existing ? 'Apply your changes to the lesson and its learning activities.' : 'Add this lesson to the library so teachers can assign it to classes.', confirm: existing ? 'Save changes' : 'Publish lesson' })) return;
+      if (!await confirmAction({ title: copySource ? 'Save this lesson copy?' : existing ? 'Save lesson changes?' : 'Publish this lesson?', message: copySource ? 'Add your edited copy to the lesson library and this module. The original lesson stays unchanged.' : existing ? 'Apply your changes to the lesson and its learning activities.' : 'Add this lesson to the library so teachers can assign it to classes.', confirm: copySource ? 'Save copy' : existing ? 'Save changes' : 'Publish lesson' })) return;
       if (!form.isConnected) return;
       form.dataset.saving = 'true';
       setButtonSaving(submit, true);
@@ -1597,6 +1607,7 @@ async function openLessonModal(existing = null) {
       try {
         const values = Object.fromEntries(new FormData(form));
         const lessonId = await saveLesson(existing, values, {
+          scope: modal,
           activityPages,
           lecturePages,
           pronunciationWords,
@@ -1609,14 +1620,15 @@ async function openLessonModal(existing = null) {
         });
 
         notify({
-          title: existing ? "Lesson updated" : "Lesson published",
+          title: copySource ? "Lesson copy saved" : existing ? "Lesson updated" : "Lesson published",
           message: saveState.dictionaryMissing.length
             ? `Add ${saveState.dictionaryMissing.join(', ')} to the dictionary, then save again to share their audio.`
             : "Your lesson and learning activities have been saved.",
           tone: saveState.dictionaryMissing.length ? "info" : "success",
         });
+        if (options.onSaved) await options.onSaved(lessonId);
         close();
-        await renderLessons();
+        if (!options.onSaved && isCurrent()) await renderLessons();
 
         console.info("Saved lesson:", lessonId);
       } catch (error) {
@@ -1634,7 +1646,14 @@ async function openLessonModal(existing = null) {
     const initialSnapshot = editorSnapshot(studioForm);
     mayLeave = () =>
       editorSnapshot(studioForm) === initialSnapshot ? Promise.resolve(true) : confirmDiscard(!existing);
+    options.onGuard?.(() => studioForm.dataset.saving === 'true' ? Promise.resolve(false) : mayLeave(),
+      () => editorSnapshot(studioForm) !== initialSnapshot || studioForm.dataset.saving === 'true');
   }, { closeOnBackdrop: false, beforeClose: () => mayLeave() });
+}
+
+/** Mount the existing content editor inside the Lessons workspace. */
+export function openInlineLessonEditor(existing, options) {
+  return openLessonModal(existing, options);
 }
 
 /** Everything the author can change in the editor, to tell whether leaving loses work. */
@@ -1751,21 +1770,29 @@ async function saveLesson(existing, values, elements) {
     difficulty: values.difficulty,
     updatedAt: serverTimestamp(),
   };
+  const scope = elements.scope || document.body;
 
   let lessonRef;
 
-  if (existing || elements.saveState?.lessonId) {
+  if (existing?.id || elements.saveState?.lessonId) {
     lessonRef = doc(db, "lessons", existing?.id || elements.saveState.lessonId);
-    await updateDoc(lessonRef, rootData);
+  } else if (elements.saveState?.copySource) {
+    lessonRef = doc(collection(db, 'lessons'));
+    rootData.title = await reserveLessonCopy(lessonRef, elements.saveState.copySource, rootData);
+    values.title = rootData.title;
+    elements.saveState.lessonId = lessonRef.id;
+    scope.querySelector('[name="title"]').value = rootData.title;
   } else {
     lessonRef = await addDoc(collection(db, "lessons"), {
       ...rootData,
+      teacherId: state.user.uid,
+      publicationState: 'draft',
       createdAt: serverTimestamp(),
     });
     if (elements.saveState) elements.saveState.lessonId = lessonRef.id;
   }
 
-  const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages);
+  const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages, scope);
   const lectures = await readLectures(elements.lecturePages, lessonRef.id);
   const pronunciation = await readPronunciation(
     elements.pronunciationWords,
@@ -1774,30 +1801,34 @@ async function saveLesson(existing, values, elements) {
   const quiz = readQuiz(elements.quizQuestions);
   const game = elements.skipGame.checked ? [] : readGameLevels(elements.gameLevels);
 
-  await replaceActivity(lessonRef.id, activity);
-  await setDoc(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
-    title: $("[data-lecture-title]", document.body).value.trim() || TITLE_DEFAULTS["[data-lecture-title]"](values.title.trim()),
+  const pronunciationPages = await elements.pronunciationPages.read(lessonRef.id);
+  const batch = writeBatch(db);
+  await replaceActivity(lessonRef.id, activity, batch);
+  batch.set(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
+    title: $("[data-lecture-title]", scope).value.trim() || TITLE_DEFAULTS["[data-lecture-title]"](values.title.trim()),
     pages: lectures,
   });
-  await setDoc(
+  batch.set(
     doc(db, "lessons", lessonRef.id, "pronunciation", "content"),
     {
-      title: $("[data-pronunciation-title]", document.body).value.trim(),
+      title: $("[data-pronunciation-title]", scope).value.trim(),
       instruction: PRONUNCIATION_INSTRUCTION,
-      ...await elements.pronunciationPages.read(lessonRef.id),
+      ...pronunciationPages,
       words: pronunciation.words,
       audioRefs: pronunciation.audioRefs,
       cloudAudio: pronunciation.cloudAudio,
     },
   );
-  await setDoc(doc(db, "lessons", lessonRef.id, "quiz", "content"), {
-    title: $("[data-quiz-title]", document.body).value.trim(),
+  batch.set(doc(db, "lessons", lessonRef.id, "quiz", "content"), {
+    title: $("[data-quiz-title]", scope).value.trim(),
     questions: quiz,
   });
 
-  await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked);
+  await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked, batch);
+  batch.update(lessonRef, { ...rootData, publicationState: 'published' });
+  await batch.commit();
 
-  if (pronunciation.cloudAudio.some(audio => audio?.storageKey)) {
+  if (state.profile?.role === 'admin' && pronunciation.cloudAudio.some(audio => audio?.storageKey)) {
     try {
       const result = await postToApi('assessment', { operation: 'dictionary-audio-sync', lessonId: lessonRef.id });
       if (elements.saveState) elements.saveState.dictionaryMissing = result.missing || [];
@@ -1809,11 +1840,11 @@ async function saveLesson(existing, values, elements) {
   return lessonRef.id;
 }
 
-function readActivity(container) {
+function readActivity(container, scope = document.body) {
   return {
-    title: $("[data-activity-title]", document.body).value.trim(),
-    instruction: $("[data-activity-instruction]", document.body).value.trim(),
-    explanation: $("[data-activity-explanation]", document.body).value.trim(),
+    title: $("[data-activity-title]", scope).value.trim(),
+    instruction: $("[data-activity-instruction]", scope).value.trim(),
+    explanation: $("[data-activity-explanation]", scope).value.trim(),
     pages: $$("[data-activity-page]", container)
       .map((page) => {
         const words = activityWords(page);
@@ -1999,30 +2030,25 @@ function confirmDeleteSkipped({ pages = 0, levels = 0 }) {
 }
 
 /** Saves activity/content, or with activity = null deletes the Gawain and saves activity/status = { completion: "skipped" }, as the game does (see replaceGameLevels). */
-async function replaceActivity(lessonId, activity) {
+async function replaceActivity(lessonId, activity, batch) {
   const statusRef = doc(db, "lessons", lessonId, "activity", "status");
   if (activity) {
-    const batch = writeBatch(db);
     batch.set(doc(db, "lessons", lessonId, "activity", "content"), activity);
     batch.delete(statusRef);
-    await batch.commit();
     return;
   }
 
   const existing = await getDocs(collection(db, "lessons", lessonId, "activity"));
-  const batch = writeBatch(db);
   existing.docs.forEach((item) => {
     if (item.id !== "status") batch.delete(item.ref);
   });
   batch.set(statusRef, { completion: "skipped" });
-  await batch.commit();
 }
 
-async function replaceGameLevels(lessonId, levels, skipGame) {
+async function replaceGameLevels(lessonId, levels, skipGame, batch) {
   const gameCollection = collection(db, "lessons", lessonId, "game");
   const existing = await getDocs(gameCollection);
 
-  const batch = writeBatch(db);
   existing.docs.forEach((gameDoc) => {
     if (!skipGame || gameDoc.id !== "status") {
       batch.delete(gameDoc.ref);
@@ -2033,11 +2059,5 @@ async function replaceGameLevels(lessonId, levels, skipGame) {
       completion: "skipped",
     });
   }
-  if (existing.size || skipGame) {
-    await batch.commit();
-  }
-
-  await Promise.all(
-    levels.map((level) => addDoc(gameCollection, level)),
-  );
+  levels.forEach(level => batch.set(doc(gameCollection), level));
 }

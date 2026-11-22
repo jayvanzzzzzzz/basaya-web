@@ -19,6 +19,8 @@ import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
 import { renderTeacherLanding } from './views/landing.js';
 import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 import { beginRoute } from '../js/route-lifecycle.js';
+import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
+import { canLeaveLessons } from '../js/lessonNavigation.js';
 
 let statsLoaded = false;
 
@@ -34,6 +36,7 @@ async function loadSidebarStats() {
 }
 
 export async function renderRoute() {
+  if (!await canLeaveLessons(state.user?.uid || null)) return;
   const isCurrent = beginRoute();
   leaveHandbook();
   if (!state.user || !state.profile) return;
@@ -83,6 +86,7 @@ export async function renderRoute() {
     else if (route === "/classes") await renderDashboard();
     else if (route === "/settings") await renderAccountSettings();
     else if (route === "/dictionary") await renderDictionary();
+    else if (route === "/lessons") await renderLessonWorkspace();
     else if (route === "/handbook") renderHandbook("teacher");
     else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
     else if (/^\/classes\/[^/]+\/students$/.test(route)) {

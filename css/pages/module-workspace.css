@@ -1,0 +1,50 @@
+.module-workspace { color: var(--ink); min-width: 0; }
+.module-tabs, .module-section-heading, .module-save-bar, .module-row-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.module-tabs { margin-bottom: 1.25rem; }
+.module-directory { display: grid; gap: 1rem; }
+.module-card, .module-panel, .module-details, .module-empty { padding: 1.5rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); min-width: 0; }
+.module-card, .module-library-row { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.module-card h2, .module-library-row h3 { margin: .4rem 0; overflow-wrap: anywhere; }
+.module-card p, .module-panel > p, .module-library-row p, .module-empty p { color: var(--ink-2); }
+.module-card ol { padding-left: 1.3rem; line-height: 1.9; overflow-wrap: anywhere; }
+.module-card > button { flex-shrink: 0; }
+.module-details { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+.module-workspace label { display: grid; gap: .4rem; color: var(--ink); }
+.module-workspace input:not([type="checkbox"]), .module-workspace textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.module-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1.25rem; }
+.module-section-heading { justify-content: space-between; }
+.module-section-heading h2 { margin: 0; font-size: 1.15rem; }
+.module-section-heading > span, .module-note { color: var(--ink-2); font-size: .9rem; line-height: 1.6; }
+.module-picker { display: grid; align-content: start; gap: .4rem; max-height: 32rem; overflow-y: auto; margin-top: 1rem; padding: .25rem; }
+.module-workspace .module-choice { display: flex; align-items: center; gap: .75rem; padding: .85rem; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.module-choice:has(:checked) { background: var(--info-soft); }
+.module-choice input { width: 20px; height: 20px; flex-shrink: 0; }
+.module-choice span { flex: 1; min-width: 0; }
+.module-choice strong, .module-choice small, .module-lesson-name strong, .module-lesson-name small { display: block; overflow-wrap: anywhere; }
+.module-choice small, .module-lesson-name small { margin-top: .25rem; color: var(--ink-2); }
+.module-order { display: grid; gap: .7rem; padding: 0; list-style: none; }
+.module-order-row { display: flex; align-items: start; flex-wrap: wrap; gap: .7rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.module-order-row[draggable="true"] { cursor: grab; }
+.module-number { display: grid; place-items: center; min-width: 2rem; height: 2rem; border-radius: 8px; background: var(--info-soft); color: var(--ink); font-weight: 700; }
+.module-lesson-name { flex: 1; min-width: 100px; }
+.module-order-row .module-row-actions { width: 100%; padding-left: 2.7rem; }
+.module-workspace .button { min-height: 40px; white-space: normal; }
+.module-workspace .button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.module-save-bar { position: sticky; bottom: 0; justify-content: flex-end; margin-top: 1.25rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); z-index: 4; }
+.module-save-bar > span { margin-right: auto; color: var(--ink-2); }
+.module-library-row { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.lesson-inline-editor { height: min(850px, calc(100dvh - 120px)); min-height: 540px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.lesson-inline-editor .lesson-studio__heading { padding-right: 2rem; }
+@media (max-width: 1050px) { .module-columns { grid-template-columns: 1fr; } .module-picker { max-height: 22rem; } }
+@media (max-width: 600px) {
+  .module-details { grid-template-columns: 1fr; }
+  .module-panel, .module-card, .module-details, .module-empty { padding: 1rem; }
+  .module-card, .module-library-row { flex-direction: column; }
+  .module-workspace .module-choice { flex-wrap: wrap; }
+  .module-choice span { min-width: 100px; }
+  .module-choice .button { margin-left: auto; }
+  .module-order-row .module-row-actions { padding-left: 0; }
+  .module-save-bar > span { width: 100%; }
+  .module-save-bar { position: static; }
+  .lesson-inline-editor { height: calc(100dvh - 100px); min-height: 500px; }
+}

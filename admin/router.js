@@ -4,7 +4,8 @@ import { state } from "../js/state.js";
 import { renderTeachers } from "./views/teachers.js";
 import { renderStudents } from "./views/students.js";
 import { renderClasses } from "./views/classes.js";
-import { renderLessons } from "./views/lessons.js";
+import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
+import { canLeaveLessons } from '../js/lessonNavigation.js';
 import { renderAccount } from "./views/account.js";
 import { renderDictionary } from "../teacher/views/dictionary.js";
 import { refreshDeletionBadge } from "./views/classDeletion.js";
@@ -12,6 +13,7 @@ import { renderAdminDashboard } from "./views/dashboard.js";
 import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 
 export async function renderRoute() {
+  if (!await canLeaveLessons(state.user?.uid || null)) return;
   const isCurrent = beginRoute();
   leaveHandbook();
   if (!state.user) return;
@@ -31,7 +33,7 @@ export async function renderRoute() {
     else if (route === "/teachers") await renderTeachers();
     else if (route === "/students") await renderStudents();
     else if (route === "/classes") await renderClasses();
-    else if (route === "/lessons") await renderLessons();
+    else if (route === "/lessons") await renderLessonWorkspace();
     else if (route === "/dictionary") await renderDictionary();
     else if (route === "/handbook") renderHandbook("admin");
     else if (route === "/settings") renderAccount();

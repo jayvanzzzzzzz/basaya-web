@@ -31,6 +31,7 @@ export async function getTeacherLessons() {
   );
   state.lessons = snapshot.docs
     .map((d) => ({ id: d.id, ...d.data() }))
+    .filter(lesson => lesson.publicationState !== 'draft')
     .sort(
       (a, b) =>
         (b.updatedAt?.seconds || b.createdAt?.seconds || 0) -
@@ -43,6 +44,7 @@ export async function getAllLessons() {
   const snapshot = await getDocs(collection(db, "lessons"));
   state.allLessons = snapshot.docs
     .map((d) => ({ id: d.id, ...d.data() }))
+    .filter(lesson => lesson.publicationState !== 'draft')
     .sort(
       (a, b) =>
         (b.updatedAt?.seconds || b.createdAt?.seconds || 0) -
