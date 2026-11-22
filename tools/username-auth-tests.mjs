@@ -79,7 +79,17 @@ assert.equal((await request('username-login',{username:'changed',password:'secre
 assert.equal((await request('username-save',{username:'admin_changed',password:'secret'},'t1')).code,200,'Admin can change username');
 rows.set('users/t1',{...rows.get('users/t1'),role:'student'});
 assert.equal((await request('username-save',{username:'student_alias',password:'secret'},'t1')).code,403,'Unsupported roles are not reported as password errors');
-assert.equal((await request('username-login',{username:'admin_changed',password:'secret'})).code,401,'Student cannot use staff alias');
+assert.equal((await request('username-login',{username:'admin_changed',password:'secret'})).code,200,'Student can use their reserved alias');
+rows.set('learnerNumbers/001234567890',{uid:'t1'});
+rows.set('users/t1',{...rows.get('users/t1'),lrn:'001234567890'});
+assert.equal((await request('username-login',{username:'001234567890',password:'secret'})).code,200,'Student can sign in using their full LRN including leading zeros');
+passwordValid=false;
+assert.equal((await request('username-login',{username:'001234567890',password:'secret'})).code,401,'LRN alone never authenticates');
+passwordValid=true;
+rows.set('users/t1',{...rows.get('users/t1'),lrn:'999999999999'});
+assert.equal((await request('username-login',{username:'001234567890',password:'secret'})).code,401,'Stale LRN reservations do not authenticate');
+rows.set('users/t1',{...rows.get('users/t1'),disabled:true});
+assert.equal((await request('username-login',{username:'admin_changed',password:'secret'})).code,401,'Disabled profiles cannot authenticate');
 limited=true;
 assert.equal((await request('username-login',{username:'changed',password:'secret'})).code,429);
 console.log('PASS: username normalization, reservations, conflicts, rename cleanup, password verification, MFA rejection, authentication, private responses, and rate limits.');

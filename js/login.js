@@ -14,6 +14,8 @@ import { recentAccounts, rememberAccount, removeAccount } from "./recent-account
 
 const loading = document.getElementById("loading-screen");
 const loginView = document.getElementById("login-view");
+const deactivatedView = document.getElementById("deactivated-view");
+let accountDeactivated = sessionStorage.getItem("basayaAccountDeactivated") === "true";
 const loginForm = $("#login-form");
 const loginButton = loginForm.querySelector('[type="submit"]');
 const loginButtonLabel = loginButton.querySelector(".login-submit__label");
@@ -234,6 +236,8 @@ if (showcase && showcaseShots.length) {
 }
 
 function revealLogin() {
+  if (accountDeactivated) { showDeactivated(); return; }
+  deactivatedView.hidden = true;
   loading.hidden = true;
   loginView.hidden = false;
   clearSignedOutCredentials();
@@ -242,6 +246,25 @@ function revealLogin() {
   // Start from the first screen now that it's visible.
   if (showcase && showcaseShots.length) showShowcase(0);
 }
+
+function showDeactivated() {
+  accountDeactivated = true;
+  setSigningIn(false);
+  passwordInput.value = "";
+  setPasswordVisible(false);
+  loading.hidden = true;
+  loginView.hidden = true;
+  deactivatedView.hidden = false;
+  document.getElementById("deactivated-title").focus();
+}
+
+document.getElementById("deactivated-back").addEventListener("click", () => {
+  accountDeactivated = false;
+  sessionStorage.removeItem("basayaAccountDeactivated");
+  revealLogin();
+  if (recentPanel.hidden) $("#email").focus();
+  else $("#recent-title").focus();
+});
 
 // The eye button inside the password field shows or hides the password.
 const passwordInput = $("#password");
@@ -309,6 +332,10 @@ loginForm.addEventListener("submit", async (event) => {
   } catch (error) {
     if (attempt !== signInAttempt) return;
     setSigningIn(false);
+    if (error.code === "auth/user-disabled") {
+      showDeactivated();
+      return;
+    }
     if (error.code === "auth/invalid-email") {
       fieldError($("#email"), "That doesn't look like an email address. Check it has an @ and a domain.");
       $("#email").focus();
@@ -316,10 +343,8 @@ loginForm.addEventListener("submit", async (event) => {
     }
     $("#login-error").textContent =
       error.code === "auth/invalid-credential"
-      ? "Incorrect email, username, or password."
-      : error.code === "auth/user-disabled"
-        ? "Your account is deactivated. Contact your school administrator."
-        : error.message;
+      ? "Incorrect LRN, username, email, or password."
+      : error.message;
   }
 });
 
@@ -336,15 +361,10 @@ onAuthStateChanged(auth, async (user) => {
     }
     const role = profileSnap.data()?.role;
     const destination = ROLE_DESTINATIONS[role];
-    if (role === "teacher" && profileSnap.data().disabled === true) {
+    if (["teacher", "student"].includes(role) && profileSnap.data().disabled === true) {
+      accountDeactivated = true;
       await signOut(auth);
-      revealLogin();
-      $("#login-error").textContent = "Your teacher account is deactivated. Contact your school administrator.";
-      return;
-    }
-
-    if (!profileSnap.exists() && user.providerData.some(({ providerId }) => providerId === "google.com")) {
-      window.location.replace("complete-profile.html");
+      showDeactivated();
       return;
     }
 

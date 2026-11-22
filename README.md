@@ -12,9 +12,9 @@ A no-build teacher web app using Firebase Authentication and Cloud Firestore. It
 
 ## Student website (`student/`)
 
-Students who can't install the Android app (e.g. on an iPhone) sign in on the same login page and land on `student/`. **Create a student account** on the login page opens `register.html`, which makes the same `users/{uid}` profile as the app (`role: "student"`).
+Students sign in on the shared login page and land on `student/`. Admins create accounts in **Student accounts → Add student**, entering the student's name, 12-digit LRN, unique username and password. Students can sign in using either LRN or username plus password; no student email is required.
 
-Students can register with email/password or continue with Google from the login screen. Enable the **Google** provider in Firebase Authentication and add each hosted website's domain to its authorized domains. First-time Google sign-ins continue to `complete-profile.html` to collect the student's name before opening the student site.
+Public student registration and Google onboarding are retired. `register.html` and `complete-profile.html` direct students to their school admin. Admins reset forgotten passwords from the student directory. Existing email accounts remain intact; this change does not assign LRNs to existing accounts or modify the separate native Android project. See [student account rollout](notify-api/README.md#admin-created-student-accounts) before publishing.
 
 It reads and writes the same Firestore fields as the app, so a student can switch between the two and the teacher's reports don't change:
 

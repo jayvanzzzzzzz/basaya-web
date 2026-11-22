@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { confirmAction } from "../../js/action-confirmation.js";
 import { captureRoute } from "../../js/route-lifecycle.js";
 import { $, escapeHtml, page } from '../../js/helpers.js';
@@ -140,7 +141,7 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
   const studentUrl = uid => `${base}/${encodeURIComponent(uid)}`;
   const request = (operation, fields = {}) => postToApi('assessment', { operation: `fluency-${operation}`, classId, ...fields });
   page('Review readings', 'Choose a student to review their lesson recordings.');
-  $('#page-content').innerHTML = '<section id="reading-review" class="reading-review" aria-busy="true"><p role="status">Loading student readings…</p></section>';
+  $('#page-content').innerHTML = `<section id="reading-review" class="reading-review" aria-busy="true">${skeleton('list', { label: 'Preparing student readings' })}</section>`;
   const target = $('#reading-review');
   const stopTooltips = attachFloatingTooltips($('#app-view') || document.body, '[data-reading-tooltip]');
   let rows = [], roster = [], lessonLinks = [], className = 'Class', classSection = '', players = [], generation = 0, dirty = false, saving = false, deadlineTimer, stopGradingLayout = () => {};
@@ -303,7 +304,7 @@ export async function renderFluencyReview(classId, studentId = null, submissionI
   }
   async function grading(student, entry) {
     const version = ++generation; header(student, entry);
-    target.innerHTML = '<p role="status">Loading recordings…</p>';
+    target.innerHTML = skeleton('list', { label: 'Preparing recordings' });
     try {
       const result = await request('play', { submissionId: entry.id });
       if (!target.isConnected || version !== generation) return;

@@ -4,6 +4,9 @@
     "api/class-membership.js": { "maxDuration": 60 }
   },
   "rewrites": [
+    { "source": "/api/class-lifecycle", "destination": "/api/class-membership?operation=class-lifecycle" },
+    { "source": "/api/lesson-deadlines", "destination": "/api/class-membership?operation=lesson-deadlines" },
+    { "source": "/api/student-accounts", "destination": "/api/class-membership?operation=student-accounts" },
     { "source": "/api/username-save", "destination": "/api/class-membership?operation=username-save" },
     { "source": "/api/username-login", "destination": "/api/class-membership?operation=username-login" },
     { "source": "/api/teacher-onboarding", "destination": "/api/class-membership?operation=teacher-onboarding" },

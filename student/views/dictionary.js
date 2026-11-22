@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, escapeHtml } from "../../js/helpers.js";
 import { allWords, lookupWord, searchWords, suggestRoots, syllablesOf } from "../../js/dictionary.js";
 import { paginate } from "../../js/pagination.js";
@@ -80,7 +81,7 @@ function listHtml(entries) {
     .join("")}</ul>`;
 }
 
-const loading = () => `<div class="st-loading" role="status" aria-label="Hinahanap ang mga salita..."><span></span><span></span><span></span></div>`;
+const loading = () => skeleton('student-dictionary', { label: 'Hinahanap ang mga salita...', tag: 'div' });
 
 function errorHtml() {
   return `<div class="st-empty">

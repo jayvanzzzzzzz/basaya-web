@@ -1,0 +1,123 @@
+/* Route-scoped student workspace. Shares the portal's fonts and saved theme. */
+body:has(.students-workspace) {
+  --bg:#f8f5ec; --ink:#20243a; --ink-2:#50586b; --ink-3:#626b7b;
+  --primary:#1f2559; --primary-strong:#1f2559; --primary-soft:#eae7f8; --primary-softer:#f1eff8; --primary-ring:#8175ac;
+  --border:#dedee5; --border-strong:#d1d2de; --surface:#fffdf7; --surface-2:#f3f1f7;
+  --roster-paper:rgba(255,253,247,.86); --roster-hover:#efedf7;
+  --success:#296841; --success-soft:#ddf3e4; --warning:#87520d; --warning-soft:#fcf0d8; --danger:#a62f43; --danger-soft:#fbe7eb;
+}
+:root[data-theme="dark"] body:has(.students-workspace) {
+  --bg:#181d2a; --ink:#eeeef5; --ink-2:#c3c8d6; --ink-3:#abb3c4;
+  --primary:#c0bcf1; --primary-strong:#c0bcf1; --primary-soft:#303447; --primary-softer:#272d3d; --primary-ring:#a69bd5;
+  --border:#3c4558; --border-strong:#505b70; --surface:#242c3b; --surface-2:#293244;
+  --roster-paper:rgba(36,44,59,.93); --roster-hover:#2d354a;
+  --success:#93d6aa; --success-soft:#203b30; --warning:#e3b574; --warning-soft:#3b3327; --danger:#ffa3b2; --danger-soft:#422c3b;
+}
+body:has(.students-workspace) .sidebar { background:#1f2559; }
+:root[data-theme="dark"] body:has(.students-workspace) .sidebar { background:#141a30; }
+body:has(.students-workspace) .page-header { min-height:0; padding:1.5rem 0; margin:0; border:0; border-bottom:1px solid var(--border); border-radius:0; background:none; box-shadow:none; }
+body:has(.students-workspace) .page-header::before,
+body:has(.students-workspace) .page-header::after,
+body:has(.students-workspace) :is(.page-header__art,.page-header__icon) { display:none; }
+body:has(.students-workspace) .page-header h1 { color:var(--ink); font-size:clamp(1.8rem,3vw,2.4rem); font-weight:600; letter-spacing:-.045em; }
+body:has(.students-workspace) .page-header p { color:var(--ink-3); max-width:44rem; font-size:.875rem; line-height:1.7; overflow-wrap:anywhere; }
+body:has(.students-workspace) .page-header__crumbs { font-size:.75rem; }
+body:has(.students-workspace) .page-header__crumbs ol { flex-wrap:wrap; }
+body:has(.students-workspace) .page-header-bar { background:var(--surface); border-color:var(--border); }
+.students-workspace { display:grid; gap:1.75rem; min-width:0; padding-top:1.5rem; }
+.students-workspace .eyebrow { margin:0 0 .5rem; color:var(--ink-3); font-size:.65rem; font-weight:600; letter-spacing:.13em; text-transform:uppercase; }
+.students-workspace .eyebrow::before { display:none; }
+.students-workspace .enrollment-summary { margin:0; border-radius:.75rem; border-color:var(--border); background:var(--roster-paper); }
+.students-workspace .enrollment-summary > div { padding:1.15rem 1.5rem; gap:.6rem; min-width:0; }
+.students-workspace .enrollment-summary__label { color:var(--ink-3); font-size:.75rem; }
+.students-workspace .enrollment-summary strong { font-size:2rem; font-weight:500; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.students-workspace .enrollment-summary strong small { display:block; margin-top:.4rem; letter-spacing:0; line-height:1.5; }
+.students-workspace .enrollment-summary__code { background:var(--primary-softer); }
+.students-workspace .enrollment-summary__code code { font-size:1.1rem; overflow-wrap:anywhere; }
+.students-workspace .student-directory { min-width:0; border-radius:.85rem; background:var(--roster-paper); box-shadow:0 3px 12px rgba(20,25,49,.025); }
+.students-workspace .student-directory__toolbar { align-items:center; padding:1.5rem; background:none; border-radius:0; }
+.students-workspace .student-directory__toolbar h2 { display:flex; align-items:center; flex-wrap:wrap; gap:.65rem; font-size:1.25rem; font-weight:500; letter-spacing:-.035em; }
+.roster-count { padding:.2rem .5rem; border-radius:.35rem; background:var(--primary-soft); color:var(--primary); font:600 .75rem var(--font-body); }
+.roster-description { margin:.5rem 0 0; color:var(--ink-3); font-size:.8rem; line-height:1.6; }
+.students-workspace .student-search { display:flex; align-items:center; gap:.65rem; min-height:46px; padding:.5rem .85rem; border:1px solid var(--border-strong); border-radius:.65rem; background:var(--surface); }
+.student-search svg { width:18px; height:18px; flex:0 0 18px; color:var(--ink-3); }
+.students-workspace .student-search input { width:100%; min-width:0; border:0; padding:.25rem 0; border-radius:0; background:none; color:var(--ink); font-size:.85rem; box-shadow:none; outline:0; }
+.students-workspace input::placeholder { color:var(--ink-3); opacity:1; }
+.students-workspace .student-search:focus-within { outline:2px solid var(--primary-ring); outline-offset:3px; }
+.roster-table-wrap { max-width:100%; overflow-x:auto; }
+.roster-scroll-hint { display:none; margin:0; padding:.65rem 1rem; color:var(--ink-3); font-size:.75rem; border-bottom:1px solid var(--border); }
+.roster-table { width:100%; min-width:570px; border-collapse:collapse; table-layout:fixed; text-align:left; }
+.roster-table th:first-child { width:49%; }
+.roster-table th:nth-child(2) { width:22%; }
+.roster-table :is(th,td) { padding:1rem 1.5rem; border:0; border-bottom:1px solid var(--border); background:none; text-align:left; }
+.roster-table thead th { padding-block:.85rem; color:var(--ink-3); background:var(--primary-softer); font:600 .68rem var(--font-body); letter-spacing:.08em; text-transform:uppercase; }
+.roster-table tbody th { font:600 .875rem/1.6 var(--font-body); color:var(--ink); }
+.roster-table tbody tr:last-child :is(th,td) { border-bottom:0; }
+.roster-row { transition:background-color 200ms; }
+.roster-row:hover,.roster-row:focus-within { background:var(--roster-hover); }
+.roster-identity { display:flex; align-items:center; gap:.85rem; min-width:0; }
+.roster-avatar { display:grid; place-items:center; flex:0 0 38px; height:38px; border:1px solid var(--border); border-radius:.65rem; background:var(--primary-soft); color:var(--primary); font-size:.85rem; font-weight:500; }
+.roster-name { overflow-wrap:anywhere; }
+.roster-membership { display:inline-flex; align-items:center; gap:.5rem; color:var(--success); font-size:.78rem; line-height:1.6; }
+.roster-membership::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.roster-membership--pending { color:var(--warning); }
+.roster-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:.25rem; }
+.roster-table .roster-actions-heading { text-align:right; }
+.roster-action { display:inline-grid; place-items:center; width:44px; height:44px; flex:0 0 44px; padding:0; border:1px solid transparent; border-radius:.6rem; background:transparent; color:var(--ink-2); cursor:pointer; transition:background-color 200ms,color 200ms,transform 200ms,border-color 200ms; }
+.roster-action svg { width:19px; height:19px; }
+.roster-action:hover:not(:disabled) { background:var(--primary-soft); border-color:var(--border); color:var(--primary); transform:translateY(-2px); }
+.roster-action--danger:hover:not(:disabled) { background:var(--danger-soft); color:var(--danger); }
+.roster-action:disabled { opacity:.45; cursor:not-allowed; }
+.roster-action[hidden],.roster-row[hidden],.roster-row[data-paged-out] { display:none; }
+.students-workspace :is(button,a,select,.roster-table-wrap):focus-visible,.roster-modal :is(button,a,input,select):focus-visible { outline:2px solid var(--primary-ring); outline-offset:3px; }
+.students-workspace .pagination { margin:0; padding:1rem 1.5rem; border:0; border-top:1px solid var(--border); border-radius:0 0 .85rem .85rem; background:none; box-shadow:none; }
+.students-workspace .pagination__button { min-width:40px; min-height:44px; border-radius:.5rem; box-shadow:none; }
+.students-workspace .pagination__button--nav > span { display:none; }
+.students-workspace .pagination [aria-current="page"] { background:var(--primary); color:var(--surface); }
+.students-workspace #student-notification-status { margin:1rem 1.5rem; color:var(--warning); font-size:.85rem; }
+.roster-admissions { min-width:0; padding-top:.5rem; }
+.roster-section-heading { margin-bottom:1.1rem; }
+.roster-section-heading h2 { margin:0; font-size:1.2rem; font-weight:500; letter-spacing:-.03em; }
+.roster-section-heading > p:last-child { margin:.5rem 0 0; color:var(--ink-3); font-size:.8rem; }
+.students-workspace .request-ribbon { min-height:72px; border:1px solid var(--border); border-radius:.65rem; background:var(--roster-paper); transition:background 200ms,border-color 200ms; }
+.students-workspace .request-ribbon[aria-selected="true"] { border-color:var(--primary-ring); background:var(--primary-soft); box-shadow:none; }
+.students-workspace .join-review { margin:0; border:1px solid var(--border); border-radius:.75rem; background:var(--roster-paper); box-shadow:none; }
+.students-workspace .join-review__heading { padding:1.25rem 1.5rem; }
+.students-workspace .join-review__heading h2 { font-size:1.1rem; }
+.students-workspace .join-review__seal { display:none; }
+.students-workspace .join-review button { min-height:44px; font-size:.8rem; transition-duration:200ms; }
+.students-workspace .join-request__status { white-space:normal; }
+.students-workspace :is(.eyebrow,.enrollment-summary__code > small,.request-ribbon__copy small,.join-review__eyebrow,.join-review__count,.join-review__footer,.join-request__identity > span,.join-request__status,.join-request__returning small) { font-size:.75rem; line-height:1.6; }
+.students-workspace .roster-table thead th { font-size:.75rem; }
+.students-workspace .request-ribbon__copy small { color:var(--ink-2); }
+body:has(.students-workspace) .site-footer__links button { color:var(--ink-2); }
+.students-workspace .student-empty { border:1px solid var(--border); border-radius:.85rem; background:var(--roster-paper); box-shadow:none; padding:2rem 1.25rem; }
+body:has(.students-workspace) .floating-tooltip { background:var(--ink); color:var(--bg); border-color:transparent; font-size:.8rem; animation:roster-tooltip-in 180ms ease-out; }
+.roster-modal { background:rgba(12,18,35,.5); backdrop-filter:blur(4px); }
+.roster-modal .modal { max-width:38rem; border:1px solid var(--border-strong); border-radius:1rem; background:var(--roster-paper); box-shadow:0 20px 70px #0003; animation:roster-tooltip-in 200ms ease-out; }
+.roster-modal .modal::before,.roster-removal .eyebrow::before { display:none; }
+.roster-modal .modal-close { display:grid; place-items:center; width:44px; height:44px; color:var(--ink-2); background:transparent; border:1px solid transparent; border-radius:.6rem; transition:background 200ms,transform 200ms; }
+.roster-modal .modal-close svg { width:20px; height:20px; }
+.roster-modal .modal-close:hover { background:var(--primary-soft); transform:translateY(-1px); }
+.roster-removal { padding-top:.5rem; }
+.roster-removal .eyebrow { color:var(--danger); font-size:.7rem; letter-spacing:.12em; }
+.roster-removal h2 { padding-right:1.5rem; font-size:1.4rem; letter-spacing:-.03em; overflow-wrap:anywhere; }
+.roster-removal p,.roster-removal li { font-size:.875rem; line-height:1.8; color:var(--ink-2); }
+.roster-removal .remove-student__list { padding:1rem 1rem 1rem 2rem; border-radius:.6rem; background:var(--primary-softer); }
+.roster-removal .button { min-height:44px; border-radius:.6rem; box-shadow:none; }
+.roster-removal .form-error { color:var(--danger); }
+@supports (backdrop-filter:blur(12px)) { .students-workspace :is(.student-directory,.enrollment-summary) { backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); } }
+@keyframes roster-tooltip-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@media (max-width:900px) { .roster-table :is(th,td) { padding-inline:1rem; } .roster-table th:first-child { width:42%; } .roster-table th:nth-child(2) { width:23%; } }
+@media (max-width:760px) {
+  .roster-scroll-hint { display:block; }
+  .students-workspace { gap:1.25rem; }
+  .students-workspace .student-directory__toolbar { align-items:stretch; padding:1.1rem; gap:1rem; }
+  .students-workspace .enrollment-summary > div { padding:1rem; }
+  .students-workspace .enrollment-summary strong { font-size:1.8rem; }
+  .students-workspace .join-review__heading { padding:1rem; }
+  .students-workspace .join-review__footer { font-size:.75rem; line-height:1.7; }
+  .students-workspace .request-ribbon__copy small { line-height:1.6; }
+  .students-workspace .pagination { padding:.85rem; }
+}
+@media (prefers-reduced-motion:reduce) { .students-workspace *,.roster-modal *,body:has(.students-workspace) .floating-tooltip { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }

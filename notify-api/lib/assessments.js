@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import { summarize, resultsFrom, withMissed, lessonParts } from "./assessmentScoring.js";
+import { lessonDeadline, monitoringTime } from "./deadlinePolicy.js";
 
 export class AssessmentError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -36,22 +37,34 @@ async function contents(tx, db, lessonId, selected = parts) {
   };
 }
 
-export async function context(tx, db, uid, body, { open = true, lesson = true } = {}) {
+export async function context(tx, db, uid, body, { open = true, lesson = true, historicalTeacher = null } = {}) {
   if (!id(uid) || !id(body.classId) || (lesson && !id(body.lessonId))) fail(400, "Invalid assessment request.");
   const userRef = db.doc(`users/${uid}`);
   const [user, roster, classroom, links] = await Promise.all([
     tx.get(userRef), tx.get(db.doc(`classes/${body.classId}/students/${uid}`)),
     tx.get(db.doc(`classes/${body.classId}`)), tx.get(db.collection(`classes/${body.classId}/classLessons`)),
   ]);
-  if (user.get("role") !== "student" || user.get("classId") !== body.classId || !roster.exists || !classroom.exists || classroom.get("membershipClosed") === true) fail(403, "You are not an approved member of this class.");
+  if(historicalTeacher) {
+    const teacher=await tx.get(db.doc('users/'+historicalTeacher));
+    if(teacher.get('role')!=='teacher'||teacher.get('disabled')===true||classroom.get('teacherId')!==historicalTeacher)fail(403,'You no longer teach this class.');
+  }
+  if (user.get("role") !== "student" || user.get("classId") !== body.classId || !roster.exists || !classroom.exists || (!historicalTeacher && classroom.get("membershipClosed") === true)) fail(403, "You are not an approved member of this class.");
+  if(!historicalTeacher && (user.get("disabled")===true||roster.get("membershipStatus")==="dropped")) fail(403,"Your enrollment is marked as dropped or inactive. Contact your teacher to request re-enrollment.");
+  if(!historicalTeacher && ((user.get("enrollmentVersion")||"")!==(body.enrollmentVersion||"")||(classroom.get("classVersion")||"")!==(body.classVersion||""))) fail(409,"Your enrollment changed. Reopen the lesson; older pending submissions cannot be accepted.");
   if ((user.get("progressSession") || "") !== body.progressSession) fail(409, "Your class progress changed. Refresh the lessons.");
   const assigned = links.docs.filter(d => d.get("mode") !== "practice");
-  const link = lesson && links.docs.find(d => d.id === (body.practice ? body.entryId : body.lessonId) && (d.get("lessonId") || d.id) === body.lessonId && (body.practice ? d.get("mode") === "practice" : d.get("mode") !== "practice")) ||
+  let link = lesson && links.docs.find(d => d.id === (body.practice ? body.entryId : body.lessonId) && (d.get("lessonId") || d.id) === body.lessonId && (body.practice ? d.get("mode") === "practice" : d.get("mode") !== "practice")) ||
     (lesson && !body.practice && assigned.find(d => (d.get("lessonId") || d.id) === body.lessonId));
   if (lesson && !link) fail(403, "This assessment is not assigned to your class.");
+  if (link) {
+    const original = link;
+    const schedule = lessonDeadline({ id: link.id, ...link.data() }, roster.data(), user.data(), classroom.data());
+    link = Object.create(original);
+    link.get = field => field === "dueAt" ? schedule.dueAt === null ? null : Timestamp.fromMillis(schedule.dueAt) : original.get(field);
+  }
   const now = Date.now();
   if (lesson && open && ((ms(link.get("openAt")) != null && now < ms(link.get("openAt"))) || (ms(link.get("dueAt")) != null && now > ms(link.get("dueAt"))))) fail(403, "This lesson is not open.");
-  return { userRef, user, roster, links: assigned, allLinks: links.docs, link, now };
+  return { userRef, user, roster, classroom, links: assigned, allLinks: links.docs, link, now };
 }
 
 // A summary is always calculated from protected progress and server-read assignments.
@@ -77,15 +90,15 @@ async function summaryFor(tx, db, uid, ctx, replacement, replacementStates) {
   });
   const lessons = (await Promise.all(uniqueLinks.map(async link => {
     const lessonId = link.get("lessonId") || link.id;
-    const dueAt = ms(link.get("dueAt"));
+    const { dueAt, exempt } = lessonDeadline({ id: link.id, ...link.data() }, ctx.roster.data(), ctx.user.data(), ctx.classroom.data());
     const progress = docs.get(lessonId) || {};
     const c = dueAt != null && dueAt < ctx.now ? await contents(tx, db, lessonId) : null;
     if (dueAt != null && ms(ctx.roster.get("joinedAt")) != null && dueAt < ms(ctx.roster.get("joinedAt")) && !lessonParts(progress, { game: c?.gameSkipped, activity: c?.activitySkipped }).finished) return null;
-    return { id: lessonId, dueAt, gameSkipped: c?.gameSkipped, activitySkipped: c?.activitySkipped,
+    return { id: lessonId, dueAt, exempt, gameSkipped: c?.gameSkipped, activitySkipped: c?.activitySkipped,
       items: c ? { talasalitaan: c.levels.reduce((n, l) => n + l.words.length, 0), pagkilala: c.activity.pages.length, pagbigkas: c.pronunciation.words.length, pagsusulit: c.quiz.questions.length } : {} };
   }))).filter(Boolean);
   const included = [...docs.values()].filter(d => lessons.some(l => l.id === d.id));
-  const summary = summarize(withMissed(resultsFrom(included), included, lessons, ctx.now));
+  const summary = summarize(withMissed(resultsFrom(included), included, lessons, monitoringTime(ctx.user.data(), ctx.now, ctx.roster.data(), ctx.classroom.data())));
   return { ...summary, lessonsAssigned: lessons.length, updatedAt: Timestamp.fromMillis(ctx.now), validation: "server-v1" };
 }
 
@@ -110,7 +123,7 @@ function skill(correct, total, now, extras = {}) {
 /** The HTTP caller supplies answers only. No score, total, timestamp or skill map is accepted. */
 export async function assessmentOperation(db, uid, body, speechEvidence = null) {
   if (!body || typeof body !== "object" || Array.isArray(body)) fail(400, "Invalid assessment request.");
-  const allowed = ["operation", "classId", "progressSession", "lessonId", "part", "index", "selected", "eventId", "level", "word", "words", "done", "practice", "entryId", "attemptId", "contentVersion"];
+  const allowed = ["enrollmentVersion", "classVersion", "operation", "classId", "progressSession", "lessonId", "part", "index", "selected", "eventId", "level", "word", "words", "done", "practice", "entryId", "attemptId", "contentVersion"];
   if (Object.keys(body).some(k => !allowed.includes(k))) fail(400, "Submit answers, not assessment results.");
   if (!["metadata-list", "metadata", "content", "prepare-activity", "begin", "abandon", "answer", "finish", "resume", "summary", "speech-check"].includes(body.operation)) fail(400, "Unknown assessment operation.");
   if (body.operation === "prepare-activity" && body.part !== "activity") fail(400, "Only activity supports local preparation.");

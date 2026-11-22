@@ -252,3 +252,6 @@ body:has(.teacher-dashboard) :is(button, a, input, summary, select):focus-visibl
   .teacher-dashboard .class-card:hover, .teacher-dashboard .class-card:hover .class-card__open svg,
   .page-header.teacher-dashboard-header .button.primary:hover:not(:disabled) { transform: none; }
 }
+
+.class-directory__tabs {display:flex;flex-wrap:wrap;gap:.5rem;padding:0 1.5rem 1rem;}
+.teacher-dashboard .class-directory__tabs .button[aria-pressed="true"] {background:var(--dash-action);color:var(--dash-action-ink,#fff);border-color:var(--dash-action);}

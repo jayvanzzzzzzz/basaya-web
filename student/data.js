@@ -19,6 +19,7 @@ import { getDownload, putDownload, listDownloads, removeDownload, snapshotOf } f
 import { withDownloadAbort } from "./downloadCancellation.js";
 import { fluencyPages } from '../js/fluencyContent.js';
 import { summarize, resultsFrom, lessonParts, withMissed } from "../js/scoring.js";
+import { lessonDeadline } from "../js/deadline-policy.js";
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
 // the Android app (C:\Projects\BaSaya) exactly, so a student can switch between the app and
@@ -28,6 +29,7 @@ export const student = {
   uid: null,
   email: "",
   profile: {},
+  classroom: {},
   /** The class's lessons, as loaded by loadClassLessons(). */
   lessons: [],
 };
@@ -36,7 +38,7 @@ const userRef = (uid = student.uid) => doc(db, "users", uid);
 const progressRef = (lessonId, uid = student.uid) =>
   doc(db, "users", uid, "assignedLessons", lessonId);
 const toMillis = (value) => (value?.toMillis ? value.toMillis() : null);
-const dataScope = () => JSON.stringify([student.uid, classId(), student.profile.progressSession || "", navigator.onLine]);
+const dataScope = () => JSON.stringify([student.uid, classId(), student.profile.progressSession || "", student.profile.enrollmentVersion || "", student.classroom.classVersion || "", navigator.onLine]);
 let classLoad = null;
 let classLoaded = null;
 let progressLoaded = null;
@@ -50,6 +52,8 @@ export function invalidateStudentData() {
   progressLoaded = null;
 }
 
+export const enrollmentBlocked = () => student.profile.enrollmentStatus==='dropped' || student.classroom.membershipClosed===true;
+export const participationStamp = () => ({enrollmentVersion:student.profile.enrollmentVersion || '',classVersion:student.classroom.classVersion || ''});
 export const classId = () => student.profile.classId || "";
 export const firstName = () => (student.profile.firstName || "").trim();
 export const fullName = (profile = student.profile) =>
@@ -109,7 +113,7 @@ let metadataRetryAt = 0;
 const metadataCache = new Map();
 const metadataLoads = new Map();
 const metadataKey = (body, version) => JSON.stringify([
-  student.uid, body.classId, body.progressSession, body.lessonId, version,
+  student.uid, body.classId, body.progressSession, body.enrollmentVersion, body.classVersion, body.lessonId, version,
 ]);
 const cachedMetadata = (key) => {
   const entry = metadataCache.get(key);
@@ -132,7 +136,7 @@ async function readLessonMetadata(body, version) {
   return pending;
 }
 async function readClassMetadata(id, lessonDocs) {
-  const body = { operation: "metadata-list", classId: id, progressSession: student.profile.progressSession || "" };
+  const body = { ...participationStamp(), operation: "metadata-list", classId: id, progressSession: student.profile.progressSession || "" };
   const entries = [...lessonDocs].map(([lessonId, lesson]) => [lessonId, metadataKey({ ...body, lessonId }, toMillis(lesson.get("updatedAt")))]);
   const cached = entries.map(([lessonId, key]) => [lessonId, cachedMetadata(key)]);
   if (cached.every(([, value]) => value)) return new Map(cached);
@@ -150,10 +154,11 @@ async function readClassMetadata(id, lessonDocs) {
 }
 
 export async function assessmentRequest(lessonId, operation, fields = {}) {
+  if(enrollmentBlocked())throw new Error("Nakahinto ang iyong paglahok sa klase. Makipag-ugnayan sa guro.");
   if (!navigator.onLine) throw new Error("Kumonekta sa internet para maipasa at masuri ang sagot.");
   const lesson = student.lessons.find(item => item.id === lessonId);
   const body = {
-    operation, classId: classId(), progressSession: student.profile.progressSession || "",
+    ...participationStamp(), operation, classId: classId(), progressSession: student.profile.progressSession || "",
     ...(lessonId ? { lessonId: contentId(lessonId) } : {}),
     ...(lesson?.practice ? { practice: true, entryId: lesson.id } : {}), ...fields,
   };
@@ -211,7 +216,7 @@ export async function loadClassLessons({ force = false } = {}) {
 async function fetchClassLessons(scope, revision) {
   const current = () => dataScope() === scope && revision === dataRevision;
   const id = classId();
-  if (!id) {
+  if (!id || enrollmentBlocked()) {
     student.lessons = [];
     return [];
   }
@@ -281,7 +286,7 @@ async function fetchClassLessons(scope, revision) {
       const lesson = lessonDocs.get(lessonId);
       const id = entryId(link);
       const data = progress.get(id) || {};
-      const dueAt = toMillis(link.get("dueAt"));
+      const { dueAt, exempt } = lessonDeadline({id:link.id,...link.data()},rosterSnap?.data?.() || {},student.profile,student.classroom);
       const finished = lessonParts(data, skipped.get(lessonId)).finished;
       return {
         id,
@@ -292,6 +297,7 @@ async function fetchClassLessons(scope, revision) {
         order: link.get("order") ?? lesson.get("order") ?? 0,
         openAt: toMillis(link.get("openAt")),
         dueAt,
+        exempt,
         // Its deadline passed before the student joined: they never could do it, so it isn't shown to them (teacher/views/progressData.js leaves it out of their totals).
         closedBeforeJoining: !finished && dueAt != null && joinedAt != null && dueAt < joinedAt,
         assignedAt: toMillis(link.get("createdAt")),

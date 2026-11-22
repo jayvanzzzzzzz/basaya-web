@@ -266,7 +266,7 @@
 
 .class-lesson {
   display: grid;
-  grid-template-columns: 2.9rem minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
   padding: 1rem 0.8rem;
@@ -507,13 +507,13 @@
   }
 
   .class-lesson {
-    grid-template-columns: 2.6rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 0.8rem;
   }
 
   .class-lesson__actions {
-    grid-column: 2;
+    grid-column: 1;
     justify-content: flex-start;
   }
 }
@@ -654,3 +654,18 @@
   max-width: 100%;
 }
 
+/* Per-student lesson extensions reuse the portal's theme tokens. */
+.deadline-audience { display:flex; flex-wrap:wrap; gap:.75rem 1.5rem; padding:.9rem; border:1px solid var(--border); border-radius:var(--radius-sm); }
+.deadline-audience legend { padding:0 .35rem; font-weight:650; color:var(--ink); }
+.deadline-audience label,.deadline-picker__all { display:flex; align-items:center; gap:.5rem; }
+.deadline-picker { display:grid; gap:.75rem; }
+.deadline-picker > p { margin:0; }
+.deadline-picker [data-deadline-status]:empty { display:none; }
+.deadline-picker[hidden],.extend-deadline__notify[hidden] { display:none; }
+.deadline-picker__list { max-height:11rem; overflow:auto; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); }
+.deadline-picker__list > label { display:flex; align-items:center; gap:.7rem; padding:.8rem; border-bottom:1px solid var(--border); cursor:pointer; }
+.deadline-picker__list > label[hidden] { display:none; }
+.deadline-picker__list > label:last-child { border-bottom:0; }
+.deadline-picker__list strong,.deadline-picker__list small { display:block; overflow-wrap:anywhere; }
+.deadline-picker__list small { margin-top:.25rem; color:var(--ink-3); font-weight:400; }
+.deadline-picker input[type=checkbox],.deadline-audience input { flex:0 0 auto; }

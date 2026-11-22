@@ -23,7 +23,7 @@ export const contactPanel = `
   <div class="contact" data-contact>
     <div class="contact__intro">
       <h2>Contact us</h2>
-      <p>Questions, feedback, or found a problem? Send us a message and we'll reply by email.</p>
+      <p>Questions, feedback, or found a problem? Send us a message and we'll reply by email. Each account can send one message per hour.</p>
     </div>
     <form class="contact__form" novalidate data-contact-form>
       <div class="contact__row">
@@ -68,6 +68,7 @@ export const contactPanel = `
       <!-- Honeypot: hidden from people, bots fill it in -->
       <input class="contact__trap" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
+      <p class="contact__note" role="status" data-contact-cooldown></p>
       <p class="form-error contact__error" role="alert" data-contact-error></p>
       <div class="contact__actions">
         <p class="contact__alt">Or email <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
@@ -75,7 +76,7 @@ export const contactPanel = `
       </div>
     </form>
 
-    <div class="contact__done" data-contact-done hidden>
+    <div class="contact__done" data-contact-done tabindex="-1" hidden>
       <span class="contact__done-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></span>
       <h2>Message sent!</h2>
       <p data-done-text></p>
@@ -125,6 +126,7 @@ const toBase64 = (blob) =>
 function pageName() {
   if (location.pathname.includes("/admin/")) return "Admin portal";
   if (location.pathname.includes("/teacher/")) return "Teacher portal";
+  if (location.pathname.includes("/student/")) return "Student portal";
   return "Sign-in page";
 }
 
@@ -150,6 +152,40 @@ export function wireContactForm(root) {
   const drop = root.querySelector("[data-drop]");
   const input = root.querySelector("[data-photo-input]");
   let photo = null; // { blob, name, url }
+  let retryAt=0, busy=false, checking=false, statusRevision=0, timer=null;
+  const again=root.querySelector('[data-contact-again]');
+  const cooldown=root.querySelector('[data-contact-cooldown]');
+  function updateCooldown() {
+    const remaining=Math.max(0,retryAt-Date.now());
+    const label=remaining ? `Send again in ${Math.ceil(remaining/60000)} min` : 'Send message';
+    send.disabled=busy || checking || remaining>0;
+    sendLabel.textContent=busy ? 'Sending…' : checking ? 'Checking availability…' : label;
+    again.disabled=remaining>0 || checking;
+    again.textContent=remaining ? label : 'Send another message';
+    cooldown.textContent=remaining ? `Your next message is available at ${new Date(retryAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}.` : 'One message per account per hour.';
+    if(!remaining && timer){clearInterval(timer);timer=null;}
+  }
+  function setCooldown(value) {
+    retryAt=Number.isFinite(value) ? value : 0;
+    if(retryAt>Date.now() && !timer)timer=setInterval(()=>{if(!root.isConnected){clearInterval(timer);timer=null;return;}updateCooldown();},1000);
+    updateCooldown();
+  }
+  async function loadStatus() {
+    if(busy)return;
+    const revision=++statusRevision;
+    checking=true;updateCooldown();
+    try {
+      const {contactStatus}=await import('./api.js');
+      const result=await contactStatus();
+      if(revision===statusRevision)setCooldown(result.retryAt);
+    } catch(failure) {
+      if(revision===statusRevision)error.textContent=failure.status===401 ? 'Sign in to send a message.' : failure.message;
+    } finally {
+      if(revision===statusRevision){checking=false;updateCooldown();}
+    }
+  }
+  root.addEventListener('contact:open',()=>void loadStatus());
+  void loadStatus();
 
   prefill(fields);
 
@@ -223,6 +259,7 @@ export function wireContactForm(root) {
   // Send
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if(busy || checking || retryAt>Date.now()){updateCooldown();return;}
     error.textContent = "";
     const name = fields.name.value.trim();
     const email = fields.email.value.trim();
@@ -246,12 +283,13 @@ export function wireContactForm(root) {
     );
     if (focusFirstError(form)) return;
 
-    send.disabled = true;
+    busy=true;statusRevision++;
+    updateCooldown();
     form.classList.add("is-sending");
     sendLabel.textContent = "Sending…";
     try {
       const { sendContact } = await import("./api.js");
-      await sendContact({
+      const result=await sendContact({
         name,
         email,
         topic: fields.topic.value,
@@ -264,24 +302,27 @@ export function wireContactForm(root) {
           data: await toBase64(photo.blob),
         },
       });
+      setCooldown(result?.retryAt || Date.now()+60*60*1000);
       root.querySelector("[data-done-text]").textContent =
-        `Thanks, ${name.split(" ")[0]}. We'll reply to ${email} as soon as we can.`;
+        `Thanks, ${name.split(" ")[0]}. We'll reply to ${email} as soon as we can. You can send another message at ${new Date(retryAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}.`;
       form.hidden = true;
       done.hidden = false;
-      done.querySelector("button").focus();
+      done.focus();
     } catch (failure) {
+      if(failure.status===429 && failure.retryAt)setCooldown(failure.retryAt);
       error.textContent =
         failure instanceof TypeError
           ? "Couldn't reach the server. Check your internet connection and try again."
           : failure.message;
     } finally {
-      send.disabled = false;
+      busy=false;
       form.classList.remove("is-sending");
-      sendLabel.textContent = "Send message";
+      updateCooldown();
     }
   });
 
   root.querySelector("[data-contact-again]").addEventListener("click", () => {
+    if(retryAt>Date.now())return;
     fields.message.value = "";
     count.textContent = "0";
     clearPhoto();

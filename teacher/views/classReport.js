@@ -59,9 +59,9 @@ async function exportClassExcel(classroom, entries, report) {
   const studentRows = entries.map(({ student, progress }, index) => {
     const gender = profiles[index]?.gender;
     const start = [index + 1, student.name, SEX[gender] || gender];
-    if (progress.error) {
+    if (progress.error || progress.inactive) {
       const blanks = Array(4 + scoredSkills.length * 2).fill(null);
-      return [...start, ...blanks, progress.error === "moved" ? "Moved to another class" : "Progress not available"];
+      return [...start, ...blanks, progress.inactive ? (progress.dropped ? "Dropped — excluded from monitoring" : progress.archived ? "Archived class — excluded from monitoring" : "Deactivated — excluded from monitoring") : progress.error === "moved" ? "Moved to another class" : "Progress not available"];
     }
     const completion = completionOf(progress);
     const lectures = lecturesOf(progress);
@@ -91,6 +91,7 @@ async function exportClassExcel(classroom, entries, report) {
         ["Teacher", teacherName()],
         ["Date", today()],
         ["Students", entries.length],
+        ["Included in monitoring", report.readableStudents],
         ["Overall class score", overall],
         ["Lessons finished", report.completion == null ? null : `${report.completion}%`],
       ],
@@ -181,7 +182,7 @@ export async function renderClassReport(classId) {
   const entries = await Promise.all(
     students.map(async (student) => ({
       student,
-      progress: await loadStudentProgress(student.id, lessons, student.joinedAt),
+      progress: await loadStudentProgress(student.id, lessons, student.joinedAt,student),
     })),
   );
   if (!isCurrent()) return;
@@ -196,7 +197,7 @@ export async function renderClassReport(classId) {
   const scoredSkills = SKILLS.filter((skill) => skill.key !== "pagUnawa");
   // The lecture has no score: count the students who read every lecture open so far.
   const lekturaRead = entries.filter(({ progress }) => {
-    if (progress.error) return false;
+    if (progress.error || progress.inactive) return false;
     const lectures = lecturesOf(progress);
     return lectures.total > 0 && lectures.done === lectures.total;
   }).length;
@@ -259,19 +260,19 @@ export async function renderClassReport(classId) {
 
   // Students: flagged first, then by name
   const ordered = [...entries].sort((a, b) => {
-    const flagA = a.progress.error ? 2 : a.progress.summary.needsHelp.length ? 0 : 1;
-    const flagB = b.progress.error ? 2 : b.progress.summary.needsHelp.length ? 0 : 1;
+    const flagA = a.progress.error || a.progress.inactive ? 2 : a.progress.summary.needsHelp.length ? 0 : 1;
+    const flagB = b.progress.error || b.progress.inactive ? 2 : b.progress.summary.needsHelp.length ? 0 : 1;
     return flagA - flagB || a.student.name.localeCompare(b.student.name);
   });
 
   const studentRows = ordered
     .map(({ student, progress }) => {
       const name = `<a class="rp-student" href="${studentHref(student)}"><span class="rp-avatar">${escapeHtml(initials(student.name))}</span><strong>${escapeHtml(student.name)}</strong></a>`;
-      if (progress.error) {
+      if (progress.error || progress.inactive) {
         return `<tr data-report-row class="rp-row--muted" data-student-name="${escapeHtml(student.name)}">
           <th scope="row">${name}</th>
-          <td colspan="${scoredSkills.length + 1}" class="rp-muted">Progress not available</td>
-          <td><span class="rp-status rp-status--muted">Moved</span></td>
+          <td colspan="${scoredSkills.length + 1}" class="rp-muted">${progress.inactive ? "Saved history — excluded from monitoring" : "Progress not available"}</td>
+          <td><span class="rp-status rp-status--muted">${progress.inactive ? (progress.dropped ? "Dropped" : progress.archived ? "Archived" : "Deactivated") : "Moved"}</span></td>
         </tr>`;
       }
       const completion = completionOf(progress);
@@ -320,7 +321,7 @@ export async function renderClassReport(classId) {
         <div class="rp-kpi">
           <span class="rp-kpi__label">Students</span>
           <span class="rp-kpi__value">${students.length}</span>
-          <span class="rp-kpi__foot">${report.activeStudents} active in lessons</span>
+          <span class="rp-kpi__foot">${report.activeStudents} active in lessons · ${entries.filter(entry=>entry.progress.inactive).length} paused, excluded</span>
         </div>
         <div class="rp-kpi">
           <span class="rp-kpi__label">Lessons finished</span>

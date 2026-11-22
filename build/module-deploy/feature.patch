@@ -1,0 +1,1444 @@
+diff --git a/admin/index.html b/admin/index.html
+index 7e3be8c..94d7fe1 100644
+--- a/admin/index.html
++++ b/admin/index.html
+@@ -56,6 +56,7 @@
+     <link rel="stylesheet" href="../css/pages/admin-lessons.css" />
+     <link rel="stylesheet" href="../css/pages/admin-students.css" />
+     <link rel="stylesheet" href="../css/pages/lesson-studio.css" />
++    <link rel="stylesheet" href="../css/pages/module-workspace.css" />
+     <link rel="stylesheet" href="../css/pages/game-levels.css" />
+     <link rel="stylesheet" href="../css/pages/lesson-viewer.css" />
+     <link rel="stylesheet" href="../css/pages/lesson-delete.css" />
+diff --git a/admin/router.js b/admin/router.js
+index 0804b58..2d84e7d 100644
+--- a/admin/router.js
++++ b/admin/router.js
+@@ -4,7 +4,8 @@ import { state } from "../js/state.js";
+ import { renderTeachers } from "./views/teachers.js";
+ import { renderStudents } from "./views/students.js";
+ import { renderClasses } from "./views/classes.js";
+-import { renderLessons } from "./views/lessons.js";
++import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
++import { canLeaveLessons } from '../js/lessonNavigation.js';
+ import { renderAccount } from "./views/account.js";
+ import { renderDictionary } from "../teacher/views/dictionary.js";
+ import { refreshDeletionBadge } from "./views/classDeletion.js";
+@@ -12,6 +13,7 @@ import { renderAdminDashboard } from "./views/dashboard.js";
+ import { renderHandbook, leaveHandbook } from '../js/handbook.js';
+ 
+ export async function renderRoute() {
++  if (!await canLeaveLessons(state.user?.uid || null)) return;
+   const isCurrent = beginRoute();
+   leaveHandbook();
+   if (!state.user) return;
+@@ -31,7 +33,7 @@ export async function renderRoute() {
+     else if (route === "/teachers") await renderTeachers();
+     else if (route === "/students") await renderStudents();
+     else if (route === "/classes") await renderClasses();
+-    else if (route === "/lessons") await renderLessons();
++    else if (route === "/lessons") await renderLessonWorkspace();
+     else if (route === "/dictionary") await renderDictionary();
+     else if (route === "/handbook") renderHandbook("admin");
+     else if (route === "/settings") renderAccount();
+diff --git a/admin/views/lessons.js b/admin/views/lessons.js
+index a05027a..62bf528 100644
+--- a/admin/views/lessons.js
++++ b/admin/views/lessons.js
+@@ -1,14 +1,12 @@
+ import { captureRoute } from "../../js/route-lifecycle.js";
++import { reserveLessonCopy } from '../../js/modules.js';
+ import { confirmAction } from "../../js/action-confirmation.js";
+ import {
+   addDoc,
+   collection,
+-  deleteDoc,
+   doc,
+   getDocs,
+   serverTimestamp,
+-  setDoc,
+-  updateDoc,
+   writeBatch,
+ } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+ import { db } from "../../js/firebase.js";
+@@ -112,7 +110,8 @@ document.addEventListener("keydown", (event) => {
+   if (event.key === "Escape") closeLessonMenus();
+ });
+ 
+-export async function renderLessons() {
++export async function renderLessons(options = {}) {
++  const editLesson = options.onEdit || openLessonModal;
+   const isCurrent = captureRoute("/lessons");
+   if (!isCurrent()) return;
+   await getAllLessons();
+@@ -319,15 +318,15 @@ export async function renderLessons() {
+       });
+       viewButton?.addEventListener("click", () => {
+         closeLessonMenus();
+-        openLessonViewer(lesson, { loadSections: getLessonSections, onEdit: openLessonModal });
++        openLessonViewer(lesson, { loadSections: getLessonSections, onEdit: editLesson });
+       });
+       editButton?.addEventListener("click", () => {
+         closeLessonMenus();
+-        openLessonModal(lesson);
++        editLesson(lesson);
+       });
+       deleteButton?.addEventListener("click", () => {
+         closeLessonMenus();
+-        openDeleteLesson(lesson, renderLessons);
++        openDeleteLesson(lesson, options.onRefresh || renderLessons);
+       });
+     });
+ 
+@@ -356,8 +355,8 @@ export async function renderLessons() {
+       );
+   }
+ 
+-  $("#add-lesson")?.addEventListener("click", () => openLessonModal());
+-  $("#add-lesson-empty")?.addEventListener("click", () => openLessonModal());
++  $("#add-lesson")?.addEventListener("click", () => editLesson());
++  $("#add-lesson-empty")?.addEventListener("click", () => editLesson());
+ }
+ 
+ // Saved as the Filipino key (the apps read it); shown in English.
+@@ -406,15 +405,15 @@ function wireTitleDefaults(modal) {
+   });
+ }
+ 
+-function studioHtml(lesson = {}, sections = {}) {
++function studioHtml(lesson = {}, sections = {}, copy = false) {
+   return `
+     <div class="lesson-studio">
+       <div class="lesson-studio__heading">
+         <div>
+           <p class="eyebrow">BASAya lesson studio</p>
+-          <h2>${lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
++          <h2>${copy ? "Edit a lesson copy" : lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
+         </div>
+-        <span class="lesson-studio__badge">Admin only</span>
++        <span class="lesson-studio__badge">Lesson studio</span>
+       </div>
+       <div class="lesson-studio__tabs">
+         <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
+@@ -594,7 +593,7 @@ function studioHtml(lesson = {}, sections = {}) {
+ 
+         <div class="lesson-studio__footer">
+           <button type="button" class="button secondary" data-close>Cancel</button>
+-          <button type="submit" class="button primary">${lesson.id ? "Save changes" : "Publish lesson"}</button>
++          <button type="submit" class="button primary">${copy ? "Save copy" : lesson.id ? "Save changes" : "Publish lesson"}</button>
+         </div>
+       </form>
+     </div>
+@@ -1083,12 +1082,17 @@ function missingFields(modal, { skipActivity, skipGame }) {
+   return missing;
+ }
+ 
+-async function openLessonModal(existing = null) {
++async function openLessonModal(existing = null, options = {}) {
+   const sections = existing ? await getLessonSections(existing.id) : {};
++  const isCurrent = captureRoute();
++  if (options.isCurrent && !options.isCurrent()) return;
++  const copySource = options.copy ? existing : null;
++  if (copySource) existing = { ...existing, id: null, title: options.copyTitle };
+   // Cancel and × ask before throwing away edits; set once the editor is built.
+   let mayLeave = async () => true;
+ 
+-  openModal(studioHtml(existing || {}, sections), (modal, close) => {
++  const mount = options.mount || openModal;
++  mount(studioHtml(existing || {}, sections, Boolean(copySource)), (modal, close) => {
+     const disposeTooltips = attachFloatingTooltips(modal);
+     const confirmRemoval = async (item, message = 'This removes the item from the lesson draft. Save the lesson to keep this change.') =>
+       await confirmAction({ title: `Remove ${item}?`, message, confirm: 'Remove', danger: true }) && modal.isConnected;
+@@ -1121,7 +1125,12 @@ async function openLessonModal(existing = null) {
+       observer.disconnect();
+     }).observe(document.body, { childList: true, subtree: true });
+     const pronunciationWords = $("[data-pronunciation-words]", modal);
+-    const saveState = { lessonId: existing?.id || '', dictionaryMissing: [] };
++    const saveState = { lessonId: existing?.id || '', dictionaryMissing: [], copySource };
++    if (copySource) {
++      const title = modal.querySelector('[name="title"]');
++      title.readOnly = true;
++      title.title = 'The next available copy number is assigned when saved.';
++    }
+     const quizQuestions = $("[data-quiz-questions]", modal);
+     const gameLevels = $("[data-game-levels]", modal);
+     const skipGame = $("[data-skip-game]", modal);
+@@ -1355,7 +1364,8 @@ async function openLessonModal(existing = null) {
+       if (!button) return;
+ 
+       if (button.matches("[data-close]")) {
+-        if (await mayLeave()) close();
++        if ($("#lesson-form", modal).dataset.saving === 'true') return;
++        if (await mayLeave()) { close(); options.onCancel?.(); }
+         return;
+       }
+ 
+@@ -1575,8 +1585,8 @@ async function openLessonModal(existing = null) {
+       }
+ 
+       // Skipping the Gawain or the game deletes what this lesson already has saved for it, so ask first.
+-      const savedPages = skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
+-      const savedLevels = skipGame.checked ? sections.game?.length || 0 : 0;
++      const savedPages = !copySource && skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
++      const savedLevels = !copySource && skipGame.checked ? sections.game?.length || 0 : 0;
+       if (savedPages || savedLevels) {
+         submit.disabled = true;
+         const confirmed = await confirmDeleteSkipped({ pages: savedPages, levels: savedLevels });
+@@ -1589,7 +1599,7 @@ async function openLessonModal(existing = null) {
+         }
+       }
+ 
+-      if (!await confirmAction({ title: existing ? 'Save lesson changes?' : 'Publish this lesson?', message: existing ? 'Apply your changes to the lesson and its learning activities.' : 'Add this lesson to the library so teachers can assign it to classes.', confirm: existing ? 'Save changes' : 'Publish lesson' })) return;
++      if (!await confirmAction({ title: copySource ? 'Save this lesson copy?' : existing ? 'Save lesson changes?' : 'Publish this lesson?', message: copySource ? 'Add your edited copy to the lesson library and this module. The original lesson stays unchanged.' : existing ? 'Apply your changes to the lesson and its learning activities.' : 'Add this lesson to the library so teachers can assign it to classes.', confirm: copySource ? 'Save copy' : existing ? 'Save changes' : 'Publish lesson' })) return;
+       if (!form.isConnected) return;
+       form.dataset.saving = 'true';
+       setButtonSaving(submit, true);
+@@ -1597,6 +1607,7 @@ async function openLessonModal(existing = null) {
+       try {
+         const values = Object.fromEntries(new FormData(form));
+         const lessonId = await saveLesson(existing, values, {
++          scope: modal,
+           activityPages,
+           lecturePages,
+           pronunciationWords,
+@@ -1609,14 +1620,15 @@ async function openLessonModal(existing = null) {
+         });
+ 
+         notify({
+-          title: existing ? "Lesson updated" : "Lesson published",
++          title: copySource ? "Lesson copy saved" : existing ? "Lesson updated" : "Lesson published",
+           message: saveState.dictionaryMissing.length
+             ? `Add ${saveState.dictionaryMissing.join(', ')} to the dictionary, then save again to share their audio.`
+             : "Your lesson and learning activities have been saved.",
+           tone: saveState.dictionaryMissing.length ? "info" : "success",
+         });
++        if (options.onSaved) await options.onSaved(lessonId);
+         close();
+-        await renderLessons();
++        if (!options.onSaved && isCurrent()) await renderLessons();
+ 
+         console.info("Saved lesson:", lessonId);
+       } catch (error) {
+@@ -1634,9 +1646,16 @@ async function openLessonModal(existing = null) {
+     const initialSnapshot = editorSnapshot(studioForm);
+     mayLeave = () =>
+       editorSnapshot(studioForm) === initialSnapshot ? Promise.resolve(true) : confirmDiscard(!existing);
++    options.onGuard?.(() => studioForm.dataset.saving === 'true' ? Promise.resolve(false) : mayLeave(),
++      () => editorSnapshot(studioForm) !== initialSnapshot || studioForm.dataset.saving === 'true');
+   }, { closeOnBackdrop: false, beforeClose: () => mayLeave() });
+ }
+ 
++/** Mount the existing content editor inside the Lessons workspace. */
++export function openInlineLessonEditor(existing, options) {
++  return openLessonModal(existing, options);
++}
++
+ /** Everything the author can change in the editor, to tell whether leaving loses work. */
+ function editorSnapshot(form) {
+   return JSON.stringify([
+@@ -1751,21 +1770,29 @@ async function saveLesson(existing, values, elements) {
+     difficulty: values.difficulty,
+     updatedAt: serverTimestamp(),
+   };
++  const scope = elements.scope || document.body;
+ 
+   let lessonRef;
+ 
+-  if (existing || elements.saveState?.lessonId) {
++  if (existing?.id || elements.saveState?.lessonId) {
+     lessonRef = doc(db, "lessons", existing?.id || elements.saveState.lessonId);
+-    await updateDoc(lessonRef, rootData);
++  } else if (elements.saveState?.copySource) {
++    lessonRef = doc(collection(db, 'lessons'));
++    rootData.title = await reserveLessonCopy(lessonRef, elements.saveState.copySource, rootData);
++    values.title = rootData.title;
++    elements.saveState.lessonId = lessonRef.id;
++    scope.querySelector('[name="title"]').value = rootData.title;
+   } else {
+     lessonRef = await addDoc(collection(db, "lessons"), {
+       ...rootData,
++      teacherId: state.user.uid,
++      publicationState: 'draft',
+       createdAt: serverTimestamp(),
+     });
+     if (elements.saveState) elements.saveState.lessonId = lessonRef.id;
+   }
+ 
+-  const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages);
++  const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages, scope);
+   const lectures = await readLectures(elements.lecturePages, lessonRef.id);
+   const pronunciation = await readPronunciation(
+     elements.pronunciationWords,
+@@ -1774,30 +1801,34 @@ async function saveLesson(existing, values, elements) {
+   const quiz = readQuiz(elements.quizQuestions);
+   const game = elements.skipGame.checked ? [] : readGameLevels(elements.gameLevels);
+ 
+-  await replaceActivity(lessonRef.id, activity);
+-  await setDoc(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
+-    title: $("[data-lecture-title]", document.body).value.trim() || TITLE_DEFAULTS["[data-lecture-title]"](values.title.trim()),
++  const pronunciationPages = await elements.pronunciationPages.read(lessonRef.id);
++  const batch = writeBatch(db);
++  await replaceActivity(lessonRef.id, activity, batch);
++  batch.set(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
++    title: $("[data-lecture-title]", scope).value.trim() || TITLE_DEFAULTS["[data-lecture-title]"](values.title.trim()),
+     pages: lectures,
+   });
+-  await setDoc(
++  batch.set(
+     doc(db, "lessons", lessonRef.id, "pronunciation", "content"),
+     {
+-      title: $("[data-pronunciation-title]", document.body).value.trim(),
++      title: $("[data-pronunciation-title]", scope).value.trim(),
+       instruction: PRONUNCIATION_INSTRUCTION,
+-      ...await elements.pronunciationPages.read(lessonRef.id),
++      ...pronunciationPages,
+       words: pronunciation.words,
+       audioRefs: pronunciation.audioRefs,
+       cloudAudio: pronunciation.cloudAudio,
+     },
+   );
+-  await setDoc(doc(db, "lessons", lessonRef.id, "quiz", "content"), {
+-    title: $("[data-quiz-title]", document.body).value.trim(),
++  batch.set(doc(db, "lessons", lessonRef.id, "quiz", "content"), {
++    title: $("[data-quiz-title]", scope).value.trim(),
+     questions: quiz,
+   });
+ 
+-  await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked);
++  await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked, batch);
++  batch.update(lessonRef, { ...rootData, publicationState: 'published' });
++  await batch.commit();
+ 
+-  if (pronunciation.cloudAudio.some(audio => audio?.storageKey)) {
++  if (state.profile?.role === 'admin' && pronunciation.cloudAudio.some(audio => audio?.storageKey)) {
+     try {
+       const result = await postToApi('assessment', { operation: 'dictionary-audio-sync', lessonId: lessonRef.id });
+       if (elements.saveState) elements.saveState.dictionaryMissing = result.missing || [];
+@@ -1809,11 +1840,11 @@ async function saveLesson(existing, values, elements) {
+   return lessonRef.id;
+ }
+ 
+-function readActivity(container) {
++function readActivity(container, scope = document.body) {
+   return {
+-    title: $("[data-activity-title]", document.body).value.trim(),
+-    instruction: $("[data-activity-instruction]", document.body).value.trim(),
+-    explanation: $("[data-activity-explanation]", document.body).value.trim(),
++    title: $("[data-activity-title]", scope).value.trim(),
++    instruction: $("[data-activity-instruction]", scope).value.trim(),
++    explanation: $("[data-activity-explanation]", scope).value.trim(),
+     pages: $$("[data-activity-page]", container)
+       .map((page) => {
+         const words = activityWords(page);
+@@ -1999,30 +2030,25 @@ function confirmDeleteSkipped({ pages = 0, levels = 0 }) {
+ }
+ 
+ /** Saves activity/content, or with activity = null deletes the Gawain and saves activity/status = { completion: "skipped" }, as the game does (see replaceGameLevels). */
+-async function replaceActivity(lessonId, activity) {
++async function replaceActivity(lessonId, activity, batch) {
+   const statusRef = doc(db, "lessons", lessonId, "activity", "status");
+   if (activity) {
+-    const batch = writeBatch(db);
+     batch.set(doc(db, "lessons", lessonId, "activity", "content"), activity);
+     batch.delete(statusRef);
+-    await batch.commit();
+     return;
+   }
+ 
+   const existing = await getDocs(collection(db, "lessons", lessonId, "activity"));
+-  const batch = writeBatch(db);
+   existing.docs.forEach((item) => {
+     if (item.id !== "status") batch.delete(item.ref);
+   });
+   batch.set(statusRef, { completion: "skipped" });
+-  await batch.commit();
+ }
+ 
+-async function replaceGameLevels(lessonId, levels, skipGame) {
++async function replaceGameLevels(lessonId, levels, skipGame, batch) {
+   const gameCollection = collection(db, "lessons", lessonId, "game");
+   const existing = await getDocs(gameCollection);
+ 
+-  const batch = writeBatch(db);
+   existing.docs.forEach((gameDoc) => {
+     if (!skipGame || gameDoc.id !== "status") {
+       batch.delete(gameDoc.ref);
+@@ -2033,11 +2059,5 @@ async function replaceGameLevels(lessonId, levels, skipGame) {
+       completion: "skipped",
+     });
+   }
+-  if (existing.size || skipGame) {
+-    await batch.commit();
+-  }
+-
+-  await Promise.all(
+-    levels.map((level) => addDoc(gameCollection, level)),
+-  );
++  levels.forEach(level => batch.set(doc(gameCollection), level));
+ }
+diff --git a/build/module-deploy/release/css/pages/module-workspace.css b/css/pages/module-workspace.css
+new file mode 100644
+index 0000000..8ff6047
+--- /dev/null
++++ b/css/pages/module-workspace.css
+@@ -0,0 +1,50 @@
++.module-workspace { color: var(--ink); min-width: 0; }
++.module-tabs, .module-section-heading, .module-save-bar, .module-row-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
++.module-tabs { margin-bottom: 1.25rem; }
++.module-directory { display: grid; gap: 1rem; }
++.module-card, .module-panel, .module-details, .module-empty { padding: 1.5rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); min-width: 0; }
++.module-card, .module-library-row { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
++.module-card h2, .module-library-row h3 { margin: .4rem 0; overflow-wrap: anywhere; }
++.module-card p, .module-panel > p, .module-library-row p, .module-empty p { color: var(--ink-2); }
++.module-card ol { padding-left: 1.3rem; line-height: 1.9; overflow-wrap: anywhere; }
++.module-card > button { flex-shrink: 0; }
++.module-details { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
++.module-workspace label { display: grid; gap: .4rem; color: var(--ink); }
++.module-workspace input:not([type="checkbox"]), .module-workspace textarea { width: 100%; min-width: 0; box-sizing: border-box; }
++.module-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1.25rem; }
++.module-section-heading { justify-content: space-between; }
++.module-section-heading h2 { margin: 0; font-size: 1.15rem; }
++.module-section-heading > span, .module-note { color: var(--ink-2); font-size: .9rem; line-height: 1.6; }
++.module-picker { display: grid; align-content: start; gap: .4rem; max-height: 32rem; overflow-y: auto; margin-top: 1rem; padding: .25rem; }
++.module-workspace .module-choice { display: flex; align-items: center; gap: .75rem; padding: .85rem; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
++.module-choice:has(:checked) { background: var(--info-soft); }
++.module-choice input { width: 20px; height: 20px; flex-shrink: 0; }
++.module-choice span { flex: 1; min-width: 0; }
++.module-choice strong, .module-choice small, .module-lesson-name strong, .module-lesson-name small { display: block; overflow-wrap: anywhere; }
++.module-choice small, .module-lesson-name small { margin-top: .25rem; color: var(--ink-2); }
++.module-order { display: grid; gap: .7rem; padding: 0; list-style: none; }
++.module-order-row { display: flex; align-items: start; flex-wrap: wrap; gap: .7rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
++.module-order-row[draggable="true"] { cursor: grab; }
++.module-number { display: grid; place-items: center; min-width: 2rem; height: 2rem; border-radius: 8px; background: var(--info-soft); color: var(--ink); font-weight: 700; }
++.module-lesson-name { flex: 1; min-width: 100px; }
++.module-order-row .module-row-actions { width: 100%; padding-left: 2.7rem; }
++.module-workspace .button { min-height: 40px; white-space: normal; }
++.module-workspace .button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
++.module-save-bar { position: sticky; bottom: 0; justify-content: flex-end; margin-top: 1.25rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); z-index: 4; }
++.module-save-bar > span { margin-right: auto; color: var(--ink-2); }
++.module-library-row { padding: 1rem 0; border-bottom: 1px solid var(--border); }
++.lesson-inline-editor { height: min(850px, calc(100dvh - 120px)); min-height: 540px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
++.lesson-inline-editor .lesson-studio__heading { padding-right: 2rem; }
++@media (max-width: 1050px) { .module-columns { grid-template-columns: 1fr; } .module-picker { max-height: 22rem; } }
++@media (max-width: 600px) {
++  .module-details { grid-template-columns: 1fr; }
++  .module-panel, .module-card, .module-details, .module-empty { padding: 1rem; }
++  .module-card, .module-library-row { flex-direction: column; }
++  .module-workspace .module-choice { flex-wrap: wrap; }
++  .module-choice span { min-width: 100px; }
++  .module-choice .button { margin-left: auto; }
++  .module-order-row .module-row-actions { padding-left: 0; }
++  .module-save-bar > span { width: 100%; }
++  .module-save-bar { position: static; }
++  .lesson-inline-editor { height: calc(100dvh - 100px); min-height: 500px; }
++}
+diff --git a/build/module-deploy/release/docs/lesson-modules.md b/docs/lesson-modules.md
+new file mode 100644
+index 0000000..8850367
+--- /dev/null
++++ b/docs/lesson-modules.md
+@@ -0,0 +1,27 @@
++# Lesson modules
++
++Both staff portals use `js/lessonWorkspace.js` at `#/lessons`. The existing lesson studio mounts inside the workspace; its content sections and validation remain shared with the admin library.
++
++## Stored structure
++
++`modules/{id}` contains `title`, `description`, `ownerId`, `visibility`, `lessonIds`, `revision`, `createdAt`, `updatedAt`, `progression`, and `lockingEnabled`. The position of each ID in `lessonIds` is its authoritative learning order. Modules accept 1–100 unique lessons. Revision checks prevent overwriting another session's changes.
++
++Admin modules are shared and available for teacher class assignment. Teacher modules are private to their author and admins. A teacher using a shared module in the builder creates their own module. Only its owner or an admin can update a saved module.
++
++Selecting a premade lesson reuses its ID. Editing it within a module creates a separate lesson, tracks `sourceLessonId` (original) and `copiedFromLessonId` (selected version), and assigns names such as `Pandiwa 1.1`, `Pandiwa 1.2`. A transaction on `lessonCopyCounters/{originalId}` allocates the next number. Editing a copy again in the same unsaved module session updates that copy. Reopening a saved module treats its lessons as reusable premade content again.
++
++New lessons and copies are first reserved with `publicationState: draft`. A single batch publishes their activity sections and marks the root `published`. The staff libraries omit unfinished drafts. A retry reuses the reserved lesson ID and number. Existing lesson IDs, class assignments and student progress are preserved.
++
++Class assignment can add a module's lessons using the existing assessment/practice and schedule controls. New links retain `moduleId`, `moduleTitle`, `moduleOrder`, and `moduleRevision`, along with the existing class order. Already assigned lessons are skipped according to the selected mode. Assignments are snapshots; editing a module does not silently replace an existing class's assignments.
++
++## Future sequential access
++
++Modules store `progression: sequential` and `lockingEnabled: false`. Student web and Android locking is intentionally inactive. Future work must define completion, pin the assigned sequence, and enforce access on the backend as well as both clients. Students currently use the existing lesson access rules.
++
++## Validation and release
++
++Run `node tools/module-lessons-browser.cjs` for the local browser suite. It uses local adapters and never writes production data. It covers both staff roles, responsive light/dark layouts, original preservation, copy naming, new lesson publication, ordered class assignment, failed saves, and unsaved navigation.
++
++Run `node tools/module-lessons-tests.mjs <java.exe> <firestore-emulator.jar>` for actual Firestore rules, ownership, concurrent numbering and stale module revisions. Java 11 or newer is required.
++
++Deploy the updated `firestore.rules` together with the web changes before exposing the workspace in production. No production data migration is required. Student locking requires a separate future release.
+diff --git a/firestore.rules b/firestore.rules
+index 32a5a74..9fb5300 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -3,10 +3,15 @@ rules_version = '2';
+ service cloud.firestore {
+   match /databases/{database}/documents {
+ 
+-    function signedIn() {
++    function authenticated() {
+       return request.auth != null;
+     }
+ 
++    function signedIn() {
++      return authenticated() &&
++        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('disabled', false) != true;
++    }
++
+     function isTeacher() {
+       return signedIn() &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid))
+@@ -30,6 +35,16 @@ service cloud.firestore {
+           .data.teacherId == request.auth.uid;
+     }
+ 
++    function teachesActiveClass(classId) {
++      return teachesClass(classId) && get(/databases/$(database)/documents/classes/$(classId)).data.get('membershipClosed', false) != true;
++    }
++
++    function activeClassTeacher(teacherId) {
++      return teacherId == '' || (teacherId is string &&
++        get(/databases/$(database)/documents/users/$(teacherId)).data.get('role', '') == 'teacher' &&
++        get(/databases/$(database)/documents/users/$(teacherId)).data.get('disabled', false) != true);
++    }
++
+     // Approval is represented by BOTH the server-owned profile link and roster entry.
+     function isClassMember(classId) {
+       return signedIn() && classId is string && classId != '' &&
+@@ -37,9 +52,15 @@ service cloud.firestore {
+         exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid));
+     }
+ 
++    function canParticipate(classId) {
++      return isClassMember(classId) &&
++        get(/databases/$(database)/documents/classes/$(classId)).data.get('membershipClosed', false) != true &&
++        get(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)).data.get('membershipStatus', 'enrolled') != 'dropped';
++    }
++
+     function canReadLearningContent() {
+       return signedIn() && (isTeacher() || isAdmin() ||
+-        isClassMember(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '')));
++        canParticipate(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '')));
+     }
+ 
+     // Assessment membership, explicit assignments and server-time schedules are
+@@ -55,25 +76,19 @@ service cloud.firestore {
+     }
+ 
+     match /users/{userId} {
+-      allow read: if signedIn() && (
+-        request.auth.uid == userId ||
++      // Keep the own profile readable so a deactivated session can detect the
++      // access change and sign out; other protected reads require active access.
++      allow read: if authenticated() && request.auth.uid == userId || signedIn() && (
+         isAdmin() ||
+         (isTeacher() && teachesClass(resource.data.get('classId', null))) ||
+         ((resource == null || resource.data.get('role', '') == "teacher") && teachesMyClass(userId))
+       );
+ 
+-      allow create: if signedIn() && (                                                                                                                                            
+-          (request.auth.uid == userId &&                                                                                                                                            
+-            request.resource.data.role == "student" &&
+-            request.resource.data.get('classId', '') == '' &&
+-            request.resource.data.get('className', '') == '' &&
+-            request.resource.data.get('username', '') == '' &&
+-            !request.resource.data.keys().hasAny(['joinRequest', 'progressSession', 'skillSummary'])) ||
+-          isAdmin()                                                                                                                                                                 
+-        );                                                                                                                                                                          
+-                                                                                                                                                                                    
++      // Students are provisioned by the admin API only.
++      allow create: if isAdmin();
++
+         allow update: if signedIn() &&
+-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['username']) && (
++          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['username', 'lrn', 'loginMethod', 'createdBy', 'createdAt', 'inactivePeriods', 'deactivatedAt', 'enrollmentStatus', 'enrollmentVersion']) && (
+           (isAdmin() && (resource.data.role != 'teacher' ||
+             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['firstName', 'middleName', 'lastName', 'displayName', 'gender', 'title', 'email', 'photoURL']))) ||
+           (request.auth.uid == userId &&
+@@ -82,7 +97,7 @@ service cloud.firestore {
+               (!resource.data.keys().hasAny(['gender']) && !request.resource.data.keys().hasAny(['gender'])) ||
+               (request.resource.data.gender == 'female' && request.resource.data.title == 'maam') ||
+               (request.resource.data.gender == 'male' && request.resource.data.title == 'sir')) &&
+-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt', 'disabled']))
++            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt', 'disabled', 'email']))
+         );
+                                                                                                                                                                                     
+         allow delete: if isAdmin();    
+@@ -115,20 +130,64 @@ service cloud.firestore {
+       }
+     }
+ 
+-    // Staff and approved members can read lessons. Only admins can change lesson content.
++    // Teachers author their own lessons; premade lessons are copied before editing.
+     match /lessons/{lessonId} {
+       allow read: if canReadLearningContent();
+-      allow create, update, delete: if isAdmin();
++      allow create: if isAdmin() || (isTeacher() && request.resource.data.teacherId == request.auth.uid &&
++        request.resource.data.title is string && request.resource.data.title.size() > 0);
++      allow update: if isAdmin() || (isTeacher() && resource.data.get('teacherId', '') == request.auth.uid &&
++        request.resource.data.teacherId == resource.data.teacherId &&
++        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sourceLessonId', 'copiedFromLessonId', 'createdAt']));
++      allow delete: if isAdmin();
+ 
+       match /{subcollection}/{docId} {
+         // Firestore cannot hide individual fields. Students receive sanitized
+         // quiz/activity content from the API instead of answer-key documents.
+         allow read: if canReadLearningContent() &&
+           (!(subcollection in ['quiz', 'activity']) || isTeacher() || isAdmin());
+-        allow write: if isAdmin();
++        allow write: if isAdmin() || (isTeacher() &&
++          getAfter(/databases/$(database)/documents/lessons/$(lessonId)).data.get('teacherId', '') == request.auth.uid);
+       }
+     }
+ 
++    match /lessonCopyCounters/{lessonId} {
++      allow read: if isAdmin() || isTeacher();
++      allow create, update: if (isAdmin() || isTeacher()) &&
++        exists(/databases/$(database)/documents/lessons/$(lessonId)) &&
++        request.resource.data.keys().hasOnly(['sequence']) &&
++        request.resource.data.sequence is int && request.resource.data.sequence > 0 &&
++        request.resource.data.sequence <= 1000000 &&
++        (resource == null || request.resource.data.sequence == resource.data.sequence + 1);
++    }
++
++    match /modules/{moduleId} {
++      function validModule() {
++        let d = request.resource.data;
++        return d.keys().hasOnly(['title', 'description', 'lessonIds', 'ownerId', 'visibility', 'revision', 'createdAt', 'updatedAt', 'progression', 'lockingEnabled']) &&
++          d.title is string && d.title.size() > 0 && d.title.size() <= 120 &&
++          d.description is string && d.description.size() <= 1000 &&
++          d.lessonIds is list && d.lessonIds.size() > 0 && d.lessonIds.size() <= 100 &&
++          d.lessonIds.toSet().size() == d.lessonIds.size() &&
++          d.ownerId is string && d.revision is int && d.revision > 0 &&
++          d.visibility in ['private', 'shared'] &&
++          d.createdAt is timestamp && d.updatedAt == request.time &&
++          d.progression == 'sequential' && d.lockingEnabled == false;
++      }
++      allow read: if isAdmin() || (isTeacher() && (resource.data.ownerId == request.auth.uid || resource.data.visibility == 'shared'));
++      allow create: if (isAdmin() || isTeacher()) && validModule() &&
++        request.resource.data.ownerId == request.auth.uid && (isAdmin() || request.resource.data.visibility == 'private') &&
++        request.resource.data.createdAt == request.time && request.resource.data.revision == 1;
++      allow update: if (isAdmin() || (isTeacher() && resource.data.ownerId == request.auth.uid)) && validModule() &&
++        request.resource.data.ownerId == resource.data.ownerId && request.resource.data.createdAt == resource.data.createdAt &&
++        (isAdmin() || request.resource.data.visibility == resource.data.visibility) &&
++        request.resource.data.revision == resource.data.revision + 1;
++      allow delete: if isAdmin();
++    }
++
++    match /learnerNumbers/{lrn} {
++      allow read, write: if false;
++    }
++
+     match /usernames/{username} {
+       // Aliases are reserved and resolved only by the password-verifying API.
+       allow read, write: if false;
+@@ -141,12 +200,14 @@ service cloud.firestore {
+ 
+       // Only teachers may create a class, and only with themselves as its teacher.
+       allow create: if isTeacher() &&
+-        request.resource.data.teacherId == request.auth.uid;
++        request.resource.data.teacherId == request.auth.uid &&
++        !request.resource.data.keys().hasAny(['membershipClosed', 'archived', 'archivePeriods', 'classVersion']);
+ 
+       // The class's teacher or an admin can edit it (a teacher also uses this to request deletion: deletionRequest / deletionDeclined fields).
+-      allow update: if isAdmin() || (teachesClass(classId) &&
++      allow update: if (isAdmin() &&
++        (request.resource.data.teacherId == resource.data.teacherId || activeClassTeacher(request.resource.data.teacherId))) || (teachesClass(classId) &&
+         request.resource.data.teacherId == resource.data.teacherId &&
+-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['membershipClosed']));
++        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['membershipClosed', 'archived', 'archivePeriods', 'archivedAt', 'archivedBy', 'classVersion']));
+ 
+       // Never deleted directly: an admin approves, then notify-api/api/delete-class removes the class with its roster, lessons and every student's progress.
+       allow delete: if false;
+@@ -311,7 +372,11 @@ service cloud.firestore {
+           (isAdmin() ||
+            teachesClass(classId) || isClassMember(classId));
+ 
+-        allow write: if teachesClass(classId);
++        allow create: if teachesActiveClass(classId) && (request.resource.data.get('mode','') == 'practice' || !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt']));
++        allow update: if teachesActiveClass(classId) && (
++          (resource.data.get('mode','') == 'practice' && request.resource.data.get('mode','') == 'assessment' && !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt'])) ||
++          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['openAt', 'dueAt', 'deadlineHistory','scheduleChangedAt']));
++        allow delete: if teachesActiveClass(classId);
+       }
+     }
+ 
+diff --git a/build/module-deploy/release/js/lessonNavigation.js b/js/lessonNavigation.js
+new file mode 100644
+index 0000000..1512668
+--- /dev/null
++++ b/js/lessonNavigation.js
+@@ -0,0 +1,27 @@
++// The Lessons workspace owns one leave guard, including nested lesson editors.
++let guard = null;
++let dirty = () => false;
++let route = '';
++let ownerId = null;
++export function setLessonLeaveGuard(check, hasChanges = () => true, userId = null) {
++  guard = check;
++  dirty = hasChanges;
++  route = location.hash;
++  ownerId = userId;
++}
++export async function canLeaveLessons(userId) {
++  if (userId !== undefined && ownerId !== userId) { guard = null; dirty = () => false; }
++  if (!guard) return true;
++  const target = location.hash;
++  if (await guard()) {
++    if (location.hash !== target) return false;
++    guard = null;
++    dirty = () => false;
++    return true;
++  }
++  if (location.hash === target) history.replaceState(null, '', route);
++  return false;
++}
++window.addEventListener('beforeunload', event => {
++  if (guard && dirty()) { event.preventDefault(); event.returnValue = ''; }
++});
+diff --git a/build/module-deploy/release/js/lessonWorkspace.js b/js/lessonWorkspace.js
+new file mode 100644
+index 0000000..93e7a95
+--- /dev/null
++++ b/js/lessonWorkspace.js
+@@ -0,0 +1,186 @@
++import { state, getAllLessons } from './state.js';
++import { $, escapeHtml as esc, page, toast } from './helpers.js';
++import { confirmAction } from './action-confirmation.js';
++import { captureRoute } from './route-lifecycle.js';
++import { setLessonLeaveGuard } from './lessonNavigation.js';
++import { loadModules, saveModule } from './modules.js';
++import { nextCopyNumber, moveLesson } from './moduleModel.js';
++import { openInlineLessonEditor, renderLessons } from '../admin/views/lessons.js';
++import { openLessonViewer } from '../admin/views/lessonViewer.js';
++
++const button = (label, action, primary = false) => `<button type="button" class="button ${primary ? 'primary' : 'secondary'}" data-action="${action}">${label}</button>`;
++
++export async function renderLessonWorkspace() {
++  const isCurrent = captureRoute('/lessons');
++  await getAllLessons();
++  const modules = await loadModules();
++  if (!isCurrent()) return;
++  const admin = state.profile?.role === 'admin';
++  let draft = null, initial = '', busy = false, tab = 'modules', search = '';
++  const authoredHere = new Set();
++  const content = $('#page-content');
++  const lesson = id => state.allLessons.find(item => item.id === id);
++  const snapshot = () => draft ? JSON.stringify([draft.title, draft.description, draft.lessonIds]) : '';
++  const dirty = () => snapshot() !== initial;
++  const mayLeave = async () => !busy && (!dirty() || await confirmAction({ title: 'Discard module changes?', message: 'Your module details and lesson order have not been saved. Lessons already saved to the library will remain there.', confirm: 'Discard changes', danger: true }));
++  const guard = () => setLessonLeaveGuard(mayLeave, () => busy || dirty(), state.user.uid);
++  guard();
++  const report = error => { console.error(error); toast(error.message || 'Could not complete this action. Please try again.'); };
++
++  function header() {
++    page(draft ? (draft.id ? 'Edit module' : 'Create module') : 'Lessons',
++      draft ? 'Choose lessons, then arrange their learning order.' : 'Organize reusable lessons into modules.',
++      draft ? button('Back to Lessons', 'back') : button('Create module', 'new-module', true) + button('Create lesson', 'new-lesson'),
++      draft ? { crumbs: [{ label: 'Lessons', href: '#/lessons' }] } : {});
++    $('#page-header').onclick = event => {
++      if (draft && event.target.closest('a[href="#/lessons"]')) {
++        event.preventDefault();
++        const back = $('#page-header [data-action="back"]');
++        back?.click();
++      } else action(event);
++    };
++  }
++
++  async function editLesson(item = null, inModule = false) {
++    if (busy) return;
++    const copy = Boolean(item && inModule && !authoredHere.has(`${draft.draftKey}:${item.id}`));
++    const root = copy ? lesson(item.sourceLessonId || item.id) || item : null;
++    let editorGuard = async () => true, editorDirty = () => false;
++    busy = true;
++    try {
++      await openInlineLessonEditor(item, {
++        copy, copyTitle: copy ? `${root.title} 1.${nextCopyNumber(root.title, state.allLessons)}` : undefined,
++        isCurrent,
++        mount(html, mountEditor) {
++          page(copy ? 'Edit a lesson copy' : item ? 'Edit lesson' : 'Create lesson',
++            draft ? `Lessons → ${draft.title || 'New module'}` : 'Lessons → Lesson library', button('Back', 'back'));
++          content.innerHTML = `<section class="module-workspace"><p class="module-note">${copy ? 'Save an edited copy. The premade lesson stays unchanged; its copy number is assigned on save.' : 'Save this lesson to your library' + (inModule ? ' and add it to this module.' : '.')}</p><div class="lesson-inline-editor">${html}</div></section>`;
++          const host = content.querySelector('.lesson-inline-editor');
++          mountEditor(host, () => host.remove());
++        },
++        onGuard(check, changed) { editorGuard = check; editorDirty = changed; },
++        onCancel() { busy = false; guard(); render(); },
++        async onSaved(id) {
++          await getAllLessons();
++          if (!isCurrent()) return;
++          if (inModule) {
++            // Session-only marker: later module edits copy again, preserving prior reuse.
++            authoredHere.add(`${draft.draftKey}:${id}`);
++            const index = item ? draft.lessonIds.indexOf(item.id) : -1;
++            if (index >= 0) draft.lessonIds[index] = id;
++            else if (!draft.lessonIds.includes(id)) draft.lessonIds.push(id);
++          }
++          busy = false; guard(); render();
++        },
++      });
++      busy = false;
++      if (!isCurrent()) return;
++      // Leaving Lessons checks both the nested editor and its parent module.
++      setLessonLeaveGuard(async () => await editorGuard() && await mayLeave(), () => editorDirty() || dirty(), state.user.uid);
++      $('#page-header').onclick = async event => {
++        const target = event.target.closest('[data-action="back"], a');
++        if (!target) return;
++        event.preventDefault();
++        if (await editorGuard()) { guard(); render(); }
++      };
++    } catch (error) { busy = false; report(error); guard(); render(); }
++  }
++
++  function renderPicker() {
++    const q = search.toLocaleLowerCase();
++    const available = state.allLessons.filter(item => !q || `${item.title} ${item.description || ''}`.toLocaleLowerCase().includes(q));
++    const host = content.querySelector('[data-picker]');
++    host.innerHTML = available.length ? available.map(item => `<label class="module-choice"><input type="checkbox" data-pick="${esc(item.id)}" ${draft.lessonIds.includes(item.id) ? 'checked' : ''}><span><strong>${esc(item.title)}</strong><small>${esc(item.description || 'Premade lesson')}</small></span><button type="button" class="button secondary small" data-preview="${esc(item.id)}">Preview</button></label>`).join('') : '<p class="module-note">No lessons match your search.</p>';
++  }
++
++  function renderOrder(focusIndex = null) {
++    const host = content.querySelector('[data-order]');
++    host.innerHTML = draft.lessonIds.length ? draft.lessonIds.map((id, i) => {
++      const item = lesson(id);
++      return `<li class="module-order-row" draggable="true" data-index="${i}"><span class="module-number">${i + 1}</span><div class="module-lesson-name"><strong>${esc(item?.title || 'Lesson unavailable')}</strong><small>${item ? 'Lesson ' + (i + 1) : 'Remove this missing lesson before saving.'}</small></div><div class="module-row-actions"><button type="button" class="button secondary small" data-move="${i}" data-direction="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move lesson ${i + 1} up">↑</button><button type="button" class="button secondary small" data-move="${i}" data-direction="1" ${i === draft.lessonIds.length - 1 ? 'disabled' : ''} aria-label="Move lesson ${i + 1} down">↓</button>${item ? `<button type="button" class="button secondary small" data-edit="${esc(id)}">${authoredHere.has(`${draft.draftKey}:${id}`) ? 'Edit' : 'Edit a copy'}</button>` : ''}<button type="button" class="button secondary small" data-remove="${esc(id)}">Remove</button></div></li>`;
++    }).join('') : '<li class="module-note">Select premade lessons or create a new lesson to begin.</li>';
++    content.querySelector('[data-count]').textContent = `${draft.lessonIds.length} selected`;
++    if (focusIndex !== null) host.querySelector(`[data-index="${focusIndex}"] button:not(:disabled)`)?.focus();
++  }
++
++  function render() {
++    if (!isCurrent()) return;
++    header();
++    content.onclick = event => action(event);
++    if (!draft) {
++      content.innerHTML = `<section class="module-workspace"><div class="module-tabs" aria-label="Lesson views">${button('Modules', 'modules', tab === 'modules')}${button('Lesson library', 'library', tab === 'library')}</div>${tab === 'modules' ? `<div class="module-directory">${modules.length ? modules.map(item => `<article class="module-card"><div><span class="eyebrow">${item.lessonIds.length} lessons · Ordered module</span><h2>${esc(item.title)}</h2><p>${esc(item.description || 'A sequence of lessons for your students.')}</p><ol>${item.lessonIds.map(id => `<li>${esc(lesson(id)?.title || 'Lesson unavailable')}</li>`).join('')}</ol></div><button type="button" class="button secondary" data-module="${esc(item.id)}">${admin || item.ownerId === state.user.uid ? 'Edit module' : 'Use module'}</button></article>`).join('') : `<div class="module-empty"><h2>Create your first module</h2><p>Choose premade lessons, add your own, and set the learning order.</p>${button('Create module', 'new-module', true)}</div>`}</div>` : `<label>Search lessons<input data-library-search type="search" placeholder="Find a lesson"></label><div data-library-list></div>`}</section>`;
++      if (tab === 'library') {
++        const draw = query => {
++          const items = state.allLessons.filter(item => `${item.title} ${item.description || ''}`.toLowerCase().includes(query.toLowerCase()));
++          content.querySelector('[data-library-list]').innerHTML = items.length ? items.map(item => `<article class="module-library-row"><div><h3>${esc(item.title)}</h3><p>${esc(item.description || '')}</p></div><div class="module-row-actions"><button class="button secondary small" type="button" data-preview="${esc(item.id)}">Preview</button>${admin || item.teacherId === state.user.uid ? `<button class="button secondary small" type="button" data-library-edit="${esc(item.id)}">Edit lesson</button>` : ''}</div></article>`).join('') : '<p>No lessons found.</p>';
++        };
++        draw(''); content.querySelector('[data-library-search]').oninput = event => draw(event.target.value);
++      }
++      return;
++    }
++    content.innerHTML = `<section class="module-workspace"><form data-module-form><div class="module-details"><label>Module title<input name="title" maxlength="120" required value="${esc(draft.title)}" placeholder="e.g. Mga Bahagi ng Pananalita"></label><label>Description<textarea name="description" maxlength="1000" placeholder="What will students learn?">${esc(draft.description)}</textarea></label></div><div class="module-columns"><section class="module-panel"><div class="module-section-heading"><h2>Premade lessons</h2>${button('Create new lesson', 'module-lesson')}</div><p>Select as many lessons as you need. Editing one saves a separate copy to the library.</p><label>Find a lesson<input data-search type="search" value="${esc(search)}" placeholder="Search by title or description"></label><div class="module-picker" data-picker></div></section><section class="module-panel"><div class="module-section-heading"><h2>Learning order</h2><span data-count aria-live="polite"></span></div><p>Drag lessons or use the arrows to set their order.</p><ol class="module-order" data-order></ol><p class="module-note">Lesson order is saved with this module.</p></section></div><footer class="module-save-bar"><span data-save-status role="status">Review the lesson order before saving.</span>${button('Cancel', 'back')}<button type="submit" class="button primary">Save module</button></footer></form></section>`;
++    renderPicker(); renderOrder();
++    const form = content.querySelector('form');
++    form.oninput = event => { if (event.target.name) draft[event.target.name] = event.target.value; };
++    content.querySelector('[data-search]').oninput = event => { search = event.target.value; renderPicker(); };
++    form.onchange = event => {
++      const id = event.target.dataset.pick;
++      if (!id) return;
++      if (event.target.checked && draft.lessonIds.length >= 100) { event.target.checked = false; toast('A module can contain up to 100 lessons.'); return; }
++      draft.lessonIds = event.target.checked ? [...draft.lessonIds, id] : draft.lessonIds.filter(value => value !== id);
++      renderOrder();
++    };
++    let dragged = null;
++    form.ondragstart = event => { const row = event.target.closest('[data-index]'); if (row) { dragged = Number(row.dataset.index); event.dataTransfer.setData('text/plain', String(dragged)); event.dataTransfer.effectAllowed = 'move'; } };
++    form.ondragover = event => { if (dragged !== null && event.target.closest('[data-index]')) event.preventDefault(); };
++    form.ondrop = event => { const row = event.target.closest('[data-index]'); if (row && dragged !== null) { event.preventDefault(); draft.lessonIds = moveLesson(draft.lessonIds, dragged, Number(row.dataset.index)); renderOrder(); } dragged = null; };
++    form.ondragend = () => { dragged = null; };
++    form.onsubmit = async event => {
++      event.preventDefault(); if (busy) return;
++      busy = true; const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
++      const status = form.querySelector('[data-save-status]'); status.textContent = 'Saving module…';
++      try {
++        const id = await saveModule(draft.id ? draft : null, draft);
++        initial = snapshot();
++        if (!isCurrent()) return;
++        const saved = { ...draft, id, revision: (draft.revision || 0) + 1, ownerId: draft.ownerId || state.user.uid };
++        const index = modules.findIndex(item => item.id === id);
++        if (index >= 0) modules.splice(index, 1);
++        modules.unshift(saved);
++        draft = null; initial = ''; search = ''; toast('Module saved with its lesson order.');
++        busy = false; guard(); render();
++      } catch (error) { report(error); status.textContent = error.message; }
++      finally { busy = false; submit.disabled = false; }
++    };
++  }
++
++  async function action(event) {
++    const target = event.target.closest('button'); if (!target || busy) return;
++    try {
++      if (target.dataset.action === 'new-module' || target.dataset.module) {
++        const saved = modules.find(item => item.id === target.dataset.module);
++        draft = saved ? (admin || saved.ownerId === state.user.uid ? { ...saved, lessonIds: [...saved.lessonIds] } : { title: saved.title, description: saved.description, lessonIds: [...saved.lessonIds] }) : { title: '', description: '', lessonIds: [] };
++        draft.draftKey = crypto.randomUUID(); initial = snapshot(); search = ''; guard(); render();
++      } else if (target.dataset.action === 'back') {
++        if (await mayLeave()) { draft = null; initial = ''; guard(); render(); }
++      } else if (target.dataset.action === 'new-lesson') await editLesson();
++      else if (target.dataset.action === 'module-lesson') {
++        if (draft.lessonIds.length >= 100) return toast('A module can contain up to 100 lessons.');
++        await editLesson(null, true);
++      } else if (target.dataset.edit) await editLesson(lesson(target.dataset.edit), true);
++      else if (target.dataset.libraryEdit) await editLesson(lesson(target.dataset.libraryEdit));
++      else if (target.dataset.preview) await openLessonViewer(lesson(target.dataset.preview));
++      else if (target.dataset.move !== undefined) { const from = Number(target.dataset.move), to = from + Number(target.dataset.direction); draft.lessonIds = moveLesson(draft.lessonIds, from, to); renderOrder(to); }
++      else if (target.dataset.remove) { draft.lessonIds = draft.lessonIds.filter(id => id !== target.dataset.remove); renderPicker(); renderOrder(); }
++      else if (target.dataset.action === 'library' && admin) {
++        busy = true;
++        await renderLessons({ onEdit: item => editLesson(item), onRefresh: renderLessonWorkspace });
++        if (!isCurrent()) return;
++        $('#page-header .header-actions').insertAdjacentHTML('afterbegin', button('Modules', 'return-modules'));
++        $('#page-header [data-action="return-modules"]').onclick = () => { tab = 'modules'; render(); };
++        busy = false;
++      } else if (['modules', 'library'].includes(target.dataset.action)) { tab = target.dataset.action; render(); }
++    } catch (error) { busy = false; report(error); }
++  }
++  render();
++}
+diff --git a/build/module-deploy/release/js/moduleModel.js b/js/moduleModel.js
+new file mode 100644
+index 0000000..d82525e
+--- /dev/null
++++ b/js/moduleModel.js
+@@ -0,0 +1,21 @@
++export function orderedLessonIds(ids) {
++  if (!Array.isArray(ids) || !ids.length) throw new Error('Add at least one lesson to the module.');
++  if (ids.some(id => typeof id !== 'string' || !id || id.includes('/')) || new Set(ids).size !== ids.length)
++    throw new Error('Each lesson can appear only once in a module.');
++  if (ids.length > 100) throw new Error('A module can contain up to 100 lessons.');
++  return [...ids];
++}
++export function nextCopyNumber(baseTitle, lessons) {
++  const prefix = `${baseTitle} 1.`;
++  return lessons.reduce((highest, lesson) => {
++    const title = lesson.title || '';
++    const suffix = title.startsWith(prefix) ? title.slice(prefix.length) : '';
++    return /^\d+$/.test(suffix) ? Math.max(highest, Number(suffix)) : highest;
++  }, 0) + 1;
++}
++export function moveLesson(ids, from, to) {
++  const result = [...ids];
++  if (from < 0 || to < 0 || from >= ids.length || to >= ids.length) return result;
++  result.splice(to, 0, result.splice(from, 1)[0]);
++  return result;
++}
+diff --git a/build/module-deploy/release/js/modules.js b/js/modules.js
+new file mode 100644
+index 0000000..222b027
+--- /dev/null
++++ b/js/modules.js
+@@ -0,0 +1,60 @@
++import { collection, doc, getDocs, query, where, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
++import { db } from './firebase.js';
++import { state } from './state.js';
++import { nextCopyNumber, orderedLessonIds } from './moduleModel.js';
++
++export async function loadModules() {
++  const ref = collection(db, 'modules');
++  const snapshots = state.profile?.role === 'admin' ? [await getDocs(ref)] : await Promise.all([
++    getDocs(query(ref, where('ownerId', '==', state.user.uid))),
++    getDocs(query(ref, where('visibility', '==', 'shared'))),
++  ]);
++  return [...new Map(snapshots.flatMap(snapshot => snapshot.docs).map(item => [item.id, { id: item.id, ...item.data() }])).values()]
++    .sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
++}
++
++export async function saveModule(existing, values) {
++  const lessonIds = orderedLessonIds(values.lessonIds);
++  const title = values.title.trim(), description = values.description.trim();
++  if (!title || title.length > 120 || description.length > 1000) throw new Error('Enter a module title (up to 120 characters) and a description of up to 1,000 characters.');
++  const ref = existing ? doc(db, 'modules', existing.id) : doc(collection(db, 'modules'));
++  await runTransaction(db, async transaction => {
++    const current = existing ? await transaction.get(ref) : null;
++    if (existing && !current.exists()) throw new Error('This module no longer exists. Return to Lessons and reload.');
++    if (existing && current.data().revision !== existing.revision) throw new Error('This module changed in another session. Return to Lessons and reopen it before saving.');
++    const lessons = await Promise.all(lessonIds.map(id => transaction.get(doc(db, 'lessons', id))));
++    if (lessons.some(item => !item.exists() || item.data().publicationState === 'draft')) throw new Error('A selected lesson was removed or is unfinished. Remove it from this module before saving.');
++    transaction.set(ref, {
++      title, description, lessonIds,
++      // Array position is the authoritative order. Student locking is a future feature.
++      progression: 'sequential', lockingEnabled: false,
++      ownerId: existing ? current.data().ownerId : state.user.uid,
++      visibility: existing ? current.data().visibility : state.profile?.role === 'admin' ? 'shared' : 'private',
++      revision: (existing ? current.data().revision || 0 : 0) + 1,
++      createdAt: existing ? current.data().createdAt : serverTimestamp(),
++      updatedAt: serverTimestamp(),
++    });
++  });
++  return ref.id;
++}
++
++// Allocate the title and root document together so simultaneous authors cannot
++// receive the same variant number. Failed section saves reuse this same root.
++export async function reserveLessonCopy(ref, source, rootData) {
++  const sourceId = source.sourceLessonId || source.id;
++  return runTransaction(db, async transaction => {
++    const original = await transaction.get(doc(db, 'lessons', sourceId));
++    if (!original.exists()) throw new Error('The original lesson no longer exists.');
++    const counterRef = doc(db, 'lessonCopyCounters', sourceId);
++    const counter = await transaction.get(counterRef);
++    const base = original.data().title;
++    const sequence = counter.exists() ? counter.data().sequence + 1 : nextCopyNumber(base, state.allLessons);
++    const title = `${base} 1.${sequence}`;
++    transaction.set(counterRef, { sequence });
++    transaction.set(ref, { ...rootData, title, teacherId: state.user.uid,
++      publicationState: 'draft',
++      sourceLessonId: sourceId, copiedFromLessonId: source.id,
++      createdAt: serverTimestamp() });
++    return title;
++  });
++}
+diff --git a/js/state.js b/js/state.js
+index 2a89a9a..fea691e 100644
+--- a/js/state.js
++++ b/js/state.js
+@@ -31,6 +31,7 @@ export async function getTeacherLessons() {
+   );
+   state.lessons = snapshot.docs
+     .map((d) => ({ id: d.id, ...d.data() }))
++    .filter(lesson => lesson.publicationState !== 'draft')
+     .sort(
+       (a, b) =>
+         (b.updatedAt?.seconds || b.createdAt?.seconds || 0) -
+@@ -43,6 +44,7 @@ export async function getAllLessons() {
+   const snapshot = await getDocs(collection(db, "lessons"));
+   state.allLessons = snapshot.docs
+     .map((d) => ({ id: d.id, ...d.data() }))
++    .filter(lesson => lesson.publicationState !== 'draft')
+     .sort(
+       (a, b) =>
+         (b.updatedAt?.seconds || b.createdAt?.seconds || 0) -
+@@ -64,4 +66,4 @@ export async function getAllClasses() {
+   state.allClasses = snapshot.docs
+     .map((d) => ({ id: d.id, ...d.data() }))
+     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+-}
+\ No newline at end of file
++}
+diff --git a/offline-shell.js b/offline-shell.js
+index 8df91c0..7caaf44 100644
+--- a/offline-shell.js
++++ b/offline-shell.js
+@@ -1,5 +1,5 @@
+ // Generated by node tools/build-offline-shell.mjs
+-self.BASAYA_VERSION = "3b9cbc7e9371";
++self.BASAYA_VERSION = "1b13d6d381e9";
+ self.BASAYA_SHELL = [
+   "css/base/animations.css",
+   "css/base/reset.css",
+@@ -61,6 +61,7 @@ self.BASAYA_SHELL = [
+   "css/pages/messages-editorial.css",
+   "css/pages/messages.css",
+   "css/pages/missing-checklist.css",
++  "css/pages/module-workspace.css",
+   "css/pages/progress.css",
+   "css/pages/reading-review.css",
+   "css/pages/register-editorial.css",
+@@ -127,8 +128,12 @@ self.BASAYA_SHELL = [
+   "js/handbookHelp.js",
+   "js/helpers.js",
+   "js/lessonItems.js",
++  "js/lessonNavigation.js",
++  "js/lessonWorkspace.js",
+   "js/login.js",
+   "js/messageActions.js",
++  "js/moduleModel.js",
++  "js/modules.js",
+   "js/pagination.js",
+   "js/password-rules.js",
+   "js/password-toggle.js",
+diff --git a/teacher/index.html b/teacher/index.html
+index 59012b4..3715bfe 100644
+--- a/teacher/index.html
++++ b/teacher/index.html
+@@ -61,9 +61,11 @@
+     <link rel="stylesheet" href="../css/pages/reading-review.css" />
+     <link rel="stylesheet" href="../css/pages/class-report.css" />
+     <link rel="stylesheet" href="../css/pages/lesson-studio.css" />
++    <link rel="stylesheet" href="../css/pages/module-workspace.css" />
+     <link rel="stylesheet" href="../css/pages/admin-lessons.css" />
+     <link rel="stylesheet" href="../css/pages/game-levels.css" />
+     <link rel="stylesheet" href="../css/pages/lesson-viewer.css" />
++    <link rel="stylesheet" href="../css/pages/missing-checklist.css" />
+     <link rel="stylesheet" href="../css/pages/teacher-dictionary.css" />
+     <!-- Print (Class Report / student progress) -->
+     <link rel="stylesheet" href="../css/layout/workspace.css" />
+@@ -131,6 +133,10 @@
+               <small>View and Organize</small>
+             </span>
+           </a>
++          <a href="#/lessons" data-nav="lessons">
++            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="duo" d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7zM7 8h1m8 0h1" /></svg></span>
++            <span class="nav-item-text"><strong>Lessons</strong><small>Modules and lesson library</small></span>
++          </a>
+           <a href="#/messages" data-nav="messages">
+             <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 7.5V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3v2.5L8.5 13" /><path class="duo" d="M11 8.5h7a3 3 0 0 1 3 3V15a3 3 0 0 1-3 3v2.5L15 18h-4a3 3 0 0 1-3-3v-3.5a3 3 0 0 1 3-3Z" /><path class="nav-icon__dots" d="M12.5 13.3h.01M14.5 13.3h.01M16.5 13.3h.01" /></svg></span>
+             <span class="nav-item-text">
+diff --git a/teacher/router.js b/teacher/router.js
+index 2928b54..77670be 100644
+--- a/teacher/router.js
++++ b/teacher/router.js
+@@ -19,6 +19,8 @@ import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
+ import { renderTeacherLanding } from './views/landing.js';
+ import { renderHandbook, leaveHandbook } from '../js/handbook.js';
+ import { beginRoute } from '../js/route-lifecycle.js';
++import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
++import { canLeaveLessons } from '../js/lessonNavigation.js';
+ 
+ let statsLoaded = false;
+ 
+@@ -34,6 +36,7 @@ async function loadSidebarStats() {
+ }
+ 
+ export async function renderRoute() {
++  if (!await canLeaveLessons(state.user?.uid || null)) return;
+   const isCurrent = beginRoute();
+   leaveHandbook();
+   if (!state.user || !state.profile) return;
+@@ -83,6 +86,7 @@ export async function renderRoute() {
+     else if (route === "/classes") await renderDashboard();
+     else if (route === "/settings") await renderAccountSettings();
+     else if (route === "/dictionary") await renderDictionary();
++    else if (route === "/lessons") await renderLessonWorkspace();
+     else if (route === "/handbook") renderHandbook("teacher");
+     else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
+     else if (/^\/classes\/[^/]+\/students$/.test(route)) {
+diff --git a/teacher/views/addLesson.js b/teacher/views/addLesson.js
+index a733c7f..1d69804 100644
+--- a/teacher/views/addLesson.js
++++ b/teacher/views/addLesson.js
+@@ -1,4 +1,5 @@
+ import { captureRoute } from "../../js/route-lifecycle.js";
++import { loadModules } from '../../js/modules.js';
+ import {
+   collection,
+   doc,
+@@ -19,7 +20,7 @@ import {
+   practiceLinkId,
+ } from "../../js/schedule.js";
+ import { paginate } from "../../js/pagination.js";
+-import { openLessonModal, DIFFICULTY_LABELS } from "./lessons.js";
++import { DIFFICULTY_LABELS } from "./lessons.js";
+ import { openLessonViewer } from "../../admin/views/lessonViewer.js";
+ 
+ const MODE_LABEL = { assessment: "Assessment", practice: "Practice" };
+@@ -39,9 +40,10 @@ export async function renderAddLessonPage(classId) {
+     return navigate("/dashboard");
+   const classroom = { id: classDoc.id, ...classDoc.data() };
+ 
+-  const [linksSnap] = await Promise.all([
++  const [linksSnap, , modules] = await Promise.all([
+     getDocs(collection(db, "classes", classId, "classLessons")),
+     getAllLessons(),
++    loadModules(),
+   ]);
+   const links = linksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+   if (!isCurrent()) return;
+@@ -159,10 +161,24 @@ export async function renderAddLessonPage(classId) {
+       </section>`;
+ 
+   $("#create-lesson-empty")?.addEventListener("click", () =>
+-    openLessonModal(),
++    navigate('/lessons'),
+   );
+   if (!state.allLessons.length) return;
+ 
++  // A module is assigned as the same existing lesson links, in its saved order.
++  // No student unlocking rule is activated by assigning a module.
++  if (modules.length) {
++    $('#link-form .lesson-picker__toolbar').insertAdjacentHTML('afterend', `<section class="module-panel"><h2>Add a module</h2><p>Add its lessons in their saved learning order.</p><label>Module<select id="class-module"><option value="">Choose a module</option>${modules.map(module => `<option value="${escapeHtml(module.id)}">${escapeHtml(module.title)} (${module.lessonIds.length} lessons)</option>`).join('')}</select></label><button type="button" class="button secondary" id="add-class-module">Add module lessons</button></section>`);
++    $('#add-class-module').onclick = () => {
++      const module = modules.find(item => item.id === $('#class-module').value);
++      if (!module) return toast('Choose a module first.');
++      const ids = module.lessonIds.filter(id => state.allLessons.some(item => item.id === id));
++      if (ids.length !== module.lessonIds.length) return toast('This module contains a removed lesson. Edit the module before assigning it.');
++      if (ids.every(id => inClass.assessment.has(id) && inClass.practice.has(id))) return toast('All module lessons are already added as assessment and practice.');
++      openAddModal(ids, module);
++    };
++  }
++
+   // Rows show when they're in the selected level and match the search.
+   const applyFilters = () => {
+     const term = $("#lesson-search").value.trim().toLowerCase();
+@@ -235,7 +251,7 @@ export async function renderAddLessonPage(classId) {
+     openAddModal(ids);
+   });
+ 
+-  function openAddModal(ids) {
++  function openAddModal(ids, module = null) {
+     const toAdd = (mode) => ids.filter((id) => !inClass[mode].has(id));
+     // If every picked lesson is already in as the remembered type, start on the other one.
+     if (!toAdd(settings.mode).length) settings.mode = settings.mode === "practice" ? "assessment" : "practice";
+@@ -345,6 +361,7 @@ export async function renderAddLessonPage(classId) {
+                 lessonId,
+                 teacherId: state.user.uid,
+                 order: links.length + index + 1,
++                ...(module ? { moduleId: module.id, moduleTitle: module.title, moduleOrder: module.lessonIds.indexOf(lessonId) + 1, moduleRevision: module.revision } : {}),
+                 createdAt: serverTimestamp(),
+                 openAt: schedule.openAt,
+                 dueAt: schedule.dueAt,
+diff --git a/build/module-deploy/release/tools/module-lessons-browser.cjs b/tools/module-lessons-browser.cjs
+new file mode 100644
+index 0000000..794dba4
+--- /dev/null
++++ b/tools/module-lessons-browser.cjs
+@@ -0,0 +1,162 @@
++// Exercise real workspace, repository and lesson editor with in-memory Firebase adapters.
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises'), path = require('node:path'), http = require('node:http');
++const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
++const root = path.resolve(__dirname, '..'), out = path.join(root, 'audit/module-lessons');
++const fixture = `
++export const db={}, state={user:{uid:'teacher'},profile:{role:new URLSearchParams(location.search).get('role')||'teacher'},allLessons:[]};
++const audio=text=>({audioUrl:location.origin+'/clip.wav',text});
++const docs=new Map([
++ ['lessons/pandiwa',{title:'Pandiwa',description:'Kilalanin ang salitang kilos.',difficulty:'madali'}],
++ ['lessons/pangngalan',{title:'Pangngalan',description:'Kilalanin ang mga pangngalan.',difficulty:'madali'}],
++ ['lessons/pandiwa/lectures/content',{title:'Ano ang Pandiwa?',pages:[{sentences:['Si Ana ay tumatakbo.'],cloudAudio:[audio('Si Ana ay tumatakbo.')]}]}],
++ ['lessons/pandiwa/quiz/content',{title:'Pagsusulit',questions:[{question:'Alin ang pandiwa?',choices:['takbo','bahay','asul'],answer:0,answers:[0]}]}],
++ ['lessons/pandiwa/activity/status',{completion:'skipped'}],['lessons/pandiwa/game/status',{completion:'skipped'}],
++ ['lessons/pandiwa/pronunciation/content',{title:'Bigkasin',words:['takbo'],cloudAudio:[audio('takbo')],pages:[{sentence:'Si Ana ay tumatakbo.',readyWords:['Ana'],cloudAudio:audio('Si Ana ay tumatakbo.')}]}],
++]);
++window.store=docs;let next=0;
++if(new URLSearchParams(location.search).has('class')){
++ docs.set('classes/class',{teacherId:'teacher',className:'Grade 7'});
++ docs.set('modules/premade',{title:'Premade module',description:'Admin module',ownerId:'admin',visibility:'shared',revision:1,lessonIds:['pangngalan','pandiwa']});
++}
++export const serverTimestamp=()=>({seconds:1000});
++export const collection=(_, ...parts)=>({path:parts.join('/')});
++export const doc=(parent,...parts)=>{const p=parts.length?parts.join('/'):parent.path+'/new'+(++next);return {path:p,id:p.split('/').pop()}};
++const snap=ref=>({id:ref.id||ref.path.split('/').pop(),ref,exists:()=>docs.has(ref.path),data:()=>structuredClone(docs.get(ref.path))});
++export const where=(key,op,value)=>({key,value});
++export const query=(ref,filter)=>({...ref,filter});
++export const getDocs=async ref=>{const items=[...docs].filter(([key,data])=>key.startsWith(ref.path+'/')&&key.split('/').length===ref.path.split('/').length+1&&(!ref.filter||data[ref.filter.key]===ref.filter.value)).map(([key])=>snap({path:key,id:key.split('/').pop()}));return {docs:items,size:items.length}};
++export const getDoc=async ref=>snap(ref);
++export const getAllLessons=async()=>{state.allLessons=(await getDocs(collection(db,'lessons'))).docs.map(d=>({id:d.id,...d.data()})).filter(d=>d.publicationState!=='draft')};
++export const addDoc=async(ref,data)=>{const r=doc(ref);docs.set(r.path,structuredClone(data));return r};
++export const setDoc=async(ref,data)=>docs.set(ref.path,structuredClone(data));
++export const updateDoc=async(ref,data)=>docs.set(ref.path,{...docs.get(ref.path),...structuredClone(data)});
++export const deleteDoc=async ref=>docs.delete(ref.path);
++const makeBatch=()=>{const ops=[];return {set:(ref,data)=>ops.push(()=>docs.set(ref.path,structuredClone(data))),update:(ref,data)=>ops.push(()=>docs.set(ref.path,{...docs.get(ref.path),...structuredClone(data)})),delete:ref=>ops.push(()=>docs.delete(ref.path)),commit:async()=>{if(window.failSave)throw Error('Synthetic save failure');ops.forEach(op=>op())}}};
++export const writeBatch=()=>{const batch=makeBatch();return {...batch,commit:async()=>{if(window.failContentSave)throw Error('Synthetic content save failure');await batch.commit()}}};
++export const runTransaction=async(_,work)=>{const batch=makeBatch();const result=await work({...batch,get:async ref=>snap(ref)});await batch.commit();return result};
++export const generateSpeech=async()=>({blob:await(await fetch('/clip.wav')).blob()});
++export const saveSpeech=async({lessonId,section})=>({audioUrl:location.origin+'/clip.wav',storageKey:'lessons/'+lessonId+'/'+section+'/test.mp3'});
++export const postToApi=async()=>({missing:[]}),lookupWord=async()=>({word:'test'}),syllablesFor=async word=>word;
++export const openWordModal=()=>{},openDeleteLesson=()=>{};
++export const DIFFICULTY_LABELS={madali:'Beginner','masusing aralin':'Intermediate','malalim na aralin':'Advanced'};
++export const readSchedule=()=>({openAt:null,dueAt:null}),wireLessonSchedule=()=>{},notifyStudents=async()=>{},linkLessonId=link=>link.lessonId,linkMode=link=>link.mode||'assessment',practiceLinkId=id=>id+'__practice';
++`;
++const wav = Buffer.alloc(44 + 8000); wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(wav.length - 44, 40);
++const stub = new Set(['js/state.js','js/firebase.js','js/tts.js','js/api.js','js/dictionary.js','teacher/views/dictionary.js','admin/views/lessonDeletion.js','js/schedule.js','teacher/views/lessons.js']);
++const server = http.createServer(async(req,res)=>{
++  try {
++    const name=new URL(req.url,'http://local').pathname.slice(1);let body,type='text/javascript';
++    if(name==='fixture.mjs')body=fixture;
++    else if(name==='clip.wav'){res.writeHead(200,{'Content-Type':'audio/wav'});res.end(wav);return;}
++    else if(name==='fixture.html'){
++      const portal=new URL(req.url,'http://local').searchParams.get('role')||'teacher';
++      const source=await fs.readFile(path.join(root,portal+'/index.html'),'utf8');
++      const themeBoot=source.match(/<script>[\s\S]*?<\/script>/)[0];
++      const styles=[...source.matchAll(/<link[^>]+rel="stylesheet"[^>]*>/g)].map(m=>m[0].replaceAll('../','/')).filter(s=>!s.includes('https:')).join('');
++      const classMode=new URL(req.url,'http://local').searchParams.has('class');
++      const script=classMode?'import {renderAddLessonPage} from "/teacher/views/addLesson.js";location.hash="/classes/class/add-lesson";await renderAddLessonPage("class");window.ready=true;':'import {renderLessonWorkspace} from "/js/lessonWorkspace.js";import {canLeaveLessons} from "/js/lessonNavigation.js";window.canLeaveLessons=canLeaveLessons;location.hash="/lessons";window.renderWorkspace=renderLessonWorkspace;await renderLessonWorkspace();window.ready=true;';
++      type='text/html';body='<!doctype html><html data-theme="light"><head><meta name="viewport" content="width=device-width,initial-scale=1">'+themeBoot+styles+'</head><body data-portal="'+portal+'"><main style="max-width:1400px;margin:auto;padding:16px"><div id="page-header"></div><div id="page-content"></div></main><div id="toast"></div><template id="modal-template"><div class="modal-backdrop"><div class="modal"><button type="button" class="modal-close" aria-label="Close">×</button><div class="modal-content"></div></div></div></template><script type="module">'+script+'</script></body></html>';
++    } else {
++      const target=path.resolve(root,name);if(!target.startsWith(root+path.sep))throw Error('Invalid path');
++      body=await fs.readFile(target);type={'.css':'text/css','.svg':'image/svg+xml','.png':'image/png'}[path.extname(name)]||type;
++      if(name.endsWith('.js')) body=body.toString().replace(/from\s+(["'])([^"']+)\1/g,(match,q,source)=>source.startsWith('https://www.gstatic.com/firebasejs/')||stub.has(path.posix.normalize(path.posix.join(path.posix.dirname(name),source)))?"from '/fixture.mjs'":match);
++    }
++    res.writeHead(200,{'Content-Type':type+';charset=utf-8'});res.end(body);
++  }catch(error){res.writeHead(404);res.end(error.message);}
++});
++(async()=>{
++  await fs.mkdir(out,{recursive:true});await new Promise(r=>server.listen(0,'127.0.0.1',r));
++  const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
++  const errors=[];
++  try {
++    const p=await browser.newPage({viewport:{width:1440,height:1050}}),base='http://127.0.0.1:'+server.address().port;
++    p.on('pageerror',e=>errors.push(e.message));
++    await p.route('**/*',route=>route.request().url().startsWith(base)?route.continue():route.abort());
++    const click=action=>p.locator('[data-action="'+action+'"]:visible').first().click();
++    const confirm=async label=>{await p.locator('.action-confirmation').last().getByRole('button',{name:label,exact:true}).click();};
++    for(const role of ['teacher','admin']) {
++      await p.goto(base+'/fixture.html?role='+role);await p.waitForFunction(()=>window.ready);
++      await click('new-module');await p.locator('[name="title"]').fill('Mga Bahagi ng Pananalita');await p.locator('[name="description"]').fill('Isang module, maraming aralin.');
++      await p.locator('[data-pick="pandiwa"]').check();await p.locator('[data-pick="pangngalan"]').check();
++      await p.locator('[data-move="1"][data-direction="-1"]').click();
++      assert.match(await p.locator('[data-order] li').first().innerText(),/Pangngalan/);
++      for(const width of [1440,768,390,320]) for(const theme of ['light','dark']) {
++        await p.setViewportSize({width,height:1050});await p.evaluate(t=>document.documentElement.dataset.theme=t,theme);
++        assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,role+' '+width+' '+theme+' overflow');
++        await p.screenshot({path:path.join(out,role+'-module-'+width+'-'+theme+'.png'),fullPage:true,animations:'disabled'});
++      }
++      await p.setViewportSize({width:1440,height:1050});
++      await p.locator('[data-edit="pandiwa"]').click();await p.locator('.lesson-inline-editor').waitFor();
++      assert.equal(await p.locator('.modal-backdrop').count(),0,'Content editor is inline');
++      assert.equal(await p.locator('[name="title"]').inputValue(),'Pandiwa 1.1');
++      await p.locator('[name="description"]').fill('Edited copy overview');
++      for(const theme of ['light','dark']) {
++        await p.evaluate(t=>document.documentElement.dataset.theme=t,theme);
++        await p.setViewportSize({width:390,height:900});
++        assert.equal(await p.locator('.lesson-inline-editor').evaluate(e=>e.scrollWidth<=e.clientWidth),true);
++        await p.screenshot({path:path.join(out,role+'-inline-'+theme+'.png'),fullPage:true});
++      }
++      await p.setViewportSize({width:1440,height:1050});
++      await p.evaluate(()=>window.failContentSave=true);
++      await p.locator('#lesson-form [type="submit"]').click();
++      if(await p.locator('.missing-toast:visible').count()) throw Error('Fixture invalid: '+await p.locator('.missing-toast').innerText());
++      await confirm('Save copy');
++      await p.waitForFunction(()=>!document.querySelector('#lesson-form').dataset.saving);
++      assert.equal(await p.evaluate(()=>[...store.values()].filter(d=>d.title==='Pandiwa 1.1'&&d.publicationState==='draft').length),1);
++      assert.equal(await p.evaluate(()=>store.has('lessons/new1/lectures/content')),false,'Failed content batch publishes no sections');
++      await p.evaluate(()=>window.failContentSave=false);
++      await p.locator('#lesson-form [type="submit"]').click();await confirm('Save copy');
++      await p.locator('[data-module-form]').waitFor();
++      assert.equal(await p.evaluate(()=>store.get('lessons/pandiwa').description),'Kilalanin ang salitang kilos.');
++      assert.ok(await p.locator('[data-order]').innerText().then(t=>t.includes('Pandiwa 1.1')));
++      assert.equal(await p.evaluate(()=>[...store.values()].filter(d=>d.title==='Pandiwa 1.1'&&d.publicationState==='published').length),1);
++      await p.locator('[data-module-form] [type="submit"]').click();await p.locator('[data-module]').waitFor();
++      const module=await p.evaluate(()=>[...store].find(([id])=>id.startsWith('modules/'))[1]);
++      assert.equal(module.lessonIds[0],'pangngalan');assert.equal(module.lockingEnabled,false);
++      await p.locator('[data-module]').click();
++      await p.locator('[data-edit]').filter({hasText:'Edit a copy'}).last().click();await p.locator('.lesson-inline-editor').waitFor();
++      assert.equal(await p.locator('[name="title"]').inputValue(),'Pandiwa 1.2');
++      await click('back');await p.locator('[data-module-form]').waitFor();
++      await click('module-lesson');await p.locator('.lesson-inline-editor').waitFor();
++      await p.locator('[name="title"]').fill('Bagong aralin');await p.locator('[name="description"]').fill('Bagong nilalaman');
++      await p.locator('[data-step="lectures"]').click();await p.locator('[data-sentence-text]').fill('Masaya si Ana.');await p.locator('[data-generate-sentence-audio]').click();
++      await p.locator('[data-media-status]').filter({hasText:'Preview ready'}).waitFor();
++      await p.locator('[data-step="quiz"]').click();await p.locator('[data-question-text]').fill('Sino ang masaya?');
++      for(const [i,text] of ['Ana','Ben','Lito'].entries())await p.locator('[data-choice-text]').nth(i).fill(text);
++      await p.locator('[data-answer-choice]').first().check();
++      await p.locator('[data-step="activity"]').click();await p.locator('[data-skip-activity]').check();
++      await p.locator('[data-step="game"]').click();await p.locator('[data-skip-game]').check();
++      await p.locator('[data-step="pronunciation"]').click();
++      await p.locator('[data-pronunciation-sentence]').fill('Masaya si Ana.');await p.locator('[data-ready-word="masaya"]').click();await p.locator('[data-generate-pronunciation-sentence]').click();
++      await p.locator('[data-panel="pronunciation"] [data-media-status]').filter({hasText:'Preview ready'}).waitFor();
++      await p.locator('#lesson-form [type="submit"]').click();await confirm('Publish lesson');
++      await p.locator('[data-module-form]').waitFor();
++      assert.match(await p.locator('[data-order]').innerText(),/Bagong aralin/);
++      assert.equal(await p.evaluate(()=>[...store.values()].filter(d=>d.title==='Bagong aralin'&&d.publicationState==='published').length),1);
++      // Reject a failed module save without discarding the draft or order.
++      await p.evaluate(()=>window.failSave=true);await p.locator('[data-module-form] [type="submit"]').click();
++      await p.locator('[data-save-status]').filter({hasText:'Synthetic save failure'}).waitFor();
++      assert.equal(await p.locator('[data-order] li').count(),3);await p.evaluate(()=>window.failSave=false);
++      await p.locator('[data-module-form] [type="submit"]').click();await p.locator('[data-module]').waitFor();
++      assert.equal(await p.evaluate(()=>[...store].find(([id])=>id.startsWith('modules/'))[1].lessonIds.length),3);
++      // Dirty navigation can be cancelled, restoring the Lessons URL and draft.
++      await p.locator('[data-module]').click();await p.locator('[name="title"]').fill('Unsaved title');
++      await p.evaluate(()=>{location.hash='/dashboard';window.leaveResult=canLeaveLessons();});
++      await confirm('Cancel');assert.equal(await p.evaluate(()=>window.leaveResult),false);
++      assert.equal(await p.evaluate(()=>location.hash),'#/lessons');assert.equal(await p.locator('[name="title"]').inputValue(),'Unsaved title');
++      await click('back');await confirm('Discard changes');
++      await p.evaluate(async()=>{await import('/js/theme.js');const control=document.createElement('button');control.dataset.themeChoice='dark';document.body.append(control);control.click();control.remove();});
++      assert.equal(await p.evaluate(()=>localStorage.getItem('basaya-theme')),'dark');
++      await p.reload();await p.waitForFunction(()=>window.ready);assert.equal(await p.evaluate(()=>document.documentElement.dataset.theme),'dark');
++      await click('new-module');assert.equal(await p.evaluate(()=>document.documentElement.dataset.theme),'dark');
++    }
++    await p.goto(base+'/fixture.html?role=teacher&class=1');await p.waitForFunction(()=>window.ready);
++    await p.locator('#class-module').selectOption('premade');await p.locator('#add-class-module').click();
++    await p.locator('#add-lessons-form [type="submit"]').click();
++    await p.waitForFunction(()=>store.has('classes/class/classLessons/pandiwa'));
++    const links=await p.evaluate(()=>[...store].filter(([id])=>id.startsWith('classes/class/classLessons/')).map(([,data])=>data).sort((a,b)=>a.order-b.order));
++    assert.deepEqual(links.map(link=>link.lessonId),['pangngalan','pandiwa']);assert.deepEqual(links.map(link=>link.moduleOrder),[1,2]);assert.ok(links.every(link=>link.moduleId==='premade'&&link.moduleRevision===1));
++    assert.deepEqual(errors,[]);console.log('PASS: teacher/admin module selection, ordering, inline editor, automatic copies and naming, unchanged originals, new lesson publishing to library, save failures, unsaved navigation, shared admin module assignment in saved order, 16 responsive light/dark module layouts and 4 mobile editor layouts. Local adapters; no production writes.');
++  }finally {await browser.close();server.close();}
++})().catch(error=>{console.error(error);server.close();process.exitCode=1;});
+diff --git a/build/module-deploy/release/tools/module-lessons-tests.mjs b/tools/module-lessons-tests.mjs
+new file mode 100644
+index 0000000..fc38a29
+--- /dev/null
++++ b/tools/module-lessons-tests.mjs
+@@ -0,0 +1,100 @@
++import assert from 'node:assert/strict';
++import vm from 'node:vm';
++import { readFile } from 'node:fs/promises';
++import { createRequire } from 'node:module';
++import { orderedLessonIds, moveLesson, nextCopyNumber } from '../js/moduleModel.js';
++import { startFirestoreTestServer } from './firestore-test-server.mjs';
++
++assert.throws(() => orderedLessonIds([]));
++assert.throws(() => orderedLessonIds(['same', 'same']));
++assert.throws(() => orderedLessonIds(['bad/path']));
++assert.deepEqual(moveLesson(['a', 'b', 'c'], 2, 0), ['c', 'a', 'b']);
++assert.equal(nextCopyNumber('Pandiwa', [{ title: 'Pandiwa 1.9' }, { title: 'Pandiwa 1.10' }, { title: 'Pandiwa 1.x' }]), 11);
++
++const emulator = await startFirestoreTestServer(...process.argv.slice(2));
++const encode = value => Array.isArray(value) ? { arrayValue: { values: value.map(encode) } } : typeof value === 'boolean' ? { booleanValue: value } : typeof value === 'number' ? { integerValue: String(value) } : { stringValue: value };
++const fields = data => Object.fromEntries(Object.entries(data).map(([key, value]) => [key, encode(value)]));
++const headers = uid => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${uid ? emulator.token(uid) : 'owner'}` });
++const patch = (path, data, uid) => fetch(`${emulator.documents}/${path}?${Object.keys(data).map(key => 'updateMask.fieldPaths=' + key).join('&')}`, { method: 'PATCH', headers: headers(uid), body: JSON.stringify({ fields: fields(data) }) });
++const get = (path, uid) => fetch(`${emulator.documents}/${path}`, { headers: headers(uid) });
++try {
++  for (const [path, data] of [
++    ['users/admin', { role: 'admin' }], ['users/teacher', { role: 'teacher' }], ['users/other', { role: 'teacher' }],
++    ['users/student', { role: 'student' }], ['users/disabled', { role: 'teacher', disabled: true }],
++    ['lessons/original', { title: 'Pandiwa', description: 'Original overview', difficulty: 'madali' }],
++    ['lessons/original/lectures/content', { title: 'Original lecture' }],
++  ]) assert.equal((await patch(path, data)).status, 200);
++  assert.equal((await patch('lessons/original', { title: 'Overwritten' }, 'teacher')).status, 403);
++  assert.equal((await patch('lessons/original/lectures/content', { title: 'Overwritten' }, 'teacher')).status, 403);
++  assert.equal((await patch('lessons/own', { title: 'Own lesson', teacherId: 'teacher' }, 'teacher')).status, 200);
++  assert.equal((await patch('lessons/own/quiz/content', { title: 'Own quiz' }, 'teacher')).status, 200);
++  assert.equal((await patch('lessons/own/quiz/content', { title: 'Intrusion' }, 'other')).status, 403);
++  assert.equal((await patch('lessons/own', { teacherId: 'other' }, 'teacher')).status, 403);
++  assert.equal((await patch('lessons/forged', { title: 'Forged', teacherId: 'other' }, 'teacher')).status, 403);
++  for (const uid of ['student', 'disabled']) assert.equal((await patch('lessons/blocked', { title: 'Blocked', teacherId: uid }, uid)).status, 403);
++  assert.equal((await patch('lessonCopyCounters/original', { sequence: 1 }, 'teacher')).status, 200);
++  assert.equal((await patch('lessonCopyCounters/original', { sequence: 1 }, 'other')).status, 403);
++  assert.equal((await patch('lessonCopyCounters/original', { sequence: 2 }, 'other')).status, 200);
++  assert.equal((await patch('lessonCopyCounters/original', { sequence: 4 }, 'teacher')).status, 403);
++
++  // Execute the actual repository functions against real Firestore transactions.
++  process.env.FIRESTORE_EMULATOR_HOST = emulator.host;
++  const require = createRequire(new URL('../notify-api/package.json', import.meta.url));
++  const { initializeApp, deleteApp } = require('firebase-admin/app');
++  const { getFirestore, FieldValue } = require('firebase-admin/firestore');
++  const app = initializeApp({ projectId: emulator.project });
++  const db = getFirestore(app);
++  try {
++    const state = { user: { uid: 'teacher' }, profile: { role: 'teacher' }, allLessons: [] };
++    const wrap = snap => ({ id: snap.id, exists: () => snap.exists, data: () => snap.data() });
++    const plain = value => Array.isArray(value) ? Array.from(value, plain) : value?.constructor?.name === 'Object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, plain(item)])) : value;
++    const context = vm.createContext({ db, state, nextCopyNumber, orderedLessonIds,
++      collection: (database, name) => database.collection(name),
++      doc: (database, ...parts) => parts.length ? database.doc(parts.join('/')) : database.doc(),
++      serverTimestamp: () => FieldValue.serverTimestamp(),
++      runTransaction: (_, work) => db.runTransaction(async tx => await work({ get: async ref => wrap(await tx.get(ref)), set: (ref, data) => tx.set(ref, plain(data)) })),
++    });
++    const source = (await readFile(new URL('../js/modules.js', import.meta.url), 'utf8')).replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
++    vm.runInContext(source, context);
++    const results = await Promise.allSettled(Array.from({ length: 3 }, () => context.reserveLessonCopy(db.collection('lessons').doc(), { id: 'original' }, { description: 'Edited copy', updatedAt: FieldValue.serverTimestamp() })));
++    for (const result of results) if (result.status === 'rejected') throw result.reason;
++    const copies = results.map(result => result.value);
++    assert.deepEqual([...copies].sort(), ['Pandiwa 1.3', 'Pandiwa 1.4', 'Pandiwa 1.5']);
++    assert.equal((await db.doc('lessons/original').get()).get('title'), 'Pandiwa');
++    const moduleId = await context.saveModule(null, { title: 'Module 1', description: 'Ordered lessons', lessonIds: ['own', 'original'] });
++    const module = { id: moduleId, ...(await db.doc(`modules/${moduleId}`).get()).data() };
++    assert.deepEqual(module.lessonIds, ['own', 'original']);
++    assert.equal(module.lockingEnabled, false);
++    await context.saveModule(module, { ...module, lessonIds: ['original', 'own'] });
++    await assert.rejects(() => context.saveModule(module, module), /another session/);
++    await assert.rejects(() => context.saveModule(null, { title: 'Missing', description: '', lessonIds: ['deleted'] }), /removed/);
++    await assert.rejects(() => context.saveModule(null, { title: 'Empty', description: '', lessonIds: [] }), /at least one/);
++
++    // Real client rule checks for module writes, server timestamps and ownership.
++    const modulePath = `modules/${moduleId}`;
++    const stored = JSON.parse(await (await get(modulePath)).text()).fields;
++    const commit = (dataFields, uid, id = moduleId, transforms = ['updatedAt']) => fetch(emulator.documents + ':commit', {
++      method: 'POST', headers: headers(uid), body: JSON.stringify({ writes: [{ update: { name: `projects/${emulator.project}/databases/(default)/documents/modules/${id}`, fields: dataFields }, updateTransforms: transforms.map(fieldPath => ({ fieldPath, setToServerValue: 'REQUEST_TIME' })) }] }),
++    });
++    const next = { ...stored, revision: encode(3), title: encode('Updated module') }; delete next.updatedAt;
++    assert.equal((await commit(next, 'teacher')).status, 200);
++    assert.equal((await get(modulePath, 'teacher')).status, 200);
++    assert.equal((await get(modulePath, 'admin')).status, 200);
++    assert.equal((await get(modulePath, 'other')).status, 403);
++    assert.equal((await get(modulePath, 'student')).status, 403);
++    const forbidden = { ...next, revision: encode(4) };
++    assert.equal((await commit(forbidden, 'other')).status, 403);
++    assert.equal((await commit({ ...forbidden, ownerId: encode('other') }, 'teacher')).status, 403);
++    assert.equal((await commit({ ...forbidden, lessonIds: encode(['own', 'own']) }, 'teacher')).status, 403);
++    assert.equal((await commit({ ...forbidden, lockingEnabled: encode(true) }, 'teacher')).status, 403);
++    const fresh = { ...fields({ title: 'Teacher module', description: '', lessonIds: ['own'], ownerId: 'teacher', visibility: 'private', revision: 1, progression: 'sequential', lockingEnabled: false }) };
++    assert.equal((await commit(fresh, 'teacher', 'client-module', ['updatedAt', 'createdAt'])).status, 200);
++    assert.equal((await commit(fresh, 'student', 'student-module', ['updatedAt', 'createdAt'])).status, 403);
++    assert.equal((await commit({...fresh, visibility:encode('shared')}, 'teacher', 'forged-shared', ['updatedAt','createdAt'])).status,403);
++    assert.equal((await commit({...fresh, ownerId:encode('admin'), visibility:encode('shared')}, 'admin', 'shared-module', ['updatedAt','createdAt'])).status,200);
++    assert.equal((await get('modules/shared-module','teacher')).status,200);
++    assert.equal((await get('modules/shared-module','student')).status,403);
++  } catch(error) { console.error('Repository/rules test failure:', error); throw error; }
++  finally { await db.terminate(); await deleteApp(app); }
++  console.log('PASS: module order and validation, concurrent copy numbering, unchanged originals, stale edit protection, teacher/admin ownership rules, denied student/disabled access and future locking kept inactive. Real Firestore emulator; no production writes.');
++} finally { await emulator.stop(); }

@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, escapeHtml, navigate, openModal } from '../../js/helpers.js';
 import { lookupWord } from '../../js/dictionary.js';
 import { content, icon, talkingBuddy, setTalking } from '../ui.js';
@@ -12,7 +13,7 @@ export async function renderFluency(lesson) {
   let active = true;
   onLeave(() => { active = false; });
   const path = `/lesson/${encodeURIComponent(lesson.id)}`;
-  content().innerHTML = '<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang iyong pagbasa…"><span></span><span></span><span></span></div></div>';
+  content().innerHTML = `<div class="st-focus-loading">${skeleton('reader', { label: 'Inihahanda ang iyong pagbasa…', tag: 'div' })}</div>`;
   let session;
   try { session = await openReading(lesson); }
   catch (error) { content().innerHTML = `<section class="st-reading"><a href="#${path}">← Bumalik</a><h1>Ipagpatuloy natin ang pagbasa</h1><p>${escapeHtml(error.message)}</p><button class="button primary" id="reading-reopen">Subukan muli</button></section>`; $('#reading-reopen').onclick = () => renderFluency(lesson); return; }

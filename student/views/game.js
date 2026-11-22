@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import { buildCrossword } from "../../admin/views/gameLevels.js";
 import {
@@ -73,7 +74,7 @@ export async function renderGame(lessonId) {
   if (!navigator.onLine && !lesson.practice) { toast("Kumonekta upang masagutan at maitala ang laro."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.gameFinished || lesson.gameSkipped) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading st-focus-loading--sky"><div class="st-loading" role="status" aria-label="Inihahanda ang laro..."><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading st-focus-loading--sky">${skeleton('game', { label: 'Inihahanda ang laro...', tag: 'div' })}</div>`;
   const [levels, progress] = await Promise.all([loadGameLevels(lessonId), lesson.practice
     ? loadLessonProgress(lessonId) : assessmentRequest(lessonId, "begin", { part: "game" })]);
   if (!levels.length) {

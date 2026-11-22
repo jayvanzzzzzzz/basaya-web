@@ -20,7 +20,7 @@ const STATUS_TTL = 30_000;
 const STATUS_TIMEOUT = 8_000;
 const statusCache = new Map();
 const accessVersions = new Map();
-const changingAccess = new Set();
+const changingAccess = new Map();
 let cacheOwner = null;
 let view = null;
 let renderRevision = 0;
@@ -95,7 +95,8 @@ async function refreshStatuses(context, force = false) {
 
 function accountStatusMarkup(teacher, mobile = false) {
   const inactive = teacher.disabled === true;
-  return `<span class="teacher-account-status teacher-account-status--${inactive ? "deactivated" : "active"}${mobile ? " teacher-account-status--mobile" : ""}"><i aria-hidden="true"></i>${inactive ? "Deactivated" : "Active"}</span>`;
+  const pending = changingAccess.get(teacher.id);
+  return `<span class="teacher-account-status teacher-account-status--${pending ? "loading" : inactive ? "deactivated" : "active"}${mobile ? " teacher-account-status--mobile" : ""}" role="status" aria-busy="${!!pending}"><i aria-hidden="true"></i>${pending || (inactive ? "Deactivated" : "Active")}</span>`;
 }
 
 function verificationMarkup(teacher) {
@@ -238,7 +239,7 @@ export async function renderTeachers() {
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3" /></svg>
                           <span>Reset password</span>
                         </button>
-                        <button type="button" class="teacher-table__menu-item" data-toggle-access="${escapeHtml(t.id)}">
+                        <button type="button" class="teacher-table__menu-item" data-toggle-access="${escapeHtml(t.id)}"${changingAccess.has(t.id) ? " disabled" : ""}>
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="${t.disabled === true ? "m8 12 3 3 5-6" : "M9 8v8M15 8v8"}"/></svg>
                           <span>${t.disabled === true ? "Reactivate teacher" : "Deactivate teacher"}</span>
                         </button>
@@ -307,16 +308,16 @@ export async function renderTeachers() {
       if (!row) return;
       row.dataset.teacherStatus = teacher.disabled === true ? "deactivated" : "active";
       row.querySelectorAll(".teacher-account-status").forEach(mark => {
-        mark.classList.toggle("teacher-account-status--deactivated", teacher.disabled === true);
-        mark.classList.toggle("teacher-account-status--active", teacher.disabled !== true);
-        mark.lastChild.textContent = teacher.disabled === true ? "Deactivated" : "Active";
+        mark.outerHTML = accountStatusMarkup(teacher, mark.classList.contains("teacher-account-status--mobile"));
       });
       row.querySelector(".teacher-table__email").innerHTML = escapeHtml(teacher.email || "No email on file") + verificationMarkup(teacher);
       const accessButton = row.querySelector("[data-toggle-access]");
+      accessButton.disabled = changingAccess.has(teacher.id);
       accessButton.querySelector("span").textContent = teacher.disabled === true ? "Reactivate teacher" : "Deactivate teacher";
       accessButton.querySelector("path").setAttribute("d", teacher.disabled === true ? "m8 12 3 3 5-6" : "M9 8v8M15 8v8");
       const resend = row.querySelector("[data-verify]");
       if (resend) resend.hidden = teacher.emailVerified === true;
+      return row;
     },
     updateFilters() {
       if (!isCurrent()) return;
@@ -461,29 +462,35 @@ async function resetPassword(teacher) {
 const teacherName = (teacher) => teacher.displayName || teacher.email || "this teacher";
 
 async function changeTeacherAccess(teacher, button, context) {
-  if (button.disabled) return;
+  if (button.disabled || changingAccess.has(teacher.id)) return;
   const isCurrent = captureRoute('/teachers');
   const reactivate = teacher.disabled === true;
   button.disabled = true;
+  let completed = false;
   try {
     if (!await confirmAction({
       title: reactivate ? 'Reactivate teacher?' : 'Deactivate teacher?',
       message: reactivate
-        ? teacherName(teacher) + ' will be able to sign in again. Their classes and records stay assigned to them.'
-        : teacherName(teacher) + ' will be signed out and unable to sign in. Their account, classes, lessons and student records will be kept. You can reactivate them later.',
+        ? teacherName(teacher) + ' will be able to sign in again. Previous classes will remain unassigned unless an admin assigns a teacher to them.'
+        : teacherName(teacher) + ' will be signed out and removed as teacher from all their classes. Classes, lessons and student records will be kept. You can assign another teacher to those classes.',
       confirm: reactivate ? 'Reactivate teacher' : 'Deactivate teacher',
       danger: !reactivate,
     })) return;
     if (!context.isCurrent()) return;
-    changingAccess.add(teacher.id);
+    changingAccess.set(teacher.id, reactivate ? "Reactivating…" : "Deactivating…");
+    const pendingRow = context.updateRow(teacher);
+    const visibleStatus = [...(pendingRow?.querySelectorAll(".teacher-account-status") || [])]
+      .find(mark => mark.getClientRects().length);
+    visibleStatus?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
     accessVersions.set(teacher.id, (accessVersions.get(teacher.id) || 0) + 1);
     const result = await postToApi('teacher-onboarding', { action: reactivate ? 'reactivate' : 'deactivate', userId: teacher.id });
     teacher.disabled = typeof result.disabled === "boolean" ? result.disabled : !reactivate;
+    completed = true;
     if (cacheOwner === context.owner) {
       accessVersions.set(teacher.id, (accessVersions.get(teacher.id) || 0) + 1);
       statusCache.set(teacher.id, { disabled: teacher.disabled, emailVerified: teacher.emailVerified, checkedAt: Date.now() });
     }
-    toast(reactivate ? 'Teacher account reactivated.' : 'Teacher account deactivated. Classes and records have been kept.');
+    toast(reactivate ? 'Teacher account reactivated. Assign classes separately.' : 'Teacher account deactivated. Their classes now need a teacher; lessons and student records have been kept.');
     if (isCurrent() && context.isCurrent()) {
       context.updateRow(teacher);
       context.updateFilters();
@@ -493,5 +500,13 @@ async function changeTeacherAccess(teacher, button, context) {
   } finally {
     changingAccess.delete(teacher.id);
     button.disabled = false;
+    if (view?.owner === context.owner && view.isCurrent()) {
+      const currentTeacher = view.byId.get(teacher.id);
+      if (currentTeacher) {
+        if (completed) currentTeacher.disabled = teacher.disabled;
+        view.updateRow(currentTeacher);
+        if (completed) view.updateFilters();
+      }
+    }
   }
 }

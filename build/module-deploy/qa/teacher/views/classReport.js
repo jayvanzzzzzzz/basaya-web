@@ -1,0 +1,420 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "../../js/firebase.js";
+import { $, escapeHtml, navigate, page } from "../../js/helpers.js";
+import { SKILLS, LEVELS } from "../../js/scoring.js";
+import { paginate } from "../../js/pagination.js";
+import {
+  loadClassContext,
+  loadStudentProgress,
+  completionOf,
+  lecturesOf,
+  classReport,
+  classRemarks,
+} from "./progressData.js";
+import {
+  remarkChip,
+  scoreCell,
+  remarksList,
+  remarkLegend,
+  skillIcon,
+  initials,
+} from "./progressUi.js";
+import {
+  addExportActions,
+  printMeta,
+  printSignature,
+  downloadWorkbook,
+  teacherName,
+  today,
+  fileName,
+  dateStamp,
+} from "./reportExport.js";
+
+const DISTRIBUTION = [
+  ["very-good", "Very good"],
+  ["good", "Good"],
+  ["fair", "Fair"],
+  ["poor", "Poor"],
+  ["no-data", "Not enough data"],
+];
+
+// The student app saves gender in Filipino; reports are in English.
+const SEX = { Lalaki: "Male", Babae: "Female", "Ayokong sabihin": "Prefer not to say" };
+
+/** Workbook: every student's scores (alphabetical, for class records), then the class averages. */
+async function exportClassExcel(classroom, entries, report) {
+  // Gender lives on the student's profile; only read it when an export is asked for.
+  const profiles = await Promise.all(
+    entries.map(({ student }) =>
+      getDoc(doc(db, "users", student.id))
+        .then((snap) => snap.data() || null)
+        .catch(() => null),
+    ),
+  );
+
+  // The lecture has no score, so it shows lectures finished (like the table on screen).
+  const scoredSkills = SKILLS.filter((skill) => skill.key !== "pagUnawa");
+
+  const studentRows = entries.map(({ student, progress }, index) => {
+    const gender = profiles[index]?.gender;
+    const start = [index + 1, student.name, SEX[gender] || gender];
+    if (progress.error) {
+      const blanks = Array(4 + scoredSkills.length * 2).fill(null);
+      return [...start, ...blanks, progress.error === "moved" ? "Moved to another class" : "Progress not available"];
+    }
+    const completion = completionOf(progress);
+    const lectures = lecturesOf(progress);
+    return [
+      ...start,
+      `${completion.done} of ${completion.total}`,
+      completion.percent,
+      `${lectures.done} of ${lectures.total}`,
+      ...scoredSkills.flatMap((skill) => {
+        const summary = progress.summary.skills[skill.key];
+        return [summary.score, summary.score == null ? null : LEVELS[summary.level].label];
+      }),
+      progress.summary.needsHelp.map((key) => SKILLS.find((skill) => skill.key === key).name).join(", "),
+      progress.hasData ? "" : "No activity yet",
+    ];
+  });
+
+  const overall =
+    report.overall == null ? null : `${report.overall}% (${report.overallRemark.label})`;
+
+  await downloadWorkbook(`BASAya Class Report - ${fileName(classroom.className)} - ${dateStamp()}.xlsx`, [
+    {
+      name: "Students",
+      title: "Class Report",
+      meta: [
+        ["Class", classroom.className],
+        ["Teacher", teacherName()],
+        ["Date", today()],
+        ["Students", entries.length],
+        ["Overall class score", overall],
+        ["Lessons finished", report.completion == null ? null : `${report.completion}%`],
+      ],
+      tables: [
+        {
+          heading: "Students",
+          freeze: 2,
+          filter: true,
+          columns: [
+            { header: "No.", type: "number", width: 6 },
+            { header: "Student", width: 30, bold: true },
+            { header: "Gender", type: "center", width: 11 },
+            { header: "Lessons finished", type: "center", width: 12 },
+            { header: "Completion", type: "percent", width: 12 },
+            { header: "Lecture", type: "center", width: 13 },
+            ...scoredSkills.flatMap((skill) => [
+              { header: skill.name, type: "score", width: 17 },
+              { header: `${skill.name} remark`, type: "remark", width: 20 },
+            ]),
+            { header: "Needs help in", width: 24, wrap: true },
+            { header: "Note", width: 22 },
+          ],
+          rows: studentRows,
+        },
+      ],
+    },
+    {
+      name: "Skill averages",
+      title: "Class average per skill",
+      meta: [["Class", classroom.className]],
+      tables: [
+        {
+          columns: [
+            { header: "Skill", width: 18, bold: true },
+            { header: "Class average", type: "score", width: 12 },
+            { header: "Remark", type: "remark", width: 16 },
+            { header: "Students with results", type: "number", width: 13 },
+            ...DISTRIBUTION.map(([, label]) => ({ header: label, type: "number", width: 11 })),
+            { header: "Needs help", type: "number", width: 11 },
+          ],
+          rows: report.skills.map((skill) => [
+            skill.name,
+            skill.average,
+            skill.average == null ? null : skill.remark.label,
+            skill.scoredStudents,
+            ...DISTRIBUTION.map(([key]) => skill.distribution[key]),
+            skill.needsHelp.length,
+          ]),
+        },
+      ],
+    },
+  ]);
+}
+
+/** #/classes/{classId}/report — the whole class at a glance. */
+export async function renderClassReport(classId) {
+  const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}/report`);
+  if (!isCurrent()) return;
+  const context = await loadClassContext(classId);
+  if (!isCurrent()) return;
+  if (!context) return navigate("/dashboard");
+  const { classroom, lessons, students } = context;
+
+  page(
+    "Class Report",
+    `How ${classroom.className} is doing in every skill`,
+    "",
+    {
+      crumbs: [
+        { label: "Classrooms", href: "#/classes" },
+        { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
+      ],
+    },
+  );
+  $("#page-header h1").insertAdjacentHTML("afterend",
+    `<div class="rp-class-context">${escapeHtml(classroom.className)}</div>`);
+  $("#page-header .page-header__text > p").textContent = "Achievement, participation, and learning support at a glance.";
+
+  if (!students.length) {
+    $("#page-content").innerHTML = `<section class="report-page rp-panel rp-empty-state">
+      <h3>No students yet</h3>
+      <p>The report fills in once students join with the class code and start their lessons.</p>
+      <code>${escapeHtml(classroom.classCode || "—")}</code>
+    </section>`;
+    return;
+  }
+
+  const entries = await Promise.all(
+    students.map(async (student) => ({
+      student,
+      progress: await loadStudentProgress(student.id, lessons, student.joinedAt),
+    })),
+  );
+  if (!isCurrent()) return;
+  const report = classReport(entries);
+  const remarks = classRemarks(report, entries, lessons);
+  addExportActions({ excel: () => exportClassExcel(classroom, entries, report), iconOnly: true });
+
+  const pct = (value) => (value == null ? "—" : `${value}%`);
+  const studentHref = (student) =>
+    `#/classes/${encodeURIComponent(classId)}/students/${encodeURIComponent(student.id)}`;
+  const skillName = (key) => SKILLS.find((skill) => skill.key === key).name;
+  const scoredSkills = SKILLS.filter((skill) => skill.key !== "pagUnawa");
+  // The lecture has no score: count the students who read every lecture open so far.
+  const lekturaRead = entries.filter(({ progress }) => {
+    if (progress.error) return false;
+    const lectures = lecturesOf(progress);
+    return lectures.total > 0 && lectures.done === lectures.total;
+  }).length;
+
+  // Skill performance: one row per skill
+  const skillRows = report.skills
+    .map((skill) => {
+      const scoredSkill = skill.key !== "pagUnawa" || skill.average != null;
+      const bands = DISTRIBUTION.filter(([key]) => skill.distribution[key]);
+      const bar = bands
+        .map(
+          ([key, label]) =>
+            `<i class="dist-bar__part dist-bar__part--${key}" style="flex:${skill.distribution[key]}" title="${skill.distribution[key]} ${label}"></i>`,
+        )
+        .join("");
+      const flagged = skill.needsHelp;
+      return `<tr style="--skill:${skill.color}">
+        <th scope="row"><span class="rp-skill">
+          <span class="rp-skill__icon">${skillIcon(skill.key)}</span>
+          <span><strong>${escapeHtml(skill.name)}</strong><small>${escapeHtml(skill.detail)}</small></span>
+        </span></th>
+        <td class="rp-num"><b${skill.average == null ? ' aria-label="No average available"' : ""}>${scoredSkill ? pct(skill.average) : "—"}</b></td>
+        <td>${scoredSkill ? remarkChip(skill.remark) : '<span class="remark remark--info">Completion only</span>'}</td>
+        <td class="rp-dist">${
+          scoredSkill
+            ? `<div class="dist-bar" aria-hidden="true">${bar || '<i class="dist-bar__part dist-bar__part--no-data" style="flex:1"></i>'}</div>
+               <ul class="dist-legend">${bands
+                 .map(([key, label]) => `<li><i class="dist-dot dist-dot--${key}" aria-hidden="true"></i><b>${skill.distribution[key]}</b> ${label}</li>`)
+                 .join("")}</ul>${bands.length ? "" : '<span class="rp-muted">No results available</span>'}`
+            : `<span class="rp-muted">${lekturaRead} of ${report.readableStudents} students read every lecture so far.</span>`
+        }</td>
+        <td class="rp-num">${
+          scoredSkill
+            ? `<span class="rp-participation" aria-label="${skill.scoredStudents} of ${report.readableStudents} students with results"><strong>${skill.scoredStudents}</strong><span aria-hidden="true">/</span><span>${report.readableStudents}</span></span>`
+            : '<span class="rp-muted">—</span>'
+        }</td>
+        <td class="rp-help">${
+          flagged.length
+            ? `<span class="rp-help__count">${flagged.length} ${flagged.length === 1 ? "student" : "students"}</span>${flagged
+                .slice(0, 3)
+                .map((student) => `<a href="${studentHref(student)}">${escapeHtml(student.name)}</a>`)
+                .join("")}${flagged.length > 3 ? `<span class="rp-muted">+${flagged.length - 3} more</span>` : ""}`
+            : '<span class="rp-help__empty"><span aria-hidden="true">—</span> None flagged</span>'
+        }</td>
+      </tr>`;
+    })
+    .join("");
+
+  // Needs attention: students with a flagged skill
+  const attention = report.studentsNeedingHelp
+    .map(
+      ({ student, progress }) => `<li>
+        <a href="${studentHref(student)}"><span class="rp-avatar">${escapeHtml(initials(student.name))}</span>${escapeHtml(student.name)}</a>
+        <span class="rp-attention__skills">${progress.summary.needsHelp
+          .map((key) => `<span class="rp-tag">${escapeHtml(skillName(key))}</span>`)
+          .join("")}</span>
+      </li>`,
+    )
+    .join("");
+
+  // Students: flagged first, then by name
+  const ordered = [...entries].sort((a, b) => {
+    const flagA = a.progress.error ? 2 : a.progress.summary.needsHelp.length ? 0 : 1;
+    const flagB = b.progress.error ? 2 : b.progress.summary.needsHelp.length ? 0 : 1;
+    return flagA - flagB || a.student.name.localeCompare(b.student.name);
+  });
+
+  const studentRows = ordered
+    .map(({ student, progress }) => {
+      const name = `<a class="rp-student" href="${studentHref(student)}"><span class="rp-avatar">${escapeHtml(initials(student.name))}</span><strong>${escapeHtml(student.name)}</strong></a>`;
+      if (progress.error) {
+        return `<tr data-report-row class="rp-row--muted" data-student-name="${escapeHtml(student.name)}">
+          <th scope="row">${name}</th>
+          <td colspan="${scoredSkills.length + 1}" class="rp-muted">Progress not available</td>
+          <td><span class="rp-status rp-status--muted">Moved</span></td>
+        </tr>`;
+      }
+      const completion = completionOf(progress);
+      const status = progress.summary.needsHelp.length
+        ? '<span class="rp-status rp-status--alert">Needs help</span>'
+        : progress.hasData
+          ? '<span class="rp-status rp-status--good">On track</span>'
+          : '<span class="rp-status rp-status--muted">Not started</span>';
+      return `<tr data-report-row data-student-name="${escapeHtml(student.name)}">
+        <th scope="row">${name}</th>
+        ${scoredSkills
+          .map((skill) => {
+            const summary = progress.summary.skills[skill.key];
+            return scoreCell(summary.score).replace(
+              "<td ",
+              `<td title="${escapeHtml(`${skill.name}: ${LEVELS[summary.level].label}${summary.needsHelp ? " · needs help" : ""}`)}" `,
+            );
+          })
+          .join("")}
+        <td class="rp-lessons">
+          <span class="rp-meter"><i style="width:${completion.percent ?? 0}%"></i></span>
+          <span>${completion.total ? `${completion.done}/${completion.total}` : "—"}</span>
+        </td>
+        <td>${status}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const needHelpCount = report.studentsNeedingHelp.length;
+
+  $("#page-content").innerHTML = `
+    <div class="progress-page report-page">
+      ${printMeta("Class Report", [
+        classroom.className,
+        `Teacher: ${teacherName()}`,
+        `${students.length} ${students.length === 1 ? "student" : "students"} · ${lessons.length} ${lessons.length === 1 ? "lesson" : "lessons"}`,
+        `Printed ${today()}`,
+      ])}
+
+      <section class="rp-kpis" aria-label="Class summary">
+        <div class="rp-kpi rp-kpi--primary">
+          <span class="rp-kpi__label">Overall class score</span>
+          <span class="rp-kpi__value">${pct(report.overall)}</span>
+          <span class="rp-kpi__foot">${remarkChip(report.overallRemark)}</span>
+        </div>
+        <div class="rp-kpi">
+          <span class="rp-kpi__label">Students</span>
+          <span class="rp-kpi__value">${students.length}</span>
+          <span class="rp-kpi__foot">${report.activeStudents} active in lessons</span>
+        </div>
+        <div class="rp-kpi">
+          <span class="rp-kpi__label">Lessons finished</span>
+          <span class="rp-kpi__value">${pct(report.completion)}</span>
+          <span class="rp-kpi__foot"><span class="rp-meter rp-meter--wide"><i style="width:${report.completion ?? 0}%"></i></span></span>
+        </div>
+        <div class="rp-kpi${needHelpCount ? " rp-kpi--alert" : ""}">
+          <span class="rp-kpi__label">Need help</span>
+          <span class="rp-kpi__value">${needHelpCount}</span>
+          <span class="rp-kpi__foot">${needHelpCount === 1 ? "Student" : "Students"} with a flagged skill</span>
+        </div>
+      </section>
+
+      <section class="rp-panel rp-panel--skills" aria-labelledby="skill-performance-title">
+        <header class="rp-panel__head">
+          <div><span class="rp-eyebrow">Learning overview</span><h2 id="skill-performance-title">Skill performance</h2><p>Compare achievement, participation, and where support is needed.</p></div>
+        </header>
+        <p class="rp-scroll-hint">Scroll across to view all skill results <span aria-hidden="true">→</span></p>
+        <div class="rp-table-wrap" tabindex="0" role="region" aria-label="Skill performance table, scroll horizontally for all columns"><table class="rp-table rp-table--skills">
+          <caption class="rp-sr-only">Average scores and student distributions by skill. With results counts use students whose progress is available.</caption>
+          <colgroup><col class="rp-col-skill"><col class="rp-col-average"><col class="rp-col-remark"><col class="rp-col-distribution"><col class="rp-col-results"><col class="rp-col-help"></colgroup>
+          <thead><tr>
+            <th scope="col">Skill</th>
+            <th scope="col" class="rp-num">Average</th>
+            <th scope="col">Remark</th>
+            <th scope="col">Distribution</th>
+            <th scope="col" class="rp-num">With results</th>
+            <th scope="col">Needs help</th>
+          </tr></thead>
+          <tbody>${skillRows}</tbody>
+        </table></div>
+        <footer class="rp-table-guide">${remarkLegend()}<p>Distributions include students with available progress. Not enough data is separate from scored performance; lecture is completion only.</p></footer>
+      </section>
+
+      <div class="rp-columns">
+        <section class="rp-panel">
+          <header class="rp-panel__head"><div><h2>Key findings</h2><p>What stands out in this class right now.</p></div></header>
+          ${remarksList(remarks)}
+        </section>
+        <section class="rp-panel">
+          <header class="rp-panel__head"><div><h2>Needs attention</h2><p>Last two lessons in a skill were below 60%.</p></div></header>
+          ${
+            attention
+              ? `<ul class="rp-attention">${attention}</ul>`
+              : '<p class="rp-empty">No students are flagged right now.</p>'
+          }
+        </section>
+      </div>
+
+      <section class="rp-panel">
+        <header class="rp-panel__head">
+          <div><h2>Students</h2><p>Scores are first-try accuracy. Students who need help are listed first.</p></div>
+          <label class="rp-student-search" for="report-student-search">
+            <span>Search students</span>
+            <input id="report-student-search" type="search" placeholder="Search by name…" aria-controls="report-student-results" />
+          </label>
+        </header>
+        <p id="report-student-empty" class="rp-empty" role="status" hidden>No students match your search.</p>
+        <div class="rp-table-wrap" tabindex="0" role="region" aria-label="Student results table, scroll horizontally for all columns"><table id="report-student-results" class="rp-table report-table">
+          <thead><tr>
+            <th scope="col">Student</th>
+            ${scoredSkills.map((skill) => `<th scope="col" class="rp-score">${escapeHtml(skill.name)}</th>`).join("")}
+            <th scope="col">Lessons</th>
+            <th scope="col">Status</th>
+          </tr></thead>
+          <tbody>${studentRows}</tbody>
+        </table></div>
+      </section>
+      ${printSignature()}
+    </div>`;
+
+  const table = $(".report-table");
+  const rows = [...table.querySelectorAll("[data-report-row]")];
+  const search = $("#report-student-search");
+  search.addEventListener("input", () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    rows.forEach((row) => {
+      row.hidden = !row.dataset.studentName.toLocaleLowerCase().includes(query);
+    });
+    $("#report-student-empty").hidden = rows.some((row) => !row.hidden);
+  });
+
+  table.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (event.target.closest("a, button, input, select, textarea")) return;
+    const row = event.target.closest("[data-report-row]");
+    row?.querySelector(".rp-student")?.click();
+  });
+
+  paginate({
+    rows: () => rows,
+    after: table.parentElement,
+    search,
+    label: ["student", "students"],
+  });
+}
+

@@ -14,7 +14,7 @@ const TABS = [
   { id: "about", label: "About" },
   { id: "privacy", label: "Privacy" },
   { id: "contact", label: "Contact" },
-];
+].filter(tab => tab.id !== "contact" || document.body.dataset.contactEnabled !== "false");
 
 const initials = (name) =>
   name
@@ -93,7 +93,7 @@ function build() {
       <div class="site-info__body">
         ${TABS.map(
           (tab) =>
-            `<section class="site-info__panel" role="tabpanel" id="site-info-${tab.id}" aria-labelledby="site-info-tab-${tab.id}" hidden>${PANELS[tab.id]}</section>`,
+            `<section class="site-info__panel" role="tabpanel" id="site-info-${tab.id}" aria-labelledby="site-info-tab-${tab.id}" hidden>${tab.id === "privacy" && document.body.dataset.contactEnabled === "false" ? PANELS[tab.id].replace("or message us in the Contact tab", "or sign in to use Contact") : PANELS[tab.id]}</section>`,
         ).join("")}
       </div>
     </div>
@@ -116,10 +116,12 @@ function select(id, focusTab = false) {
     panel.hidden = panel.id !== `site-info-${id}`;
   });
   dialog.querySelector(".site-info__body").scrollTop = 0;
+  if(id === "contact")dialog.querySelector("#site-info-contact").dispatchEvent(new Event("contact:open"));
   dialog.setAttribute("aria-label", dialog.querySelector(`#site-info-${id} h2`).textContent);
 }
 
 function open(id, button) {
+  if(!TABS.some(tab=>tab.id===id))return;
   dialog ??= setUp();
   opener = button;
   select(id);
@@ -142,7 +144,8 @@ function close() {
 function setUp() {
   const element = build();
   element.querySelector(".site-info__close").addEventListener("click", close);
-  wireContactForm(element.querySelector("#site-info-contact"));
+  const contact=element.querySelector("#site-info-contact");
+  if(contact)wireContactForm(contact);
 
   const tabs = [...element.querySelectorAll("[data-tab]")];
   tabs.forEach((tab, index) => {

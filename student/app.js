@@ -1,14 +1,15 @@
 import {
   onAuthStateChanged,
+  signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { auth, db, offlineReady } from "../js/firebase.js";
-import { collection, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { watchSync } from "./sync.js";
 import { $, setLoading, navigate, toast } from "../js/helpers.js";
 import { student, loadProfile, syncClock, invalidateStudentData } from "./data.js";
 import { refreshTopbar } from "./session.js";
-import { renderRoute } from "./router.js";
+import { renderRoute, refreshEnrollment } from "./router.js";
 import { gameSaves } from "./gameSync.js";
 // Every form's required fields show their own message instead of the browser bubble.
 import "../js/field-errors.js";
@@ -29,9 +30,49 @@ window.addEventListener("pageshow", () => {
 });
 
 let stopProfile;
-const membershipKey = (profile) => JSON.stringify([profile.classId || "", profile.className || "", profile.progressSession || "", profile.joinRequest?.requestId || "", profile.joinRequest?.status || ""]);
+let stopDeadlines;
+let stopClass;
+let classWatchRevision=0;
+async function watchClassChanges(classId) {
+  const revision=++classWatchRevision;
+  stopClass?.();student.classroom={};
+  if(!classId)return;
+  const ref=doc(db,"classes",classId);
+  const snapshot=await getDoc(ref);
+  if(revision!==classWatchRevision||student.profile.classId!==classId)return;
+  student.classroom=snapshot.data() || {};
+  let signature=JSON.stringify([student.classroom.classVersion,student.classroom.membershipClosed]);
+  stopClass=onSnapshot(ref,snapshot=>{
+    if(student.profile.classId!==classId)return;
+    const classroom=snapshot.data()||{},next=JSON.stringify([classroom.classVersion,classroom.membershipClosed]);
+    student.classroom=classroom;
+    if(next!==signature){signature=next;invalidateStudentData();student.lessons=[];void refreshEnrollment();}
+  },()=>{});
+}
+function watchDeadlineChanges(classId) {
+  stopDeadlines?.();
+  if(!classId)return;
+  let previous=null;
+  stopDeadlines=onSnapshot(doc(db,"classes",classId,"students",student.uid),snapshot=>{
+    const next=JSON.stringify(snapshot.data()?.deadlineOverrides || {});
+    if(previous!==null&&next!==previous){invalidateStudentData();student.lessons=[];if(["#/home","#/progress", ""].includes(location.hash))void renderRoute();}
+    previous=next;
+  },()=>{});
+}
+async function deactivateSession() {
+  sessionStorage.setItem("basayaAccountDeactivated", "true");
+  $("#app-view").hidden = true;
+  stopProfile?.();
+  stopDeadlines?.();
+  stopClass?.();
+  await signOut(auth);
+  window.location.replace("../index.html");
+}
+const membershipKey = (profile) => JSON.stringify([profile.classId || "", profile.className || "", profile.progressSession || "", profile.enrollmentStatus || "", profile.enrollmentVersion || "", profile.joinRequest?.requestId || "", profile.joinRequest?.status || ""]);
 onAuthStateChanged(auth, async (user) => {
   stopProfile?.();
+  stopDeadlines?.();
+  stopClass?.();
   setLoading(true);
   if (!user) {
     window.location.replace("../index.html");
@@ -42,8 +83,10 @@ onAuthStateChanged(auth, async (user) => {
     await offlineReady;
     if (student.uid !== user.uid) { student.lessons = []; invalidateStudentData(); }
     student.uid = user.uid;
-    student.email = user.email || "";
+    student.email = "";
     const profile = await loadProfile();
+    if (profile.disabled === true) { await deactivateSession(); return; }
+    student.email = profile.username || profile.lrn || "Mag-aaral";
     if (!profile.role) {
       window.location.replace("../complete-profile.html");
       return;
@@ -57,6 +100,8 @@ onAuthStateChanged(auth, async (user) => {
     gameSaves.resume();
     syncClock(); // no need to wait: the rules check lesson dates with server time anyway
     refreshTopbar();
+    await watchClassChanges(profile.classId);
+    watchDeadlineChanges(profile.classId);
     watchSync(user.uid, collection(db, "users", user.uid, "assignedLessons"), invalidateStudentData);
     $("#app-view").hidden = false;
     await renderRoute();
@@ -64,20 +109,25 @@ onAuthStateChanged(auth, async (user) => {
     stopProfile = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
       if (!snapshot.exists() || auth.currentUser?.uid !== user.uid) return;
       const profile = snapshot.data();
+      if (profile.disabled === true) { void deactivateSession().catch(() => window.location.replace("../index.html")); return; }
       const next = membershipKey(profile);
       if (next === previous) return;
+      const accessChanged=student.profile.enrollmentVersion!==profile.enrollmentVersion||student.profile.enrollmentStatus!==profile.enrollmentStatus;
       const classChanged = (student.profile.classId || "") !== (profile.classId || "") || (student.profile.progressSession || "") !== (profile.progressSession || "");
       previous = next;
       student.profile = profile;
       gameSaves.resume();
       refreshTopbar();
       if (classChanged) {
+        void watchClassChanges(profile.classId).then(()=>refreshEnrollment());
+        watchDeadlineChanges(profile.classId);
         invalidateStudentData();
         student.lessons = [];
         if (profile.classId) toast("Inaprubahan ka na! Maaari mo nang buksan ang iyong klase.");
         if (location.hash === "#/home") renderRoute();
         else navigate("/home");
-      } else if (["#/home", "#/join", "#/account", ""].includes(location.hash)) renderRoute();
+      } else if(accessChanged) {invalidateStudentData();student.lessons=[];void refreshEnrollment();}
+      else if (["#/home", "#/join", "#/account", ""].includes(location.hash)) renderRoute();
     }, (error) => console.warn("Membership updates unavailable", error));
   } catch (error) {
     console.error("Student portal startup failed:", error);

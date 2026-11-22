@@ -6,7 +6,7 @@ const browserStorage = {
   key: index => localStorage.key(index), getItem: key => localStorage.getItem(key),
   setItem: (key, value) => localStorage.setItem(key, value), removeItem: key => localStorage.removeItem(key),
 };
-const sameOwner = (a, b) => a && b && a.uid === b.uid && a.classId === b.classId && a.progressSession === b.progressSession;
+const sameOwner = (a, b) => a && b && a.uid === b.uid && a.classId === b.classId && a.progressSession === b.progressSession && (a.enrollmentVersion||"") === (b.enrollmentVersion||"") && (a.classVersion||"") === (b.classVersion||"");
 const sameLevel = (a, b) => sameOwner(a, b) && a.lessonId === b.lessonId && a.level === b.level && a.attemptId === b.attemptId;
 const transient = error => !error.status || error.status === 408 || error.status === 429 || error.status >= 500;
 

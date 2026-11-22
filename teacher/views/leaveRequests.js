@@ -75,7 +75,7 @@ export function wireLeaveRequests(classroom, initialStudents, onChange) {
               // Re-read before calling the existing removal endpoint: no cancelled request is intentionally approved.
               const current = await getDoc(rosterRef(student.id));
               if (!sameRequest(current, student)) { skipped++; continue; }
-              await removeStudent(classroom.id, student.id);
+              await removeStudent(classroom.id, student.id, leaveRequestKey(student));
               removed++;
               selected.delete(student.id);
             } catch { failed.push(student.fullName || "Student"); }

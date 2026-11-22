@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, escapeHtml, navigate } from "../../js/helpers.js";
 import {
   availability,
@@ -82,7 +83,7 @@ export async function renderLessonPath(lessonId) {
         ${buddy("happy", "st-path__buddy")}
       </header>
       <div class="st-path__layout">
-      <aside id="path-summary" class="st-path-summary" aria-label="Buod ng aralin"><p role="status">Inihahanda ang iyong progreso…</p></aside>
+      <aside id="path-summary" class="st-path-summary" aria-label="Buod ng aralin">${skeleton('list', { rows: 2, label: 'Preparing progress' })}</aside>
       <div class="st-path__journey">
       <div class="st-path__heading">
 
@@ -93,7 +94,7 @@ export async function renderLessonPath(lessonId) {
             : "Tapusin ang bawat hakbang, isa-isa!"
         }</p>
       </div>
-      <ol id="path-steps" class="st-steps"><li class="st-loading" role="status" aria-label="Inihahanda ang mga hakbang..."><span></span><span></span><span></span></li></ol>
+      <ol id="path-steps" class="st-steps">${skeleton('lesson-steps', { label: 'Inihahanda ang mga hakbang...', tag: 'li' })}</ol>
       </div></div>
     </section>`;
 

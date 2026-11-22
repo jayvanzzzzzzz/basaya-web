@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import { collection, getCountFromServer, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
@@ -23,7 +24,7 @@ export async function renderTeacherLanding() {
   const content = document.createElement('div');
   root.append(content);
   $('#overview-create-class').addEventListener('click', () => openClassModal());
-  content.innerHTML = '<p class="overview-loading" role="status">Loading your teaching overview…</p>';
+  content.innerHTML = skeleton('teacher-overview', { label: 'Preparing teaching overview' });
   try { await getTeacherClasses(); }
   catch {
     if (root.isConnected) {
@@ -41,10 +42,10 @@ export async function renderTeacherLanding() {
     ${stat('due', 'Due this week', classes.length ? '—' : 0, 'Assessments · Next 7 days', null, 'clock')}
     ${stat('reviews', 'Reading reviews', classes.length ? '—' : 0, 'Submissions awaiting grading', null, 'book')}
     </section><div class="overview-layout"><div class="overview-main">
-      ${panel('teacher-attention', 'Your priorities', 'Needs attention', '<div data-overview-attention role="status">'+(classes.length ? '<p class="overview-loading">Checking your class updates…</p>' : empty('A fresh start', 'Create your first classroom to begin teaching.', 'grid'))+'</div>')}
+      ${panel('teacher-attention', 'Your priorities', 'Needs attention', '<div data-overview-attention role="status">'+(classes.length ? skeleton('list', { rows: 2, label: 'Checking class updates' }) : empty('A fresh start', 'Create your first classroom to begin teaching.', 'grid'))+'</div>')}
       ${panel('teacher-classes', 'Your teaching spaces', 'My classrooms', classes.length ? `<ul class="overview-classrooms">${classes.slice(0, 4).map((c, index) => classroomCard(c, `#/classes/${encodeURIComponent(c.id)}`, c.description || 'Lessons, students, and class progress', index)).join('')}</ul>` : empty('Your first classroom is waiting', 'Use Create class to get a class code and invite your students.', 'grid'), '<a class="overview-text-link" href="#/classes">View all '+icon('arrow')+'</a>')}
     </div><aside class="overview-aside" aria-label="Deadlines and teaching tools">
-      ${panel('teacher-deadlines', 'Looking ahead', 'Due this week', '<div data-overview-deadlines>'+(classes.length ? '<p class="overview-loading">Loading assessment deadlines…</p>' : empty('No upcoming deadlines', 'Assigned assessments with deadlines will appear here.', 'clock'))+'</div>')}
+      ${panel('teacher-deadlines', 'Looking ahead', 'Due this week', '<div data-overview-deadlines>'+(classes.length ? skeleton('list', { rows: 2, label: 'Preparing deadlines' }) : empty('No upcoming deadlines', 'Assigned assessments with deadlines will appear here.', 'clock'))+'</div>')}
       ${panel('teacher-shortcuts', 'Stay connected', 'Quick access', `<ul class="overview-list">${row('My classes', 'Assign lessons and view class reports', '#/classes')}${row('Messages', 'Open your class conversations', '#/messages')}${row('Dictionary', 'Explore Filipino words and meanings', '#/dictionary')}</ul>`)}
     </aside></div>`;
   const paintAttention = () => {

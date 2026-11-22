@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { $, escapeHtml, navigate, openModal, toast } from "../../js/helpers.js";
 import { lookupWord } from "../../js/dictionary.js";
@@ -32,7 +33,7 @@ export async function renderPronunciation(lessonId) {
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
 
-  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang Bigkas..."><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading">${skeleton('pronunciation', { label: 'Inihahanda ang Bigkas...', tag: 'div' })}</div>`;
   const [activity, progress] = await Promise.all([loadPronunciation(lessonId), loadLessonProgress(lessonId)]);
   if (activity?.pages?.length && (availability(lesson) === 'open' || progress.pronunciationFinished)) return (await import('./fluency.js')).renderFluency(lesson);
   if (availability(lesson) !== 'open') return navigate(pathUrl);

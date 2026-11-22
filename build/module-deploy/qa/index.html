@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BASAya sign in" />
+    <meta name="theme-color" content="#5b4cf4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="BASAya" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="img/pwa-icon-192.png" />
+    <script src="js/pwa-install.js" defer></script>
+    <title>BASAya — Sign in</title>
+    <link rel="icon" type="image/png" href="img/favicon.png?v=1" sizes="128x128" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Apply the saved theme before the page renders; otherwise use the system setting.
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light")
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <!-- Base -->
+    <link rel="stylesheet" href="css/base/tokens.css" />
+    <link rel="stylesheet" href="css/base/reset.css" />
+    <link rel="stylesheet" href="css/base/typography.css" />
+    <link rel="stylesheet" href="css/base/animations.css" />
+    <!-- Components -->
+    <link rel="stylesheet" href="css/components/buttons.css" />
+    <link rel="stylesheet" href="css/components/forms.css" />
+    <link rel="stylesheet" href="css/components/loading.css" />
+    <link rel="stylesheet" href="css/components/theme-toggle.css" />
+    <link rel="stylesheet" href="css/components/site-footer.css" />
+    <link rel="stylesheet" href="css/components/contact-form.css" />
+    <!-- Page -->
+    <link rel="stylesheet" href="css/pages/login.css" />
+    <link rel="stylesheet" href="css/pages/get-app.css" />
+    <link rel="stylesheet" href="css/pages/forgot-password.css" />
+    <link rel="stylesheet" href="css/pages/login-editorial.css?v=20261109-3" />
+    <link rel="stylesheet" href="css/components/site-info.css" />
+    <link rel="stylesheet" href="css/pages/account-loading.css" />
+      <link rel="stylesheet" href="css/components/action-confirmation.css" />
+    <script type="module" src="js/action-confirmation.js"></script>
+  </head>
+  <body class="login-editorial">
+    <div id="loading-screen" class="loading-screen account-loading" role="status" aria-live="polite" aria-labelledby="account-loading-title">
+      <div class="account-loading__card">
+        <div class="account-loading__art" aria-hidden="true">
+          <span class="account-loading__page"></span>
+          <img src="img/logo.png" alt="" width="160" height="160" />
+          <span class="account-loading__lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg></span>
+        </div>
+        <div class="account-loading__copy">
+          <span class="account-loading__brand">BASAya</span>
+          <h1 id="account-loading-title">Checking your account<span aria-hidden="true">…</span></h1>
+          <p>Please wait while we get things ready.</p>
+          <div class="account-loading__rail" aria-hidden="true"><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <main id="login-view" class="auth-layout" hidden>
+      <button class="theme-toggle theme-toggle--floating" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+        <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" /></svg>
+      </button>
+      <div class="auth-book-drift" aria-hidden="true">
+        <svg class="auth-book-drift__book auth-book-drift__book--one" viewBox="0 0 64 64">
+          <path d="M9 16a6 6 0 0 1 6-6h39v39H15a6 6 0 0 0-6 6V16Z" />
+          <path d="M9 16v39M20 20h23M20 28h19M20 36h15" />
+        </svg>
+        <svg class="auth-book-drift__book auth-book-drift__book--two" viewBox="0 0 64 64">
+          <path d="M12 14h40v38H18a6 6 0 0 0-6 6V14Z" />
+          <path d="M18 52h34M22 23h21M22 31h18M22 39h13" />
+        </svg>
+        <svg class="auth-book-drift__book auth-book-drift__book--three" viewBox="0 0 64 64">
+          <path d="M9 16a6 6 0 0 1 6-6h39v39H15a6 6 0 0 0-6 6V16Z" />
+          <path d="M9 16v39M20 20h23M20 28h19M20 36h15" />
+        </svg>
+        <svg class="auth-book-drift__book auth-book-drift__book--four" viewBox="0 0 64 64">
+          <path d="M12 14h40v38H18a6 6 0 0 0-6 6V14Z" />
+          <path d="M18 52h34M22 23h21M22 31h18M22 39h13" />
+        </svg>
+        <svg class="auth-book-drift__pen" viewBox="0 0 64 64">
+          <path d="m18 46 4-12L43 13a5.7 5.7 0 0 1 8 8L30 42l-12 4Z" />
+          <path d="m22 34 8 8m9-25 8 8M18 46l-2 5 5-2" />
+          <path d="m43 13 8 8" />
+        </svg>
+      </div>
+      <div class="auth-shell">
+        <section class="auth-copy">
+          <a class="brand" href="#">
+            <img src="img/logo.png" alt="BASAya" class="brand-logo" />
+            BASAya
+          </a>
+          <!-- Preview of BASAya screens (js/login.js) -->
+          <section class="auth-showcase" aria-roledescription="carousel" aria-label="What you can do in BASAya" data-showcase>
+            <div class="auth-showcase__stage" aria-hidden="true">
+              <div class="auth-showcase__window" data-showcase-window>
+                <div class="auth-showcase__bar auth-showcase__bar--browser">
+                  <span class="auth-showcase__dots"><i></i><i></i><i></i></span>
+                  <span class="auth-showcase__address">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                    <span data-showcase-crumb>Classes / Grade 7 · Rizal</span>
+                  </span>
+                </div>
+                <div class="auth-showcase__bar auth-showcase__bar--phone">
+                  <span>9:41</span>
+                  <span class="auth-showcase__notch"></span>
+                  <span class="auth-showcase__signal"><i></i><i></i><i></i></span>
+                </div>
+
+                <!-- Teacher class page (teacher/views/classPage.js) -->
+                <div class="showcase-shot showcase-shot--class is-active" data-showcase-shot data-crumb="Classes / Grade 7 · Rizal">
+                  <div class="shot-overview shot-in" style="--d: 0">
+                    <div>
+                      <span class="shot-eyebrow">Classroom overview</span>
+                      <strong class="shot-title">Grade 7 · Rizal</strong>
+                    </div>
+                    <span class="shot-code">Class code<b>7F3K9Q</b></span>
+                  </div>
+                  <div class="shot-stats">
+                    <div class="shot-stat shot-in" style="--d: 1"><b data-count="32">32</b><span>Students enrolled</span></div>
+                    <div class="shot-stat shot-in" style="--d: 2"><b data-count="6">6</b><span>Lessons assigned</span></div>
+                    <div class="shot-stat shot-in" style="--d: 3"><b data-count="78" data-suffix="%">78%</b><span>Average progress</span><span class="shot-track"><i style="--w: 78%"></i></span></div>
+                  </div>
+                  <div class="shot-lesson shot-lesson--current shot-in" style="--d: 4">
+                    <span class="shot-lesson__number">01</span>
+                    <div>
+                      <span class="shot-lesson__label">Lesson 1</span>
+                      <strong>Ang Alamat ng Pinya</strong>
+                      <span class="shot-chips"><span class="shot-chip">Assessment</span><span class="shot-chip shot-chip--open">Open</span>Due Oct 24</span>
+                    </div>
+                  </div>
+                  <div class="shot-lesson shot-optional shot-in" style="--d: 5">
+                    <span class="shot-lesson__number">02</span>
+                    <div>
+                      <span class="shot-lesson__label">Lesson 2</span>
+                      <strong>Pangngalan at Panghalip</strong>
+                      <span class="shot-chips"><span class="shot-chip shot-chip--practice">Practice</span><span class="shot-chip shot-chip--soon">Not open yet</span>Opens Oct 27</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Class Report (teacher/views/classReport.js) -->
+                <div class="showcase-shot" data-showcase-shot data-crumb="Grade 7 · Rizal / Class Report">
+                  <div class="shot-kpis shot-in" style="--d: 0">
+                    <div class="shot-kpi"><span>Overall class score</span><b data-count="81" data-suffix="%">81%</b><span class="shot-remark">Good</span></div>
+                    <div class="shot-kpi"><span>Students</span><b data-count="32">32</b><small>29 active in lessons</small></div>
+                    <div class="shot-kpi"><span>Lessons finished</span><b data-count="74" data-suffix="%">74%</b><span class="shot-track"><i style="--w: 74%"></i></span></div>
+                    <div class="shot-kpi shot-kpi--alert"><span>Need help</span><b data-count="3">3</b><small>With a flagged skill</small></div>
+                  </div>
+                  <div class="shot-panel shot-in" style="--d: 1">
+                    <div class="shot-panel__head"><strong>Key findings</strong><small>What stands out in this class</small></div>
+                    <ol class="shot-items">
+                      <li class="shot-finding shot-in" style="--d: 2"><span class="shot-finding__icon shot-finding__icon--warn">!</span><span><strong>Pronunciation is the class's hardest skill</strong><small>Class average 63%. Consider reviewing it together.</small></span></li>
+                      <li class="shot-finding shot-in" style="--d: 3"><span class="shot-finding__icon shot-finding__icon--alert">!</span><span><strong>3 students need help</strong><small>Open a student to see which skill.</small></span></li>
+                      <li class="shot-finding shot-optional shot-in" style="--d: 4"><span class="shot-finding__icon shot-finding__icon--good">✓</span><span><strong>Strongest skill: Comprehension</strong><small>Class average 88%.</small></span></li>
+                    </ol>
+                  </div>
+                </div>
+
+                <!-- Student Bigkas with its Diksiyonaryo meaning (student/views/pronunciation.js) -->
+                <div class="showcase-shot showcase-shot--phone showcase-shot--bigkas" data-showcase-shot data-shape="phone">
+                  <div class="shot-focus shot-in" style="--d: 0">
+                    <span class="shot-focus__close">×</span>
+                    <span class="shot-track"><i style="--w: 40%"></i></span>
+                    <span class="shot-lives">♥ 3</span>
+                  </div>
+                  <p class="shot-instruction shot-in" style="--d: 1">Bigkasin ang salitang ito.</p>
+                  <div class="shot-word shot-in" style="--d: 2">
+                    <span class="shot-word__count">2/5</span>
+                    <strong>kalayaan</strong>
+                    <span class="shot-word__syllables">ka·la·ya·an</span>
+                    <span class="shot-word__speaker"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></svg></span>
+                  </div>
+                  <div class="shot-mic shot-in" style="--d: 3">
+                    <i></i><i></i>
+                    <span><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg></span>
+                  </div>
+                  <div class="shot-meaning">
+                    <span class="shot-meaning__label">Diksiyonaryo</span>
+                    <strong>kalayaan <em>pangngalan</em></strong>
+                    <p>Pagiging malaya; kasarinlan.</p>
+                  </div>
+                </div>
+
+                <!-- Class chat (teacher/views/messages.js) -->
+                <div class="showcase-shot showcase-shot--chat" data-showcase-shot data-crumb="Messages / Grade 7 · Rizal">
+                  <div class="shot-chat-head shot-in" style="--d: 0">
+                    <span class="shot-avatar">G7</span>
+                    <div><strong>Grade 7 · Rizal</strong><small>32 students</small></div>
+                    <span class="shot-switch"><i></i>Open</span>
+                  </div>
+                  <ol class="shot-messages">
+                    <li class="shot-day shot-optional shot-in" style="--d: 1">Today</li>
+                    <li class="shot-msg shot-in" style="--d: 2"><span class="shot-msg__avatar" style="--h: 205">LM</span><div><span class="shot-msg__name">Liza M.</span><p>Ma'am, tapos na po ako sa Lesson 1! 🙌</p></div></li>
+                    <li class="shot-msg shot-in" style="--d: 3"><span class="shot-msg__avatar" style="--h: 150">PR</span><div><span class="shot-msg__name">Paolo R.</span><p>Ako rin po. Ang saya ng laro!</p></div></li>
+                    <li class="shot-msg shot-msg--mine shot-in" style="--d: 4"><p>Ang galing ninyo! Sagutan na ang Gawain bago mag-Biyernes. 🎉</p></li>
+                    <li class="shot-typing shot-in" style="--d: 5"><span class="shot-msg__avatar" style="--h: 330">JC</span><span class="shot-typing__dots"><i></i><i></i><i></i></span></li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-showcase__copy">
+              <article class="auth-showcase__panel is-active" id="showcase-panel-class" role="tabpanel" aria-labelledby="showcase-tab-class" data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For teachers</span>
+                <h1>Every class in one clear view.</h1>
+              </article>
+              <article class="auth-showcase__panel" id="showcase-panel-report" role="tabpanel" aria-labelledby="showcase-tab-report" aria-hidden="true" inert data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For teachers</span>
+                <h1>See what stands out in your class.</h1>
+              </article>
+              <article class="auth-showcase__panel" id="showcase-panel-bigkas" role="tabpanel" aria-labelledby="showcase-tab-bigkas" aria-hidden="true" inert data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For students</span>
+                <h1>Hear it, say it, understand it.</h1>
+              </article>
+              <article class="auth-showcase__panel" id="showcase-panel-chat" role="tabpanel" aria-labelledby="showcase-tab-chat" aria-hidden="true" inert data-showcase-panel>
+                <span class="auth-showcase__eyebrow">For the whole class</span>
+                <h1>Keep the whole class talking.</h1>
+              </article>
+            </div>
+
+            <div class="auth-showcase__nav">
+              <div class="auth-showcase__tabs" role="tablist" aria-label="BASAya features">
+                <button class="auth-showcase__tab is-active" id="showcase-tab-class" type="button" role="tab" aria-selected="true" aria-controls="showcase-panel-class" data-showcase-tab><span>Class page</span><span class="auth-showcase__meter"><i></i></span></button>
+                <button class="auth-showcase__tab" id="showcase-tab-report" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-report" tabindex="-1" data-showcase-tab><span>Report</span><span class="auth-showcase__meter"><i></i></span></button>
+                <button class="auth-showcase__tab" id="showcase-tab-bigkas" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-bigkas" tabindex="-1" data-showcase-tab><span>Pronunciation</span><span class="auth-showcase__meter"><i></i></span></button>
+                <button class="auth-showcase__tab" id="showcase-tab-chat" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-chat" tabindex="-1" data-showcase-tab><span>Class chat</span><span class="auth-showcase__meter"><i></i></span></button>
+              </div>
+              <button class="auth-showcase__pause" type="button" aria-label="Pause slideshow" aria-pressed="false" data-showcase-pause>
+                <svg class="auth-showcase__pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="3.5" height="14" rx="1" /><rect x="14" y="5" width="3.5" height="14" rx="1" /></svg>
+                <svg class="auth-showcase__play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
+              </button>
+            </div>
+          </section>
+        </section>
+        <section class="auth-panel">
+          <section id="recent-accounts" class="form-card recent-accounts" aria-labelledby="recent-title" hidden>
+            <h2 id="recent-title" tabindex="-1">Recent accounts</h2>
+            <p class="recent-accounts__hint">Choose your profile to sign in.</p>
+            <div id="recent-account-list" class="recent-accounts__list"></div>
+            <p id="recent-account-error" class="form-error" role="alert"></p>
+            <button id="another-account" class="button secondary" type="button">Log into another account</button>
+            <p class="recent-accounts__note">Accounts are remembered on this device. Your password is always required for email sign-in.</p>
+          </section>
+          <form id="login-form" class="form-card">
+            <button id="back-to-accounts" class="recent-accounts__back" type="button" hidden>← Recent accounts</button>
+            <div id="selected-account" class="recent-accounts__selected" hidden></div>
+            <h2 id="signin-title">Sign in</h2>
+            <label
+              id="login-email-field"
+              >Email or username<input
+                id="email"
+                type="text"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                required
+                data-missing="Enter your email or username."
+                placeholder="Email or username"
+            /></label>
+            <label
+              id="login-password-field"
+              >Password<span class="password-field"
+                ><input
+                  id="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  data-missing="Enter your password."
+                  placeholder="Your password"
+                /><button
+                  type="button"
+                  class="password-field__toggle"
+                  id="password-toggle"
+                  aria-label="Show password"
+                  aria-controls="password"
+                  aria-pressed="false"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+                    <circle cx="12" cy="12" r="2.5" />
+                    <path class="password-field__slash" d="M4 4l16 16" />
+                  </svg></button></span
+            ></label>
+            <button class="auth-forgot" type="button" data-forgot-open aria-haspopup="dialog">Forgot password?</button>
+            <p id="login-error" class="form-error" role="alert"></p>
+            <button class="button primary login-submit" type="submit">
+              <span class="login-submit__label">Sign in to BASAya</span>
+              <span class="login-submit__spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+          <button class="get-app-trigger" type="button" data-get-app-open aria-haspopup="dialog">
+            <span class="get-app-trigger__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m7.5 3 1.4 2.4M16.5 3l-1.4 2.4M5 10a7 7 0 0 1 14 0H5Zm0 0v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6M8 18v3m8-3v3M2.5 11v5m19-5v5" /><path d="M9 7.5h.01M15 7.5h.01" /></svg>
+            </span>
+            <span class="get-app-trigger__text">
+              <strong>Get the Android app</strong>
+              <small>Scan or download</small>
+            </span>
+            <span class="get-app-trigger__qr" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z" /></svg>
+            </span>
+          </button>
+          <button class="get-app-trigger get-app-trigger--web" type="button" id="pwa-install-button" aria-haspopup="dialog">
+            <span class="get-app-trigger__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
+            </span>
+            <span class="get-app-trigger__text">
+              <strong>Get the web app</strong>
+              <small>For iPhone, laptop, and desktop</small>
+            </span>
+            <span class="get-app-trigger__qr" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" /></svg>
+            </span>
+          </button>
+          <p class="auth-note-inline">
+            Students can learn here or in the Android app with the same account.
+            Teacher accounts are created by the school admin.
+          </p>
+          <footer class="site-footer site-footer--auth">
+            <p>© 2026 BASAya · A Capstone Project, BS in Information Technology</p>
+            <p>Eastwoods Professional College of Science and Technology</p>
+            <p>Developed by <strong>Jay Vanz Singca · Scean Dulatre · Ronniel Olegario</strong></p>
+            <nav class="site-footer__links" aria-label="Site information">
+              <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
+              <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
+              <button type="button" data-site-info="contact" aria-haspopup="dialog">Contact</button>
+              <button type="button" data-get-app-open aria-haspopup="dialog">Get the app</button>
+            </nav>
+          </footer>
+        </section>
+      </div>
+    </main>
+
+    <!-- "Forgot password?": emails a reset link (js/forgot-password.js) -->
+    <dialog id="forgot-password" class="forgot" aria-labelledby="forgot-title">
+      <div class="forgot__card">
+        <button class="forgot__close" type="button" data-forgot-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+
+        <form class="forgot__state" data-forgot-state="form" novalidate>
+          <span class="forgot__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2" /></svg>
+          </span>
+          <h2 id="forgot-title">Forgot your password?</h2>
+          <p>Type the email you sign in with. We'll send you a link to set a new password.</p>
+          <label>Email<input name="email" type="email" autocomplete="email" required data-missing="Type the email you sign in with." placeholder="you@email.com" /></label>
+          <p class="form-error" role="alert" data-forgot-error></p>
+          <button class="button primary forgot__submit" type="submit">Send reset link</button>
+        </form>
+
+        <div class="forgot__state forgot__state--center" data-forgot-state="sent" hidden>
+          <span class="forgot__icon forgot__icon--success" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3.5 6.5h17v11h-17z" /><path d="m3.5 7 8.5 6.5L20.5 7" /></svg>
+          </span>
+          <h2>Check your email</h2>
+          <p>If <strong data-forgot-email></strong> has a BASAya account, a reset link is on its way. It works for 1 hour. Check your spam folder too.</p>
+          <p class="forgot__hint">No email? Your school admin can reset your password for you.</p>
+          <button class="button primary" type="button" data-forgot-close>Back to sign in</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="pwa-install-help" class="pwa-help" aria-labelledby="pwa-help-title">
+      <h2 id="pwa-help-title">Install the BASAya web app</h2>
+      <p>On iPhone, open this page in Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+      <p>On a computer or another device, use your browser's <strong>Install app</strong> or <strong>Add to Home screen</strong> option. If it isn't available, your browser may not support installation or the app may already be installed.</p>
+      <form method="dialog"><button class="button primary" type="submit">Close</button></form>
+    </dialog>
+
+    <!-- "Get the app": QR to download the Android app (js/get-app.js) -->
+    <dialog id="get-app" class="get-app" aria-labelledby="get-app-title" aria-describedby="get-app-description">
+      <div class="get-app__card">
+        <button class="get-app__close" type="button" data-get-app-close aria-label="Close app download" autofocus>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+
+        <div class="get-app__stage">
+          <p class="get-app__brand"><img src="img/logo.png" alt="" width="44" height="44" /> BASAya <span>Learning, wherever you are.</span></p>
+          <span class="get-app__badge">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10v8a1 1 0 0 1-1 1h-1v3h-2v-3h-2v3H9v-3H8a1 1 0 0 1-1-1V9Zm-2.5 0a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0v-5a1 1 0 0 1 1-1Zm15 0a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0v-5a1 1 0 0 1 1-1ZM7.2 8a4.9 4.9 0 0 1 2.4-3.6l-.9-1.6.5-.3.9 1.6a5 5 0 0 1 3.8 0l.9-1.6.5.3-.9 1.6A4.9 4.9 0 0 1 16.8 8H7.2Zm2.8-2a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2Zm4 0a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2Z" /></svg>
+            Android app
+          </span>
+          <div class="get-app__scanner">
+            <div class="get-app__qr">
+              <img src="img/app-qr-download-logo.png" alt="QR code to download the BASAya Android app" width="684" height="684" />
+            </div>
+          </div>
+          <p class="get-app__stage-caption"><strong>Scan. Download. Learn.</strong>Point your phone's camera at the code.</p>
+          <p class="get-app__stage-note">Made for students. Ready for Android.</p>
+        </div>
+
+        <div class="get-app__body">
+          <span class="get-app__eyebrow">BASAya for Android</span>
+          <h2 id="get-app-title">Get the BASAya app</h2>
+          <p id="get-app-description" class="get-app__lede">
+            A little more learning, wherever you go. Download the app and sign in with your BASAya account.
+          </p>
+          <div class="get-app__actions">
+            <a class="button primary get-app__download" href="https://github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk" rel="noopener">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" /></svg>
+              Download for Android
+            </a>
+            <button class="button secondary get-app__present-open" type="button" data-get-app-present>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" /></svg>
+              Show big QR
+            </button>
+          </div>
+          <h3 class="get-app__section-title">On your phone</h3>
+          <ol class="get-app__steps">
+            <li>Scan the QR code or tap <b>Download for Android</b>.</li>
+            <li>Download and open <b>BaSaya.apk</b>.</li>
+            <li>Open the file and tap <b>Install</b>. If Android asks, allow installs from your browser.</li>
+          </ol>
+
+          <div class="get-app__fallback">
+            <p class="get-app__fallback-title">Share the download</p>
+            <div class="get-app__link">
+              <a href="https://github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk" class="get-app__file">BaSaya.apk <span>Android installation file · GitHub</span></a>
+              <code class="sr-only">https://github.com/jayvanzzzzzzz/BaSaya/releases/latest/download/BaSaya.apk</code>
+              <button class="get-app__copy" type="button" data-get-app-copy>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" /></svg>
+                <span>Copy link</span>
+              </button>
+            </div>
+          </div>
+          <p class="get-app__account-note">Same account. Your learning goes with you.</p>
+          <p class="sr-only" data-get-app-status role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <!-- Full-screen QR code for classroom use -->
+      <div class="get-app__present" data-get-app-presenter hidden>
+        <header class="get-app__present-header">
+          <p class="get-app__present-kicker"><img src="img/logo.png" alt="" width="40" height="40" /> BASAya <span>For Android</span></p>
+          <button class="button secondary" type="button" data-get-app-present-close>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16" /></svg>
+            Back<span class="get-app__back-detail"> to download</span>
+          </button>
+        </header>
+        <div class="get-app__present-inner">
+          <span class="get-app__present-eyebrow">Your next lesson starts here</span>
+          <h2 id="get-app-present-title">Scan to get the BASAya app</h2>
+          <p id="get-app-present-description">Open your phone's camera and point it at the code.</p>
+          <div class="get-app__present-qr">
+            <img src="img/app-qr-download-logo.png" alt="QR code to download the BASAya Android app" width="684" height="684" />
+          </div>
+          <p class="get-app__present-caption"><span>Download <b>BaSaya.apk</b></span><span aria-hidden="true">&rarr;</span><span>Open the file</span><span aria-hidden="true">&rarr;</span><span>Tap <b>Install</b></span></p>
+        </div>
+        <footer class="get-app__present-footer"><span>Made for students. Ready for Android.</span><span>Press <kbd>Esc</kbd> to go back</span></footer>
+      </div>
+    </dialog>
+
+    <script type="module">
+      const loading = document.getElementById("loading-screen");
+      const showStartupError = (message) => {
+        if (loading.hidden) return;
+        const paragraph = document.createElement("p");
+        paragraph.style.maxWidth = "30rem";
+        const heading = document.createElement("strong");
+        heading.textContent = "We couldn’t verify your account.";
+        const consoleHint = document.createElement("strong");
+        consoleHint.textContent = "F12 → Console";
+        paragraph.append(
+          heading,
+          document.createElement("br"),
+          document.createElement("br"),
+          String(message),
+          document.createElement("br"),
+          document.createElement("br"),
+          "Open your browser’s ",
+          consoleHint,
+          " tab and send the red error message to your developer.",
+        );
+        loading.replaceChildren(paragraph);
+      };
+      setTimeout(
+        () =>
+          showStartupError(
+            "Firebase is taking too long to respond. Check your internet connection, then reload the page.",
+          ),
+        12000,
+      );
+      import("./js/login.js?v=recent-accounts-1").catch((error) => {
+        console.error("Login startup failed:", error);
+        showStartupError(error.message || "The Firebase SDK could not load.");
+      });
+    </script>
+    <script type="module" src="js/theme.js"></script>
+    <script type="module" src="js/get-app.js"></script>
+    <script type="module" src="js/forgot-password.js"></script>
+    <script type="module" src="js/site-info.js"></script>
+  </body>
+</html>

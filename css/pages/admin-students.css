@@ -1,6 +1,36 @@
 /* ADMIN → STUDENTS (admin/views/students.js) The table itself reuses the teacher table (components/tables.css). */
 .student-table {
-  min-width: 760px;
+  min-width: 900px;
+}
+
+.student-status-filters { margin-bottom: 1rem; }
+.student-select-cell { width: 3rem; text-align: center; }
+.student-select-cell input { width: 18px; height: 18px; min-height: 0; cursor: pointer; vertical-align: middle; }
+.student-select-cell input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.student-row--selected { background: var(--surface-2); }
+.student-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; padding: 1rem; margin: 1rem 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
+.student-bulk-actions[hidden] { display: none; }
+.student-bulk-actions__buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 600px) {
+  .student-status-filters { width: 100%; }
+  .student-bulk-actions__buttons { width: 100%; }
+  .student-bulk-actions__buttons .button { flex: 1 1 100%; white-space: normal; }
+}
+
+.student-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.student-create-grid > label { min-width: 0; }
+#create-student-form { gap: 0.8rem; }
+#create-student-form > .muted {
+  margin: -0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+@media (max-width: 520px) {
+  .student-create-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Class ribbons: All students, each class, No class yet (same look as the lecture page ribbons) */

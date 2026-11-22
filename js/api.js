@@ -31,9 +31,11 @@ export async function postToApi(path, body, { signal } = {}) {
 /** Admin only: deletes a class with its roster, lessons and every student's progress. */
 export const deleteClass = (classId) => postToApi("delete-class", { classId });
 
-/** Archives accepted progress, then removes active class membership. */
-export const removeStudent = (classId, studentId) =>
-  postToApi("remove-student", { classId, studentId });
+export const classLifecycle = (action, classId, studentId) => postToApi("class-lifecycle", { action, classId, ...(studentId ? { studentId } : {}) });
+
+/** Approves a current leave request, archiving work before removing membership. */
+export const removeStudent = (classId, studentId, requestKey) =>
+  postToApi("remove-student", { classId, studentId, action:"leave", requestKey });
 
 /** A valid code creates a pending request; only the teacher can enroll the student. */
 export const requestClassJoin = (code) => postToApi("join-class", { code });
@@ -48,7 +50,8 @@ export const removeClassLesson = (classId, lessonId) =>
 export const sendPasswordReset = (teacherId) =>
   postToApi("send-password-reset", { teacherId });
 
-/** Contact form → the team's Gmail. Works signed in or out. */
+/** Signed-in contact form; the API enforces one message per account per hour. */
+export const contactStatus = () => postToApi("contact", { action:"status" });
 export const sendContact = (message) => postToApi("contact", message);
 
 /** Admin only: emails a student a BaSaya-branded password reset link. */

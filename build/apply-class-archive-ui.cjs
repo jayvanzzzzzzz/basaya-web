@@ -1,0 +1,19 @@
+﻿const fs=require('fs');const edit=(p,f)=>{let s=fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n'),n=f(s);if(s===n)throw Error(p);fs.writeFileSync(p,n)};const rep=(s,a,b)=>{if(!s.includes(a))throw Error('Missing '+a.slice(0,100));return s.replace(a,b)};
+edit('teacher/views/dashboard.js',s=>{
+s=rep(s,'let stopCardMenus;','let classDirectoryTab = "active";\nlet stopCardMenus;');
+s=rep(s,'const notices = new Map();','const activeClasses=state.classes.filter(c=>!c.archived);\n  const directoryClasses=()=>state.classes.filter(c=>(c.archived===true)===(classDirectoryTab==="archived"));\n  const notices = new Map();');
+s=rep(s,'${c.deletionRequest ? "Cancel deletion request" : "Request deletion"}','${c.archived ? "Restore class" : "Archive class"}');
+s=rep(s,'<button type="button" data-edit="${escapeHtml(c.id)}">Edit Class</button>','${c.archived ? "" : `<button type="button" data-edit="${escapeHtml(c.id)}">Edit Class</button>`}');
+s=rep(s,'${renderClassGrid(state.classes)}','${renderClassGrid(directoryClasses())}');
+s=rep(s,'${\n        state.classes.length',`<div class="class-directory__tabs" role="group" aria-label="Class status"><button type="button" class="button secondary small" data-class-tab="active" aria-pressed="\${classDirectoryTab==='active'}">Active (\${activeClasses.length})</button><button type="button" class="button secondary small" data-class-tab="archived" aria-pressed="\${classDirectoryTab==='archived'}">Archived (\${state.classes.length-activeClasses.length})</button></div>\n      \${\n        state.classes.length`);
+s=rep(s,'const filtered = state.classes.filter((c) =>','const filtered = directoryClasses().filter((c) =>');
+s=rep(s,'$("#class-search")?.addEventListener',`document.querySelectorAll('[data-class-tab]').forEach(button=>button.addEventListener('click',()=>{classDirectoryTab=button.dataset.classTab;void renderDashboard();}));\n  $("#class-search")?.addEventListener`);
+s=rep(s,'loadOverview(state.classes)','loadOverview(activeClasses)');
+s=rep(s,'statTile("classes", state.classes.length === 1 ? "Class" : "Classes", state.classes.length,','statTile("classes", activeClasses.length === 1 ? "Active class" : "Active classes", activeClasses.length,');
+s=rep(s,'state.classes.filter((classroom) => hasUnreadChat(classroom.id))','state.classes.filter((classroom) => !classroom.archived && hasUnreadChat(classroom.id))');
+s=rep(s,'getCountFromServer(collection(db, "classes", classroom.id, "students"))\n          .then((snap) => snap.data().count)','getDocs(collection(db, "classes", classroom.id, "students"))\n          .then((snap) => snap.docs.filter(doc=>doc.get("membershipStatus")!=="dropped").length)');
+s=rep(s,'if (classroom.deletionRequest) confirmCancelRequest(classroom, renderDashboard);\n  else openRequestDeletionModal(classroom, renderDashboard);','openRequestDeletionModal(classroom, renderDashboard);');return s});
+edit('teacher/views/classPage.js',s=>{
+// Use a dedicated read-only archive view before fetching lesson controls.
+s=rep(s,'const classroom = { id: classDoc.id, ...classDoc.data() };',`const classroom = { id: classDoc.id, ...classDoc.data() };\n  if(classroom.archived===true) {\n    page(classroom.className,"Archived class",'<button type="button" class="button primary" id="restore-class">Restore class</button>');\n    $('#page-content').innerHTML=\`<section class="card"><h2>This class is archived</h2><p>Students, lessons and saved progress are preserved. Participation is paused until the class is restored.</p><div class="modal-actions"><a class="button secondary" href="#/classes/\${encodeURIComponent(classId)}/students">View roster</a><a class="button secondary" href="#/classes/\${encodeURIComponent(classId)}/report">View saved report</a></div></section>\`;\n    $('#restore-class').onclick=()=>openRequestDeletionModal(classroom,()=>renderClass(classId));return;\n  }`);return s});
+

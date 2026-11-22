@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     const firestore = db();
     const classRef = firestore.doc(`classes/${classId}`);
     const classSnap = await classRef.get();
-    if (!classSnap.exists || classSnap.get("teacherId") !== uid) {
+    if (!classSnap.exists || classSnap.get("teacherId") !== uid || classSnap.get("membershipClosed") === true) {
       return res.status(403).json({ error: "You don't teach this class" });
     }
 

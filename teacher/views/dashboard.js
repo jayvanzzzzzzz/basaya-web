@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   collection,
@@ -49,8 +50,8 @@ async function loadOverview(classes) {
   return Promise.all(
     classes.map(async (classroom) => {
       const [students, links] = await Promise.all([
-        getCountFromServer(collection(db, "classes", classroom.id, "students"))
-          .then((snap) => snap.data().count)
+        getDocs(collection(db, "classes", classroom.id, "students"))
+          .then((snap) => snap.docs.filter(doc=>doc.get("membershipStatus")!=="dropped").length)
           .catch(() => null),
         getDocs(collection(db, "classes", classroom.id, "classLessons"))
           .then((snap) => snap.docs.map((link) => ({ id: link.id, ...link.data() })))
@@ -114,8 +115,9 @@ function fillOverview(overview) {
   });
 }
 
-const countUnreadChats = () => state.classes.filter((classroom) => hasUnreadChat(classroom.id)).length;
+const countUnreadChats = () => state.classes.filter((classroom) => !classroom.archived && hasUnreadChat(classroom.id)).length;
 
+let classDirectoryTab = "active";
 let stopCardMenus;
 export function leaveDashboardMenus() { stopCardMenus?.(); stopCardMenus = null; }
 
@@ -125,6 +127,8 @@ export async function renderDashboard() {
   leaveDashboardMenus();
   await getTeacherClasses();
   if (!isCurrent()) return;
+  const activeClasses=state.classes.filter(c=>!c.archived);
+  const directoryClasses=()=>state.classes.filter(c=>(c.archived===true)===(classDirectoryTab==="archived"));
   const notices = new Map();
   const expanded = new Set();
   const closeCardMenus = () => {
@@ -196,8 +200,8 @@ export async function renderDashboard() {
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>
                   </button>
                   <div class="class-card-menu-popup" data-menu="${escapeHtml(c.id)}" hidden>
-                    <button type="button" data-edit="${escapeHtml(c.id)}">Edit Class</button>
-                    <button type="button" class="danger" data-delete="${escapeHtml(c.id)}">${c.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>
+                    ${c.archived ? "" : `<button type="button" data-edit="${escapeHtml(c.id)}">Edit Class</button>`}
+                    <button type="button" class="danger" data-delete="${escapeHtml(c.id)}">${c.archived ? "Restore class" : "Archive class"}</button>
                   </div>
                 </div>
                 <div class="class-card__body">
@@ -309,7 +313,7 @@ export async function renderDashboard() {
 
   $("#page-content").innerHTML = `
     <section class="dash-stats" aria-label="At a glance">
-      ${statTile("classes", state.classes.length === 1 ? "Class" : "Classes", state.classes.length, '<rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 20V9" />')}
+      ${statTile("classes", activeClasses.length === 1 ? "Active class" : "Active classes", activeClasses.length, '<rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 20V9" />')}
       ${statTile("students", "Students enrolled", "—", '<circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6" />')}
       ${statTile("due", "Lessons due this week", "—", '<rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" />')}
       ${statTile("chats", "Chats with new messages", countUnreadChats(), '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />')}
@@ -327,6 +331,7 @@ export async function renderDashboard() {
           ${state.classes.length === 1 ? "class" : "classes"}
         </span>
       </div>
+      <div class="class-directory__tabs" role="group" aria-label="Class status"><button type="button" class="button secondary small" data-class-tab="active" aria-pressed="${classDirectoryTab==='active'}">Active (${activeClasses.length})</button><button type="button" class="button secondary small" data-class-tab="archived" aria-pressed="${classDirectoryTab==='archived'}">Archived (${state.classes.length-activeClasses.length})</button></div>
       ${
         state.classes.length
           ? `<label class="class-directory__search">
@@ -334,7 +339,7 @@ export async function renderDashboard() {
               <span class="sr-only">Search your classes</span>
               <input type="search" id="class-search" placeholder="Find a class by name or section..." autocomplete="off" />
             </label>
-            <div id="class-grid-container">${renderClassGrid(state.classes)}</div>`
+            <div id="class-grid-container">${renderClassGrid(directoryClasses())}</div>`
           : `<div class="class-directory__empty">
               <div class="class-directory__empty-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" /><path d="M4 5.5v16M8 7h8m-8 4h7" /></svg>
@@ -349,7 +354,7 @@ export async function renderDashboard() {
     <section class="dash-due" aria-labelledby="dash-due-title">
       <div class="dash-due__heading"><span class="class-directory__eyebrow">Looking ahead</span><h2 id="dash-due-title">Due this week</h2><p>Assessment deadlines in the next 7 days.</p></div>
       <ul class="dash-due__list" data-due-list>
-        <li class="dash-due__empty">Loading deadlines…</li>
+        ${skeleton('list', { rows: 2, tag: 'li', label: 'Preparing deadlines' })}
       </ul>
     </section>
     </div>
@@ -370,7 +375,7 @@ export async function renderDashboard() {
   });
   let overview = null;
   if (state.classes.length)
-    loadOverview(state.classes).then((rows) => {
+    loadOverview(activeClasses).then((rows) => {
       if (!dashboardRoot?.isConnected) return;
       overview = rows;
       fillOverview(rows);
@@ -380,9 +385,10 @@ export async function renderDashboard() {
   $("#new-class")?.addEventListener("click", () => openClassModal());
   $("#new-class-empty")?.addEventListener("click", () => openClassModal());
 
+  document.querySelectorAll('[data-class-tab]').forEach(button=>button.addEventListener('click',()=>{classDirectoryTab=button.dataset.classTab;void renderDashboard();}));
   $("#class-search")?.addEventListener("input", (e) => {
     const term = e.target.value.trim().toLowerCase();
-    const filtered = state.classes.filter((c) =>
+    const filtered = directoryClasses().filter((c) =>
       [c.className, c.section, c.description]
         .filter(Boolean)
         .some((field) => field.toLowerCase().includes(term)),
@@ -471,6 +477,5 @@ export function openClassModal(existing) {
 
 // Deleting needs an admin's approval: the teacher sends a request (classDeletion.js).
 function openDeleteClassModal(classroom) {
-  if (classroom.deletionRequest) confirmCancelRequest(classroom, renderDashboard);
-  else openRequestDeletionModal(classroom, renderDashboard);
+  openRequestDeletionModal(classroom, renderDashboard);
 }

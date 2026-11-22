@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 // Pure markup, shared with the local design preview. All stored strings are escaped.
 const esc = (value = "") => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 export function enrollmentSummary(classroom, enrolled) {
@@ -19,7 +20,7 @@ export function joinRequestsPanel(classroom, enrolled, { summary = true } = {}) 
       <button id="join-approve-selected" class="join-review__bulk" type="button" disabled>Approve selected <span>0</span></button>
     </div>
     <p id="join-review-error" class="join-review__error" role="alert" hidden></p>
-    <div id="join-review-list" class="join-review__list" aria-busy="true"><p class="join-review__empty">Loading join requests…</p></div>
+    <div id="join-review-list" class="join-review__list" aria-busy="true">${skeleton('list', { rows: 2, label: 'Preparing join requests' })}</div>
     <footer class="join-review__footer"><span id="join-selection-status" role="status" aria-live="polite">No requests selected</span><span>Lessons and class chat open after approval.</span></footer>
   </section>`;
 }

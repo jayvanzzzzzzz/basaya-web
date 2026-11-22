@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { $, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import {
@@ -56,7 +57,7 @@ export async function renderQuiz(lessonId) {
   if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang pagsusulit."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.quizFinished) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading st-focus-loading--space"><div class="st-loading" role="status" aria-label="Inihahanda ang pagsusulit..."><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading st-focus-loading--space">${skeleton('quiz', { label: 'Inihahanda ang pagsusulit...', tag: 'div' })}</div>`;
   const [quiz, progress] = await Promise.all([loadQuiz(lessonId), loadLessonProgress(lessonId)]);
   if (progress.quizFinished) return navigate(pathUrl);
   // A Practice lesson saves nothing, so its quiz never waits for the lecture.

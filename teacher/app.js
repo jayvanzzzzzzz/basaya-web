@@ -84,6 +84,9 @@ onAuthStateChanged(auth, async (user) => {
     const profile = await getDoc(doc(db, "users", user.uid));
     console.log("Profile exists:", profile.exists(), "Role:", profile.data()?.role);
     if (!profile.exists() || profile.data().role !== "teacher" || profile.data().disabled === true) {
+      if (profile.data()?.role === "teacher" && profile.data().disabled === true) {
+        sessionStorage.setItem("basayaAccountDeactivated", "true");
+      }
       console.log("Role check failed — bouncing to login");
       await signOut(auth);
       window.location.replace("../index.html");
@@ -97,6 +100,9 @@ onAuthStateChanged(auth, async (user) => {
     state.profile = profile.data();
     stopAccessWatch = onSnapshot(doc(db, "users", user.uid), async snapshot => {
       if (!snapshot.exists() || snapshot.data().role !== "teacher" || snapshot.data().disabled === true) {
+        if (snapshot.data()?.role === "teacher" && snapshot.data().disabled === true) {
+          sessionStorage.setItem("basayaAccountDeactivated", "true");
+        }
         state.profile = null;
         await signOut(auth);
         window.location.replace("../index.html");

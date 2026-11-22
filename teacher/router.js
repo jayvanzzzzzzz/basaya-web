@@ -21,6 +21,7 @@ import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 import { beginRoute } from '../js/route-lifecycle.js';
 import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
 import { canLeaveLessons } from '../js/lessonNavigation.js';
+import { beginPageLoading, routeLoadingInfo, prepareLoadingHeader } from '../js/page-loading.js';
 
 let statsLoaded = false;
 
@@ -78,9 +79,11 @@ export async function renderRoute() {
       if (isActive) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
-  page("Loading…", "");
-  $("#page-content").replaceChildren();
-  $("#page-content").setAttribute("aria-busy", "true");
+  const [title, kind] = routeLoadingInfo(route, 'teacher');
+  const finishLoading = beginPageLoading(route, `teacher:${state.user.uid}`, kind);
+  page(title, "");
+  prepareLoadingHeader(kind);
+  let success = true;
   try {
     if (route === "/dashboard") await renderTeacherLanding();
     else if (route === "/classes") await renderDashboard();
@@ -107,6 +110,7 @@ export async function renderRoute() {
     } else navigate("/dashboard");
     if (isCurrent()) watchTeacherTooltips();
   } catch (error) {
+    success = false;
     if (!isCurrent()) return;
     console.error(error);
     $("#page-content").innerHTML = empty(
@@ -117,6 +121,6 @@ export async function renderRoute() {
     );
     $("#retry")?.addEventListener("click", renderRoute);
   } finally {
-    if (isCurrent()) $("#page-content").removeAttribute("aria-busy");
+    if (isCurrent()) finishLoading(success);
   }
 }

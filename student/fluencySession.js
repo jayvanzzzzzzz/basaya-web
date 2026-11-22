@@ -1,4 +1,4 @@
-import { student, classId } from './data.js';
+import { student, classId, participationStamp, enrollmentBlocked } from './data.js';
 import { postToApi } from '../js/api.js';
 import { readingDraft, advanceReading } from './fluencyStore.js';
 
@@ -14,14 +14,14 @@ function requireWordVerification(response) {
 }
 
 export async function openReading(lesson) {
-  const scope = { classId: classId(), progressSession: student.profile.progressSession || '', lessonId: lesson.contentId || lesson.id.replace(/^practice:/, ''), ...(lesson.practice ? { practice: true, entryId: lesson.id } : {}) };
+  const scope = { ...participationStamp(), classId: classId(), progressSession: student.profile.progressSession || '', lessonId: lesson.contentId || lesson.id.replace(/^practice:/, ''), ...(lesson.practice ? { practice: true, entryId: lesson.id } : {}) };
   // The lesson data layer knows how a practice entry maps to its original lesson.
   if (lesson.lessonId) scope.lessonId = lesson.lessonId;
   const owner = student.uid;
   const key = JSON.stringify([owner, scope]);
   let draft = await readingDraft(key);
   let syncJob;
-  const owns = () => student.uid === owner && classId() === scope.classId && (student.profile.progressSession || '') === scope.progressSession;
+  const owns = () => !enrollmentBlocked() && (student.profile.enrollmentVersion||'')===scope.enrollmentVersion && (student.classroom.classVersion||'')===scope.classVersion && student.uid === owner && classId() === scope.classId && (student.profile.progressSession || '') === scope.progressSession;
   const call = (op, fields = {}) => {
     if (!owns()) throw new Error('Nagbago ang account o klase. Buksan muli ang aralin.');
     return postToApi('assessment', { ...scope, operation: `fluency-${op}`, ...fields }, { signal: AbortSignal.timeout(op === 'begin' ? 12000 : 40000) });

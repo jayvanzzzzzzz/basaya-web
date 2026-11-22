@@ -1,24 +1,15 @@
-import { adminAuth, db } from "../lib/firebase.js";
-import { allowCors } from "../lib/http.js";
-import { withinRateLimit } from "../lib/rateLimit.js";
+import { db } from "../lib/firebase.js";
+import { allowCors, requireUser } from "../lib/http.js";
+import { contactRetryAt, reserveContact, releaseContact } from "../lib/contactCooldown.js";
 import { contactEmail } from "../lib/emails.js";
 import { contactInbox, sendMail } from "../lib/mailer.js";
 
-// POST /api/contact
-// Body: { name, email, topic, message, page?, website?, photo?: { name, type, data } }
-//   photo.data is base64 (the site shrinks photos before sending).
-// Optional header: Authorization: Bearer <ID token>, to label the sender's role.
-//
-// Public (the login page uses it too), so it guards itself:
-//   - only ALLOWED_ORIGINS may call it from a browser (CORS)
-//   - "website" is a honeypot: hidden from people, filled in by bots
-//   - at most RATE_LIMIT messages per hour per IP (contactLimits/{hash of IP})
-// Then it emails the message (with the photo attached) to CONTACT_TO / GMAIL_USER.
+// Signed-in accounts may send one contact message per rolling hour.
+// POST {action:"status"} returns the server-owned cooldown without consuming it.
 
 export const TOPICS = ["Question", "Report a problem", "Feedback", "Account help"];
 const PHOTO_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
-const RATE_LIMIT = 5;
 const EMAIL_PATTERN = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]{2,}$/;
 
 const clean = (value, max) =>
@@ -49,41 +40,35 @@ function validate(body) {
   return { value: { name, email, topic, message, page, photo } };
 }
 
-/** "Teacher" / "Admin" when a valid sign-in token comes along; otherwise null. */
-async function senderRole(req) {
-  const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (!token) return null;
-  try {
-    const { uid } = await adminAuth().verifyIdToken(token);
-    const role = (await db().doc(`users/${uid}`).get()).get("role");
-    return role ? `${role.charAt(0).toUpperCase()}${role.slice(1)} (signed in)` : null;
-  } catch {
-    return null;
-  }
-}
-
 export default async function handler(req, res) {
   allowCors(req, res);
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
+  res.setHeader("X-BASAya-Contact", "account-hour-v1");
+  res.setHeader("Cache-Control", "no-store");
+  let uid,claim,sent=false;
   try {
+    uid=await requireUser(req,res);if(!uid)return;
+    const profile=await db().doc(`users/${uid}`).get();
+    if(!["student","teacher","admin"].includes(profile.get("role")))return res.status(403).json({error:"A student, teacher or admin account is required."});
     const body = req.body || {};
+    if(body.action === "status")return res.status(200).json({retryAt:await contactRetryAt(db(),uid)});
     // Bots fill every field. Pretend it worked so they don't adapt.
     if (body.website) return res.status(200).json({ ok: true });
 
     const { value, error } = validate(body);
     if (error) return res.status(400).json({ error });
 
-    if (!(await withinRateLimit(req, "contactLimits", RATE_LIMIT))) {
-      return res
-        .status(429)
-        .json({ error: "You've sent several messages already. Please try again in an hour." });
+    claim=await reserveContact(db(),uid);
+    if(!claim.allowed) {
+      res.setHeader("Retry-After", String(Math.max(1,Math.ceil((claim.retryAt-Date.now())/1000))));
+      return res.status(429).json({error:"You can send one message per hour. Please wait until your cooldown ends.",retryAt:claim.retryAt});
     }
 
     const email = contactEmail({
       ...value,
-      role: await senderRole(req),
+      role: `${profile.get("role")} (signed in)`,
       sentAt: new Date(),
       attachment: value.photo && { filename: value.photo.filename, size: value.photo.content.length },
     });
@@ -93,8 +78,10 @@ export default async function handler(req, res) {
       ...email,
       attachments: value.photo ? [value.photo] : [],
     });
-    return res.status(200).json({ ok: true });
+    sent=true;
+    return res.status(200).json({ ok: true, retryAt:claim.retryAt });
   } catch (error) {
+    if(claim?.allowed && !sent)await releaseContact(db(),uid,claim.claimId).catch(releaseError=>console.error("contact cooldown release failed",releaseError));
     console.error("contact failed:", error);
     return res.status(500).json({ error: "We couldn't send your message right now. Please try again later." });
   }

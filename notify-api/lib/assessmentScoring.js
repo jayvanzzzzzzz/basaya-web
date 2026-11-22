@@ -186,6 +186,7 @@ export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now
   );
   const docs = new Map(progressDocs.map((doc) => [doc.id, doc]));
   lessons.forEach((lesson) => {
+    if (lesson.exempt === true) return;
     if (lesson.dueAt == null || lesson.dueAt >= now) return;
     const doc = docs.get(lesson.id) || {};
     MISSABLE_PARTS.forEach((part) => {

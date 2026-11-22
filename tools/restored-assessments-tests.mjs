@@ -23,7 +23,7 @@ async function approve(mode) {
   session = (await read("users/student")).progressSession;
 }
 const op = async (operation, fields = {}, token = session) => {
-  const body = { operation, classId: "a", progressSession: token, lessonId: "lesson", ...fields };
+  const body = { enrollmentVersion:(await read("users/student")).enrollmentVersion || "", operation, classId: "a", progressSession: token, lessonId: "lesson", ...fields };
   if (body.part === "quiz" && ["answer", "finish"].includes(operation)) body.attemptId = (await read("users/student/assignedLessons/lesson"))?.assessmentState?.quiz?.attemptId;
   return assessmentOperation(db, "student", body);
 };

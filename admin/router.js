@@ -1,5 +1,6 @@
 import { $, currentRoute, navigate, shell, empty, page } from "../js/helpers.js";
 import { beginRoute } from "../js/route-lifecycle.js";
+import { beginPageLoading, routeLoadingInfo, prepareLoadingHeader } from '../js/page-loading.js';
 import { state } from "../js/state.js";
 import { renderTeachers } from "./views/teachers.js";
 import { renderStudents } from "./views/students.js";
@@ -25,9 +26,11 @@ export async function renderRoute() {
     if (active) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-  page("Loading…", "");
-  $("#page-content").replaceChildren();
-  $("#page-content").setAttribute("aria-busy", "true");
+  const [title, kind] = routeLoadingInfo(route, 'admin');
+  const finishLoading = beginPageLoading(route, `admin:${state.user.uid}`, kind);
+  page(title, "");
+  prepareLoadingHeader(kind);
+  let success = true;
   try {
     if (route === "/dashboard") await renderAdminDashboard();
     else if (route === "/teachers") await renderTeachers();
@@ -41,11 +44,12 @@ export async function renderRoute() {
     // Keep the "All classes" badge (pending deletion requests) current on every page.
     if (isCurrent() && route !== "/classes") refreshDeletionBadge();
   } catch (error) {
+    success = false;
     if (!isCurrent()) return;
     console.error(error);
     $("#page-content").innerHTML = empty("Something needs attention", "We could not load this page. Check your Firebase configuration and Firestore rules, then try again.", "Try again", "retry");
     $("#retry")?.addEventListener("click", renderRoute);
   } finally {
-    if (isCurrent()) $("#page-content").removeAttribute("aria-busy");
+    if (isCurrent()) finishLoading(success);
   }
 }

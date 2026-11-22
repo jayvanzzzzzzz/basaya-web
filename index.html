@@ -41,7 +41,6 @@
     <link rel="stylesheet" href="css/components/loading.css" />
     <link rel="stylesheet" href="css/components/theme-toggle.css" />
     <link rel="stylesheet" href="css/components/site-footer.css" />
-    <link rel="stylesheet" href="css/components/contact-form.css" />
     <!-- Page -->
     <link rel="stylesheet" href="css/pages/login.css" />
     <link rel="stylesheet" href="css/pages/get-app.css" />
@@ -52,7 +51,7 @@
       <link rel="stylesheet" href="css/components/action-confirmation.css" />
     <script type="module" src="js/action-confirmation.js"></script>
   </head>
-  <body class="login-editorial">
+  <body class="login-editorial" data-contact-enabled="false">
     <div id="loading-screen" class="loading-screen account-loading" role="status" aria-live="polite" aria-labelledby="account-loading-title">
       <div class="account-loading__card">
         <div class="account-loading__art" aria-hidden="true">
@@ -68,6 +67,16 @@
         </div>
       </div>
     </div>
+
+    <main id="deactivated-view" class="account-deactivated" aria-labelledby="deactivated-title" hidden>
+      <section class="account-deactivated__card">
+        <img class="account-deactivated__logo" src="img/logo.png" alt="BASAya" width="88" height="88" />
+        <span class="account-deactivated__status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>Account access</span>
+        <h1 id="deactivated-title" tabindex="-1">Your account is deactivated</h1>
+        <p>Contact your school administrator to reactivate your account.</p>
+        <button id="deactivated-back" class="button primary" type="button"><span aria-hidden="true">&larr;</span> Go back to log in</button>
+      </section>
+    </main>
 
     <main id="login-view" class="auth-layout" hidden>
       <button class="theme-toggle theme-toggle--floating" type="button" data-theme-toggle aria-label="Switch theme">
@@ -253,7 +262,7 @@
             <div id="recent-account-list" class="recent-accounts__list"></div>
             <p id="recent-account-error" class="form-error" role="alert"></p>
             <button id="another-account" class="button secondary" type="button">Log into another account</button>
-            <p class="recent-accounts__note">Accounts are remembered on this device. Your password is always required for email sign-in.</p>
+            <p class="recent-accounts__note">Accounts are remembered on this device. Your password is always required to sign in.</p>
           </section>
           <form id="login-form" class="form-card">
             <button id="back-to-accounts" class="recent-accounts__back" type="button" hidden>← Recent accounts</button>
@@ -261,15 +270,15 @@
             <h2 id="signin-title">Sign in</h2>
             <label
               id="login-email-field"
-              >Email or username<input
+              >LRN, username, or staff email<input
                 id="email"
                 type="text"
                 autocomplete="username"
                 autocapitalize="none"
                 spellcheck="false"
                 required
-                data-missing="Enter your email or username."
-                placeholder="Email or username"
+                data-missing="Enter your LRN, username, or staff email."
+                placeholder="LRN, username, or staff email"
             /></label>
             <label
               id="login-password-field"
@@ -337,7 +346,6 @@
             <nav class="site-footer__links" aria-label="Site information">
               <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
               <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
-              <button type="button" data-site-info="contact" aria-haspopup="dialog">Contact</button>
               <button type="button" data-get-app-open aria-haspopup="dialog">Get the app</button>
             </nav>
           </footer>
@@ -357,7 +365,7 @@
             <svg viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2" /></svg>
           </span>
           <h2 id="forgot-title">Forgot your password?</h2>
-          <p>Type the email you sign in with. We'll send you a link to set a new password.</p>
+          <p>Students: ask your school admin to reset your password. Staff: type the email you sign in with. We'll send you a link to set a new password.</p>
           <label>Email<input name="email" type="email" autocomplete="email" required data-missing="Type the email you sign in with." placeholder="you@email.com" /></label>
           <p class="form-error" role="alert" data-forgot-error></p>
           <button class="button primary forgot__submit" type="submit">Send reset link</button>

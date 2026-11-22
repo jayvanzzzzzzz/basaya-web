@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import { collection, getCountFromServer, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
@@ -16,7 +17,7 @@ export async function renderAdminDashboard() {
   welcome(root, greeting(state.profile || {}), 'Administration');
   const content = document.createElement('div');
   root.append(content);
-  content.innerHTML = '<p class="overview-loading" role="status">Loading your school overview…</p>';
+  content.innerHTML = skeleton('admin-overview', { label: 'Preparing school overview' });
   const results = await Promise.allSettled([
     getAllTeachers(), getAllClasses(), getAllLessons(),
     getCountFromServer(query(collection(db, 'users'), where('role', '==', 'student'))),

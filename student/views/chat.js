@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, escapeHtml, initials, toast } from "../../js/helpers.js";
 import { showChatDate } from "../../js/chatDateExceptions.js";
 import {
@@ -177,7 +178,7 @@ export async function renderChat() {
             <button type="button" class="chat-older__button" data-load-older>${chatIcon("up")}<span>Tingnan ang mas luma</span></button>
           </div>
           <ol class="chat-messages" data-messages aria-live="polite">
-            <li class="chat-loading" aria-label="Naglo-load"><span></span><span></span><span></span></li>
+            ${skeleton('messages', { rows: 3, tag: 'li', label: 'Inihahanda ang mga mensahe' })}
           </ol>
           <div class="chat-jump" data-jump hidden>
             <button type="button" class="chat-jump__button" data-jump-button aria-label="Pumunta sa pinakabagong mensahe" title="Pumunta sa pinakabagong mensahe">

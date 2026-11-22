@@ -1,7 +1,7 @@
 // Usernames are aliases; Firebase remains the password authority.
 export const normalizeUsername = value => typeof value === "string" ? value.trim().toLowerCase() : "";
 export const validUsername = value => /^[a-z0-9_]{3,30}$/.test(value);
-export const invalidCredentials = () => Object.assign(new Error("Incorrect username or password."), { status: 401 });
+export const invalidCredentials = () => Object.assign(new Error("Incorrect LRN, username, or password."), { status: 401 });
 
 export async function verifyPassword(authentication, user, password, fetcher = fetch) {
   if (!user?.email || user.disabled || typeof password !== "string" || !password || password.length > 4096) throw invalidCredentials();
@@ -22,6 +22,7 @@ export async function verifyPassword(authentication, user, password, fetcher = f
 }
 
 export async function reserveUsername(firestore, uid, username) {
+  if (/^\d{12}$/.test(username)) throw Object.assign(new Error("A username cannot be a 12-digit LRN."), { status: 400 });
   return firestore.runTransaction(async tx => {
     const profileRef = firestore.doc(`users/${uid}`);
     const nextRef = firestore.doc(`usernames/${username}`);

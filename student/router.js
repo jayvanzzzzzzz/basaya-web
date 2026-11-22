@@ -1,5 +1,5 @@
 import { $, $$, escapeHtml, navigate } from "../js/helpers.js";
-import { student } from "./data.js";
+import { student, enrollmentBlocked } from "./data.js";
 import { renderHome } from "./views/home.js";
 import { renderJoin } from "./views/join.js";
 import { renderLessonPath } from "./views/lessonPath.js";
@@ -41,30 +41,6 @@ let cleanup = null;
 let leaveGuard = null;
 let activeRoute = null;
 let deciding = false;
-let navAnimation;
-let navObserver;
-
-// Animate the new screen as soon as it mounts, including pages that await data
-// before rendering. The fixed navigation stays still and loading never waits.
-function prepareNavTransition(from, to) {
-  navObserver?.disconnect();
-  navAnimation?.cancel();
-  const tabs = ["/home", "/progress", "/chat", "/account"];
-  const page = $("#page-content");
-  if (from === to || !tabs.includes(from) || !tabs.includes(to) ||
-      !page?.animate || !window.MutationObserver ||
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-
-  // Observe only the screen replacement, not later chat/progress updates.
-  navObserver = new window.MutationObserver(() => {
-    navObserver.disconnect();
-    navAnimation = page.animate([
-      { opacity: 0, transform: "translateY(8px)" },
-      { opacity: 1, transform: "translateY(0)" },
-    ], { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
-  });
-  navObserver.observe(page, { childList: true });
-}
 
 /** Keeps the current screen mounted until an asynchronous exit decision completes. */
 export function beforeLeave(check) {
@@ -80,6 +56,12 @@ export function onLeave(fn) {
 // can replace them immediately. Lesson screens retain serialized mounting and
 // the quiz's exit guard while their initial setup is still running.
 let rendering = null;
+
+export function refreshEnrollment() {
+  leaveGuard=null;deciding=false;
+  if(enrollmentBlocked())history.replaceState(history.state,'','#/home');
+  return renderRoute();
+}
 
 export function renderRoute() {
   if (deciding) {
@@ -126,7 +108,6 @@ async function drawRoute(flight) {
   cleanup = null;
   leaving?.();
 
-  const previousRoute = activeRoute;
   activeRoute = route;
   const [, section = "home", rawId, part] = route.split("/");
   let lessonId = null;
@@ -154,10 +135,14 @@ async function drawRoute(flight) {
     else link.removeAttribute("aria-current");
   });
   window.scrollTo(0, 0);
-  prepareNavTransition(previousRoute, route);
 
   try {
-    if (section === "lesson" && lessonId && !part) await renderLessonPath(lessonId);
+    if(enrollmentBlocked() && ['home','lesson','join','progress','notifications'].includes(section)) {
+      const dropped=student.profile.enrollmentStatus==='dropped';
+      $('#app-view').classList.remove('is-focus');
+      $('#page-content').innerHTML=`<section class="st-empty" role="status"><h2>${dropped?'Dropped ang iyong enrollment':'Naka-archive ang klase'}</h2><p><strong>${escapeHtml(student.profile.className || 'Iyong klase')}</strong></p><p>${dropped?'Nakahinto ang iyong paglahok sa klase. Napanatili ang iyong na-save na progreso. Makipag-ugnayan sa iyong guro upang humiling na ma-enroll muli.':'Napanatili ang iyong progreso. Magpapatuloy ang mga aralin kapag ibinalik ng guro ang klase.'}</p><a class="button primary" href="#/chat">Makipag-ugnayan sa guro</a></section>`;
+    }
+    else if (section === "lesson" && lessonId && !part) await renderLessonPath(lessonId);
     else if (section === "lesson" && lessonId && PARTS[part]) await PARTS[part](lessonId);
     else if (PAGES[section] && !rawId) await PAGES[section]();
     else navigate("/home");
@@ -177,8 +162,6 @@ async function drawRoute(flight) {
         <button class="button primary" type="button" id="retry">Subukan muli</button>
       </div>`;
     $("#retry").addEventListener("click", renderRoute);
-  } finally {
-    if (rendering === flight) navObserver?.disconnect();
   }
 
   // Badges follow the class the student is in now.

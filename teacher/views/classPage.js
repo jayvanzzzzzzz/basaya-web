@@ -7,16 +7,12 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
-  updateDoc,
-  where,
-  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, toast, notify, navigate, page, headerMenu, openModal as openBaseModal } from "../../js/helpers.js";
 import { clearFieldError, fieldError } from "../../js/field-errors.js";
-import { removeClassLesson } from "../../js/api.js";
+import { postToApi, removeClassLesson } from "../../js/api.js";
 import {
   formatWhen,
   fromInputValue,
@@ -41,6 +37,8 @@ import {
   wireDeletionBanner,
 } from "./classDeletion.js";
 
+import { deadlineAudienceMarkup, wireDeadlineAudience } from "./deadline-students.js";
+import { loadClassContext,loadStudentProgress,completionOf } from "./progressData.js";
 const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Closed" };
 
 // One rounded, lightly duotone icon vocabulary for classroom controls.
@@ -203,12 +201,14 @@ const EXTEND_PRESETS = [
 function openExtendModal(classId, link, lesson, onSaved) {
   const currentDue = link.dueAt.toDate();
   // Presets count from the current deadline, or from now once it has passed, so the new deadline is always in the future.
-  const base = () => Math.max(currentDue.getTime(), Date.now());
+  let individualBase = 0;
+  const base = () => Math.max(currentDue.getTime(), individualBase, Date.now());
   const closed = currentDue.getTime() < Date.now();
   openModal(
     `<h2>Extend deadline</h2>
      <p>${escapeHtml(lesson.title)}</p>
-     <form id="extend-form">
+     <form id="extend-form" data-confirm-manually>
+       ${deadlineAudienceMarkup()}
        <p class="extend-deadline__current">Current deadline: <strong>${escapeHtml(formatWhen(link.dueAt))}</strong>${
          closed ? ' <span class="schedule-chip schedule-chip--closed">Closed</span>' : ""
        }</p>
@@ -243,6 +243,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
           b.classList.toggle("is-active", Number(b.dataset.extendDays) === days),
         );
       };
+      const audience = wireDeadlineAudience(backdrop,classId,link,value=>{individualBase=value;const active=backdrop.querySelector("[data-extend-days].is-active");if(active)pick(Number(active.dataset.extendDays));});
       pick(EXTEND_PRESETS[0].days);
       backdrop.querySelectorAll("[data-extend-days]").forEach((b) =>
         b.addEventListener("click", () => pick(Number(b.dataset.extendDays))),
@@ -265,16 +266,25 @@ function openExtendModal(classId, link, lesson, onSaved) {
         const submit = form.querySelector('[type="submit"]');
         submit.disabled = true;
         try {
-          await saveSchedule(classId, link, { openAt: link.openAt ?? null, dueAt: Timestamp.fromDate(due) });
+          const studentIds = audience.selection();
+          if(!await confirmAction({title:"Extend deadline?",message:studentIds ? `Extend this lesson for ${studentIds.length} selected active ${studentIds.length===1?"student":"students"}. Everyone else keeps their existing deadline.` : "Extend this lesson's deadline for the entire class.",confirm:"Extend deadline"})) {submit.disabled=false;return;}
+          if(!form.isConnected)return;
+          submit.textContent="Extending…";
+          form.setAttribute("aria-busy","true");
+          form.dataset.selectedAudience = String(studentIds !== null);
+          if(studentIds) await postToApi("lesson-deadlines",{action:"extend-students",classId,entryId:link.id,studentIds,dueAt:due.getTime()});
+          else await saveSchedule(classId, link, { openAt: link.openAt ?? null, dueAt: Timestamp.fromDate(due) });
         } catch (err) {
           submit.disabled = false;
+          submit.textContent="Extend deadline";
+          form.setAttribute("aria-busy","false");
           return toast(err.message);
         }
         close();
-        if (form.elements.notify.checked) {
+        if (form.elements.notify.checked && form.dataset.selectedAudience !== "true") {
           try {
-            // An older Assessment link was just moved to the lesson id (saveSchedule).
-            await notifyDeadline(classId, linkMode(link) === "practice" ? link.id : linkLessonId(link));
+            // Keep legacy link ids; the API resolves their lesson identity.
+            await notifyDeadline(classId, link.id);
             toast("Deadline extended. Students were notified.");
           } catch (err) {
             toast(`Deadline extended, but students were not notified (${err.message}).`);
@@ -288,23 +298,8 @@ function openExtendModal(classId, link, lesson, onSaved) {
   );
 }
 
-async function saveSchedule(classId, link, { openAt, dueAt }) {
-  const lessonId = linkLessonId(link);
-  // A Practice link keeps its own id ("{lessonId}__practice"); students save nothing on it.
-  if (link.id === lessonId || linkMode(link) === "practice") {
-    return updateDoc(doc(db, "classes", classId, "classLessons", link.id), { openAt, dueAt });
-  }
-  // Older links have auto-generated ids. Move them to the lesson id so the Firestore rules can find the schedule.
-  const { id, ...data } = link;
-  const batch = writeBatch(db);
-  batch.set(doc(db, "classes", classId, "classLessons", lessonId), {
-    ...data,
-    lessonId,
-    openAt,
-    dueAt,
-  });
-  batch.delete(doc(db, "classes", classId, "classLessons", id));
-  return batch.commit();
+async function saveSchedule(classId,link,{openAt,dueAt}) {
+  return postToApi("lesson-deadlines",{action:"schedule",classId,entryId:link.id,openAt:openAt?.toMillis?.()??null,dueAt:dueAt?.toMillis?.()??null});
 }
 
 const progressPercent = (percent) => {
@@ -320,6 +315,11 @@ export async function renderClass(classId) {
   if (!classDoc.exists() || classDoc.data().teacherId !== state.user.uid)
     return navigate("/dashboard");
   const classroom = { id: classDoc.id, ...classDoc.data() };
+  if(classroom.archived===true) {
+    page(classroom.className,"Archived class",'<button type="button" class="button primary" id="restore-class">Restore class</button>');
+    $('#page-content').innerHTML=`<section class="card"><h2>This class is archived</h2><p>Students, lessons and saved progress are preserved. Participation is paused until the class is restored.</p><div class="modal-actions"><a class="button secondary" href="#/classes/${encodeURIComponent(classId)}/students">View roster</a><a class="button secondary" href="#/classes/${encodeURIComponent(classId)}/report">View saved report</a></div></section>`;
+    $('#restore-class').onclick=()=>openRequestDeletionModal(classroom,()=>renderClass(classId));return;
+  }
   const runRead = async (label, promise) => {
     try {
       return await promise;
@@ -331,7 +331,7 @@ export async function renderClass(classId) {
       throw err;
     }
   };
-  const [studentsSnap, linksSnap, progressSnap] = await Promise.all([
+  const [studentsSnap, linksSnap] = await Promise.all([
     runRead(
       "students",
       getDocs(collection(db, "classes", classId, "students")),
@@ -340,15 +340,6 @@ export async function renderClass(classId) {
       "classLessons",
       getDocs(collection(db, "classes", classId, "classLessons")),
     ),
-    runRead(
-      "progress",
-      getDocs(
-        query(
-          collection(db, "progress"),
-          where("teacherId", "==", state.user.uid),
-        ),
-      ),
-    ),
   ]);
   if (!isCurrent()) return;
   const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -356,22 +347,18 @@ export async function renderClass(classId) {
   const links = linksSnap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
-  const progress = progressSnap.docs
-    .map((d) => d.data())
-    .filter((item) => item.classId === classId);
-  const average = progress.length
-    ? Math.round(
-        progress.reduce((sum, item) => sum + progressPercent(item.percent), 0) /
-          progress.length,
-      )
-    : 0;
+  const progressContext = await loadClassContext(classId);
+  const progress = progressContext ? await Promise.all(progressContext.students.filter(student=>student.accountProfile.disabled!==true&&student.membershipStatus!=="dropped").map(student=>loadStudentProgress(student.id,progressContext.lessons,student.joinedAt,student))) : [];
+  if(!isCurrent())return;
+  const completions = progress.filter(item=>!item.error&&!item.inactive).map(completionOf).filter(item=>item.percent!==null);
+  const average = completions.length ? Math.round(completions.reduce((sum,item)=>sum+item.percent,0)/completions.length) : null;
   const linkedLessons = links
     .map((link) => ({
       link,
       lesson: state.allLessons.find((l) => l.id === link.lessonId),
     }))
     .filter((x) => x.lesson)
-    // "Lesson N" keeps the order the lessons were assigned in.
+    // Retain assignment order to break schedule-sort ties.
     .map((item, index) => ({ ...item, number: index + 1 }))
     .sort(compareBySchedule);
   const tabCount = {
@@ -386,7 +373,7 @@ export async function renderClass(classId) {
     subtitle,
     `<button class="button secondary class-report-button" id="class-report" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3" /></svg>Class Report</button><button class="button secondary class-chat-button" id="class-chat" type="button"><span class="class-chat-button__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg></span>Class chat<span class="class-chat-button__badge" data-class-chat-badge hidden><span class="sr-only">New messages</span></span></button><button class="button secondary class-students-button" id="view-students" type="button">Students<span class="class-students-button__dot" data-student-requests-dot aria-hidden="true" ${leaveCount ? "" : "hidden"}></span></button>${headerMenu(
       "More class options",
-      `<button type="button" id="edit-class">Edit class</button><button type="button" class="danger" id="class-deletion">${classroom.deletionRequest ? "Cancel deletion request" : "Request deletion"}</button>`,
+      `<button type="button" id="edit-class">Edit class</button><button type="button" class="danger" id="class-deletion">${classroom.archived ? "Restore class" : "Archive class"}</button>`,
     )}${addLessonAction('add-lesson')}`,
     { crumbs: [{ label: "Classrooms", href: "#/classes" }] },
   );
@@ -418,7 +405,7 @@ export async function renderClass(classId) {
       <div class="grid stats class-overview__stats" aria-label="Class statistics">
         <div class="card stat class-overview__stat">
           <span class="class-overview__stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19v-1.2a5.5 5.5 0 0 1 11 0V19M16 5.3a3.2 3.2 0 0 1 0 6.1m1.2 2.2a4.7 4.7 0 0 1 3.3 4.5V19"/></svg></span>
-          <b>${students.length}</b><span>Students enrolled</span>
+          <b>${students.filter(student=>student.membershipStatus!=="dropped").length}</b><span>Students enrolled</span>
         </div>
         <div class="card stat class-overview__stat">
           <span class="class-overview__stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></span>
@@ -426,8 +413,8 @@ export async function renderClass(classId) {
         </div>
         <div class="card stat class-overview__stat class-overview__stat--progress">
           <span class="class-overview__stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 18V9m5 9V5m5 13v-6m5 6V3"/></svg></span>
-          <b>${average}%</b><span>Average progress</span>
-          <span class="class-overview__progress-track" aria-hidden="true"><i style="width:${average}%"></i></span>
+          <b>${average===null?"—":`${average}%`}</b><span>Active student progress</span>
+          <span class="class-overview__progress-track" aria-hidden="true"><i style="width:${average??0}%"></i></span>
         </div>
       </div>
     </section>
@@ -450,11 +437,10 @@ export async function renderClass(classId) {
             ).join("")}</div>
             <div id="class-lesson-panel" role="tabpanel" aria-labelledby="lesson-tab-${activeTab}" tabindex="0" class="class-lessons__list">${linkedLessons
               .map(
-                ({ link, lesson, number }) => `
+                ({ link, lesson }) => `
                   <article class="class-lesson" data-tab="${scheduleStatus(link) === "closed" ? "closed" : "open"}">
-                    <span class="class-lesson__number">${String(number).padStart(2, "0")}</span>
+                    <span class="class-lesson__art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path fill="currentColor" fill-opacity=".1" stroke="none" d="M12 6C9.5 4.5 6.5 4 3 5v14c3.5-1 6.5-.5 9 1 2.5-1.5 5.5-2 9-1V5c-3.5-1-6.5-.5-9 1Z"/><path d="M12 6C9.5 4.5 6.5 4 3 5v14c3.5-1 6.5-.5 9 1 2.5-1.5 5.5-2 9-1V5c-3.5-1-6.5-.5-9 1Zm0 0v14M6.5 8.5c.8 0 1.6.2 2.5.5m-2.5 3c.8 0 1.6.2 2.5.5m6-3.5c.9-.3 1.7-.5 2.5-.5M15 12.5c.9-.3 1.7-.5 2.5-.5"/></svg></span>
                     <div class="class-lesson__content">
-                      <span class="class-lesson__label">Lesson ${number}</span>
                       <h3>${escapeHtml(lesson.title)}</h3>
                       <p>${escapeHtml(lesson.description || "No description provided.")}</p>
                       ${scheduleMarkup(link)}

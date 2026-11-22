@@ -13,14 +13,14 @@ assert.match(save.headers.get('cache-control'),/no-store/);
 const username=`probe_${crypto.randomUUID().replaceAll('-','').slice(0,20)}`;
 const login=await fetch(`${base}/username-login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'not-a-real-password'}),signal:AbortSignal.timeout(30000)});
 assert.equal(login.status,401,'Unknown usernames do not authenticate');
-assert.deepEqual(await login.json(),{error:'Incorrect username or password.'});
+assert.deepEqual(await login.json(),{error:'Incorrect LRN, username, or password.'});
 assert.match(login.headers.get('cache-control'),/no-store/);
 const alias=await fetch(`https://firestore.googleapis.com/v1/projects/basaya/databases/(default)/documents/usernames/${username}`,{signal:AbortSignal.timeout(30000)});
 assert.equal(alias.status,403,'Username aliases cannot be read publicly');
 console.log('PASS: production API routes, web/local CORS, authentication requirements, generic login failure, no-store responses, and private Firestore aliases.');
 if(process.argv.includes('--web')) {
   for(const [path,expected] of [
-    ['index.html','Email or username'],
+    ['index.html','LRN, username, or staff email'],
     ['js/login.js','signInWithCustomToken'],
     ['js/username-auth.js','usernameRequest'],
     ['teacher/views/accountSettings.js','account-username-form'],

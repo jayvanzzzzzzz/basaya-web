@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import { showChatDate } from "../../js/chatDateExceptions.js";
@@ -275,7 +276,7 @@ function chatShellHtml(classroom) {
         <button type="button" class="chat-older__button chat-icon" data-load-older aria-label="Load older messages" data-floating-tooltip>${icon("up")}</button>
       </div>
       <ol class="chat-messages" data-messages aria-live="polite">
-        <li class="chat-loading" aria-label="Loading messages"><span></span><span></span><span></span></li>
+        ${skeleton('messages', { rows: 3, tag: 'li', label: 'Preparing messages' })}
       </ol>
       <div class="chat-jump" data-jump hidden>
         <button type="button" class="chat-jump__button chat-icon" data-jump-button aria-label="Go to newest message" data-floating-tooltip>

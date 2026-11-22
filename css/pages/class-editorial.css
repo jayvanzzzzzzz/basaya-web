@@ -112,6 +112,15 @@ body:has(.teacher-class-page) .page-header-bar { background: var(--class-paper-s
 .teacher-class-page .class-lesson-tab.is-active .class-lesson-tab__count { background: var(--primary-soft); color: var(--primary); }
 .teacher-class-page .class-lessons__list { padding: 0; }
 .teacher-class-page .class-lesson { grid-template-columns: 2.75rem minmax(0,1fr) auto; padding: 1.4rem .25rem; gap: 1rem; border-radius: 0; }
+.teacher-class-page { --lesson-art-bg: #fff4d6; --lesson-art-ink: #a66a12; --lesson-art-border: rgba(166,106,18,.16); }
+:root[data-theme="dark"] .teacher-class-page { --lesson-art-bg: #3b3020; --lesson-art-ink: #f2c66d; --lesson-art-border: rgba(242,198,109,.18); }
+.teacher-class-page .class-lesson__art { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; align-self: start; margin-top: .3rem; border: 1px solid var(--lesson-art-border); border-radius: .8rem; color: var(--lesson-art-ink); background: var(--lesson-art-bg); transition: transform 180ms ease, border-color 180ms ease; }
+.teacher-class-page .class-lesson__art svg { width: 1.6rem; height: 1.6rem; }
+.teacher-class-page .class-lesson:hover .class-lesson__art { transform: translateY(-1px); border-color: var(--lesson-art-ink); }
+@media (prefers-reduced-motion: reduce) {
+  .teacher-class-page .class-lesson__art { transition: none; }
+  .teacher-class-page .class-lesson:hover .class-lesson__art { transform: none; }
+}
 .teacher-class-page .class-lesson:hover { background: var(--class-tint); }
 .teacher-class-page .class-lesson__number { width: 2.5rem; height: 2.5rem; border: 1px solid var(--border); border-radius: .6rem; background: transparent; color: var(--ink-3); font-size: .8rem; transform: none; }
 .teacher-class-page .class-lesson__label { color: var(--ink-3); font-size: .58rem; letter-spacing: .12em; }
@@ -187,7 +196,7 @@ body:has(.teacher-class-page) .floating-tooltip { max-width: calc(100vw - 16px);
   .teacher-class-page .class-lessons__header { display: flex; align-items: flex-start; }
   .teacher-class-page .class-lessons__header h2 { font-size: 1.15rem; }
   .teacher-class-page .class-lessons__header p { font-size: .75rem; }
-  .teacher-class-page .class-lesson { grid-template-columns: 2rem minmax(0,1fr); gap: .75rem; }
+  .teacher-class-page .class-lesson { grid-template-columns: 2.75rem minmax(0,1fr); gap: .75rem; }
   .teacher-class-page .class-lesson__number { width: 2rem; height: 2rem; }
   .teacher-class-header .header-actions { gap: .5rem; }
   .teacher-class-header #add-lesson { order: -1; }

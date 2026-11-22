@@ -8,6 +8,7 @@ import { db } from "../../js/firebase.js";
 import { skippedParts } from "../../js/skippedParts.js";
 import { lessonItems } from "../../js/lessonItems.js";
 import { state, getAllLessons } from "../../js/state.js";
+import { lessonDeadline, monitoringTime } from "../../js/deadline-policy.js";
 import {
   SKILLS,
   LEVELS,
@@ -57,14 +58,15 @@ export async function loadClassContext(classId) {
       title: lesson?.title || "Untitled lesson",
       openAt: toMillis(link.openAt),
       dueAt: toMillis(link.dueAt),
+      deadlineHistory: link.deadlineHistory || [],
+      scheduleChangedAt: link.scheduleChangedAt || 0,
       gameSkipped: skipped[index].game,
       activitySkipped: skipped[index].activity,
       items: contents[index].items,
     };
   });
 
-  const students = rosterSnap.docs
-    .map((student) => ({ id: student.id, ...student.data() }))
+  const students = (await Promise.all(rosterSnap.docs.map(async student => ({ id:student.id,...student.data(),classroom:classSnap.data(),accountProfile:await getDoc(doc(db,"users",student.id)).then(snapshot=>snapshot.data() || {unavailable:true}).catch(()=>({unavailable:true})) }))))
     .map((student) => ({ ...student, name: student.fullName || "Student" }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -78,8 +80,15 @@ export async function loadClassContext(classId) {
  * `joinedAt` (the roster's Firestore timestamp): lessons whose deadline passed before the student joined are
  * "before-joining" — they could never have done them, so they don't count against them.
  */
-export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
+export async function loadStudentProgress(studentId, lessons, joinedAt = null, enrollment = null) {
   const joinedMillis = toMillis(joinedAt);
+  let profile,roster;
+  try {
+    profile = enrollment?.accountProfile || (await getDoc(doc(db,"users",studentId))).data() || {};
+    if(profile.unavailable)return {error:"unavailable"};
+    roster = enrollment || (profile.classId ? (await getDoc(doc(db,"classes",profile.classId,"students",studentId))).data() : {}) || {};
+  } catch(error) { return {error:error.code==="permission-denied"?"moved":"unavailable"}; }
+  lessons = lessons.map(lesson => ({...lesson,...lessonDeadline(lesson,roster,profile,roster.classroom || {})}));
   let progressDocs;
   try {
     const snap = await getDocs(collection(db, "users", studentId, "assignedLessons"));
@@ -95,7 +104,7 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
   const held = lessons.filter(
     (lesson) => !(lesson.dueAt != null && joinedMillis != null && lesson.dueAt < joinedMillis),
   );
-  const results = withMissed(resultsFrom(docs), docs, held, now);
+  const results = withMissed(resultsFrom(docs), docs, held, monitoringTime(profile,now,roster,roster.classroom || {}));
   const summary = summarize(results);
 
   let lastActive = null;
@@ -125,15 +134,21 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
     const closedBeforeJoining = overdue && joinedMillis != null && lesson.dueAt < joinedMillis;
     const status = parts.finished
       ? "done"
-      : closedBeforeJoining
-        ? "before-joining"
-        : !open
-          ? "scheduled"
-          : overdue
-            ? "overdue"
-            : parts.started
-              ? "in-progress"
-              : "not-started";
+      : roster.membershipStatus === "dropped" || roster.classroom?.archived === true
+        ? "dropped"
+        : profile.disabled === true
+        ? "deactivated"
+        : lesson.exempt
+          ? "exempt"
+          : closedBeforeJoining
+            ? "before-joining"
+            : !open
+              ? "scheduled"
+              : overdue
+                ? "overdue"
+                : parts.started
+                  ? "in-progress"
+                  : "not-started";
     return {
       lesson,
       parts,
@@ -150,12 +165,12 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null) {
     .sort((a, b) => b[1] - a[1])
     .map(([word, count]) => ({ word, count }));
 
-  return { summary, perLesson, hardWords, lastActive, hasData: docs.length > 0 };
+  return { summary, perLesson, hardWords, lastActive, inactive:profile.disabled === true || roster.membershipStatus === "dropped" || roster.classroom?.archived === true, dropped:roster.membershipStatus === "dropped", archived:roster.classroom?.archived === true, hasData: docs.length > 0 };
 }
 
 /** Lessons the student can be held to: open now, and not closed before they joined. */
 const counted = (progress) =>
-  progress.perLesson.filter((row) => row.status !== "scheduled" && row.status !== "before-joining");
+  progress.perLesson.filter((row) => !["scheduled","before-joining","exempt","deactivated","dropped"].includes(row.status));
 
 /** Lessons finished / lessons open so far (not-yet-open and closed-before-joining don't count). */
 export function completionOf(progress) {
@@ -177,6 +192,7 @@ export function lecturesOf(progress) {
  * Each: { tone: "alert" | "warn" | "info" | "good", title, text }.
  */
 export function studentRemarks(progress) {
+  if(progress.inactive) return [{tone:"info",title:"Monitoring paused",text:progress.dropped?"This student is dropped. Saved results are preserved; re-enroll them to resume participation.":progress.archived?"This class is archived. Saved results are preserved; restore the class to resume monitoring.":"This account is deactivated. Saved results are preserved as history and excluded from current class monitoring."}];
   const notes = [];
   const { summary } = progress;
   const skills = SKILLS.map(({ key }) => summary.skills[key]);
@@ -286,7 +302,7 @@ export function studentRemarks(progress) {
  * - overall class score = mean of the skill averages that have data.
  */
 export function classReport(entries) {
-  const readable = entries.filter((entry) => !entry.progress.error);
+  const readable = entries.filter((entry) => !entry.progress.error && !entry.progress.inactive);
 
   const skills = SKILLS.map((skill) => {
     const summaries = readable.map((entry) => ({

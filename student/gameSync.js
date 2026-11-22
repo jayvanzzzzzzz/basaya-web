@@ -1,9 +1,9 @@
 import { auth } from "../js/firebase.js";
 import { postToApi } from "../js/api.js";
-import { student, invalidateStudentData } from "./data.js";
+import { student, invalidateStudentData, participationStamp, enrollmentBlocked } from "./data.js";
 import { createGameSaves } from "./gameSaves.js";
 
-export const gameSaveScope = () => auth.currentUser?.uid === student.uid ? {
+export const gameSaveScope = () => auth.currentUser?.uid === student.uid && !enrollmentBlocked() ? { ...participationStamp(),
   uid: student.uid, classId: student.profile.classId || "", progressSession: student.profile.progressSession || "",
 } : null;
 
@@ -11,14 +11,14 @@ export const gameSaves = createGameSaves({
   getScope: gameSaveScope,
   send: async job => {
     const scope = gameSaveScope();
-    if (!scope || scope.uid !== job.uid || scope.classId !== job.classId || scope.progressSession !== job.progressSession)
+    if (!scope || scope.uid !== job.uid || scope.classId !== job.classId || scope.progressSession !== job.progressSession || (scope.enrollmentVersion||"") !== (job.enrollmentVersion||"") || (scope.classVersion||"") !== (job.classVersion||""))
       throw new Error("Nagbago ang account o klase.");
     const controller = new AbortController();
     let timeout;
     let result;
     try {
       const request = postToApi("assessment", {
-        operation: job.kind, classId: job.classId, progressSession: job.progressSession,
+        enrollmentVersion:job.enrollmentVersion||"",classVersion:job.classVersion||"",operation: job.kind, classId: job.classId, progressSession: job.progressSession,
         lessonId: job.lessonId, part: "game", level: job.level, attemptId: job.attemptId,
         ...(job.kind === "answer" ? { word: job.word, eventId: job.eventId } :
           Array.isArray(job.words) ? { words: job.words } : {}),

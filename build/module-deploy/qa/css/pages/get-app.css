@@ -1,0 +1,386 @@
+/* GET THE APP Ã¢â‚¬â€ login page button + QR pop-up (js/get-app.js) The QR always stays black on a white tile so phones can read it. */
+
+/* Trigger under the sign-in card */
+.get-app-trigger {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: min(100%, 25rem);
+  align-items: center;
+  gap: 0.85rem;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem 0.75rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--lip), var(--shadow-sm);
+  animation: popIn 700ms var(--ease-out) 350ms backwards;
+  transition:
+    transform 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out);
+}
+
+/* A light sheen glides across every few seconds to draw the eye */
+.get-app-trigger::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, var(--primary-soft) 50%, transparent 65%);
+  background-size: 250% 100%;
+  content: "";
+  animation: getAppSheen 4.5s var(--ease-in-out) 1.5s infinite;
+}
+
+@keyframes getAppSheen {
+  0%,
+  55% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
+}
+
+.get-app-trigger:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: var(--lip-hover), var(--shadow);
+  transform: translateY(-2px);
+}
+
+.get-app-trigger--web {
+  text-decoration: none;
+}
+
+.pwa-help {
+  width: min(90vw, 30rem);
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.pwa-help::backdrop { background: rgba(20, 15, 45, 0.65); }
+.pwa-help h2 { margin-top: 0; }
+.pwa-help p { color: var(--ink-2); line-height: 1.6; }
+
+.get-app-trigger:active {
+  box-shadow: 0 1px 0 var(--card-lip);
+  transform: translateY(2px);
+}
+
+.get-app-trigger__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.95rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--primary-lip);
+}
+
+.get-app-trigger__icon svg,
+.get-app-trigger__qr svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.get-app-trigger:hover .get-app-trigger__icon svg {
+  animation: phoneBuzz 500ms var(--ease-out);
+}
+
+@keyframes phoneBuzz {
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-6deg); }
+  80% { transform: rotate(3deg); }
+}
+
+.get-app-trigger__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.05rem;
+}
+
+.get-app-trigger__text strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.get-app-trigger__text small {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.get-app-trigger__qr {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: 0.75rem;
+  color: var(--primary);
+  transition: transform 420ms var(--ease-spring), background-color var(--dur) ease;
+}
+
+.get-app-trigger__qr svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.get-app-trigger--web .get-app-trigger__qr svg {
+  fill: none;
+  stroke: currentColor;
+}
+
+.get-app-trigger:hover .get-app-trigger__qr {
+  background: var(--primary-soft);
+  transform: rotate(-8deg) scale(1.08);
+}
+
+/* Editorial download dialog. QR artwork stays still and on white in both themes. */
+.get-app {
+  --app-navy: #1f2559;
+  --app-paper: var(--surface);
+  --app-muted: var(--ink-2);
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 1.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+.get-app[open] { display: grid; place-items: center; }
+.get-app::backdrop {
+  background: rgba(15, 19, 42, .64);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.get-app__card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  width: min(100%, 57rem);
+  max-height: calc(100dvh - 3rem);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--app-paper);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .22);
+  animation: appDialogIn 220ms ease-out;
+}
+.get-app.is-closing .get-app__card,
+.get-app.is-closing .get-app__present { animation: appDialogOut 220ms ease-in forwards; }
+@keyframes appDialogIn { from { opacity: 0; transform: translateY(12px); } }
+@keyframes appDialogOut { to { opacity: 0; transform: translateY(8px); } }
+
+.get-app__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  transition: background-color 180ms, color 180ms;
+}
+.get-app__close:hover { background: var(--primary-soft); color: var(--primary); }
+.get-app__close::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: 190px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 160ms, visibility 160ms, transform 160ms;
+}
+.get-app__close:is(:hover, :focus-visible)::after { opacity: 1; visibility: visible; transform: none; }
+.get-app svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.get-app :is(button, a):focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
+.get-app__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 30px 28px 24px;
+  background: var(--app-navy);
+  color: #fff;
+}
+.get-app__brand {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  column-gap: 10px;
+  align-self: stretch;
+  align-items: center;
+  margin: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.5px;
+}
+.get-app__brand img { grid-row: span 2; object-fit: contain; }
+.get-app__brand span { color: #c9cce3; font-family: var(--font-body); font-size: 12px; font-weight: 400; letter-spacing: 0; }
+.get-app__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  color: #d9f2df;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.get-app__badge svg { fill: currentColor; stroke: none; width: 17px; height: 17px; }
+.get-app__scanner { width: min(100%, 248px); }
+.get-app__qr {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 12px;
+  border: 1px solid #e1e3eb;
+  border-radius: 12px;
+  background: #fff;
+}
+.get-app__qr img, .get-app__present-qr img { width: 100%; height: 100%; object-fit: contain; }
+.get-app__stage-caption { display: grid; gap: 6px; margin: 0; text-align: center; color: #c9cce3; font-size: 12px; line-height: 1.6; }
+.get-app__stage-caption strong { color: #fff; font-family: var(--font-display); font-size: 17px; font-weight: 500; }
+.get-app__stage-note { width: 100%; margin: auto 0 0; padding-top: 22px; border-top: 1px solid #444975; color: #c9cce3; font-size: 12px; text-align: center; }
+.get-app__body { display: flex; flex-direction: column; gap: 18px; min-width: 0; padding: 38px 32px 26px; }
+.get-app__eyebrow { padding-right: 40px; color: var(--primary); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.get-app__body h2 { margin: 0; font-size: clamp(24px, 2.6vw, 31px); line-height: 1.25; letter-spacing: -.045em; font-weight: 600; }
+.get-app__lede { margin: -5px 0 0; color: var(--app-muted); font-size: 14px; line-height: 1.75; }
+.get-app__actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.get-app__actions .button { min-height: 46px; border-radius: 10px; box-shadow: none; font-size: 13px; white-space: normal; text-shadow: none; transition: background-color 180ms, border-color 180ms, transform 180ms; }
+.get-app__actions .button.primary { background: var(--login-action, #1f2559); color: var(--login-action-ink, #fff); }
+.get-app__actions .button.secondary { background: transparent; color: var(--ink-2); border-color: var(--border); }
+.get-app__actions .button:hover { filter: none; transform: translateY(-1px); box-shadow: none; border-color: var(--primary); }
+.get-app__actions .button.primary:hover { background: color-mix(in srgb, var(--login-action, #1f2559) 90%, var(--surface)); }
+.get-app__actions .button:active { transform: translateY(1px); }
+.get-app__section-title { margin: 4px 0 -6px; font-family: var(--font-body); font-size: 13px; font-weight: 700; }
+.get-app__steps { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; counter-reset: app-step; }
+.get-app__steps li { position: relative; min-height: 26px; padding: 2px 0 0 36px; color: var(--app-muted); font-size: 12px; line-height: 1.7; counter-increment: app-step; }
+.get-app__steps li::before { content: "0" counter(app-step); position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 8px; color: var(--primary); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.get-app__steps b { color: var(--ink); font-weight: 600; }
+.get-app__fallback { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border); }
+.get-app__fallback-title { margin: 0 0 8px; color: var(--app-muted); font-size: 12px; }
+.get-app__link { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.get-app__file { display: grid; gap: 2px; min-width: 0; font-size: 13px; font-weight: 600; }
+.get-app__file span { color: var(--app-muted); font-size: 12px; font-weight: 400; }
+.get-app__file:hover { text-decoration: underline; text-underline-offset: 3px; }
+.get-app__link code:not(.sr-only) { flex-basis: 100%; color: var(--ink); font-size: 12px; overflow-wrap: anywhere; user-select: all; }
+.get-app__copy { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 6px; min-height: 44px; padding: 8px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); color: var(--ink); font-size: 12px; font-weight: 600; transition: background-color 180ms, border-color 180ms; }
+.get-app__copy svg { width: 16px; height: 16px; }
+.get-app__copy:hover { border-color: var(--primary); background: var(--primary-soft); }
+.get-app__copy.is-copied { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.get-app__account-note { margin: -2px 0 0; color: var(--app-muted); font-size: 12px; }
+
+/* The classroom view uses the same dialog, with only its active view focusable. */
+.get-app.is-presenting { padding: 0; }
+.get-app__present {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: 20px 32px;
+  overflow: auto;
+  background: var(--app-navy);
+  color: #fff;
+  animation: appDialogIn 220ms ease-out;
+}
+.get-app__present-header, .get-app__present-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
+.get-app__present-header { padding-bottom: 16px; border-bottom: 1px solid #444975; }
+.get-app__present-kicker { display: flex; align-items: center; gap: 9px; margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 600; }
+.get-app__present-kicker img { width: 40px; height: 40px; object-fit: contain; }
+.get-app__present-kicker span { margin-left: 10px; padding-left: 18px; border-left: 1px solid #666b91; color: #c9cce3; font-family: var(--font-body); font-size: 12px; font-weight: 400; }
+.get-app .get-app__present .button.secondary { min-height: 44px; border: 1px solid #686d98; border-radius: 10px; background: rgba(255,255,255,.08); box-shadow: none; color: #fff; font-size: 13px; }
+.get-app .get-app__present .button.secondary:hover { background: rgba(255,255,255,.16); transform: translateY(-1px); box-shadow: none; }
+.get-app__present :is(button, a):focus-visible { outline-color: #f6d36a; }
+.get-app__present-inner { display: grid; align-content: center; justify-items: center; gap: 12px; width: 100%; text-align: center; }
+.get-app__present-eyebrow { color: #f6d36a; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.get-app__present h2 { margin: 0; color: #fff; font-size: clamp(23px, 3.3vw, 38px); font-weight: 500; line-height: 1.25; letter-spacing: -.04em; }
+.get-app__present-inner > p { margin: 0; color: #c9cce3; font-size: 14px; }
+.get-app__present-qr { width: min(610px, calc(100vw - 64px), max(180px, calc(100dvh - 350px))); aspect-ratio: 1; margin: 6px 0; padding: clamp(12px, 2vw, 22px); border: 1px solid #e1e3eb; border-radius: 16px; background: #fff; }
+.get-app__present-inner .get-app__present-caption { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 6px; font-size: 12px; }
+.get-app__present-caption b { color: #fff; font-weight: 500; }
+.get-app__present-caption > span[aria-hidden] { margin-inline: 6px; color: #f6d36a; }
+.get-app__present-footer { padding-top: 14px; border-top: 1px solid #444975; color: #c9cce3; font-size: 12px; }
+.get-app__present-footer kbd { padding: 2px 5px; border: 1px solid #686d98; border-radius: 4px; font: inherit; }
+
+@media (min-width: 681px) and (max-width: 900px) {
+  .get-app__card { grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr); }
+  .get-app__stage { padding-inline: 20px; }
+  .get-app__body { padding: 32px 24px 24px; }
+  .get-app__brand span { font-size: 12px; }
+}
+@media (max-width: 680px) {
+  .get-app { padding: 12px; }
+  .get-app__card { grid-template-columns: 1fr; max-width: 440px; max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .get-app__stage { align-items: flex-start; gap: 12px; padding: 20px 70px 20px 20px; }
+  .get-app__brand { font-size: 20px; }
+  .get-app__badge { margin: 0 0 0 54px; font-size: 12px; }
+  .get-app__scanner, .get-app__stage-caption, .get-app__stage-note { display: none; }
+  .get-app__close { top: 16px; right: 16px; border-color: #686d98; background: rgba(255,255,255,.12); color: #fff; }
+  .get-app__close:hover { background: rgba(255,255,255,.22); color: #fff; }
+  .get-app__close:focus-visible { outline-color: #f6d36a; }
+  .get-app__body { gap: 16px; padding: 22px 20px; }
+  .get-app__body h2 { font-size: 26px; }
+  .get-app__lede { font-size: 13px; }
+  .get-app__actions .button { min-height: 48px; }
+  .get-app__present { padding: 16px; gap: 18px; }
+  .get-app__present-header { padding-bottom: 12px; }
+  .get-app__present-kicker { font-size: 18px; }
+  .get-app__present-kicker span, .get-app__back-detail { display: none; }
+  .get-app__present-inner { gap: 12px; }
+  .get-app__present h2 { max-width: 310px; }
+  .get-app__present-inner > p { max-width: 290px; font-size: 13px; }
+  .get-app__present-qr { width: min(480px, calc(100vw - 40px), max(180px, calc(100dvh - 340px))); }
+  .get-app__present-footer { flex-wrap: wrap; gap: 12px; }
+}
+@media (max-height: 540px) and (min-width: 681px) {
+  .get-app__present { grid-template-columns: 1fr; padding-block: 12px; }
+  .get-app__present-inner { grid-template-columns: 1fr 1fr; column-gap: 32px; max-width: 800px; margin: auto; text-align: left; justify-items: start; }
+  .get-app__present-qr { grid-column: 2; grid-row: 1 / span 4; width: min(36vw, max(180px, calc(100dvh - 160px))); justify-self: center; }
+  .get-app__present h2 { font-size: 27px; }
+  .get-app__present-inner .get-app__present-caption { justify-content: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .get-app *, .get-app::backdrop, .get-app-trigger, .get-app-trigger::after, .get-app-trigger * { animation: none !important; transition: none !important; }
+}

@@ -14,7 +14,7 @@ export const canRestore = (history) => Boolean(history?.get("latestArchiveId") &
  * Failure leaves both the roster and all active progress intact. Each leave creates
  * an immutable snapshot; starting fresh never overwrites previous results.
  */
-export async function archiveClassMember(firestore, teacherId, classId, studentId) {
+export async function archiveClassMember(firestore, teacherId, classId, studentId, requestKey = null) {
   const archiveId = randomUUID();
   const legacySession = randomUUID();
   return firestore.runTransaction(async (tx) => {
@@ -29,6 +29,11 @@ export async function archiveClassMember(firestore, teacherId, classId, studentI
     }
     if (!roster.exists) throw new ProgressError(404, "This student is not in the class.");
     if (!user.exists || user.get("classId") !== classId) throw new ProgressError(409, "The student's class changed. Refresh before removing them.");
+    if(requestKey !== null) {
+      const stamp=roster.get("leaveRequest.requestedAt");
+      const key=studentId+":"+(stamp?.toMillis?.()||0)+":"+(stamp?.nanoseconds||0);
+      if(!roster.get("leaveRequest")||key!==requestKey)throw new ProgressError(409,"The leave request changed. Refresh before approving.");
+    }
     const progress = await tx.get(userRef.collection("assignedLessons"));
     const archive = history.collection("archives").doc(archiveId);
     const progressSession = user.get("progressSession") || legacySession;
@@ -37,6 +42,7 @@ export async function archiveClassMember(firestore, teacherId, classId, studentI
       classId, className: classroom.get("className") || "", studentId,
       progressSession, joinedAt, progressCount: progress.size,
       skillSummary: user.get("skillSummary") || null,
+      droppedPeriods:roster.get("droppedPeriods") || [],deadlineOverrides:roster.get("deadlineOverrides") || {},
       archivedAt: FieldValue.serverTimestamp(), archivedBy: teacherId,
     });
     for (const lesson of progress.docs) {
@@ -50,7 +56,7 @@ export async function archiveClassMember(firestore, teacherId, classId, studentI
     tx.delete(rosterRef);
     tx.update(userRef, {
       classId: FieldValue.delete(), className: FieldValue.delete(),
-      progressSession: FieldValue.delete(), skillSummary: FieldValue.delete(),
+      progressSession: FieldValue.delete(), skillSummary: FieldValue.delete(), enrollmentStatus:FieldValue.delete(), enrollmentVersion:FieldValue.delete(),
     });
     return { removed: true, lessonsArchived: progress.size };
   });

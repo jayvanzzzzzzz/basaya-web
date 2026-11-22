@@ -157,7 +157,7 @@ async function teacherOperation(db, uid, body, storage) {
   if (typeof body.feedback !== 'string' || body.feedback.length > 1000) fail(400, 'Keep feedback within 1000 characters.');
   await db.runTransaction(async tx => {
     const studentBody = { classId: body.classId, progressSession: entry.progressSession, lessonId: entry.lessonId };
-    await context(tx, db, entry.uid, studentBody, { open: false });
+    await context(tx, db, entry.uid, studentBody, { open: false, historicalTeacher:uid });
     const current = (await tx.get(attemptRef)).data();
     if (!['submitted', 'graded'].includes(current?.status)) fail(409, 'This reading is not submitted.');
     const score = grade.accuracy + grade.smoothness + grade.expression;

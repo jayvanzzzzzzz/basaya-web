@@ -1,0 +1,2063 @@
+import { captureRoute } from "../../js/route-lifecycle.js";
+import { reserveLessonCopy } from '../../js/modules.js';
+import { confirmAction } from "../../js/action-confirmation.js";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  serverTimestamp,
+  writeBatch,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "../../js/firebase.js";
+import { generateSpeech, saveSpeech } from "../../js/tts.js";
+import { postToApi } from '../../js/api.js';
+import { attachFloatingTooltips } from '../../js/floatingTooltip.js';
+import { setButtonSaving } from '../../js/buttonSaving.js';
+import { state, getAllLessons } from "../../js/state.js";
+import {
+  $,
+  $$,
+  empty,
+  escapeHtml,
+  notify,
+  openModal,
+  page,
+  safeHttpUrl,
+  toast,
+} from "../../js/helpers.js";
+import { clearFieldError, fieldError } from "../../js/field-errors.js";
+import { paginate } from "../../js/pagination.js";
+import { lookupWord, syllablesFor } from "../../js/dictionary.js";
+import { syllabify } from "../../js/syllables.js";
+import { openWordModal } from "../../teacher/views/dictionary.js";
+import {
+  checkLevel,
+  gameLevelHtml,
+  readGameLevels,
+  refreshLevel,
+  validateGameLevels,
+  wireGameLevels,
+  wordsFromText,
+} from "./gameLevels.js";
+import { openLessonViewer, loadLessonSections as getLessonSections } from "./lessonViewer.js";
+import { openDeleteLesson } from "./lessonDeletion.js";
+import { confirmDuplicateTitle, findDuplicate, sameTitle } from "./duplicateTitle.js";
+import { missingChecklist } from "./missingChecklist.js";
+import { mountPronunciationPages, audioGenerateButton } from "./pronunciationPages.js";
+import { audioPreviewHtml, mountLessonMediaPlayers } from './lessonMediaPlayer.js';
+
+const DIFFICULTIES = ["madali", "masusing aralin", "malalim na aralin"];
+const MAX_SENTENCES_PER_LECTURE_PAGE = 4;
+const PRONUNCIATION_INSTRUCTION = "Pindutin ang mikropono habang bumabasa";
+const MAX_AUDIO_GENERATIONS_PER_SENTENCE = 5;
+const LESSON_WORD_FIELDS =
+  "[data-pronunciation-text], [data-pronunciation-sentence], [data-activity-words], [data-sentence-text], [data-question-text], [data-choice-text]";
+const previews = new WeakMap();
+
+function lessonDifficultyMeta(level = "") {
+  const value = String(level).trim().toLowerCase();
+
+  if (value.includes("malalim")) {
+    return {
+      label: "Advanced",
+      className: "difficulty--advanced",
+      accent: "#7c3aed",
+    };
+  }
+
+  if (value.includes("masusing")) {
+    return {
+      label: "Intermediate",
+      className: "difficulty--intermediate",
+      accent: "#f59e0b",
+    };
+  }
+
+  return {
+    label: "Beginner",
+    className: "difficulty--beginner",
+    accent: "#16a34a",
+  };
+}
+
+let activeLessonFilter = "all";
+let activeLessonSearch = "";
+// Pagination survives the directory re-rendering on each search/filter change.
+let lessonPage = 1;
+let lessonPageSize = 10;
+
+function closeLessonMenus() {
+  document.querySelectorAll(".admin-lesson-menu-popup").forEach((menu) => {
+    menu.hidden = true;
+    menu
+      .closest(".admin-lesson-menu")
+      ?.querySelector(".admin-lesson-menu-toggle")
+      ?.setAttribute("aria-expanded", "false");
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (
+    event.target instanceof Element &&
+    !event.target.closest(".admin-lesson-menu")
+  ) {
+    closeLessonMenus();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeLessonMenus();
+});
+
+export async function renderLessons(options = {}) {
+  const editLesson = options.onEdit || openLessonModal;
+  const isCurrent = captureRoute("/lessons");
+  if (!isCurrent()) return;
+  await getAllLessons();
+  if (!isCurrent()) return;
+
+  // A–Z by title (ignoring case and accents; "Aralin 2" before "Aralin 10"); untitled last.
+  const lessons = [...state.allLessons].sort((a, b) => {
+    const left = (a.title || "").trim();
+    const right = (b.title || "").trim();
+    if (!left || !right) return !left - !right;
+    return left.localeCompare(right, "fil", { sensitivity: "base", numeric: true });
+  });
+
+  page(
+    "Lessons",
+    [`${lessons.length} ${lessons.length === 1 ? "lesson" : "lessons"}`],
+    '<button class="button primary admin-add-button" id="add-lesson" type="button" aria-label="Add lesson"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M18 15v6m-3-3h6"/></svg></button>',
+  );
+
+  const pageContent = $("#page-content");
+  const renderDirectory = () => {
+    const counts = {
+      all: lessons.length,
+      beginner: lessons.filter(
+        (lesson) => lessonDifficultyMeta(lesson.difficulty).label === "Beginner",
+      ).length,
+      intermediate: lessons.filter(
+        (lesson) => lessonDifficultyMeta(lesson.difficulty).label === "Intermediate",
+      ).length,
+      advanced: lessons.filter(
+        (lesson) => lessonDifficultyMeta(lesson.difficulty).label === "Advanced",
+      ).length,
+    };
+    const visibleLessons =
+      activeLessonFilter === "all"
+        ? lessons
+        : lessons.filter(
+            (lesson) =>
+              lessonDifficultyMeta(lesson.difficulty).label.toLowerCase() ===
+              activeLessonFilter,
+          );
+    const searchKey = (lesson) => (lesson.title || "Untitled lesson").toLowerCase();
+
+    pageContent.innerHTML = `
+      <section class="admin-lesson-directory" aria-label="Lesson library">
+        <div class="admin-lesson-directory__intro">
+          <div>
+            <span class="admin-lesson-directory__eyebrow">Learning library</span>
+            <h2>Lessons, at a glance</h2>
+            <p>Browse and organize learning content by level.</p>
+          </div>
+          <span class="admin-lesson-directory__total"><strong>${lessons.length}</strong> ${lessons.length === 1 ? "lesson" : "lessons"}</span>
+        </div>
+        <label class="admin-lesson-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
+          <span class="sr-only">Search lessons</span>
+          <input
+            type="search"
+            data-lesson-search
+            placeholder="Search by lesson title..."
+            value="${escapeHtml(activeLessonSearch)}"
+            autocomplete="off"
+          />
+          <kbd>/</kbd>
+        </label>
+        <nav class="admin-lesson-filters" aria-label="Filter lessons by difficulty">
+          ${[
+            ["all", "All"],
+            ["beginner", "Beginner"],
+            ["intermediate", "Intermediate"],
+            ["advanced", "Advanced"],
+          ]
+            .map(
+              ([filter, label]) => `
+                <button
+                  type="button"
+                  class="admin-lesson-filter ${activeLessonFilter === filter ? "is-active" : ""}"
+                  data-lesson-filter="${filter}"
+                  aria-pressed="${activeLessonFilter === filter}"
+                >
+                  <span>${label}</span>
+                  <span class="admin-lesson-filter__count">${counts[filter]}</span>
+                </button>
+              `,
+            )
+            .join("")}
+        </nav>
+        <div class="admin-lesson-table-wrap">
+          <table class="table admin-lesson-table">
+            <thead>
+              <tr>
+                <th scope="col">Lesson title</th>
+                <th scope="col">Difficulty</th>
+                <th scope="col" aria-label="Lesson actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${visibleLessons
+                      .map((lesson) => {
+                        const meta = lessonDifficultyMeta(lesson.difficulty);
+                        const title = lesson.title || "Untitled lesson";
+                        return `
+                          <tr data-lesson-row="${escapeHtml(searchKey(lesson))}">
+                            <td>
+                              <div class="admin-lesson-table__title">
+                                <span>
+                                  <strong>${escapeHtml(title)}</strong>
+                                  <small>${escapeHtml(lesson.description || "No description yet.")}</small>
+                                </span>
+                              </div>
+                            </td>
+                            <td><span class="admin-lesson-difficulty ${meta.className}"><span aria-hidden="true"></span>${escapeHtml(meta.label)}</span></td>
+                            <td>
+                              <div class="admin-lesson-menu">
+                                <button
+                                  type="button"
+                                  class="admin-lesson-menu-toggle"
+                                  aria-label="Actions for ${escapeHtml(title)}"
+                                  aria-haspopup="true"
+                                  aria-expanded="false"
+                                >
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                </button>
+                                <div class="admin-lesson-menu-popup" hidden>
+                                  <button type="button" class="admin-lesson-menu-item" data-view-lesson="${escapeHtml(lesson.id)}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                                    <span>View lesson</span>
+                                  </button>
+                                  <button type="button" class="admin-lesson-menu-item" data-edit-lesson="${escapeHtml(lesson.id)}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
+                                    <span>Edit lesson</span>
+                                  </button>
+                                  <button type="button" class="admin-lesson-menu-item admin-lesson-menu-item--danger" data-delete-lesson="${escapeHtml(lesson.id)}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
+                                    <span>Delete lesson</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        `;
+                      })
+                      .join("")}
+              <tr data-lesson-empty hidden><td class="admin-lesson-table__empty" colspan="3"></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+
+    pageContent
+      .querySelectorAll("[data-lesson-filter]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          activeLessonFilter = button.dataset.lessonFilter;
+          lessonPage = 1;
+          closeLessonMenus();
+          renderDirectory();
+        });
+      });
+
+    // Searching only hides rows (pagination recounts them), so the page isn't rebuilt on every key and nothing flickers.
+    const applySearch = () => {
+      const query = activeLessonSearch.trim().toLowerCase();
+      let shown = 0;
+      $$("[data-lesson-row]", pageContent).forEach((row) => {
+        row.hidden = !row.dataset.lessonRow.includes(query);
+        if (!row.hidden) shown += 1;
+      });
+      const emptyRow = $("[data-lesson-empty]", pageContent);
+      emptyRow.hidden = shown > 0;
+      emptyRow.firstElementChild.textContent = query
+        ? `No lessons match “${activeLessonSearch.trim()}”.`
+        : `No ${activeLessonFilter} lessons yet.`;
+    };
+    applySearch();
+
+    const searchInput = pageContent.querySelector("[data-lesson-search]");
+    searchInput.addEventListener("input", () => {
+      activeLessonSearch = searchInput.value;
+      closeLessonMenus();
+      applySearch();
+    });
+
+    visibleLessons.forEach((lesson) => {
+      const viewButton = [
+        ...pageContent.querySelectorAll("[data-view-lesson]"),
+      ].find((button) => button.dataset.viewLesson === lesson.id);
+      const row = viewButton?.closest("tr");
+      const editButton = [
+        ...(row?.querySelectorAll("[data-edit-lesson]") || []),
+      ].find((button) => button.dataset.editLesson === lesson.id);
+      const deleteButton = [
+        ...(row?.querySelectorAll("[data-delete-lesson]") || []),
+      ].find((button) => button.dataset.deleteLesson === lesson.id);
+      const toggle = row?.querySelector(".admin-lesson-menu-toggle");
+      const popup = row?.querySelector(".admin-lesson-menu-popup");
+
+      toggle?.addEventListener("click", () => {
+        const willOpen = popup.hidden;
+        closeLessonMenus();
+        popup.hidden = !willOpen;
+        toggle.setAttribute("aria-expanded", String(willOpen));
+      });
+      viewButton?.addEventListener("click", () => {
+        closeLessonMenus();
+        openLessonViewer(lesson, { loadSections: getLessonSections, onEdit: editLesson });
+      });
+      editButton?.addEventListener("click", () => {
+        closeLessonMenus();
+        editLesson(lesson);
+      });
+      deleteButton?.addEventListener("click", () => {
+        closeLessonMenus();
+        openDeleteLesson(lesson, options.onRefresh || renderLessons);
+      });
+    });
+
+    paginate({
+      rows: () => $$("[data-lesson-row]", pageContent),
+      after: pageContent.querySelector(".admin-lesson-table-wrap"),
+      search: searchInput,
+      label: ["lesson", "lessons"],
+      page: lessonPage,
+      pageSize: lessonPageSize,
+      onChange: ({ page: nextPage, pageSize }) => {
+        lessonPage = nextPage;
+        lessonPageSize = pageSize;
+      },
+    });
+  };
+
+  if (lessons.length) {
+    renderDirectory();
+  } else {
+    pageContent.innerHTML = empty(
+        "No lessons yet",
+        "Create your first lesson and its learning activities.",
+        "Add lesson",
+        "add-lesson-empty",
+      );
+  }
+
+  $("#add-lesson")?.addEventListener("click", () => editLesson());
+  $("#add-lesson-empty")?.addEventListener("click", () => editLesson());
+}
+
+// Saved as the Filipino key (the apps read it); shown in English.
+function difficultyOptions(selected) {
+  return DIFFICULTIES
+    .map(
+      (value) =>
+        `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(lessonDifficultyMeta(value).label)}</option>`,
+    )
+    .join("");
+}
+
+// Section titles and instructions start from the lesson title; the teacher can still edit them.
+const TITLE_DEFAULTS = {
+  "[data-lecture-title]": (title) => `Ano ang ${title}?`,
+  "[data-quiz-title]": (title) => `PAGSUSULIT - ${title.toUpperCase()}`,
+  "[data-activity-title]": (title) => `PAGSASANAY: HANAPIN ANG ${title.toUpperCase()}`,
+  "[data-activity-instruction]": (title) => `Pindutin at piliin ang salitang ${title.toLowerCase()} sa pangungusap.`,
+  "[data-pronunciation-title]": (title) => `BIGKASIN ANG MGA ${title.toUpperCase()}`,
+};
+
+/**
+ * Fills empty section titles/instructions from the lesson title, then keeps them in step
+ * while the title is typed. A field the teacher rewrote no longer matches its default and
+ * is left alone.
+ */
+function wireTitleDefaults(modal) {
+  const titleInput = $('[name="title"]', modal);
+  let lastTitle = titleInput.value.trim();
+  // Older lessons saved the bare lesson title as the lecture title; treat it as unset.
+  const lectureTitle = $("[data-lecture-title]", modal);
+  if (lastTitle && lectureTitle.value.trim() === lastTitle) lectureTitle.value = "";
+  const fill = (previous, next) => {
+    Object.entries(TITLE_DEFAULTS).forEach(([selector, make]) => {
+      const field = $(selector, modal);
+      const value = field.value.trim();
+      if (value && (!previous || value !== make(previous))) return;
+      field.value = next ? make(next) : "";
+    });
+  };
+  if (lastTitle) fill("", lastTitle);
+  titleInput.addEventListener("input", () => {
+    const title = titleInput.value.trim();
+    fill(lastTitle, title);
+    lastTitle = title;
+  });
+}
+
+function studioHtml(lesson = {}, sections = {}, copy = false) {
+  return `
+    <div class="lesson-studio">
+      <div class="lesson-studio__heading">
+        <div>
+          <p class="eyebrow">BASAya lesson studio</p>
+          <h2>${copy ? "Edit a lesson copy" : lesson.id ? "Edit lesson" : "Create a new lesson"}</h2>
+        </div>
+        <span class="lesson-studio__badge">Lesson studio</span>
+      </div>
+      <div class="lesson-studio__tabs">
+        <button type="button" class="lesson-tab active" data-step="basics">1. Basics</button>
+        <button type="button" class="lesson-tab" data-step="lectures">2. Lecture</button>
+        <button type="button" class="lesson-tab" data-step="quiz">3. Quiz</button>
+        <button type="button" class="lesson-tab" data-step="activity">4. Activity</button>
+        <button type="button" class="lesson-tab" data-step="pronunciation">5. Pronunciation</button>
+        <button type="button" class="lesson-tab" data-step="game">6. Game</button>
+      </div>
+
+      <div class="lecture-page-navigation" data-lecture-page-navigation hidden>
+        <div class="lecture-page-navigation__controls">
+          <h4 class="lecture-page-navigation__title">Lecture Pages <span class="lesson-subheading__count" data-lecture-page-count></span></h4>
+          <div class="lecture-page-ribbons" data-lecture-page-ribbons aria-label="Lecture pages"></div>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-lecture-page aria-label="Add lecture page" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+        </div>
+      </div>
+
+      <div class="lecture-page-navigation" data-game-level-navigation hidden>
+        <div class="lecture-page-navigation__controls">
+          <h4 class="lecture-page-navigation__title">Game Levels <span class="lesson-subheading__count" data-game-level-count></span></h4>
+          <div class="lecture-page-ribbons" data-game-level-ribbons aria-label="Game levels"></div>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-level-button" data-add-game-level aria-label="Add game level" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 8-4 8 4-8 4-8-4ZM3 11l8 4 5-2.5M3 16l8 4 2-1M17 18h6M20 15v6"/></svg></button>
+        </div>
+      </div>
+
+      <div class="lecture-page-navigation" data-pronunciation-page-navigation hidden>
+        <div class="lecture-page-navigation__controls">
+          <h4 class="lecture-page-navigation__title">Pronunciation Pages <span class="lesson-subheading__count" data-pronunciation-page-count></span></h4>
+          <div class="lecture-page-ribbons" data-pronunciation-page-ribbons aria-label="Pronunciation pages"></div>
+          <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-pronunciation-page aria-label="Add pronunciation page" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+        </div>
+      </div>
+
+        <form id="lesson-form" novalidate data-confirm-manually>
+        <section class="lesson-step active" data-panel="basics">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">01</span>
+            <div>
+              <h3>Lesson basics</h3>
+              <p>These details appear in the lesson list.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              Lesson title
+              <input name="title" required maxlength="120" value="${escapeHtml(lesson.title || "")}" placeholder="e.g. Pangngalan" />
+            </label>
+            <label>
+              Difficulty
+              <select name="difficulty" required>
+                ${difficultyOptions(lesson.difficulty || "madali")}
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Description
+            <input name="description" required maxlength="300" value="${escapeHtml(lesson.description || "")}" placeholder="What will the learner study?" />
+          </label>
+        </section>
+
+        <section class="lesson-step" data-panel="lectures">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">02</span>
+            <div>
+              <h3>Lecture Pages</h3>
+              <p>Generate and listen to each sentence before publishing the lesson.</p>
+            </div>
+          </div>
+
+          <label>Lecture title<input data-lecture-title value="${escapeHtml(sections.lectures?.title || "")}" placeholder="Ano ang Pangngalan?" /></label>
+
+          <div class="lecture-pages" data-lecture-pages></div>
+        </section>
+
+        <section class="lesson-step" data-panel="quiz">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">03</span>
+            <div>
+              <h3>Quiz</h3>
+              <p>Every quiz question has three choices.</p>
+            </div>
+          </div>
+
+          <label>Quiz title<input data-quiz-title value="${escapeHtml(sections.quiz?.title || "")}" placeholder="PAGSUSULIT - PANGNGALAN" /></label>
+
+          <div class="lesson-subheading">
+            <h4>Quiz questions <span class="lesson-subheading__count" data-card-count></span></h4>
+            <button type="button" class="button secondary small lesson-add-button lesson-add-question-button" data-add-question aria-label="Add quiz question" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M8 11a2 2 0 0 1 4 0c0 1.5-2 1.5-2 3M10 17h.01M17 17h6M20 14v6"/></svg></button>
+          </div>
+          <div data-quiz-questions></div>
+        </section>
+
+        <section class="lesson-step" data-panel="activity">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">04</span>
+            <div>
+              <h3>Tap-the-word activity</h3>
+              <p>Add a page, enter a sentence, then select the correct words.</p>
+            </div>
+          </div>
+
+          <label class="game-skip-option">
+            <input
+              type="checkbox"
+              data-skip-activity
+              ${sections.activityStatus?.completion === "skipped" ? "checked" : ""}
+            />
+            <span>Skip Gawain for this lesson</span>
+          </label>
+          <p class="muted">When selected, the activity controls are disabled and no activity is saved.</p>
+          <div data-activity-editor>
+            <label>Activity title<input data-activity-title value="${escapeHtml(sections.activity?.title || "")}" placeholder="PAGSASANAY: HANAPIN ANG PANGNGALAN" /></label>
+            <label>Instruction<textarea data-activity-instruction placeholder="Pindutin at piliin ang salitang pangngalan sa pangungusap.">${escapeHtml(sections.activity?.instruction || "")}</textarea></label>
+            <label>General explanation<textarea data-activity-explanation placeholder="Ipaliwanag ang konsepto.">${escapeHtml(sections.activity?.explanation || "")}</textarea></label>
+
+            <div class="lesson-subheading">
+              <h4>Activity pages <span class="lesson-subheading__count" data-card-count></span></h4>
+              <button type="button" class="button secondary small lesson-add-button lesson-add-page-button" data-add-activity-page aria-label="Add activity page" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3l5 5M13 3v5h5v4M17 17h6M20 14v6"/></svg></button>
+            </div>
+            <div data-activity-pages></div>
+          </div>
+        </section>
+
+        <section class="lesson-step" data-panel="pronunciation">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">05</span>
+            <div>
+              <h3>Pronunciation practice</h3>
+              <p>Prepare Get Ready words, then model sentence reading with 1–8 pronunciation pages.</p>
+            </div>
+          </div>
+
+          <label>Pronunciation title<input data-pronunciation-title value="${escapeHtml(sections.pronunciation?.title || "")}" placeholder="BIGKASIN ANG MGA PANGNGALAN" /></label>
+
+          <div data-pronunciation-legacy hidden>
+            <p class="muted">This lesson uses original word practice. Keep it, or switch to sentence pages. Switching replaces the word list when you save.</p>
+            <button type="button" class="button secondary small" data-enable-pronunciation-pages>Use sentence pages</button>
+          </div>
+          <div data-pronunciation-sentence-section>
+            <p class="muted">Up to 200 characters per page, including spaces and punctuation.</p>
+            <div class="sentence-builder" data-pronunciation-pages></div>
+            <p class="muted">Click a word to add it to Get Ready. Selected words turn green with a checkmark. Use the trash icon beside a Get Ready word, or double-click a selected word, to remove it after confirmation.</p>
+            <div class="pronunciation-word-picker" data-pronunciation-word-picker></div>
+          </div>
+          <div class="lesson-subheading">
+            <h4>Get Ready words <span class="lesson-subheading__count" data-card-count></span></h4>
+            <button type="button" class="button secondary small lesson-add-button" data-add-pronunciation-word aria-label="Add Get Ready word" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          </div>
+          <div data-pronunciation-words></div>
+        </section>
+
+        <section class="lesson-step" data-panel="game">
+          <div class="lesson-section-intro">
+            <span class="lesson-section-number">06</span>
+            <div>
+              <h3>Game</h3>
+              <p>Game-level order is automatic.</p>
+            </div>
+          </div>
+
+          <label class="game-skip-option">
+            <input
+              type="checkbox"
+              data-skip-game
+              ${sections.gameStatus?.completion === "skipped" ? "checked" : ""}
+            />
+            <span>Skip game for this lesson</span>
+          </label>
+          <p class="muted">When selected, game controls are disabled and no game levels are saved.</p>
+          <div data-game-editor>
+            <div data-game-levels></div>
+          </div>
+        </section>
+
+        <div class="lesson-studio__footer">
+          <button type="button" class="button secondary" data-close>Cancel</button>
+          <button type="submit" class="button primary">${copy ? "Save copy" : lesson.id ? "Save changes" : "Publish lesson"}</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function activityPageHtml(page = {}) {
+  const sentence = (page.words || []).join(" ");
+  const correctIndices = (page.correctIndices || [])
+    .map(Number)
+    .filter((index) => Number.isInteger(index) && index >= 0)
+    .join(",");
+
+  return `
+    <article class="builder-card" data-activity-page data-correct-indices="${correctIndices}">
+      <div class="builder-card__header">
+        <strong data-card-number>Activity page</strong>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-activity-page aria-label="Remove activity page" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+      </div>
+      <label>
+        Enter the sentence here
+        <input data-activity-words value="${escapeHtml(sentence)}" placeholder="The boy is happy" />
+      </label>
+      <div class="activity-answer-picker" data-activity-answer-picker hidden>
+        <span class="activity-answer-picker__label">Click the correct answer</span>
+        <div class="activity-answer-picker__words" data-activity-answer-words></div>
+      </div>
+    </article>
+  `;
+}
+
+function activityWords(page) {
+  return $("[data-activity-words]", page)
+    .value.trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function activityCorrectIndices(page) {
+  return [...new Set(
+    (page.dataset.correctIndices || "")
+      .split(",")
+      .map(Number)
+      .filter((index) => Number.isInteger(index) && index >= 0),
+  )].sort((a, b) => a - b);
+}
+
+function renderActivityAnswerPicker(page) {
+  const words = activityWords(page);
+  const picker = $("[data-activity-answer-picker]", page);
+  const wordButtons = $("[data-activity-answer-words]", page);
+
+  if (!words.length) {
+    picker.hidden = true;
+    return;
+  }
+
+  const selected = new Set(activityCorrectIndices(page));
+  wordButtons.innerHTML = words
+    .map(
+      (word, index) => `
+        <button
+          type="button"
+          class="activity-answer-word ${selected.has(index) ? "selected" : ""}"
+          data-activity-answer-word="${index}"
+          aria-pressed="${selected.has(index)}"
+        >${escapeHtml(word)}</button>
+      `,
+    )
+    .join("");
+  picker.hidden = false;
+}
+
+function lecturePageHtml(page = {}) {
+  const sentences = page.sentences?.length ? page.sentences : [""];
+  const cloudAudio = page.cloudAudio || [];
+
+  return `
+    <article class="builder-card" data-lecture-page>
+      <div class="builder-card__header">
+        <strong data-lecture-page-title>Lecture page</strong>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-page aria-label="Remove lecture page" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+      </div>
+      <div class="sentence-builder" data-sentences>
+        ${sentences
+          .map((sentence, index) =>
+            lectureSentenceHtml(
+              sentence,
+              page.audioResNames?.[index] || "",
+              cloudAudio[index] || null,
+            ),
+          )
+          .join("")}
+      </div>
+      <button type="button" class="link-button lesson-add-button lesson-add-sentence-button" data-add-lecture-sentence aria-label="Add lecture sentence" data-floating-tooltip><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h16M3 10h13M3 15h8M3 20h8M16 17h7M19.5 13.5v7"/></svg></button>
+    </article>
+  `;
+}
+
+function lectureSentenceHtml(sentence = "", audioResName = "", cloudAudio = null) {
+  const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
+  return `
+    <div class="sentence-editor" data-lecture-sentence data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}" data-audio-res-name="${escapeHtml(audioResName)}">
+      <label>
+        Sentence
+        <textarea data-sentence-text placeholder="Write the sentence for this page.">${escapeHtml(sentence)}</textarea>
+      </label>
+      <div class="audio-actions">
+        ${audioGenerateButton('lecture')}
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-lecture-sentence aria-label="Remove lecture sentence" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+      </div>
+      <div class="audio-preview" data-audio-preview>
+        ${audioPreviewHtml(audioUrl)}
+      </div>
+    </div>
+  `;
+}
+
+const syllablePreviewText = (syllables, fixed = false) =>
+  syllables.includes("·") ? `Students see: ${escapeHtml(syllables)}${fixed ? " (fixed in the Dictionary)" : ""}` : "";
+
+/**
+ * The syllables Bigkas shows under a word: the automatic split right away, then a
+ * teacher's fix from the Dictionary if there is one (fetched after typing stops).
+ * Also warns when the Dictionary doesn't have the word, since Bigkas then shows no meaning.
+ */
+function refreshSyllablePreview(row, delay = 0) {
+  const preview = $("[data-syllable-preview]", row);
+  const missing = $("[data-dict-missing]", row);
+  const word = $("[data-pronunciation-text]", row).value.trim();
+  const auto = syllabify(word);
+  preview.innerHTML = syllablePreviewText(auto);
+  clearTimeout(row.syllableTimer);
+  if (!word) {
+    missing.hidden = true;
+    return;
+  }
+  row.syllableTimer = setTimeout(async () => {
+    const [shown, entry] = await Promise.all([syllablesFor(word), lookupWord(word)]);
+    if ($("[data-pronunciation-text]", row).value.trim() !== word) return;
+    preview.innerHTML = syllablePreviewText(shown, shown !== auto);
+    $("[data-dict-missing-text]", missing).textContent =
+      `“${word}” is not in the dictionary, so students won't see its meaning.`;
+    missing.hidden = Boolean(entry);
+  }, delay);
+}
+
+function pronunciationWordHtml(word = "", audioRef = "", cloudAudio = null) {
+  const audioUrl = safeHttpUrl(cloudAudio?.audioUrl);
+  return `
+    <div class="pronunciation-editor" data-pronunciation-word data-cloud-audio="${escapeHtml(JSON.stringify(cloudAudio))}" data-audio-ref="${escapeHtml(audioRef)}">
+      <div class="pronunciation-word-field">
+        <label>
+          <span data-card-number>Word</span>
+          <input data-pronunciation-text value="${escapeHtml(word)}" placeholder="Arkipelago" />
+        </label>
+        <div class="pronunciation-word-actions">
+          ${audioGenerateButton('word')}
+          <button type="button" class="text-button danger lesson-remove-button" data-remove-pronunciation-word data-floating-tooltip aria-label="Remove from Get Ready"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+        </div>
+      </div>
+      <small class="muted syllable-preview" data-syllable-preview>${syllablePreviewText(syllabify(word))}</small>
+      <div class="dict-missing" data-dict-missing role="status" hidden>
+        <span data-dict-missing-text></span>
+        <button type="button" class="button secondary small lesson-add-button" data-add-to-dictionary data-floating-tooltip aria-label="Add word to dictionary"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11a2 2 0 0 1 2 2v6M5 3a2 2 0 0 0-2 2v13a3 3 0 0 0 3 3h6M5 3v14M3 18a2 2 0 0 1 2-2h7M8 7h6M8 10h4M18 14v8M14 18h8"/></svg></button>
+      </div>
+      <div class="audio-preview" data-audio-preview>
+        ${audioPreviewHtml(audioUrl, { word: true })}
+      </div>
+    </div>
+  `;
+}
+
+// Each question needs its own radio-group names so checking one answer unchecks the others.
+let questionSeq = 0;
+
+const ANSWER_HINTS = {
+  single: "Pumili ng isang tamang sagot.",
+  multiple: "Lagyan ng check ang lahat ng tamang sagot.",
+};
+
+/** Correct answer indices: `answers` (multiple-answer quizzes) or the older single `answer`. */
+function questionAnswers(question) {
+  if (Array.isArray(question.answers) && question.answers.length) {
+    return question.answers.map(Number).filter((index) => Number.isInteger(index));
+  }
+  return Number.isInteger(question.answer) ? [question.answer] : [];
+}
+
+function questionHtml(question = {}) {
+  const id = `quiz-q${++questionSeq}`;
+  const choices = question.choices?.length === 3 ? question.choices : ["", "", ""];
+  const multiple = question.multiple === true;
+  const answers = new Set(questionAnswers(question));
+  const answerType = multiple ? "checkbox" : "radio";
+
+  return `
+    <article class="builder-card" data-question>
+      <div class="builder-card__header">
+        <strong data-card-number>Quiz question</strong>
+        <button type="button" class="text-button danger lesson-remove-button" data-remove-question aria-label="Remove quiz question" data-floating-tooltip><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>
+      </div>
+      <label>Question<textarea data-question-text placeholder="Write a question.">${escapeHtml(question.question || "")}</textarea></label>
+
+      <div class="quiz-answer-mode" role="radiogroup" aria-label="Answer type">
+        <label>
+          <input type="radio" name="${id}-mode" value="single" data-answer-mode ${multiple ? "" : "checked"} />
+          Isang tamang sagot
+        </label>
+        <label>
+          <input type="radio" name="${id}-mode" value="multiple" data-answer-mode ${multiple ? "checked" : ""} />
+          Maraming tamang sagot
+        </label>
+      </div>
+      <p class="quiz-answer-hint" data-answer-hint>${ANSWER_HINTS[multiple ? "multiple" : "single"]}</p>
+
+      <div class="choice-grid">
+        ${choices
+          .map(
+            (choice, index) => `
+              <div class="choice-editor">
+                <label class="choice-answer">
+                  <input
+                    type="${answerType}"
+                    name="${id}-answer"
+                    data-answer-choice
+                    value="${index}"
+                    ${answers.has(index) ? "checked" : ""}
+                  />
+                  Correct answer
+                </label>
+                <input
+                  data-choice-text
+                  value="${escapeHtml(choice)}"
+                  placeholder="Choice ${index + 1}"
+                  aria-label="Choice ${index + 1}"
+                />
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+      <p class="quiz-question-error" data-question-error hidden>Pumili ng tamang sagot para sa tanong na ito.</p>
+    </article>
+  `;
+}
+
+/** Switch a question between one correct answer (radio group) and several (checkboxes). */
+function setQuestionAnswerMode(question, multiple) {
+  const inputs = $$("[data-answer-choice]", question);
+  const checked = inputs.map((input) => input.checked);
+  let keptOne = false;
+
+  inputs.forEach((input, index) => {
+    input.type = multiple ? "checkbox" : "radio";
+    // Going back to one answer keeps only the first checked choice.
+    const keep = multiple ? checked[index] : checked[index] && !keptOne;
+    if (keep) keptOne = true;
+    input.checked = keep;
+  });
+
+  $("[data-answer-hint]", question).textContent = ANSWER_HINTS[multiple ? "multiple" : "single"];
+}
+
+function clearQuestionError(question) {
+  question.classList.remove("is-invalid");
+  $("[data-question-error]", question).hidden = true;
+}
+
+/** Every question that will be saved (text and all three choices filled) needs at least one correct answer. Returns the first invalid question, or null. */
+function validateQuiz(container) {
+  let firstInvalid = null;
+
+  $$("[data-question]", container).forEach((question) => {
+    const text = $("[data-question-text]", question).value.trim();
+    const choicesFilled = $$("[data-choice-text]", question).every((input) => input.value.trim());
+    const hasAnswer = $$("[data-answer-choice]", question).some((input) => input.checked);
+    const invalid = Boolean(text && choicesFilled && !hasAnswer);
+
+    question.classList.toggle("is-invalid", invalid);
+    $("[data-question-error]", question).hidden = !invalid;
+    if (invalid && !firstInvalid) firstInvalid = question;
+  });
+
+  return firstInvalid;
+}
+
+// Checklist group → the editor tab it lives on.
+const MISSING_GROUPS = {
+  Basics: "basics",
+  Lecture: "lectures",
+  Quiz: "quiz",
+  Activity: "activity",
+  Pronunciation: "pronunciation",
+  Game: "game",
+};
+
+/** "" when a Lecture sentence has audio for the text it shows now, else what to do. */
+function lectureAudioProblem(row, text) {
+  const preview = previews.get(row);
+  if (preview?.blob) return preview.text === text ? "" : "generate audio again (sentence changed)";
+  // Saved cloud audio for this exact text, or a legacy bundled clip.
+  if (existingCloudAudio(row, text) || row.dataset.audioResName) return "";
+  let saved = null;
+  try {
+    saved = JSON.parse(row.dataset.cloudAudio || "null");
+  } catch {}
+  return saved?.audioUrl ? "generate audio again (sentence changed)" : "generate audio";
+}
+
+const duplicateWordMessage = "This word already exists in this lesson.";
+const lessonWordKey = (word) => String(word ?? "").trim().toUpperCase();
+const duplicateWordFields = new WeakMap();
+
+function duplicateLessonWords(modal, skipGame) {
+  const sentenceMode = $('[data-panel="pronunciation"]', modal)?.dataset.pronunciationMode === "sentences";
+  // Get Ready deliberately repeats vocabulary from the other lesson sections.
+  const entries = (sentenceMode ? [] : $$("[data-pronunciation-word]", modal)).flatMap((row, index) => {
+    const field = $("[data-pronunciation-text]", row);
+    return [{ word: field.value, field, kind: "pronunciation", index }];
+  });
+
+  if (!skipGame) {
+    $$("[data-game-level]", modal).forEach((level, index) => {
+      entries.push({
+        word: $("[data-key-word]", level).value,
+        field: $("[data-key-word]", level),
+        kind: "game-key",
+        level,
+        index,
+      });
+      $$("[data-word-chip]", level).forEach((chip) => {
+        entries.push({
+          word: chip.dataset.wordChip,
+          field: $("[data-word-input]", level),
+          chip,
+          kind: "game-word",
+          level,
+          index,
+        });
+      });
+      const input = $("[data-word-input]", level);
+      if (input.value.trim()) {
+        entries.push({
+          word: input.value,
+          field: input,
+          kind: "game-word",
+          level,
+          index,
+        });
+      }
+    });
+  }
+
+  const byWord = new Map();
+  entries.forEach((entry) => {
+    const key = lessonWordKey(entry.word);
+    if (!key) return;
+    if (!byWord.has(key)) byWord.set(key, []);
+    byWord.get(key).push(entry);
+  });
+  return [...byWord.values()].filter((matches) => matches.length > 1).flat();
+}
+
+function updateLessonWordDuplicates(modal, skipGame) {
+  $$("[data-word-chip]", modal).forEach((chip) => {
+    chip.classList.remove("is-duplicate");
+  });
+
+  const duplicates = duplicateLessonWords(modal, skipGame.checked);
+  const fields = new Set();
+  duplicates.forEach((entry) => {
+    fields.add(entry.field);
+    if (entry.chip) {
+      entry.chip.classList.add("is-duplicate");
+    }
+  });
+  const previous = duplicateWordFields.get(modal) || new Set();
+  previous.forEach((field) => {
+    if (!fields.has(field)) clearFieldError(field);
+  });
+  fields.forEach((field) => {
+    if (field.getAttribute("aria-invalid") !== "true") fieldError(field, duplicateWordMessage);
+  });
+  duplicateWordFields.set(modal, fields);
+  return duplicates;
+}
+
+/**
+ * Everything a lesson still needs before it can be published: every field of every part
+ * (a skipped Gawain or game is left out), and audio for each Lecture sentence.
+ * Returns [{ group, step, label, target, lecturePage? }] in the order they appear.
+ */
+function missingFields(modal, { skipActivity, skipGame }) {
+  const missing = [];
+  const add = (group, label, target, extra = {}) =>
+    missing.push({ group, step: MISSING_GROUPS[group], label, target, ...extra });
+  const need = (group, label, selector, root = modal, extra) => {
+    const field = $(selector, root);
+    if (field && !field.value.trim()) add(group, label, field, extra);
+  };
+
+  need("Basics", "Lesson title", '[name="title"]');
+  need("Basics", "Description", '[name="description"]');
+
+  need("Lecture", "Lecture title", "[data-lecture-title]");
+  const lecturePages = $$("[data-lecture-page]", modal);
+  if (!lecturePages.length) add("Lecture", "Add at least one page", $("[data-add-lecture-page]", modal));
+  lecturePages.forEach((page, pageIndex) => {
+    const where = { lecturePage: pageIndex };
+    const rows = $$("[data-lecture-sentence]", page);
+    if (!rows.length) add("Lecture", `Page ${pageIndex + 1}: add a sentence`, $("[data-add-lecture-sentence]", page), where);
+    rows.forEach((row, index) => {
+      const name = `Page ${pageIndex + 1}, sentence ${index + 1}`;
+      const text = $("[data-sentence-text]", row).value.trim();
+      const audio = text && lectureAudioProblem(row, text);
+      if (!text) add("Lecture", name, $("[data-sentence-text]", row), where);
+      else if (audio) add("Lecture", `${name}: ${audio}`, $("[data-generate-sentence-audio]", row), where);
+    });
+  });
+
+  need("Quiz", "Quiz title", "[data-quiz-title]");
+  const questions = $$("[data-question]", modal);
+  if (!questions.length) add("Quiz", "Add at least one question", $("[data-add-question]", modal));
+  questions.forEach((question, index) => {
+    const name = `Question ${index + 1}`;
+    need("Quiz", `${name}: question`, "[data-question-text]", question);
+    $$("[data-choice-text]", question).forEach((choice, choiceIndex) => {
+      if (!choice.value.trim()) add("Quiz", `${name}: choice ${choiceIndex + 1}`, choice);
+    });
+    if (!$$("[data-answer-choice]", question).some((input) => input.checked)) {
+      add("Quiz", `${name}: correct answer`, $(".choice-grid", question));
+    }
+  });
+
+  if (!skipActivity.checked) {
+    need("Activity", "Activity title", "[data-activity-title]");
+    need("Activity", "Instruction", "[data-activity-instruction]");
+    need("Activity", "General explanation", "[data-activity-explanation]");
+    const pages = $$("[data-activity-page]", modal);
+    if (!pages.length) add("Activity", "Add at least one page", $("[data-add-activity-page]", modal));
+    pages.forEach((page, index) => {
+      const words = activityWords(page);
+      if (!words.length) {
+        add("Activity", `Page ${index + 1}: sentence`, $("[data-activity-words]", page));
+      } else if (!activityCorrectIndices(page).some((answer) => answer < words.length)) {
+        add("Activity", `Page ${index + 1}: pick the correct word`, $("[data-activity-answer-picker]", page));
+      }
+    });
+  }
+
+  need("Pronunciation", "Pronunciation title", "[data-pronunciation-title]");
+  if ($('[data-panel="pronunciation"]', modal).dataset.pronunciationMode === "sentences") {
+    const pages = $$("[data-pronunciation-page]", modal);
+    if (!pages.length || pages.length > 8) add("Pronunciation", "Use 1-8 pronunciation pages", $('[data-add-pronunciation-page]', modal));
+    pages.forEach((row, index) => {
+      const field = $('[data-pronunciation-sentence]', row);
+      if (!field.value.trim()) add("Pronunciation", `Page ${index + 1}: write a sentence`, field);
+      else if (field.value.length > 200) add("Pronunciation", `Page ${index + 1}: use at most 200 characters`, field);
+      else {
+        const problem = lectureAudioProblem(row, field.value.trim());
+        if (problem) add("Pronunciation", `Page ${index + 1}: ${problem}`, field);
+      }
+    });
+  }
+  const words = $$("[data-pronunciation-word]", modal);
+  if (!words.length) add("Pronunciation", "Add at least one word", $("[data-add-pronunciation-word]", modal));
+  words.forEach((row, index) => need("Pronunciation", `Word ${index + 1}`, "[data-pronunciation-text]", row));
+
+  if (!skipGame.checked) {
+    const levels = $$("[data-game-level]", modal);
+    if (!levels.length) add("Game", "Add a level, or tick “Skip game”", $("[data-add-game-level]", modal));
+    levels.forEach((level, index) => {
+      if (!checkLevel(level).ok) add("Game", `Level ${index + 1}: fix the words`, level);
+    });
+  }
+
+  duplicateLessonWords(modal, skipGame.checked).forEach((entry) => {
+    if (entry.kind === "pronunciation") {
+      add("Pronunciation", `Word ${entry.index + 1}: already exists in this lesson`, entry.field);
+    } else {
+      add("Game", `Level ${entry.index + 1}: word already exists in this lesson`, entry.level);
+    }
+  });
+
+  return missing;
+}
+
+async function openLessonModal(existing = null, options = {}) {
+  const sections = existing ? await getLessonSections(existing.id) : {};
+  const isCurrent = captureRoute();
+  if (options.isCurrent && !options.isCurrent()) return;
+  const copySource = options.copy ? existing : null;
+  if (copySource) existing = { ...existing, id: null, title: options.copyTitle };
+  // Cancel and × ask before throwing away edits; set once the editor is built.
+  let mayLeave = async () => true;
+
+  const mount = options.mount || openModal;
+  mount(studioHtml(existing || {}, sections, Boolean(copySource)), (modal, close) => {
+    const disposeTooltips = attachFloatingTooltips(modal);
+    const confirmRemoval = async (item, message = 'This removes the item from the lesson draft. Save the lesson to keep this change.') =>
+      await confirmAction({ title: `Remove ${item}?`, message, confirm: 'Remove', danger: true }) && modal.isConnected;
+    const activityPages = $("[data-activity-pages]", modal);
+    const lecturePages = $("[data-lecture-pages]", modal);
+    const lecturePageRibbons = $("[data-lecture-page-ribbons]", modal);
+    const lecturePageNavigation = $("[data-lecture-page-navigation]", modal);
+    const gameLevelRibbons = $("[data-game-level-ribbons]", modal);
+    const gameLevelNavigation = $("[data-game-level-navigation]", modal);
+    const addGameLevelButton = $("[data-add-game-level]", modal);
+
+    // One clip at a time: replaying (or starting another clip) stops the one already playing, so the same audio never overlaps itself and sounds like an echo.
+    const disposeMediaPlayers = mountLessonMediaPlayers(modal);
+    const stopOtherAudio = (current) => {
+      $$("audio", modal).forEach((audio) => {
+        if (audio !== current) audio.pause();
+      });
+    };
+    modal.addEventListener("play", (event) => stopOtherAudio(event.target), true);
+    // Closing the editor stops whatever is still playing.
+    new MutationObserver((_, observer) => {
+      if (modal.isConnected) return;
+      disposeTooltips();
+      disposeMediaPlayers();
+      stopOtherAudio(null);
+      $$("[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]", modal).forEach(row => {
+        const preview = previews.get(row);
+        if (preview?.objectUrl) URL.revokeObjectURL(preview.objectUrl);
+      });
+      observer.disconnect();
+    }).observe(document.body, { childList: true, subtree: true });
+    const pronunciationWords = $("[data-pronunciation-words]", modal);
+    const saveState = { lessonId: existing?.id || '', dictionaryMissing: [], copySource };
+    if (copySource) {
+      const title = modal.querySelector('[name="title"]');
+      title.readOnly = true;
+      title.title = 'The next available copy number is assigned when saved.';
+    }
+    const quizQuestions = $("[data-quiz-questions]", modal);
+    const gameLevels = $("[data-game-levels]", modal);
+    const skipGame = $("[data-skip-game]", modal);
+    const gameEditor = $("[data-game-editor]", modal);
+    const skipActivity = $("[data-skip-activity]", modal);
+    const activityEditor = $("[data-activity-editor]", modal);
+
+    const initialActivity = sections.activity?.pages?.length
+      ? sections.activity.pages
+      : sections.activityStatus?.completion === "skipped"
+        ? []
+        : [{}];
+    const initialLectures = sections.lectures?.pages?.length
+      ? sections.lectures.pages
+      : [{}];
+    const initialWords = sections.pronunciation?.words?.length
+      ? sections.pronunciation.words.map((word, index) => ({
+          word,
+          audioRef: sections.pronunciation.audioRefs?.[index] || "",
+          cloudAudio: sections.pronunciation.cloudAudio?.[index] || null,
+        }))
+      : [{}];
+    const initialQuestions = sections.quiz?.questions?.length
+      ? sections.quiz.questions
+      : [{}];
+    const initialLevels = sections.game?.length
+      ? [...sections.game].sort((a, b) => (a.level ?? a.order ?? 0) - (b.level ?? b.order ?? 0))
+      : sections.gameStatus?.completion === "skipped"
+        ? []
+        : [{}];
+
+    activityPages.innerHTML = initialActivity.map(activityPageHtml).join("");
+    $$("[data-activity-page]", activityPages).forEach(renderActivityAnswerPicker);
+    lecturePages.innerHTML = initialLectures.map(lecturePageHtml).join("");
+    pronunciationWords.innerHTML = initialWords
+      .map((item) => pronunciationWordHtml(item.word, item.audioRef, item.cloudAudio))
+      .join("");
+    $$("[data-pronunciation-word]", pronunciationWords).forEach((row) => refreshSyllablePreview(row));
+    const pronunciationPages = mountPronunciationPages(modal, sections.pronunciation, {
+      wordHtml: pronunciationWordHtml, refreshWord: refreshSyllablePreview,
+      previews, generate: createPreview, saveAudio: saveSpeech, audioProblem: lectureAudioProblem,
+      confirmRemoval,
+    });
+    quizQuestions.innerHTML = initialQuestions.map(questionHtml).join("");
+    gameLevels.innerHTML = initialLevels.map(gameLevelHtml).join("");
+
+    let activeLecturePage = 0;
+    let activeGameLevel = 0;
+    const renderLecturePageRibbons = () => {
+      const pages = $$("[data-lecture-page]", lecturePages);
+      activeLecturePage = Math.min(activeLecturePage, Math.max(pages.length - 1, 0));
+
+      lecturePageRibbons.innerHTML = pages
+        .map(
+          (_, index) => `
+            <button
+              type="button"
+              class="lecture-page-ribbon ${index === activeLecturePage ? "active" : ""}"
+              data-lecture-page-ribbon="${index}"
+              aria-current="${index === activeLecturePage ? "page" : "false"}"
+            >Page ${index + 1}</button>
+          `,
+        )
+        .join("");
+
+      pages.forEach((page, index) => {
+        if (index !== activeLecturePage) $$("audio", page).forEach(audio => audio.pause());
+        page.hidden = index !== activeLecturePage;
+        $("[data-lecture-page-title]", page).textContent = `Page ${index + 1} of ${pages.length}`;
+      });
+      $("[data-lecture-page-count]", modal).textContent = `(${pages.length})`;
+    };
+
+    const renderGameLevelRibbons = () => {
+      const levels = $$("[data-game-level]", gameLevels);
+      activeGameLevel = Math.min(activeGameLevel, Math.max(levels.length - 1, 0));
+
+      gameLevelRibbons.innerHTML = levels
+        .map(
+          (_, index) => `
+            <button
+              type="button"
+              class="lecture-page-ribbon ${index === activeGameLevel ? "active" : ""}"
+              data-game-level-ribbon="${index}"
+              aria-current="${index === activeGameLevel ? "page" : "false"}"
+            >Level ${index + 1}</button>
+          `,
+        )
+        .join("");
+
+      levels.forEach((level, index) => {
+        level.hidden = index !== activeGameLevel;
+      });
+      $("[data-game-level-count]", modal).textContent = `(${levels.length})`;
+    };
+
+    renderLecturePageRibbons();
+    renderGameLevelRibbons();
+
+    // "Page 2 of 5" on each card and the total in its list's heading, redone as cards come and go.
+    const numberCards = (list, cardSelector, label, countSelector) => {
+      const update = () => {
+        const cards = $$(cardSelector, list).filter(card => list !== pronunciationWords || !card.hidden);
+        cards.forEach((card, index) => {
+          $("[data-card-number]", card).textContent = `${label} ${index + 1} of ${cards.length}`;
+        });
+        const count = countSelector
+          ? $(countSelector, modal)
+          : $("[data-card-count]", list.parentElement);
+        if (count) count.textContent = `(${cards.length})`;
+      };
+      update();
+      new MutationObserver(update).observe(list, { childList: true });
+    };
+    numberCards(activityPages, "[data-activity-page]", "Page");
+    numberCards(pronunciationWords, "[data-pronunciation-word]", "Word");
+    numberCards(quizQuestions, "[data-question]", "Question");
+    numberCards(gameLevels, "[data-game-level]", "Level", "[data-game-level-count]");
+
+    // A ticked "Skip …" box keeps its builder on screen but inactive.
+    const updateSkipped = (editor, checkbox) => {
+      editor.classList.toggle("is-skipped", checkbox.checked);
+      editor
+        .querySelectorAll("button, input, textarea, select")
+        .forEach((control) => {
+          control.disabled = checkbox.checked;
+        });
+    };
+    const updateGameEditor = () => {
+      updateSkipped(gameEditor, skipGame);
+      addGameLevelButton.disabled = skipGame.checked;
+    };
+    const updateActivityEditor = () => updateSkipped(activityEditor, skipActivity);
+
+    $$("[data-game-level]", gameLevels).forEach(refreshLevel);
+    wireGameLevels(gameLevels, {
+      confirmRemoval,
+      // Root-word and over-long-word suggestions come from this lesson's content.
+      lessonWords: () =>
+        wordsFromText(
+          $$(LESSON_WORD_FIELDS, modal).map((field) => field.value),
+        ),
+      onSkipGame: () => {
+        skipGame.checked = true;
+        updateGameEditor();
+        skipGame.closest(".game-skip-option").scrollIntoView({ behavior: "smooth", block: "center" });
+        toast("The game is skipped for this lesson.");
+      },
+    });
+    $$("[data-game-level]", gameLevels).forEach(refreshLevel);
+    updateGameEditor();
+    updateLessonWordDuplicates(modal, skipGame);
+    skipGame.addEventListener("change", updateGameEditor);
+    updateActivityEditor();
+    skipActivity.addEventListener("change", updateActivityEditor);
+
+    const showStep = (step) => {
+      stopOtherAudio(null);
+      $$(".lesson-tab", modal).forEach((button) =>
+        button.classList.toggle("active", button.dataset.step === step),
+      );
+      $$("[data-panel]", modal).forEach((panel) =>
+        panel.classList.toggle("active", panel.dataset.panel === step),
+      );
+      lecturePageNavigation.hidden = step !== "lectures";
+      gameLevelNavigation.hidden = step !== "game";
+      pronunciationPages.setVisible(step === 'pronunciation');
+    };
+
+    $$(".lesson-tab", modal).forEach((button) => {
+      button.addEventListener("click", () => showStep(button.dataset.step));
+    });
+
+    // Once Publish/Save has been tried, empty fields stay outlined (and the checklist toast stays current) until they're filled.
+    const jumpTo = (item) => {
+      if (!item?.target?.isConnected) return;
+      showStep(item.step);
+      if (item.lecturePage != null) {
+        activeLecturePage = item.lecturePage;
+        renderLecturePageRibbons();
+      }
+      const { target } = item;
+      pronunciationPages.reveal(target);
+      const targetLevel = target.closest("[data-game-level]");
+      if (targetLevel) {
+        activeGameLevel = $$("[data-game-level]", gameLevels).indexOf(targetLevel);
+        renderGameLevelRibbons();
+      }
+      // Inside a card, a field before any button (a level's first button is "Remove").
+      const focusable = target.matches("input, textarea, select, button")
+        ? target
+        : $("input:not([type=hidden]), textarea", target) || $("button", target);
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      focusable?.focus({ preventScroll: true });
+      target.classList.remove("is-jumped");
+      void target.offsetWidth; // restart the pulse
+      target.classList.add("is-jumped");
+      target.addEventListener("animationend", () => target.classList.remove("is-jumped"), { once: true });
+    };
+    const checklist = missingChecklist(modal, {
+      verb: existing ? "save" : "publish",
+      onJump: jumpTo,
+    });
+    let triedToSave = false;
+    let checkTimer;
+    const markMissing = () => {
+      const missing = missingFields(modal, { skipActivity, skipGame });
+      $$(".is-missing", modal).forEach((field) => field.classList.remove("is-missing"));
+      missing.forEach((item) => item.target?.classList.add("is-missing"));
+      return missing;
+    };
+    const recheck = () => {
+      updateLessonWordDuplicates(modal, skipGame);
+      if (!triedToSave) return;
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(() => checklist.update(markMissing()), 150);
+    };
+    modal.addEventListener("input", recheck);
+    modal.addEventListener("change", recheck);
+    // Pages, sentences, game words, picked answers and generated audio change the markup.
+    new MutationObserver(recheck).observe($(".lesson-studio", modal), { childList: true, subtree: true });
+
+    // Scroll a newly added card into view and put the cursor in its first field.
+    const revealAdded = (card, fieldSelector) => {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      $(fieldSelector, card)?.focus({ preventScroll: true });
+    };
+
+    modal.addEventListener("click", async (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+
+      if (button.matches("[data-close]")) {
+        if ($("#lesson-form", modal).dataset.saving === 'true') return;
+        if (await mayLeave()) { close(); options.onCancel?.(); }
+        return;
+      }
+
+      if (button.matches("[data-add-activity-page]")) {
+        activityPages.insertAdjacentHTML("beforeend", activityPageHtml({}));
+        revealAdded(activityPages.lastElementChild, "[data-activity-words]");
+      }
+
+      if (button.matches("[data-remove-activity-page]")) {
+        if (!await confirmRemoval('activity page')) return;
+        button.closest("[data-activity-page]").remove();
+      }
+
+      if (button.matches("[data-activity-answer-word]")) {
+        const activityPage = button.closest("[data-activity-page]");
+        const index = Number(button.dataset.activityAnswerWord);
+        const selected = new Set(activityCorrectIndices(activityPage));
+
+        if (selected.has(index)) {
+          selected.delete(index);
+        } else {
+          selected.add(index);
+        }
+
+        activityPage.dataset.correctIndices = [...selected]
+          .sort((first, second) => first - second)
+          .join(",");
+        renderActivityAnswerPicker(activityPage);
+      }
+
+      if (button.matches("[data-add-lecture-page]")) {
+        lecturePages.insertAdjacentHTML("beforeend", lecturePageHtml({}));
+        activeLecturePage = $$("[data-lecture-page]", lecturePages).length - 1;
+        renderLecturePageRibbons();
+      }
+
+      if (button.matches("[data-remove-lecture-page]")) {
+        if (!await confirmRemoval('lecture page')) return;
+        button.closest("[data-lecture-page]").remove();
+        renderLecturePageRibbons();
+      }
+
+      if (button.matches("[data-add-lecture-sentence]")) {
+        const lecturePage = button.closest("[data-lecture-page]");
+        const sentenceRows = $$("[data-lecture-sentence]", lecturePage);
+        if (sentenceRows.length >= MAX_SENTENCES_PER_LECTURE_PAGE) {
+          toast(`A Lecture page can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+          return;
+        }
+
+        lecturePage
+          .querySelector("[data-sentences]")
+          .insertAdjacentHTML("beforeend", lectureSentenceHtml());
+      }
+
+      if (button.matches("[data-remove-lecture-sentence]")) {
+        if (!await confirmRemoval('lecture sentence')) return;
+        button.closest("[data-lecture-sentence]").remove();
+      }
+
+      if (button.matches("[data-lecture-page-ribbon]")) {
+        activeLecturePage = Number(button.dataset.lecturePageRibbon);
+        renderLecturePageRibbons();
+      }
+
+      if (button.matches("[data-add-pronunciation-word]")) {
+        pronunciationWords.insertAdjacentHTML("beforeend", pronunciationWordHtml());
+        revealAdded(pronunciationWords.lastElementChild, "[data-pronunciation-text]");
+      }
+
+      // Opens on top of the lesson editor, so nothing typed in the lesson is lost.
+      if (button.matches("[data-add-to-dictionary]")) {
+        const row = button.closest("[data-pronunciation-word]");
+        openWordModal(
+          null,
+          () => $$("[data-pronunciation-word]", pronunciationWords).forEach((word) => refreshSyllablePreview(word)),
+          $("[data-pronunciation-text]", row).value.trim(),
+        );
+        return;
+      }
+
+      if (button.matches("[data-remove-pronunciation-word]")) {
+        if (!await confirmRemoval('Get Ready word')) return;
+        button.closest("[data-pronunciation-word]").remove();
+      }
+
+      if (button.matches("[data-add-question]")) {
+        quizQuestions.insertAdjacentHTML("beforeend", questionHtml({}));
+        revealAdded(quizQuestions.lastElementChild, "[data-question-text]");
+      }
+
+      if (button.matches("[data-remove-question]")) {
+        if (!await confirmRemoval('quiz question')) return;
+        button.closest("[data-question]").remove();
+      }
+
+      if (button.matches("[data-add-game-level]")) {
+        gameLevels.insertAdjacentHTML("beforeend", gameLevelHtml({}));
+        const added = gameLevels.lastElementChild;
+        activeGameLevel = $$("[data-game-level]", gameLevels).length - 1;
+        renderGameLevelRibbons();
+        refreshLevel(added);
+        revealAdded(added, "[data-key-word]");
+      }
+
+      if (button.matches("[data-remove-game-level]")) {
+        if (!await confirmRemoval('game level')) return;
+        const level = button.closest("[data-game-level]");
+        const removedIndex = $$("[data-game-level]", gameLevels).indexOf(level);
+        level.remove();
+        if (removedIndex < activeGameLevel) activeGameLevel -= 1;
+        renderGameLevelRibbons();
+      }
+
+      if (button.matches("[data-game-level-ribbon]")) {
+        activeGameLevel = Number(button.dataset.gameLevelRibbon);
+        renderGameLevelRibbons();
+      }
+
+      if (button.matches("[data-generate-sentence-audio]")) {
+        const row = button.closest("[data-lecture-sentence]");
+        const text = $("[data-sentence-text]", row).value.trim();
+
+        if (!text) {
+          toast("Write the sentence before generating audio.");
+          return;
+        }
+
+        await createPreview(button, row, text);
+      }
+
+      if (button.matches("[data-generate-pronunciation-audio]")) {
+        const row = button.closest("[data-pronunciation-word]");
+        const text = $("[data-pronunciation-text]", row).value.trim();
+
+        if (!text) {
+          toast("Write the word before generating audio.");
+          return;
+        }
+
+        await createPreview(button, row, text);
+      }
+    });
+
+    modal.addEventListener("input", (event) => {
+      if (event.target.matches(LESSON_WORD_FIELDS)) {
+        $$("[data-game-level]", gameLevels).forEach(refreshLevel);
+      }
+      if (event.target.matches("[data-pronunciation-text]")) {
+        refreshSyllablePreview(event.target.closest("[data-pronunciation-word]"), 500);
+        return;
+      }
+      if (!event.target.matches("[data-activity-words]")) return;
+
+      const activityPage = event.target.closest("[data-activity-page]");
+      activityPage.dataset.correctIndices = "";
+      renderActivityAnswerPicker(activityPage);
+    });
+
+    modal.addEventListener("change", (event) => {
+      const question = event.target.closest("[data-question]");
+      if (!question) return;
+
+      if (event.target.matches("[data-answer-mode]")) {
+        setQuestionAnswerMode(question, event.target.value === "multiple");
+      }
+      if (event.target.matches("[data-answer-mode], [data-answer-choice]")) {
+        clearQuestionError(question);
+      }
+    });
+
+    $("#lesson-form", modal).addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (event.currentTarget.dataset.saving === 'true') return;
+
+      // Nothing is saved until every part is filled in (a skipped Gawain or game aside).
+      // Game levels commit half-typed words and show their issues; questions without a
+      // correct answer show their own message.
+      if (!skipGame.checked) validateGameLevels(gameLevels);
+      updateLessonWordDuplicates(modal, skipGame);
+      validateQuiz(quizQuestions);
+      triedToSave = true;
+      clearTimeout(checkTimer);
+      const missing = markMissing();
+      if (missing.length) {
+        checklist.show(missing);
+        jumpTo(missing[0]);
+        return;
+      }
+      checklist.update([]);
+
+      // Another lesson already has this title? Ask before saving (edits that keep their own title aren't asked again).
+      const form = event.currentTarget;
+      const submit = event.submitter || form.querySelector('button[type="submit"]');
+      const titleInput = form.elements.title;
+      const duplicate = findDuplicate(titleInput.value, state.allLessons, existing?.id);
+      if (duplicate && !(existing && sameTitle(existing.title, titleInput.value))) {
+        submit.disabled = true;
+        const choice = await confirmDuplicateTitle(
+          {
+            title: titleInput.value.trim(),
+            difficulty: form.elements.difficulty.value,
+          },
+          duplicate,
+          state.allLessons,
+          Boolean(existing),
+        );
+        submit.disabled = false;
+        if (!choice) return;
+        if (choice.action === "rename") {
+          showStep("basics");
+          titleInput.focus();
+          titleInput.select();
+          return;
+        }
+        if (choice.action === "save-as") titleInput.value = choice.title;
+      }
+
+      // Skipping the Gawain or the game deletes what this lesson already has saved for it, so ask first.
+      const savedPages = !copySource && skipActivity.checked ? sections.activity?.pages?.length || 0 : 0;
+      const savedLevels = !copySource && skipGame.checked ? sections.game?.length || 0 : 0;
+      if (savedPages || savedLevels) {
+        submit.disabled = true;
+        const confirmed = await confirmDeleteSkipped({ pages: savedPages, levels: savedLevels });
+        submit.disabled = false;
+        if (!confirmed) {
+          const [step, checkbox] = savedPages ? ["activity", skipActivity] : ["game", skipGame];
+          showStep(step);
+          checkbox.closest(".game-skip-option").scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      }
+
+      if (!await confirmAction({ title: copySource ? 'Save this lesson copy?' : existing ? 'Save lesson changes?' : 'Publish this lesson?', message: copySource ? 'Add your edited copy to the lesson library and this module. The original lesson stays unchanged.' : existing ? 'Apply your changes to the lesson and its learning activities.' : 'Add this lesson to the library so teachers can assign it to classes.', confirm: copySource ? 'Save copy' : existing ? 'Save changes' : 'Publish lesson' })) return;
+      if (!form.isConnected) return;
+      form.dataset.saving = 'true';
+      setButtonSaving(submit, true);
+
+      try {
+        const values = Object.fromEntries(new FormData(form));
+        const lessonId = await saveLesson(existing, values, {
+          scope: modal,
+          activityPages,
+          lecturePages,
+          pronunciationWords,
+          pronunciationPages,
+          saveState,
+          quizQuestions,
+          gameLevels,
+          skipGame,
+          skipActivity,
+        });
+
+        notify({
+          title: copySource ? "Lesson copy saved" : existing ? "Lesson updated" : "Lesson published",
+          message: saveState.dictionaryMissing.length
+            ? `Add ${saveState.dictionaryMissing.join(', ')} to the dictionary, then save again to share their audio.`
+            : "Your lesson and learning activities have been saved.",
+          tone: saveState.dictionaryMissing.length ? "info" : "success",
+        });
+        if (options.onSaved) await options.onSaved(lessonId);
+        close();
+        if (!options.onSaved && isCurrent()) await renderLessons();
+
+        console.info("Saved lesson:", lessonId);
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not save the lesson.");
+      } finally {
+        delete form.dataset.saving;
+        setButtonSaving(submit, false);
+      }
+    });
+
+    wireTitleDefaults(modal);
+
+    const studioForm = $("#lesson-form", modal);
+    const initialSnapshot = editorSnapshot(studioForm);
+    mayLeave = () =>
+      editorSnapshot(studioForm) === initialSnapshot ? Promise.resolve(true) : confirmDiscard(!existing);
+    options.onGuard?.(() => studioForm.dataset.saving === 'true' ? Promise.resolve(false) : mayLeave(),
+      () => editorSnapshot(studioForm) !== initialSnapshot || studioForm.dataset.saving === 'true');
+  }, { closeOnBackdrop: false, beforeClose: () => mayLeave() });
+}
+
+/** Mount the existing content editor inside the Lessons workspace. */
+export function openInlineLessonEditor(existing, options) {
+  return openLessonModal(existing, options);
+}
+
+/** Everything the author can change in the editor, to tell whether leaving loses work. */
+function editorSnapshot(form) {
+  return JSON.stringify([
+    $$("input, textarea, select", form).filter(field => !field.closest('[data-lesson-media]')).map((field) =>
+      field.type === "checkbox" || field.type === "radio" ? field.checked : field.value,
+    ),
+    $$("[data-activity-page]", form).map((page) => page.dataset.correctIndices || ""),
+    $$("[data-word-chip]", form).map((chip) => chip.dataset.wordChip),
+    $$("[data-pronunciation-page]", form).map(page =>
+      $$("[data-ready-word]", page).filter(button => button.getAttribute('aria-pressed') === 'true').map(button => button.dataset.readyWord),
+    ),
+    $$("[data-lecture-sentence], [data-pronunciation-word], [data-pronunciation-page]", form).map(
+      (row) => previews.get(row)?.generationCount || 0,
+    ),
+  ]);
+}
+
+/** Resolves true to close the editor and discard the edits, false to keep editing. */
+function confirmDiscard(isNew) {
+  return new Promise((resolve) => {
+    openModal(
+      `${isNew
+        ? `<h2>Discard this lesson?</h2>
+           <p>This lesson hasn't been published yet. Everything you've entered, including any generated audio, will be discarded.</p>`
+        : `<h2>Discard unsaved changes?</h2>
+           <p>Any changes you've made to this lesson will be discarded. This can't be undone.</p>`}
+       <div class="modal-actions">
+         <button type="button" class="button secondary" data-cancel>Keep editing</button>
+         <button type="button" class="button danger" data-confirm>${isNew ? "Discard lesson" : "Discard changes"}</button>
+       </div>`,
+      (backdrop, close) => {
+        let settled = false;
+        const finish = (choice) => {
+          if (settled) return;
+          settled = true;
+          watcher.disconnect();
+          close();
+          resolve(choice);
+        };
+        // Closing with × or the backdrop counts as "keep editing".
+        const watcher = new MutationObserver(() => {
+          if (!backdrop.isConnected) finish(false);
+        });
+        watcher.observe(document.body, { childList: true });
+
+        $("[data-cancel]", backdrop).addEventListener("click", () => finish(false));
+        $("[data-confirm]", backdrop).addEventListener("click", () => finish(true));
+        setTimeout(() => $("[data-cancel]", backdrop).focus(), 50);
+      },
+    );
+  });
+}
+
+async function createPreview(button, row, text) {
+  if (button.disabled || button.getAttribute('aria-busy') === 'true') return;
+  const previousPreview = previews.get(row);
+  const generationCount = previousPreview?.generationCount || 0;
+
+  if (generationCount >= MAX_AUDIO_GENERATIONS_PER_SENTENCE) {
+    toast(`Audio can be generated at most ${MAX_AUDIO_GENERATIONS_PER_SENTENCE} times for each sentence.`);
+    return;
+  }
+
+  const originalLabel = button.getAttribute('aria-label');
+  const baseLabel = button.dataset.audioLabel || 'Generate audio';
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  button.setAttribute('aria-label', 'Generating audio');
+
+  try {
+    const { blob, wordStarts } = await generateSpeech(text);
+    const previous = previews.get(row);
+
+    row.querySelectorAll('audio').forEach(audio => audio.pause());
+    if (previous?.objectUrl) {
+      URL.revokeObjectURL(previous.objectUrl);
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    const nextGenerationCount = generationCount + 1;
+    previews.set(row, {
+      blob,
+      objectUrl,
+      text,
+      wordStarts,
+      generationCount: nextGenerationCount,
+    });
+
+    const remainingGenerations = MAX_AUDIO_GENERATIONS_PER_SENTENCE - nextGenerationCount;
+    $("[data-audio-preview]", row).innerHTML = audioPreviewHtml(objectUrl, {
+      word: row.matches('[data-pronunciation-word]'), generated: true, limit: !remainingGenerations,
+    });
+
+    button.setAttribute('aria-label', remainingGenerations
+      ? `${baseLabel} again (${remainingGenerations} left)`
+      : 'Audio generation limit reached');
+  } catch (error) {
+    console.error(error);
+    toast(error.message || "Audio could not be generated.");
+    button.setAttribute('aria-label', originalLabel || baseLabel);
+  } finally {
+    button.removeAttribute('aria-busy');
+    button.disabled = (previews.get(row)?.generationCount || 0) >= MAX_AUDIO_GENERATIONS_PER_SENTENCE;
+  }
+}
+
+async function saveLesson(existing, values, elements) {
+  if (elements.saveState) elements.saveState.dictionaryMissing = [];
+  const rootData = {
+    title: values.title.trim(),
+    description: values.description.trim(),
+    difficulty: values.difficulty,
+    updatedAt: serverTimestamp(),
+  };
+  const scope = elements.scope || document.body;
+
+  let lessonRef;
+
+  if (existing?.id || elements.saveState?.lessonId) {
+    lessonRef = doc(db, "lessons", existing?.id || elements.saveState.lessonId);
+  } else if (elements.saveState?.copySource) {
+    lessonRef = doc(collection(db, 'lessons'));
+    rootData.title = await reserveLessonCopy(lessonRef, elements.saveState.copySource, rootData);
+    values.title = rootData.title;
+    elements.saveState.lessonId = lessonRef.id;
+    scope.querySelector('[name="title"]').value = rootData.title;
+  } else {
+    lessonRef = await addDoc(collection(db, "lessons"), {
+      ...rootData,
+      teacherId: state.user.uid,
+      publicationState: 'draft',
+      createdAt: serverTimestamp(),
+    });
+    if (elements.saveState) elements.saveState.lessonId = lessonRef.id;
+  }
+
+  const activity = elements.skipActivity.checked ? null : readActivity(elements.activityPages, scope);
+  const lectures = await readLectures(elements.lecturePages, lessonRef.id);
+  const pronunciation = await readPronunciation(
+    elements.pronunciationWords,
+    lessonRef.id,
+  );
+  const quiz = readQuiz(elements.quizQuestions);
+  const game = elements.skipGame.checked ? [] : readGameLevels(elements.gameLevels);
+
+  const pronunciationPages = await elements.pronunciationPages.read(lessonRef.id);
+  const batch = writeBatch(db);
+  await replaceActivity(lessonRef.id, activity, batch);
+  batch.set(doc(db, "lessons", lessonRef.id, "lectures", "content"), {
+    title: $("[data-lecture-title]", scope).value.trim() || TITLE_DEFAULTS["[data-lecture-title]"](values.title.trim()),
+    pages: lectures,
+  });
+  batch.set(
+    doc(db, "lessons", lessonRef.id, "pronunciation", "content"),
+    {
+      title: $("[data-pronunciation-title]", scope).value.trim(),
+      instruction: PRONUNCIATION_INSTRUCTION,
+      ...pronunciationPages,
+      words: pronunciation.words,
+      audioRefs: pronunciation.audioRefs,
+      cloudAudio: pronunciation.cloudAudio,
+    },
+  );
+  batch.set(doc(db, "lessons", lessonRef.id, "quiz", "content"), {
+    title: $("[data-quiz-title]", scope).value.trim(),
+    questions: quiz,
+  });
+
+  await replaceGameLevels(lessonRef.id, game, elements.skipGame.checked, batch);
+  batch.update(lessonRef, { ...rootData, publicationState: 'published' });
+  await batch.commit();
+
+  if (state.profile?.role === 'admin' && pronunciation.cloudAudio.some(audio => audio?.storageKey)) {
+    try {
+      const result = await postToApi('assessment', { operation: 'dictionary-audio-sync', lessonId: lessonRef.id });
+      if (elements.saveState) elements.saveState.dictionaryMissing = result.missing || [];
+    } catch (error) {
+      throw new Error(`The lesson was saved, but dictionary audio could not be updated. Save again to retry. ${error.message}`);
+    }
+  }
+
+  return lessonRef.id;
+}
+
+function readActivity(container, scope = document.body) {
+  return {
+    title: $("[data-activity-title]", scope).value.trim(),
+    instruction: $("[data-activity-instruction]", scope).value.trim(),
+    explanation: $("[data-activity-explanation]", scope).value.trim(),
+    pages: $$("[data-activity-page]", container)
+      .map((page) => {
+        const words = activityWords(page);
+        const correctIndices = activityCorrectIndices(page)
+          .filter((index) => index < words.length);
+
+        return {
+          words,
+          correctIndices,
+        };
+      })
+      .filter((item) => item.words.length),
+  };
+}
+
+// Keeps audio that was saved earlier when the row has no newly generated preview, but only if the text it was generated from is unchanged.
+function existingCloudAudio(row, text) {
+  try {
+    const saved = JSON.parse(row.dataset.cloudAudio || "null");
+    return saved?.audioUrl && saved.text === text ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readLectures(container, lessonId) {
+  const pages = [];
+
+  for (const [pageIndex, page] of $$("[data-lecture-page]", container).entries()) {
+    const sentenceRows = $$("[data-lecture-sentence]", page);
+    if (sentenceRows.length > MAX_SENTENCES_PER_LECTURE_PAGE) {
+      throw new Error(`Lecture page ${pageIndex + 1} can contain at most ${MAX_SENTENCES_PER_LECTURE_PAGE} sentences.`);
+    }
+    const sentences = [];
+    const audioResNames = [];
+    const cloudAudio = [];
+
+    for (const [sentenceIndex, row] of sentenceRows.entries()) {
+      const text = $("[data-sentence-text]", row).value.trim();
+      if (!text) continue;
+      sentences.push(text);
+      // Legacy bundled-audio name; no longer editable, kept so older lessons still play.
+      audioResNames.push(row.dataset.audioResName || "");
+
+      const preview = previews.get(row);
+      if (preview?.blob) {
+        const uploaded = await saveSpeech({
+          audio: preview.blob,
+          lessonId,
+          section: "lectures",
+          pageNumber: pageIndex + 1,
+          sentenceIndex: sentenceIndex + 1,
+        });
+
+        cloudAudio.push({
+          audioUrl: uploaded.audioUrl,
+          storageKey: uploaded.storageKey,
+          text,
+          // When each word is spoken, for the student's read-along highlight.
+          ...(preview.wordStarts ? { wordStarts: preview.wordStarts } : {}),
+        });
+
+        URL.revokeObjectURL(preview.objectUrl);
+      } else {
+        cloudAudio.push(existingCloudAudio(row, text));
+      }
+    }
+
+    if (sentences.length) {
+      pages.push({
+        pageNumber: pageIndex + 1,
+        sentences,
+        audioResNames,
+        cloudAudio,
+      });
+    }
+  }
+
+  return pages;
+}
+
+async function readPronunciation(container, lessonId) {
+  const words = [];
+  const audioRefs = [];
+  const cloudAudio = [];
+
+  for (const [index, row] of $$("[data-pronunciation-word]", container).entries()) {
+    const word = $("[data-pronunciation-text]", row).value.trim();
+    if (!word) continue;
+
+    words.push(word);
+    // Legacy bundled-audio name; no longer editable, kept so older lessons still play.
+    audioRefs.push(row.dataset.audioRef || "");
+
+    const preview = previews.get(row);
+    if (preview?.blob && preview.text === word) {
+      const uploaded = preview.uploaded?.lessonId === lessonId ? preview.uploaded : await saveSpeech({
+        audio: preview.blob,
+        lessonId,
+        section: "pronunciation",
+        pageNumber: 0,
+        sentenceIndex: index + 1,
+      });
+
+      preview.uploaded = { ...uploaded, lessonId };
+
+      cloudAudio.push({
+        audioUrl: uploaded.audioUrl,
+        storageKey: uploaded.storageKey,
+        text: word,
+      });
+
+    } else {
+      cloudAudio.push(existingCloudAudio(row, word));
+    }
+  }
+
+  return { words, audioRefs, cloudAudio };
+}
+
+function readQuiz(container) {
+  return $$("[data-question]", container)
+    .map((question) => {
+      const choices = $$("[data-choice-text]", question).map((input) =>
+        input.value.trim(),
+      );
+
+      const multiple = $("[data-answer-mode]:checked", question)?.value === "multiple";
+      const answers = $$("[data-answer-choice]", question)
+        .filter((input) => input.checked)
+        .map((input) => Number(input.value));
+
+      return {
+        question: $("[data-question-text]", question).value.trim(),
+        choices,
+        multiple,
+        answers,
+        // Kept for older app versions, which only read a single answer.
+        answer: answers[0] ?? 0,
+      };
+    })
+    .filter((item) => item.question && item.choices.every(Boolean));
+}
+
+/** Resolves true to delete the saved Gawain pages / game levels and skip them, false to go back. */
+function confirmDeleteSkipped({ pages = 0, levels = 0 }) {
+  const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  const what = [pages && plural(pages, "Gawain page"), levels && plural(levels, "game level")]
+    .filter(Boolean)
+    .join(" and ");
+  const skipping = [pages && "Gawain", levels && "game"].filter(Boolean).join(" and ");
+  const one = pages + levels === 1;
+  return new Promise((resolve) => {
+    openModal(
+      `<h2>Delete ${what}?</h2>
+       <p>This lesson already has <strong>${what}</strong>. Skipping the ${skipping} deletes ${one ? "it" : "them"} when you save, and ${one ? "it" : "they"} can't be brought back.</p>
+       <p class="muted">Students keep their progress. The skipped ${pages && levels ? "parts just won't show" : "part just won't show"} in this lesson anymore.</p>
+       <div class="modal-actions">
+         <button type="button" class="button secondary" data-cancel>Keep ${one ? "it" : "them"}</button>
+         <button type="button" class="button danger" data-confirm>Delete &amp; skip</button>
+       </div>`,
+      (backdrop, close) => {
+        let settled = false;
+        const finish = (choice) => {
+          if (settled) return;
+          settled = true;
+          watcher.disconnect();
+          close();
+          resolve(choice);
+        };
+        // Closing with × or the backdrop counts as "go back".
+        const watcher = new MutationObserver(() => {
+          if (!backdrop.isConnected) finish(false);
+        });
+        watcher.observe(document.body, { childList: true });
+
+        $("[data-cancel]", backdrop).addEventListener("click", () => finish(false));
+        $("[data-confirm]", backdrop).addEventListener("click", () => finish(true));
+        setTimeout(() => $("[data-cancel]", backdrop).focus(), 50);
+      },
+    );
+  });
+}
+
+/** Saves activity/content, or with activity = null deletes the Gawain and saves activity/status = { completion: "skipped" }, as the game does (see replaceGameLevels). */
+async function replaceActivity(lessonId, activity, batch) {
+  const statusRef = doc(db, "lessons", lessonId, "activity", "status");
+  if (activity) {
+    batch.set(doc(db, "lessons", lessonId, "activity", "content"), activity);
+    batch.delete(statusRef);
+    return;
+  }
+
+  const existing = await getDocs(collection(db, "lessons", lessonId, "activity"));
+  existing.docs.forEach((item) => {
+    if (item.id !== "status") batch.delete(item.ref);
+  });
+  batch.set(statusRef, { completion: "skipped" });
+}
+
+async function replaceGameLevels(lessonId, levels, skipGame, batch) {
+  const gameCollection = collection(db, "lessons", lessonId, "game");
+  const existing = await getDocs(gameCollection);
+
+  existing.docs.forEach((gameDoc) => {
+    if (!skipGame || gameDoc.id !== "status") {
+      batch.delete(gameDoc.ref);
+    }
+  });
+  if (skipGame) {
+    batch.set(doc(db, "lessons", lessonId, "game", "status"), {
+      completion: "skipped",
+    });
+  }
+  levels.forEach(level => batch.set(doc(gameCollection), level));
+}

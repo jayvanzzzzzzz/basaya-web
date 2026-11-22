@@ -42,6 +42,9 @@ const STATUS = {
   overdue: ["overdue", "Missed deadline"],
   scheduled: ["scheduled", "Not open yet"],
   "before-joining": ["before", "Closed before joining"],
+  exempt: ["before", "Exempt — participation paused"],
+  dropped: ["before", "Participation paused"],
+  deactivated: ["before", "Monitoring paused"],
 };
 
 // The student app saves gender in Filipino; the teacher portal is in English.
@@ -80,7 +83,7 @@ const SKILL_PARTS = { talasalitaan: 'game', pagkilala: 'activity', pagbigkas: 'p
 // while a submitted recording can be finished but still awaiting a grade.
 function skillCompletion(progress, key) {
   const rows = progress.perLesson.filter(row =>
-    row.status !== 'scheduled' && row.status !== 'before-joining' &&
+    !['scheduled','before-joining','exempt','deactivated'].includes(row.status) &&
     !(key === 'talasalitaan' && row.lesson.gameSkipped) &&
     !(key === 'pagkilala' && row.lesson.activitySkipped));
   const done = rows.filter(row => row.parts.parts[SKILL_PARTS[key]] === true).length;
@@ -223,7 +226,7 @@ export async function renderStudentProgress(classId, studentId) {
   if (!student) return navigate(`/classes/${encodeURIComponent(classId)}/students`);
 
   const [progress, profile] = await Promise.all([
-    loadStudentProgress(studentId, lessons, student.joinedAt),
+    loadStudentProgress(studentId, lessons, student.joinedAt,student),
     getDoc(doc(db, "users", studentId))
       .then((snap) => snap.data() || null)
       .catch(() => null),
@@ -237,7 +240,7 @@ export async function renderStudentProgress(classId, studentId) {
 
   page(
     "Student progress",
-    `Learning record for ${classroom.className}`,
+    progress.inactive ? `Saved history for ${classroom.className} — monitoring paused` : `Learning record for ${classroom.className}`,
     `<button class="button secondary sp-action" id="open-class-report" type="button" aria-label="Class report" data-teacher-tooltip data-floating-tooltip="Class report">${reportIcon}</button>`,
     {
       crumbs: [

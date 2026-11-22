@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import {
   Timestamp,
   collection,
@@ -182,7 +183,7 @@ export async function renderNotifications() {
         </div>
         ${buddy("happy", "st-notifs__buddy")}
       </header>
-      <div id="notif-list"><div class="st-loading" role="status" aria-label="Kinukuha ang mga abiso..."><span></span><span></span><span></span></div></div>
+      <div id="notif-list">${skeleton('notifications', { label: 'Kinukuha ang mga abiso...', tag: 'div' })}</div>
     </section>`;
 
   await loadClassLessons();

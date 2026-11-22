@@ -26,6 +26,7 @@ export async function postToApi(endpoint,body,options={}){
   if(window.holdStatuses) await new Promise((resolve,reject)=>{window.releaseStatuses=resolve;options.signal?.addEventListener('abort',()=>reject(Error('aborted')),{once:true})});
   return result;
  }
+ if(window.holdAccess) await new Promise(resolve=>{window.releaseAccess=()=>{window.holdAccess=false;resolve()}});
  if(window.failAccess) throw Error('Service unavailable. Please retry.');
  const t=teachers.find(t=>t.id===body.userId); t.disabled=body.action==='deactivate'; return {ok:true,disabled:t.disabled};
 }`;
@@ -69,19 +70,35 @@ const server=http.createServer(async(req,res)=>{
  await filter('active').click();
  async function openAccess(){await visible().first().locator('.teacher-table__menu-toggle').click();await page.locator('[data-toggle-access="teacher0"]').click()}
  await openAccess();
- assert.match(await page.getByRole('dialog').textContent(),/classes, lessons and student records will be kept/);
+ assert.match(await page.getByRole('dialog').textContent(),/removed as teacher from all their classes/);
  await page.getByRole('button',{name:'Cancel',exact:true}).click();
  assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.action==='deactivate').length),0);
- await openAccess();await page.evaluate(()=>window.failAccess=true);
+ await openAccess();await page.evaluate(()=>{window.failAccess=true;window.holdAccess=true;});
  await page.getByRole('button',{name:'Deactivate teacher',exact:true}).click();
+ await page.locator('[data-teacher-id="teacher0"] .teacher-account-status--loading').first().waitFor({state:'attached'});
+ assert.match(await visible().first().textContent(),/Deactivating/);
+ assert.ok(await page.locator('[data-toggle-access="teacher0"]').isDisabled());
+ for(const theme of ['light','dark'])for(const width of [1440,390]) {
+  await page.setViewportSize({width,height:1000});await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
+  const pending=page.locator('[data-teacher-id="teacher0"] .teacher-account-status--loading:visible');
+  assert.equal(await pending.getAttribute('aria-busy'),'true');
+  assert.equal(await pending.locator('i').evaluate(el=>getComputedStyle(el).animationName),'teacher-access-spin');
+  await page.screenshot({path:path.join(out,'deactivating-'+width+'-'+theme+'.png'),fullPage:true});
+ }
+ await page.evaluate(()=>window.releaseAccess());
  await page.waitForFunction(()=>window.messages.some(m=>m.includes('Service unavailable')));
+ assert.equal(await page.locator('.teacher-account-status--loading').count(),0);
  assert.equal(await visible().count(),1);assert.ok(await page.locator('[data-toggle-access="teacher0"]').isEnabled());
  await page.evaluate(()=>window.failAccess=false);await openAccess();
  await page.getByRole('button',{name:'Deactivate teacher',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('.admin-directory-search-empty')?.hidden===false);
  await filter('deactivated').click();assert.equal(await visible().count(),1);
  assert.match(await visible().first().textContent(),/Deactivated/);
- await openAccess();await page.getByRole('button',{name:'Reactivate teacher',exact:true}).click();
+ await openAccess();await page.evaluate(()=>window.holdAccess=true);await page.getByRole('button',{name:'Reactivate teacher',exact:true}).click();
+ await page.locator('[data-teacher-id="teacher0"] .teacher-account-status--loading').first().waitFor({state:'attached'});
+ assert.match(await visible().first().textContent(),/Reactivating/);
+ await page.screenshot({path:path.join(out,'reactivating-mobile-dark.png'),fullPage:true});
+ await page.evaluate(()=>window.releaseAccess());
  await page.waitForFunction(()=>document.querySelector('.admin-directory-search-empty')?.hidden===false);
  await filter('all').click();assert.equal(await visible().count(),1);
  assert.match(await visible().first().textContent(),/Active/);

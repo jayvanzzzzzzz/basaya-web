@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import { state } from "../../js/state.js";
@@ -393,7 +394,7 @@ export async function renderDictionary() {
         <button type="button" data-letter="" class="is-active" aria-pressed="true">All</button>
         ${LETTERS.map((l) => `<button type="button" data-letter="${l}" aria-pressed="false">${l.toUpperCase()}</button>`).join("")}
       </nav>
-      <div id="dict-results" aria-live="polite"><p class="dict-empty">Loading…</p></div>
+      <div id="dict-results" aria-live="polite">${skeleton('dictionary', { label: 'Preparing dictionary' })}</div>
     </div>
     <footer class="dict-footer"><p class="dict-credit">Most words come from <a href="https://tl.wiktionary.org/" target="_blank" rel="noopener">Tagalog Wiktionary</a> (CC BY-SA 4.0).</p><p>Thoughtful words. Meaningful learning.</p></footer></section>`;
 
@@ -449,7 +450,7 @@ export async function renderDictionary() {
 
   const load = async (focusWord = "") => {
     if (!isCurrent()) return;
-    results.innerHTML = `<p class="dict-empty">Loading…</p>`;
+    results.innerHTML = `${skeleton('dictionary', { label: 'Preparing dictionary' })}`;
     try {
       everything = await allWords();
       if (!isCurrent()) return;

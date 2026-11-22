@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { confirmAction } from "../../js/action-confirmation.js";
 import { $, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import {
@@ -72,6 +73,7 @@ function percentOf(lesson) {
 }
 
 function scheduleChip(lesson) {
+  if(lesson.exempt) return `<span class="st-chip st-chip--progress">Exempt — walang bawas sa marka${lesson.dueAt ? ` · Deadline: ${escapeHtml(formatWhen(lesson.dueAt))}` : ""}</span>`;
   const state = availability(lesson);
   if (state === "not-yet-open")
     return `<span class="st-chip st-chip--new">${icon("lock")}Bubukas: ${escapeHtml(formatWhen(lesson.openAt))}</span>`;
@@ -290,7 +292,7 @@ export async function renderHome() {
       </section>
       ${isInstalledPwa() ? `<div class="st-download-all"><button class="button secondary" type="button" id="home-download-all" disabled>${icon("download")}<span>I-download lahat</span></button><button class="st-icon-button" type="button" id="home-cancel-download-all" aria-label="Itigil ang pag-download" title="Itigil ang pag-download" hidden>${icon("close")}</button><span id="home-download-all-status" role="status"></span></div>` : ""}
       <div id="home-list" aria-live="polite">
-        <div class="st-loading" role="status" aria-label="Inihahanda ang mga aralin..."><span></span><span></span><span></span></div>
+        ${skeleton('student-lessons', { label: 'Inihahanda ang mga aralin...', tag: 'div' })}
       </div>
     </section>`;
 

@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -128,6 +129,8 @@ export async function renderAccount() {
         </div>
         <dl class="st-info">
           <div><dt>Pangalan</dt><dd>${value(fullName(profile))}</dd></div>
+          <div><dt>LRN</dt><dd>${value(profile.lrn)}</dd></div>
+          <div><dt>Username</dt><dd>${value(profile.username)}</dd></div>
           <div><dt>Kasarian</dt><dd>${value(profile.gender)}</dd></div>
           <div><dt>Kaarawan</dt><dd>${value(formatBirthday(profile.dob))}</dd></div>
         </dl>
@@ -135,7 +138,7 @@ export async function renderAccount() {
 
       <section class="st-card st-account__section">
         <h2>Aking Klase</h2>
-        <div id="account-class"><div class="st-loading" role="status" aria-label="Kinukuha ang impormasyon ng klase..."><span></span><span></span><span></span></div></div>
+        <div id="account-class">${skeleton('account-class', { label: 'Kinukuha ang impormasyon ng klase...', tag: 'div' })}</div>
       </section>
 
       <section class="st-card st-account__section">

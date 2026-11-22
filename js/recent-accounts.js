@@ -34,7 +34,7 @@ function write(accounts) {
 export function rememberAccount(user, profile = {}) {
   if (!user) return false;
   const providers = user.providerData || [];
-  const account = accountHint({ uid: user.uid, email: user.email,
+  const account = accountHint({ uid: user.uid, email: profile.role === "student" ? (profile.username || profile.lrn || user.email) : user.email,
     name: text(profile.displayName) || [profile.firstName, profile.middleName, profile.lastName].map((part) => text(part)).filter(Boolean).join(" ") || user.displayName,
     photoURL: user.photoURL,
     provider: providers.some(({ providerId }) => providerId === "password") ? "password"

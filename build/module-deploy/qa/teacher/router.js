@@ -1,0 +1,122 @@
+import { $, currentRoute, navigate, shell, empty, page } from "../js/helpers.js";
+import { state, getTeacherLessons, getAllLessons, getTeacherClasses } from "../js/state.js";
+import { renderDashboard, leaveDashboardMenus } from "./views/dashboard.js";
+import { renderAccountSettings } from "./views/accountSettings.js";
+import { renderClass } from "./views/classPage.js";
+import { renderAddLessonPage } from "./views/addLesson.js";
+import { renderStudentsPage } from "./views/students.js";
+import { renderStudentProgress } from "./views/studentProgress.js";
+import { renderClassReport } from "./views/classReport.js";
+import { leaveMessages, renderMessages, watchChatSummaries } from "./views/messages.js";
+import { renderDictionary } from "./views/dictionary.js";
+import { leaveJoinRequests } from "./views/joinRequests.js";
+import { leaveLeaveRequests } from "./views/leaveRequests.js";
+import { leaveStudentRequestsBadge } from "./views/studentRequestsBadge.js";
+import { renderFluencyReview } from './views/fluencyReview.js';
+import { leaveStudentNotifications } from './views/studentNotifications.js';
+import { leaveTeacherTooltips, watchTeacherTooltips } from './views/classActions.js';
+import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
+import { renderTeacherLanding } from './views/landing.js';
+import { renderHandbook, leaveHandbook } from '../js/handbook.js';
+import { beginRoute } from '../js/route-lifecycle.js';
+import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
+import { canLeaveLessons } from '../js/lessonNavigation.js';
+
+let statsLoaded = false;
+
+async function loadSidebarStats() {
+  if (statsLoaded) return;
+  statsLoaded = true;
+  await Promise.all([getTeacherClasses(), getTeacherLessons()]);
+  watchChatSummaries(); // live unread badge on "Messages"
+  const el = $("#teacher-stats-text");
+  if (el) {
+    el.textContent = `${state.classes.length} classes · ${state.lessons.length} lessons`;
+  }
+}
+
+export async function renderRoute() {
+  if (!await canLeaveLessons(state.user?.uid || null)) return;
+  const isCurrent = beginRoute();
+  leaveHandbook();
+  if (!state.user || !state.profile) return;
+  leaveDashboardNotifications();
+  leaveDashboardMenus();
+  leaveJoinRequests();
+  leaveLeaveRequests();
+  leaveStudentRequestsBadge();
+  leaveStudentNotifications();
+  leaveTeacherTooltips();
+  shell();
+  leaveMessages(); // stops the open chat's live listeners
+  loadSidebarStats().catch(() => {
+    statsLoaded = false;
+    const el = $("#teacher-stats-text");
+    if (el) el.textContent = 'Class details unavailable';
+  }); // Sidebar failure must not interrupt the dashboard's recovery state.
+  const route = currentRoute();
+  const classIdSegment = route.split("/")[2];
+  let classId = null;
+  if (classIdSegment) {
+    try {
+      classId = decodeURIComponent(classIdSegment);
+    } catch {
+      navigate("/dashboard");
+      return;
+    }
+  }
+  document
+    .querySelectorAll("[data-nav]")
+    .forEach((link) => {
+      const section = link.dataset.nav;
+      link.setAttribute('aria-label', link.querySelector('strong')?.textContent || section);
+      const isActive =
+        section === "classes"
+          ? route === "/classes" || route.startsWith("/classes/")
+          : route.startsWith(`/${section}`);
+      link.classList.toggle("active", isActive);
+      if (isActive) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  page("Loading…", "");
+  $("#page-content").replaceChildren();
+  $("#page-content").setAttribute("aria-busy", "true");
+  try {
+    if (route === "/dashboard") await renderTeacherLanding();
+    else if (route === "/classes") await renderDashboard();
+    else if (route === "/settings") await renderAccountSettings();
+    else if (route === "/dictionary") await renderDictionary();
+    else if (route === "/lessons") await renderLessonWorkspace();
+    else if (route === "/handbook") renderHandbook("teacher");
+    else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
+    else if (/^\/classes\/[^/]+\/students$/.test(route)) {
+      await renderStudentsPage(classId);
+    } else if (/^\/classes\/[^/]+\/students\/[^/]+$/.test(route)) {
+      await renderStudentProgress(classId, decodeURIComponent(route.split("/")[4]));
+    } else if (/^\/classes\/[^/]+\/readings(?:\/[^/]+){0,2}$/.test(route)) {
+      const segments = route.split('/');
+      await renderFluencyReview(classId, segments[4] ? decodeURIComponent(segments[4]) : null, segments[5] ? decodeURIComponent(segments[5]) : null);
+    } else if (/^\/classes\/[^/]+\/report$/.test(route)) {
+      await renderClassReport(classId);
+    } else if (/^\/classes\/[^/]+\/add-lesson$/.test(route)) {
+      await renderAddLessonPage(classId);
+    } else if (route.startsWith("/classes/")) {
+      await Promise.all([getTeacherLessons(), getAllLessons()]);
+      if (!isCurrent()) return;
+      await renderClass(classId);
+    } else navigate("/dashboard");
+    if (isCurrent()) watchTeacherTooltips();
+  } catch (error) {
+    if (!isCurrent()) return;
+    console.error(error);
+    $("#page-content").innerHTML = empty(
+      "Something needs attention",
+      "We could not load this page. Check your Firebase configuration and Firestore rules, then try again.",
+      "Try again",
+      "retry",
+    );
+    $("#retry")?.addEventListener("click", renderRoute);
+  } finally {
+    if (isCurrent()) $("#page-content").removeAttribute("aria-busy");
+  }
+}

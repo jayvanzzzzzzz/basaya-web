@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, escapeHtml } from "../../js/helpers.js";
 import { SKILLS, lessonParts, summarize } from "../../js/scoring.js";
 import {
@@ -51,7 +52,7 @@ function scoredState(summary) {
 
 /** Lektura has no score: show how many lectures were read. */
 function lectureState(docs) {
-  const lessons = scoredLessons();
+  const lessons = scoredLessons().filter(lesson=>!lesson.exempt || lesson.lectureFinished);
   const ids = new Set(lessons.map((lesson) => lesson.id));
   const total = lessons.length;
   const finished = docs.filter((item) => ids.has(item.id) && item.lectureFinished === true).length;
@@ -137,7 +138,7 @@ export async function renderProgress() {
         <h1>Aking Progreso<span class="st-heading-dot">.</span></h1>
         <p>Tingnan kung gaano ka na kagaling sa bawat kasanayan!</p>
       </header>
-      <div id="progress-body">${lastView?.scope === scope ? lastView.html : '<div class="st-loading" role="status" aria-label="Inihahanda ang iyong progreso..."><span></span><span></span><span></span></div>'}</div>
+      <div id="progress-body">${lastView?.scope === scope ? lastView.html : skeleton('student-progress', { label: 'Inihahanda ang iyong progreso...', tag: 'div' })}</div>
     </section>`;
 
   await loadClassLessons();

@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import {
@@ -32,7 +33,7 @@ export async function renderActivity(lessonId) {
   if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang gawain."); return navigate(pathUrl); }
   if (availability(lesson) !== "open" || lesson.activityFinished || lesson.activitySkipped) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang gawain..."><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading">${skeleton('activity', { label: 'Inihahanda ang gawain...', tag: 'div' })}</div>`;
   const [activity, progress] = await Promise.all([loadActivity(lessonId), loadLessonProgress(lessonId)]);
   if (progress.activityFinished) return navigate(pathUrl);
   if (!activity?.pages.length) {

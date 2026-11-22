@@ -206,3 +206,8 @@ body[data-portal="admin"] .teacher-status-notice .button { min-height: 44px; pad
 @media (max-width: 420px) { body[data-portal="admin"] .teacher-status-filters { width: 100%; gap: .15rem; padding: .25rem; } body[data-portal="admin"] .teacher-status-filters button { gap: .3rem; padding-inline: .3rem; font-size: .7rem; } body[data-portal="admin"] .teacher-status-filters__count { min-width: 20px; height: 22px; padding-inline: .15rem; font-size: .65rem; } }
 @media (max-width: 380px) { body[data-portal="admin"] .teacher-status-filters button { gap: .2rem; padding-inline: .2rem; font-size: .64rem; } body[data-portal="admin"] .teacher-status-filters__count { min-width: 18px; height: 20px; font-size: .6rem; } }
 @media (prefers-reduced-motion: reduce) { body[data-portal="admin"] .teacher-account-status i::after { animation: none; opacity: .35; } }
+body[data-portal="admin"] .teacher-account-status--loading { --status-ink: var(--primary); --status-dot: var(--primary); }
+body[data-portal="admin"] .teacher-account-status--loading i { width: 12px; height: 12px; flex-basis: 12px; box-sizing: border-box; border: 2px solid currentColor; border-right-color: transparent; background: transparent; animation: teacher-access-spin .8s linear infinite; }
+body[data-portal="admin"] .teacher-account-status--loading i::after { content: none; }
+@keyframes teacher-access-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { body[data-portal="admin"] .teacher-account-status--loading i { animation: none; } }

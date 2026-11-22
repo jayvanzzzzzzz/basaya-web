@@ -1,3 +1,4 @@
+import { skeleton } from '../../js/page-loading.js';
 import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import {
   availability,
@@ -87,7 +88,7 @@ export async function renderLecture(lessonId) {
   // After the deadline a finished lecture can still be reread.
   if (state === "not-yet-open" || (state === "closed" && !lesson.lectureFinished)) return navigate(pathUrl);
 
-  content().innerHTML = `<div class="st-focus-loading"><div class="st-loading" role="status" aria-label="Inihahanda ang iyong babasahin..."><span></span><span></span><span></span></div></div>`;
+  content().innerHTML = `<div class="st-focus-loading">${skeleton('reader', { label: 'Inihahanda ang iyong babasahin...', tag: 'div' })}</div>`;
   // Opened from the lesson path, everything is ready. Opened by its address (e.g. a reload), load it here and wait for the audio at most AUDIO_WAIT_MS.
   if (prepared?.lessonId !== lessonId) {
     try {

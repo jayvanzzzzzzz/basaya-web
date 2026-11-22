@@ -20,14 +20,14 @@ import { $, escapeHtml, initials, notify, openModal } from "../../js/helpers.js"
 export const teacherLabel = (teacher) =>
   teacher?.displayName || teacher?.email || "Unnamed teacher";
 
-/** True when the class's teacher no longer has a teacher account. */
+/** Missing and deactivated teachers cannot lead a class. */
 export const isUnassigned = (classroom) =>
-  !state.teachers.some((teacher) => teacher.id === classroom.teacherId);
+  !state.teachers.some((teacher) => teacher.id === classroom.teacherId && teacher.disabled !== true);
 
 /** <option>s for every teacher (sorted by name), skipping `exclude`. */
 export function teacherOptions(selectedId = "", exclude = "") {
   return [...state.teachers]
-    .filter((teacher) => teacher.id !== exclude)
+    .filter((teacher) => teacher.id !== exclude && teacher.disabled !== true)
     .sort((a, b) => teacherLabel(a).localeCompare(teacherLabel(b)))
     .map(
       (teacher) =>
@@ -57,11 +57,11 @@ export async function assignClasses(classIds, teacherId) {
 /** Quick picker for an unassigned class. */
 export function openAssignTeacherModal(classroom, onDone) {
   const className = classroom.className || "Untitled class";
-  if (!state.teachers.length) {
+  if (!state.teachers.some(teacher => teacher.disabled !== true)) {
     notify({
       tone: "info",
-      title: "No teachers yet",
-      message: "Add a teacher account first, then assign this class.",
+      title: "No active teachers available",
+      message: "Add or reactivate a teacher account first, then assign this class.",
     });
     return;
   }

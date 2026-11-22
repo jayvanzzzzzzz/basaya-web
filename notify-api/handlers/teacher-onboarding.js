@@ -35,7 +35,7 @@ async function sendVerification(uid) {
 
 export default async function handler(req, res) {
   allowCors(req, res);
-  res.setHeader("X-BASAya-Teacher-Accounts", "deactivation-v2");
+  res.setHeader("X-BASAya-Teacher-Accounts", "deactivation-v3");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
   res.setHeader("Cache-Control", "no-store");
@@ -43,8 +43,8 @@ export default async function handler(req, res) {
     const token = await requireToken(req, res, { allowPendingTeacher: true });
     if (!token) return;
     const { action, userId, ...input } = req.body || {};
-    if (["create", "statuses", "deactivate", "reactivate"].includes(action) && !await requireAdmin(token.uid, res)) return;
-    if (["deactivate", "reactivate"].includes(action) && !userId) throw fail(400, "Choose a teacher account.");
+    if (["create", "statuses", "deactivate", "reactivate", "cleanup-classes"].includes(action) && !await requireAdmin(token.uid, res)) return;
+    if (["deactivate", "reactivate", "cleanup-classes"].includes(action) && !userId) throw fail(400, "Choose a teacher account.");
     if (action === "create") {
       const firstName = typeof input.firstName === "string" ? input.firstName.trim() : "";
       const lastName = typeof input.lastName === "string" ? input.lastName.trim() : "";
@@ -84,19 +84,44 @@ export default async function handler(req, res) {
     const ref = db().doc(`users/${target}`);
     const profile = await ref.get();
     if (profile.get("role") !== "teacher") throw fail(404, "Teacher account not found.");
+    if (action === "cleanup-classes") {
+      const unassignedClasses = await db().runTransaction(async tx => {
+        const current = await tx.get(ref);
+        // A concurrent reactivation must not lose a valid class assignment.
+        if (current.get("role") !== "teacher" || current.get("disabled") !== true) return 0;
+        const classes = await tx.get(db().collection("classes").where("teacherId", "==", target));
+        if (classes.docs.length > 499) throw fail(409, "Reassign some classes before retrying this cleanup.");
+        for (const classroom of classes.docs) tx.update(classroom.ref, { teacherId: "" });
+        return classes.docs.length;
+      });
+      return res.status(200).json({ ok: true, userId: target, unassignedClasses });
+    }
     if (action === "deactivate" || action === "reactivate") {
       const disabled = action === "deactivate";
       const user = await adminAuth().getUser(target);
       await adminAuth().updateUser(target, { disabled });
+      let unassignedClasses = 0;
       try {
-        await ref.update({ disabled });
+        if (disabled) {
+          // Query inside the transaction so a concurrently reassigned class is
+          // never cleared using an outdated list of the teacher's classes.
+          unassignedClasses = await db().runTransaction(async tx => {
+            const classes = await tx.get(db().collection("classes").where("teacherId", "==", target));
+            if (classes.docs.length > 499) throw fail(409, "Reassign some classes before deactivating this teacher; at most 499 classes can be unassigned at once.");
+            tx.update(ref, { disabled: true });
+            for (const classroom of classes.docs) tx.update(classroom.ref, { teacherId: "" });
+            return classes.docs.length;
+          });
+        } else {
+          await ref.update({ disabled: false });
+        }
       } catch (error) {
         // Keep Authentication and the profile consistent if the profile write fails.
         await adminAuth().updateUser(target, { disabled: user.disabled === true });
         throw error;
       }
       if (disabled) await adminAuth().revokeRefreshTokens(target);
-      return res.status(200).json({ ok: true, userId: target, disabled });
+      return res.status(200).json({ ok: true, userId: target, disabled, unassignedClasses });
     }
     if (action === "resend") return res.status(200).json({ ok: true, ...await sendVerification(target) });
     if (action === "complete" && target === token.uid) {

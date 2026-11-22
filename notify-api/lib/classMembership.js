@@ -88,12 +88,13 @@ export async function reviewClassJoins(firestore, teacherId, classId, requests, 
         const fullName = nameOf(user.data());
         applyEnrollmentProgress(tx, userRef, classId, progress);
         tx.create(rosterRef, {
+          ...(progress.restore ? {droppedPeriods:progress.archive.get("droppedPeriods") || [],deadlineOverrides:progress.archive.get("deadlineOverrides") || {}} : {}),
           fullName, joinedAt: progress.restore && progress.archive.get("joinedAt") || FieldValue.serverTimestamp(),
           approvedAt: FieldValue.serverTimestamp(), progressMode: progress.restore ? "restore" : "fresh",
         });
         tx.update(userRef, {
           classId, className: currentClass.get("className") || "", joinRequest: FieldValue.delete(),
-          progressSession: progress.progressSession,
+          progressSession: progress.progressSession, enrollmentStatus:"enrolled", enrollmentVersion:randomUUID(),
           skillSummary: progress.restore && progress.archive.get("skillSummary") || FieldValue.delete(),
         });
         // A deterministic message id makes retries incapable of duplicating the join notice.

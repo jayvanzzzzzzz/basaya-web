@@ -6,6 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state, getAllTeachers, getAllClasses } from "../../js/state.js";
+import { postToApi } from "../../js/api.js";
 import {
   $,
   escapeHtml,
@@ -124,8 +125,23 @@ export async function renderClasses() {
   await Promise.all([getAllTeachers(), getAllClasses()]);
   if (!isCurrent()) return;
 
+  // Repair assignments saved by older deactivation APIs. The server rechecks
+  // disabled state and class ownership transactionally before clearing them.
+  const assignedIds = new Set(state.allClasses.map(classroom => classroom.teacherId));
+  const staleTeachers = state.teachers.filter(teacher => teacher.disabled === true && assignedIds.has(teacher.id));
+  if (staleTeachers.length) {
+    const repairs = await Promise.allSettled(staleTeachers.map(teacher =>
+      postToApi("teacher-onboarding", { action: "cleanup-classes", userId: teacher.id }, { signal: AbortSignal.timeout(20000) })));
+    if (!isCurrent()) return;
+    if (repairs.some(result => result.status === "rejected")) {
+      notify({ tone: "danger", title: "Class assignment cleanup incomplete", message: "Some older assignments could not be cleared. Reload this page to retry." });
+    }
+    await Promise.all([getAllTeachers(), getAllClasses()]);
+    if (!isCurrent()) return;
+  }
+
   const teacherNameById = new Map(
-    state.teachers.map((t) => [t.id, t.displayName || t.email || "Unnamed teacher"]),
+    state.teachers.filter(t => t.disabled !== true).map((t) => [t.id, t.displayName || t.email || "Unnamed teacher"]),
   );
 
   const classCount = state.allClasses.length;

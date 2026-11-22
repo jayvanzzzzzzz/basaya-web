@@ -6,22 +6,18 @@ import {
   query,
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { auth, db } from "../../js/firebase.js";
+import { db } from "../../js/firebase.js";
 import { state, getAllClasses } from "../../js/state.js";
 import { $, escapeHtml, notify, initials, page, openModal } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import { clearFieldError, fieldError } from "../../js/field-errors.js";
-import { sendStudentPasswordReset, setTemporaryPassword } from "../../js/api.js";
+import { setTemporaryPassword } from "../../js/api.js";
+import { createStudent } from "./create-student.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
+import { studentStatus, wireStudentAccess } from "./student-access.js";
 
-// Admin → Students: every student account, searchable by name, email or class.
-// Reset password offers two ways: email a reset link, or set a temporary password
-// for a student whose email is fake or mistyped (they can't get the link).
-// Reuses the teacher table's look (css/components/tables.css, menus.css).
-
-// Students sign up with firstName / middleName / lastName (app and register.html); the app's
-// profile editor also saves fullName as "Last, First". Only teachers have displayName.
+// Admin manages student creation and password recovery without student email.
+// Existing profiles use firstName / middleName / lastName or fullName.
 const fullNameOf = (student) =>
   [student.firstName, student.middleName, student.lastName]
     .map((part) => (part || "").trim())
@@ -30,7 +26,7 @@ const fullNameOf = (student) =>
   (student.fullName || "").trim().replace(/^,\s*|,\s*$/g, "") ||
   (student.displayName || "").trim();
 
-const studentName = (student) => fullNameOf(student) || student.email || "this student";
+const studentName = (student) => fullNameOf(student) || student.username || student.lrn || "this student";
 
 function classLabel(classroom) {
   const name = (classroom.className || "").trim();
@@ -64,8 +60,17 @@ async function getAllStudents() {
 
 // The class ribbon picked last ("all", "none" or a class id), kept when the page re-renders.
 let selectedRibbon = "all";
+let statusFilter = "all";
 
 const countLabel = (count) => (count === 1 ? "student" : "students");
+
+function openCreateStudentModal() {
+  const isCurrent = captureRoute("/students");
+  createStudent((account, password) => {
+    showTemporaryPassword(account, password, true);
+    if (isCurrent()) renderStudents().catch(() => notify({ tone: "info", title: "Account created", message: "Refresh the student list to see the new account." }));
+  });
+}
 
 export async function renderStudents() {
   const isCurrent = captureRoute("/students");
@@ -97,6 +102,7 @@ export async function renderStudents() {
   page(
     "Student accounts",
     [`${students.length} ${countLabel(students.length)}`, noClass && `${noClass} with no class yet`],
+    `<button type="button" class="button primary" id="create-student"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 21v-2a6.5 6.5 0 0 1 10-5.5M18 12v8m-4-4h8" /></svg><span>Add student</span></button>`,
   );
 
   $("#page-content").innerHTML = students.length
@@ -105,9 +111,12 @@ export async function renderStudents() {
           <div>
             <span class="teacher-directory__eyebrow">People</span>
             <h2 id="student-ribbon-title">All students</h2>
-            <p>Students create their own accounts. Reset a password here when they can't sign in.</p>
+            <p>Create student accounts with an LRN and username. No student email is required.</p>
           </div>
           <span class="teacher-directory__count" id="student-ribbon-count"></span>
+        </div>
+        <div class="teacher-status-filters student-status-filters" role="group" aria-label="Filter students by account status">
+          ${[["all", "All"], ["active", "Active"], ["deactivated", "Deactivated"]].map(([value, label]) => `<button type="button" data-student-status-filter="${value}" aria-pressed="${statusFilter === value}"><span class="teacher-status-filters__label">${label}</span><span class="teacher-status-filters__count" data-status-count>${students.filter(student => value === "all" || (student.disabled === true ? "deactivated" : "active") === value).length}</span></button>`).join("")}
         </div>
         <div class="student-ribbons" role="group" aria-label="Show students by class">
           ${ribbons
@@ -121,28 +130,39 @@ export async function renderStudents() {
         </div>
         <label class="admin-directory-search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
-          <span class="sr-only">Search students by name, email or class</span>
-          <input type="search" id="student-search" placeholder="Search by name, email or class..." autocomplete="off" />
+          <span class="sr-only">Search students by name, LRN, username or class</span>
+          <input type="search" id="student-search" placeholder="Search by name, LRN, username or class..." autocomplete="off" />
         </label>
+        <div id="student-bulk-actions" class="student-bulk-actions" aria-label="Selected student actions" hidden>
+          <strong data-selected-count aria-live="polite"></strong>
+          <div class="student-bulk-actions__buttons">
+            <button type="button" class="button secondary small" data-bulk-deactivate>Deactivate selected</button>
+            <button type="button" class="button secondary small" data-bulk-reactivate>Reactivate selected</button>
+            <button type="button" class="button secondary small" data-clear-selection>Clear selection</button>
+          </div>
+        </div>
         <div class="teacher-table-wrap">
         <table class="table teacher-table student-table">
           <thead>
-            <tr><th scope="col">Student</th><th scope="col">Email address</th><th scope="col">Class</th><th scope="col" aria-label="Student actions"></th></tr>
+            <tr><th scope="col" class="student-select-cell"><input id="student-select-page" type="checkbox" aria-label="Select students on this page" /></th><th scope="col">Student</th><th scope="col">LRN</th><th scope="col">Class</th><th scope="col" class="teacher-table__status-column">Status</th><th scope="col" aria-label="Student actions"></th></tr>
           </thead>
           <tbody>
             ${students
               .map(
-                (s) => `<tr data-student="${escapeHtml(s.id)}" data-ribbon="${escapeHtml(ribbonOf(s))}" data-search="${escapeHtml(
-                  [fullNameOf(s), s.email, classOf(s)].filter(Boolean).join(" ").toLowerCase(),
+                (s) => `<tr data-student="${escapeHtml(s.id)}" data-account-status="${s.disabled === true ? "deactivated" : "active"}" data-ribbon="${escapeHtml(ribbonOf(s))}" data-search="${escapeHtml(
+                  [fullNameOf(s), s.lrn, s.username, classOf(s)].filter(Boolean).join(" ").toLowerCase(),
                 )}">
+                  <td class="student-select-cell"><input type="checkbox" data-select-student aria-label="Select ${escapeHtml(studentName(s))}" /></td>
                   <td>
                     <div class="teacher-table__person">
                       <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml(initials(studentName(s)))}</span>
                       <span class="teacher-table__name">${escapeHtml(fullNameOf(s) || "Unnamed student")}</span>
                     </div>
+                    ${studentStatus(s, true)}
                   </td>
-                  <td class="teacher-table__email">${escapeHtml(s.email || "No email on file")}</td>
+                  <td class="teacher-table__email">${escapeHtml(s.lrn || "No LRN on file")}</td>
                   <td>${classOf(s) ? escapeHtml(classOf(s)) : `<span class="muted">No class yet</span>`}</td>
+                  <td class="teacher-table__status-column">${studentStatus(s)}</td>
                   <td>
                     <div class="teacher-table__menu">
                       <button
@@ -155,9 +175,9 @@ export async function renderStudents() {
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                       </button>
                       <div class="teacher-table__menu-popup" hidden>
-                        <button type="button" class="teacher-table__menu-item" data-send-link>
-                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h17v11h-17z" /><path d="m3.5 7 8.5 6.5L20.5 7" /></svg>
-                          <span>Send reset email</span>
+                        <button type="button" class="teacher-table__menu-item" data-student-access>
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9 8v8M15 8v8" /></svg>
+                          <span>${s.disabled === true ? "Reactivate student" : "Deactivate student"}</span>
                         </button>
                         <button type="button" class="teacher-table__menu-item" data-temp-password>
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3" /></svg>
@@ -170,18 +190,20 @@ export async function renderStudents() {
               )
               .join("")}
             <tr class="admin-directory-search-empty" hidden>
-              <td colspan="4"></td>
+              <td colspan="6"></td>
             </tr>
           </tbody>
         </table>
         </div>
       </section>`
-    : `<div class="card empty"><h3>No student accounts yet</h3><p>Students show up here once they create an account in the app or on the website.</p></div>`;
+    : `<div class="card empty"><h3>No student accounts yet</h3><p>Create the first student account using their 12-digit LRN and a unique username.</p></div>`;
 
+  $("#create-student").addEventListener("click", openCreateStudentModal);
   if (!students.length) return;
 
   const searchInput = $("#student-search");
   const studentRows = [...document.querySelectorAll(".student-table tbody tr[data-student]")];
+  let selection;
 
   // Rows show when they're in the selected ribbon and match the search.
   const applyFilters = () => {
@@ -191,6 +213,7 @@ export async function renderStudents() {
     studentRows.forEach((row) => {
       row.hidden =
         (selectedRibbon !== "all" && row.dataset.ribbon !== selectedRibbon) ||
+        (statusFilter !== "all" && row.dataset.accountStatus !== statusFilter) ||
         !row.dataset.search.includes(text);
       if (!row.hidden) visible += 1;
     });
@@ -208,7 +231,8 @@ export async function renderStudents() {
         ? selectedRibbon === "none"
           ? "Every student is in a class."
           : "No students in this class yet."
-        : "No students match that search.";
+        : "No students match these filters.";
+    selection?.refresh();
   };
 
   searchInput.addEventListener("input", applyFilters);
@@ -219,13 +243,22 @@ export async function renderStudents() {
     after: $(".teacher-table-wrap"),
     search: searchInput,
     label: ["student", "students"],
+    onChange: () => selection?.refresh(),
   });
+  selection = wireStudentAccess({ students, rows: studentRows, isCurrent, applyFilters, pager, nameOf: studentName, reload: renderStudents });
+  searchInput.addEventListener("input", () => selection.clear());
+  document.querySelectorAll("[data-student-status-filter]").forEach(button => button.addEventListener("click", () => {
+    statusFilter = button.dataset.studentStatusFilter;
+    document.querySelectorAll("[data-student-status-filter]").forEach(tab => tab.setAttribute("aria-pressed", String(tab === button)));
+    selection.clear(); closeStudentMenus(); applyFilters(); pager.reset();
+  }));
 
   // Picking a ribbon keeps the search text and goes back to page 1.
   document.querySelector(".student-ribbons").addEventListener("click", (event) => {
     const button = event.target.closest(".student-ribbon");
     if (!button || button.dataset.ribbon === selectedRibbon) return;
     selectedRibbon = button.dataset.ribbon;
+    selection.clear();
     closeStudentMenus();
     applyFilters();
     pager.reset();
@@ -242,56 +275,11 @@ export async function renderStudents() {
       popup.hidden = !willOpen;
       toggle.setAttribute("aria-expanded", String(willOpen));
     });
-    row.querySelector("[data-send-link]").addEventListener("click", () => {
-      closeStudentMenus();
-      sendResetLink(student);
-    });
     row.querySelector("[data-temp-password]").addEventListener("click", () => {
       closeStudentMenus();
       openTemporaryPasswordModal(student);
     });
   });
-}
-
-/** Sends the BaSaya-branded reset email (notify-api). If the API can't send it (e.g. Gmail isn't set up yet), falls back to Firebase's standard reset email. */
-async function sendResetLink(student) {
-  const name = studentName(student);
-  if (!student.email) {
-    return notify({ tone: "danger", title: "No email on file", message: `${name} has no email. Set a temporary password instead.` });
-  }
-  if (!await confirmAction({ title: 'Send password reset link?', message: 'Email this student a link to choose a new password.', confirm: 'Send reset link' })) return;
-  const sending = notify({
-    tone: "info",
-    avatar: initials(name),
-    title: "Sending reset link…",
-    message: student.email,
-    duration: 20000,
-  });
-  try {
-    const { email } = await sendStudentPasswordReset(student.id);
-    sending.dismiss();
-    notify({
-      tone: "success",
-      avatar: initials(name),
-      title: "Reset link sent",
-      message: `${name} will get an email at ${email}. The link works for 1 hour. If the email isn't real, set a temporary password instead.`,
-    });
-  } catch (error) {
-    console.warn("Branded reset email failed, using Firebase's:", error);
-    try {
-      await sendPasswordResetEmail(auth, student.email);
-      sending.dismiss();
-      notify({
-        tone: "success",
-        avatar: initials(name),
-        title: "Reset link sent",
-        message: `Sent to ${student.email} with the standard Firebase email.`,
-      });
-    } catch (fallbackError) {
-      sending.dismiss();
-      notify({ tone: "danger", title: "Couldn't send the reset link", message: fallbackError.message });
-    }
-  }
 }
 
 /** Easy to read out loud: no 0/O or 1/l/I. */
@@ -307,7 +295,7 @@ function openTemporaryPasswordModal(student) {
   const name = studentName(student);
   openModal(
     `<h2>Set a temporary password</h2>
-     <p>For <strong>${escapeHtml(name)}</strong>${student.email ? ` (${escapeHtml(student.email)})` : ""}. Use this when the student can't get the reset email.</p>
+     <p>For <strong>${escapeHtml(name)}</strong>. Give the new password to the student in person.</p>
      <form id="temp-password-form" class="form-card">
        <label>Temporary password
          <input name="password" type="text" required data-missing="Type a temporary password, or press “Suggest another”." minlength="${MIN_LENGTH}" maxlength="128" autocomplete="off" spellcheck="false" />
@@ -360,13 +348,14 @@ function openTemporaryPasswordModal(student) {
 }
 
 /** Shows the new password once, so the admin can pass it on. */
-function showTemporaryPassword(student, password) {
+function showTemporaryPassword(student, password, created = false) {
   const name = studentName(student);
   openModal(
-    `<h2>Password set</h2>
+    `<h2>${created ? "Student account created" : "Password set"}</h2>
      <p><strong>${escapeHtml(name)}</strong> can now sign in with:</p>
      <dl class="temp-password">
-       <dt>Email</dt><dd>${escapeHtml(student.email || "—")}</dd>
+       <dt>LRN</dt><dd>${escapeHtml(student.lrn || "Not assigned")}</dd>
+       <dt>Username</dt><dd>${escapeHtml(student.username || "Not assigned")}</dd>
        <dt>Password</dt><dd><code>${escapeHtml(password)}</code></dd>
      </dl>
      <p class="muted">This is the only time it's shown. Ask them to change it after signing in.</p>

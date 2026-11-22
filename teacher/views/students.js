@@ -9,7 +9,7 @@ import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
 import { $, escapeHtml, navigate, page, openModal, toast } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
-import { removeStudent } from "../../js/api.js";
+import { classLifecycle } from "../../js/api.js";
 import { leaveRequestsPanel, wireLeaveRequests, leaveLeaveRequests, pendingLeaves } from "./leaveRequests.js";
 import { enrollmentSummary, joinRequestsPanel } from "./joinRequestsUi.js";
 import { watchJoinRequests, leaveJoinRequests } from "./joinRequests.js";
@@ -20,17 +20,62 @@ import { attachFloatingTooltips } from '../../js/floatingTooltip.js';
 
 // Local Lucide SVGs, consistent with the teacher portal's icon system.
 const icons = {
+  student: '<circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2Z"/>',
   progress: '<path d="M3 3v18h18M7 14l4-4 4 3 6-7"/>',
   readings: '<path d="M3 14v-3a9 9 0 0 1 18 0v3M3 12H2v7h5v-7H3Zm18 0h1v7h-5v-7h4ZM13 22h4a4 4 0 0 0 4-4"/>',
   messages: '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/>',
-  remove: '<path d="M3 6h18M19 6l-1 14H6L5 6M9 6V3h6v3M10 10v6M14 10v6"/>',
+  drop: '<circle cx="9" cy="8" r="3.5"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10h5"/>',
+  more: '<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   close: '<path d="m18 6-12 12M6 6l12 12"/>'
 };
 const icon = key => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[key]}</svg>`;
-const studentAction = (key, label, attribute, id, hidden = false) => `<button type="button" class="roster-action${key === 'remove' ? ' roster-action--danger' : ''}" ${attribute}="${escapeHtml(id)}" aria-label="${label}" data-teacher-tooltip data-floating-tooltip="${label}"${hidden ? ' hidden' : ''}>${icon(key)}</button>`;
+const studentAction = (key, label, attribute, id, hidden = false) => `<button type="button" role="menuitem" class="roster-menu__item${key === 'drop' ? ' roster-menu__item--danger' : ''}" ${attribute}="${escapeHtml(id)}"${hidden ? ' hidden' : ''}>${icon(key)}<span>${label}</span></button>`;
+
+let rosterMenu = null;
+function closeRosterMenu(focus = false) {
+  if(!rosterMenu)return;
+  const {menu,container,trigger}=rosterMenu;
+  rosterMenu=null;menu.hidden=true;trigger.setAttribute('aria-expanded','false');
+  if(container.isConnected)container.append(menu);else menu.remove();
+  if(focus&&trigger.isConnected)trigger.focus({preventScroll:true});
+}
+function positionRosterMenu() {
+  if(!rosterMenu)return;
+  const {menu,trigger}=rosterMenu;
+  const anchor=trigger.getBoundingClientRect(),bounds=menu.getBoundingClientRect(),margin=8;
+  if(!trigger.isConnected||anchor.bottom<0||anchor.top>innerHeight||anchor.right<0||anchor.left>innerWidth){closeRosterMenu();return;}
+  menu.style.left=`${Math.max(margin,Math.min(anchor.right-bounds.width,innerWidth-bounds.width-margin))}px`;
+  menu.style.top=`${Math.max(margin,Math.min(anchor.bottom+6+ bounds.height>innerHeight-margin?anchor.top-bounds.height-6:anchor.bottom+6,innerHeight-bounds.height-margin))}px`;
+}
+function openRosterMenu(trigger,menu) {
+  if(rosterMenu?.trigger===trigger){closeRosterMenu(true);return;}
+  closeRosterMenu();
+  const container=trigger.parentElement;
+  document.body.append(menu);menu.hidden=false;trigger.setAttribute('aria-expanded','true');
+  rosterMenu={menu,container,trigger};
+  positionRosterMenu();
+  menu.querySelector('[role="menuitem"]:not([hidden])')?.focus({preventScroll:true});
+}
+document.addEventListener('pointerdown',event=>{
+  if(rosterMenu&&!rosterMenu.menu.contains(event.target)&&!rosterMenu.trigger.contains(event.target))closeRosterMenu();
+});
+document.addEventListener('keydown',event=>{
+  if(!rosterMenu)return;
+  if(event.key==='Escape'){event.preventDefault();closeRosterMenu(true);return;}
+  if(!rosterMenu.menu.contains(event.target))return;
+  if(event.key==='Tab'){closeRosterMenu(true);return;}
+  const items=[...rosterMenu.menu.querySelectorAll('[role="menuitem"]:not([hidden]):not(:disabled)')];
+  const index=items.indexOf(document.activeElement);
+  const next={ArrowDown:(index+1)%items.length,ArrowUp:(index-1+items.length)%items.length,Home:0,End:items.length-1}[event.key];
+  if(next!==undefined){event.preventDefault();items[next]?.focus();}
+});
+window.addEventListener('hashchange',()=>closeRosterMenu());
+window.addEventListener('resize',positionRosterMenu);
+window.addEventListener('scroll',event=>{if(rosterMenu&&!rosterMenu.menu.contains(event.target))positionRosterMenu();},true);
 
 export async function renderStudentsPage(classId) {
+  closeRosterMenu();
   const isCurrent = captureRoute(`/classes/${encodeURIComponent(classId)}/students`);
   if (!isCurrent()) return;
   leaveJoinRequests();
@@ -69,26 +114,29 @@ export async function renderStudentsPage(classId) {
   const rows = students
     .map((student) => {
       const name = student.fullName || "Student";
-      const initial = name.trim().charAt(0).toUpperCase() || "S";
+      const dropped=student.membershipStatus==='dropped';
 
       return `
         <tr class="roster-row" data-student="${escapeHtml(name.toLowerCase())}">
           <th scope="row"><div class="roster-identity">
-            <span class="roster-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+            <span class="roster-avatar" aria-hidden="true">${icon('student')}</span>
             <span class="roster-name">${escapeHtml(name)}<span class="teacher-notification-dot student-notification-dot" data-student-notice="${escapeHtml(student.id)}" data-teacher-tooltip data-floating-tooltip="Student updates" tabindex="0" role="img" aria-label="Student updates" hidden></span></span>
           </div></th>
-          <td><span class="roster-membership${student.leaveRequest ? ' roster-membership--pending' : ''}">${student.leaveRequest ? 'Wants to leave' : 'Enrolled'}</span></td>
-          <td><div class="roster-actions" role="group" aria-label="Actions for ${escapeHtml(name)}">
+          <td><span class="roster-membership${dropped ? ' roster-membership--dropped' : student.leaveRequest ? ' roster-membership--pending' : ''}">${dropped ? 'Dropped' : student.leaveRequest ? 'Wants to leave' : 'Enrolled'}</span></td>
+          <td><div class="roster-actions">
+            <button type="button" class="roster-action roster-menu-toggle" data-roster-menu-toggle aria-label="Actions for ${escapeHtml(name)}" aria-haspopup="menu" aria-expanded="false" aria-controls="roster-menu-${escapeHtml(student.id)}" data-teacher-tooltip data-floating-tooltip="Student actions">${icon('more')}</button>
+            <div class="roster-menu" id="roster-menu-${escapeHtml(student.id)}" role="menu" aria-label="Actions for ${escapeHtml(name)}" hidden>
             ${studentAction('progress', 'View progress', 'data-view-progress', student.id)}
             ${studentAction('readings', 'Review readings', 'data-review-student', student.id, true)}
             ${studentAction('messages', 'Read class messages', 'data-message-student', student.id, true)}
-            ${studentAction('remove', 'Remove from class', 'data-remove-student', student.id)}
+            ${classroom.archived ? '' : studentAction(dropped ? 'student' : 'drop', dropped ? 'Re-enroll student' : 'Drop student', 'data-remove-student', student.id)}
+            </div>
           </div></td>
         </tr>`;
     })
     .join("");
 
-  $("#page-content").innerHTML = `<div class="students-workspace">${enrollmentSummary(classroom, students.length)}` + (students.length
+  $("#page-content").innerHTML = `<div class="students-workspace">${enrollmentSummary(classroom, students.filter(student=>student.membershipStatus!=="dropped").length)}` + (students.length
     ? `
       <section class="student-directory class-roster" aria-labelledby="roster-title">
         <div class="student-directory__toolbar">
@@ -122,6 +170,7 @@ export async function renderStudentsPage(classId) {
         <code>${escapeHtml(classroom.classCode || "—")}</code>
       </section>`) + `<section class="roster-admissions" aria-labelledby="roster-admissions-title"><div class="roster-section-heading"><p class="eyebrow">Enrollment management</p><h2 id="roster-admissions-title">Class requests</h2><p>Review who joins and leaves your classroom.</p></div>${requestRibbons(pendingLeaves(students).length)}<div id="request-panel-join" role="tabpanel" aria-labelledby="request-tab-join">${joinRequestsPanel(classroom, students.length, { summary: false })}</div><div id="request-panel-leave" role="tabpanel" aria-labelledby="request-tab-leave" hidden>${leaveRequestsPanel()}</div></section></div>`;
 
+  if(classroom.archived) $(".roster-admissions").hidden=true;
   wireRequestRibbons(classId);
   watchTeacherTooltips();
   watchStudentNotifications(classId, notice => {
@@ -132,13 +181,18 @@ export async function renderStudentsPage(classId) {
       dot.hidden = !item?.labels.length;
       dot.setAttribute('aria-label', item?.labels.join(' · ') || 'No pending updates');
       dot.dataset.floatingTooltip = item?.labels.join(' · ') || '';
-      const row = dot.closest('[data-student]');
-      row.querySelector('[data-review-student]').hidden = !item?.readings;
-      row.querySelector('[data-message-student]').hidden = !item?.messages;
+      const menu = document.getElementById(`roster-menu-${dot.dataset.studentNotice}`);
+      menu.querySelector('[data-review-student]').hidden = !item?.readings;
+      menu.querySelector('[data-message-student]').hidden = !item?.messages;
     });
   }, students);
-  document.querySelectorAll('[data-review-student]').forEach(button => button.addEventListener('click', () => navigate(`/classes/${encodeURIComponent(classId)}/readings/${encodeURIComponent(button.dataset.reviewStudent)}`)));
-  document.querySelectorAll('[data-message-student]').forEach(button => button.addEventListener('click', () => navigate(`/messages/${encodeURIComponent(classId)}`)));
+  document.querySelectorAll('[data-roster-menu-toggle]').forEach(button=>{
+    const menu=document.getElementById(button.getAttribute('aria-controls'));
+    button.addEventListener('click',()=>openRosterMenu(button,menu));
+    button.addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();if(rosterMenu?.trigger!==button)openRosterMenu(button,menu);if(event.key==='ArrowUp')menu.querySelectorAll('[role="menuitem"]:not([hidden])').item(menu.querySelectorAll('[role="menuitem"]:not([hidden])').length-1)?.focus();}});
+  });
+  document.querySelectorAll('[data-review-student]').forEach(button => button.addEventListener('click', () => {closeRosterMenu();navigate(`/classes/${encodeURIComponent(classId)}/readings/${encodeURIComponent(button.dataset.reviewStudent)}`);}));
+  document.querySelectorAll('[data-message-student]').forEach(button => button.addEventListener('click', () => {closeRosterMenu();navigate(`/messages/${encodeURIComponent(classId)}`);}));
   const refreshStudents = () => {
     if (location.hash === `#/classes/${encodeURIComponent(classId)}/students`) return renderStudentsPage(classId);
   };
@@ -146,6 +200,7 @@ export async function renderStudentsPage(classId) {
   watchJoinRequests(classId, refreshStudents);
 
   $("#student-search")?.addEventListener("input", (event) => {
+    closeRosterMenu();
     const term = event.currentTarget.value.trim().toLowerCase();
     const rows = [...document.querySelectorAll("[data-student]")];
     let visible = 0;
@@ -160,6 +215,7 @@ export async function renderStudentsPage(classId) {
 
   if (students.length) {
     const labelPagination = () => {
+      closeRosterMenu();
       document.querySelectorAll('.students-workspace .pagination__button--nav').forEach(button => {
         button.setAttribute('data-teacher-tooltip', '');
         button.dataset.floatingTooltip = button.getAttribute('aria-label');
@@ -176,35 +232,36 @@ export async function renderStudentsPage(classId) {
   }
 
   document.querySelectorAll("[data-view-progress]").forEach((button) =>
-    button.addEventListener("click", () =>
+    button.addEventListener("click", () => {
+      closeRosterMenu();
       navigate(
         `/classes/${encodeURIComponent(classId)}/students/${encodeURIComponent(button.dataset.viewProgress)}`,
-      ),
+      );},
     ),
   );
 
   document.querySelectorAll("[data-remove-student]").forEach((button) =>
     button.addEventListener("click", () => {
       const student = students.find((item) => item.id === button.dataset.removeStudent);
-      if (student) openRemoveStudentModal(classroom, student, button);
+      const trigger=rosterMenu?.trigger || button;
+      closeRosterMenu();
+      if (student) openDropStudentModal(classroom, student, trigger);
     }),
   );
 }
 
-function openRemoveStudentModal(classroom, student, trigger) {
+function openDropStudentModal(classroom, student, trigger) {
   const name = student.fullName || "this student";
+  const reenroll=student.membershipStatus==='dropped', actionLabel=reenroll?'Re-enroll student':'Drop student';
   openModal(
-    `<div class="roster-removal"><p class="eyebrow">Class membership</p><h2 id="roster-remove-title">Remove ${escapeHtml(name)}?</h2>
-     <p>They'll be taken out of <strong>${escapeHtml(classroom.className)}</strong>. Their saved work will be archived:</p>
-     <ul class="remove-student__list">
-       <li>Lesson progress and scores are kept for this class</li>
-       <li>Their active class link is removed</li>
-     </ul>
-     <p class="muted">Their account stays. Rejoining requires teacher approval. Saved progress can be restored, including completed assessments, or you can explicitly start a fresh record.</p>
+    `<div class="roster-removal"><p class="eyebrow">Class membership</p><h2 id="roster-remove-title">${reenroll ? 'Re-enroll' : 'Drop'} ${escapeHtml(name)}?</h2>
+     <p>${reenroll ? 'Restore participation in' : 'Pause participation in'} <strong>${escapeHtml(classroom.className)}</strong>.</p>
+     <ul class="remove-student__list"><li>Saved progress and scores stay preserved</li><li>${reenroll ? 'The student resumes their saved work; deadlines passed while dropped stay exempt' : 'The student stays on this roster as Dropped and cannot access current or new lessons'}</li></ul>
+     <p class="muted">${reenroll ? 'Use an individual deadline extension when catch-up work is needed. Deactivated accounts must be reactivated by an admin first.' : 'Their account stays active. Monitoring and new deadline penalties pause until you re-enroll them.'}</p>
      <p class="form-error" id="remove-student-error" role="alert"></p>
      <div class="modal-actions">
-       <button type="button" class="button secondary" data-cancel>Keep student</button>
-       <button type="button" class="button danger" data-confirm-remove>Remove student</button>
+       <button type="button" class="button secondary" data-cancel>${reenroll ? "Cancel" : "Keep enrolled"}</button>
+       <button type="button" class="button danger" data-confirm-remove>${actionLabel}</button>
      </div></div>`,
     (modal, close) => {
       modal.classList.add('roster-modal');
@@ -235,16 +292,16 @@ function openRemoveStudentModal(classroom, student, trigger) {
       const confirmButton = $("[data-confirm-remove]", modal);
       confirmButton.addEventListener("click", async () => {
         confirmButton.disabled = true;
-        confirmButton.textContent = "Removing…";
+        confirmButton.textContent = reenroll ? "Re-enrolling…" : "Dropping…";
         try {
-          await removeStudent(classroom.id, student.id);
+          await classLifecycle(reenroll ? "reenroll" : "drop", classroom.id, student.id);
           close();
-          toast(`${name} was removed from the class.`);
+          toast(`${name} was ${reenroll ? "re-enrolled" : "marked as dropped"}. Saved progress is preserved.`);
           await renderStudentsPage(classroom.id);
         } catch (error) {
-          $("#remove-student-error", modal).textContent = `Couldn't remove the student: ${error.message}.`;
+          $("#remove-student-error", modal).textContent = `Couldn't ${reenroll ? 're-enroll' : 'drop'} the student: ${error.message}.`;
           confirmButton.disabled = false;
-          confirmButton.textContent = "Remove student";
+          confirmButton.textContent = actionLabel;
         }
       });
     },

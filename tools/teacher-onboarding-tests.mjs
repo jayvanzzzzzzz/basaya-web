@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
 import * as crypto from "node:crypto";
+import { createRequire } from "node:module";
 import { startFirestoreTestServer } from "./firestore-test-server.mjs";
 
 const rows = new Map([["users/admin", { role: "admin" }], ["users/student", { role: "student" }]]);
@@ -14,13 +15,23 @@ const ref = path => ({ path, get: async () => snapshot(path), update: async data
   if (accessWriteFails && 'disabled' in data) throw Error('profile unavailable');
   rows.set(path, { ...rows.get(path), ...data });
 } });
-const database = {
+let database = {
   doc: ref,
+  collection: name => ({ where: (field, operator, value) => ({ collection: name, field, value }) }),
   batch: () => {
     const tasks = [];
     return { set: (r, data) => tasks.push(() => rows.set(r.path, data)), update: (r, data) => tasks.push(() => rows.set(r.path, { ...rows.get(r.path), ...data })), delete: r => tasks.push(() => rows.delete(r.path)), commit: async () => { if (profileFails) throw Error("write failed"); tasks.forEach(task => task()); } };
   },
-  runTransaction: async run => run({ get: async r => snapshot(r.path), update: (r, data) => rows.set(r.path, { ...rows.get(r.path), ...data }) }),
+  runTransaction: async run => {
+    const writes=[];
+    const result=await run({
+      get: async r => r.collection ? { docs:[...rows.keys()].filter(path=>path.startsWith(r.collection+'/') && path.split('/').length===2 && rows.get(path)[r.field]===r.value).map(snapshot) } : snapshot(r.path),
+      update: (r,data) => writes.push({r,data}),
+    });
+    if (accessWriteFails && writes.some(({data})=>'disabled' in data)) throw Error('profile unavailable');
+    writes.forEach(({r,data})=>rows.set(r.path,{...rows.get(r.path),...data}));
+    return result;
+  },
 };
 const authentication = {
   verifyIdToken: async (uid, checkRevoked) => {
@@ -170,27 +181,35 @@ await test('API guard blocks pending accounts and permits legacy/ready accounts'
 });
 
 await test('only admins can change access, and only for a teacher', async () => {
-  for (const action of ['deactivate', 'reactivate']) {
+  for (const action of ['deactivate', 'reactivate', 'cleanup-classes']) {
     assert.equal((await request({ action, userId: uid }, 'student')).code, 403);
     assert.equal((await request({ action, userId: uid }, uid)).code, 403);
     assert.equal((await request({ action, userId: 'student' })).code, 404);
     assert.equal((await request({ action })).code, 400);
   }
 });
-await test('deactivation disables auth, revokes sessions and preserves profile and class assignments', async () => {
+await test('deactivation disables auth, revokes sessions and unassigns all classes while preserving student records', async () => {
   rows.set('classes/preserved', { teacherId: uid, title: 'Rizal', students: ['student'] });
+  rows.set('classes/second', { teacherId: uid, title: 'Mabini' });
+  rows.set('classes/other', { teacherId: 'another_teacher' });
+  rows.set('classes/preserved/students/student', { fullName: 'Student', score: 85 });
   const before = { ...rows.get(`users/${uid}`) };
   const result = await request({ action: 'deactivate', userId: uid });
   assert.equal(result.code, 200);
   assert.equal(result.body.disabled, true);
   assert.equal(users.get(uid).disabled, true);
   assert.deepEqual(rows.get(`users/${uid}`), { ...before, disabled: true });
-  assert.equal(rows.get('classes/preserved').teacherId, uid);
+  assert.equal(result.body.unassignedClasses, 2);
+  assert.equal(rows.get('classes/preserved').teacherId, '');
+  assert.equal(rows.get('classes/second').teacherId, '');
+  assert.equal(rows.get('classes/other').teacherId, 'another_teacher');
+  assert.equal(rows.get('classes/preserved/students/student').score, 85);
   assert.deepEqual(rows.get('classes/preserved').students, ['student']);
   assert.ok(revoked.includes(uid));
   const status = await request({ action: 'statuses', userIds: [uid] });
   assert.equal(status.body.users[0].disabled, true);
   assert.equal((await request({ action: 'resend' }, uid)).code, 401);
+  assert.equal((await request({ action: 'deactivate', userId: uid })).body.unassignedClasses, 0);
 });
 await test('reactivation restores sign-in and retains setup flags and records; retries are safe', async () => {
   assert.equal((await request({ action: 'reactivate', userId: uid })).code, 200);
@@ -198,11 +217,12 @@ await test('reactivation restores sign-in and retains setup flags and records; r
   assert.equal(users.get(uid).disabled, false);
   assert.equal(rows.get(`users/${uid}`).disabled, false);
   assert.equal(rows.get(`users/${uid}`).mustChangePassword, false);
-  assert.equal(rows.get('classes/preserved').teacherId, uid);
+  assert.equal(rows.get('classes/preserved').teacherId, '');
   const http = modules.get(new URL('../notify-api/lib/http.js', import.meta.url).href).namespace;
   assert.equal(await http.requireUser({ headers: { authorization: `Bearer ${uid}` } }, { status() { return this; }, json() {} }), uid);
 });
 await test('failed profile status write rolls authentication back without deleting data', async () => {
+  rows.get('classes/preserved').teacherId = uid;
   accessWriteFails = true;
   assert.equal((await request({ action: 'deactivate', userId: uid })).code, 500);
   accessWriteFails = false;
@@ -214,6 +234,20 @@ await test('profile-disabled teachers cannot call even the pending-account API',
   rows.get(`users/${uid}`).disabled = true;
   assert.equal((await request({ action: 'resend' }, uid)).code, 403);
   rows.get(`users/${uid}`).disabled = false;
+});
+await test('cleanup repairs older assignments only while the teacher remains deactivated', async () => {
+  rows.set('users/cleanup-teacher', { role: 'teacher', disabled: true });
+  rows.set('classes/cleanup-class', { teacherId: 'cleanup-teacher', className: 'Preserved' });
+  const repaired = await request({ action: 'cleanup-classes', userId: 'cleanup-teacher' });
+  assert.equal(repaired.code, 200);
+  assert.equal(repaired.body.unassignedClasses, 1);
+  assert.equal(rows.get('classes/cleanup-class').teacherId, '');
+  assert.equal(rows.get('classes/cleanup-class').className, 'Preserved');
+  rows.set('classes/cleanup-class', { teacherId: 'cleanup-teacher' });
+  rows.get('users/cleanup-teacher').disabled = false;
+  const skipped = await request({ action: 'cleanup-classes', userId: 'cleanup-teacher' });
+  assert.equal(skipped.body.unassignedClasses, 0);
+  assert.equal(rows.get('classes/cleanup-class').teacherId, 'cleanup-teacher');
 });
 
 if (process.argv[2]) {
@@ -249,6 +283,58 @@ if (process.argv[2]) {
         assert.equal((await patch('users/legacy', { [key]: 'Changed' }, 'directory-admin')).status, 403);
       }
       assert.equal((await patch('users/legacy', { displayName: 'My updated name' }, 'legacy')).status, 200);
+    });
+    await test('class assignments reject deactivated teachers and allow active teachers or unassigned', async () => {
+      await patch('classes/assignment', { teacherId: 'legacy', className: 'Preserved class' });
+      assert.equal((await patch('classes/assignment', { teacherId: 'inactive' }, 'directory-admin')).status, 403);
+      assert.equal((await patch('classes/assignment', { teacherId: '' }, 'directory-admin')).status, 200);
+      assert.equal((await patch('classes/assignment', { teacherId: 'legacy' }, 'directory-admin')).status, 200);
+    });
+    await test('deactivation unassigns classes through a real Firestore transaction and preserves progress', async () => {
+      const previousHost = process.env.FIRESTORE_EMULATOR_HOST;
+      process.env.FIRESTORE_EMULATOR_HOST = emulator.host;
+      const require = createRequire(new URL('../notify-api/package.json', import.meta.url));
+      const { initializeApp, deleteApp } = require('firebase-admin/app');
+      const { getFirestore } = require('firebase-admin/firestore');
+      const app = initializeApp({ projectId: emulator.project }, 'deactivation-transaction');
+      const firestore = getFirestore(app);
+      firestore.settings({ host: emulator.host, ssl: false });
+      const previousDatabase = database;
+      try {
+        await firestore.doc('users/admin').set({ role: 'admin' });
+        await firestore.doc('users/transaction-teacher').set({ role: 'teacher', disabled: false });
+        users.set('transaction-teacher', { uid: 'transaction-teacher', disabled: false });
+        for (const name of ['one', 'two']) await firestore.doc(`classes/transaction-${name}`).set({ teacherId: 'transaction-teacher', className: name });
+        await firestore.doc('classes/transaction-one/students/learner').set({ score: 92 });
+        // The handler runs in a VM; normalize its object literals at the SDK
+        // boundary because Firestore rejects objects with a foreign prototype.
+        const plain = value => JSON.parse(JSON.stringify(value));
+        database = {
+          doc: path => {
+            const raw = firestore.doc(path);
+            return { raw, get: () => raw.get(), update: data => raw.update(plain(data)) };
+          },
+          collection: name => firestore.collection(name),
+          runTransaction: run => firestore.runTransaction(async tx => await run({
+            get: ref => tx.get(ref.raw || ref),
+            update: (ref, data) => tx.update(ref.raw || ref, plain(data)),
+          })),
+        };
+        const result = await request({ action: 'deactivate', userId: 'transaction-teacher' });
+        assert.equal(result.code, 200);
+        assert.equal(result.body.unassignedClasses, 2);
+        assert.equal((await firestore.doc('users/transaction-teacher').get()).get('disabled'), true);
+        for (const name of ['one', 'two']) assert.equal((await firestore.doc(`classes/transaction-${name}`).get()).get('teacherId'), '');
+        assert.equal((await firestore.doc('classes/transaction-one/students/learner').get()).get('score'), 92);
+        assert.equal((await request({ action: 'reactivate', userId: 'transaction-teacher' })).code, 200);
+        assert.equal((await firestore.doc('classes/transaction-one').get()).get('teacherId'), '');
+      } finally {
+        database = previousDatabase;
+        if (previousHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+        else process.env.FIRESTORE_EMULATOR_HOST = previousHost;
+        await firestore.terminate();
+        await deleteApp(app);
+      }
     });
     await test('rules prevent clearing required setup flags and reading private password hash', async () => {
       assert.equal((await patch('users/pending', { mustChangePassword: false }, 'pending')).status, 403);
