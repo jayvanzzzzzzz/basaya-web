@@ -28,7 +28,7 @@ export async function renderLessonWorkspace() {
   const guard = () => setLessonLeaveGuard(mayLeave, () => busy || dirty(), state.user.uid);
   guard();
   const report = error => { console.error(error); toast(error.message || 'Could not complete this action. Please try again.'); };
-  const ribbons = () => `<div class="module-tabs" role="group" aria-label="Lesson views">${[['modules','Modules'],['library','Lesson library']].map(([id,label]) => `<button type="button" class="button secondary module-ribbon" data-action="${id}" aria-pressed="${tab === id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span>${label}</span></button>`).join('')}</div>`;
+  const ribbons = () => `<div class="module-tabs student-ribbons" role="group" aria-label="Lesson views">${[['modules','Modules'],['library','Lesson library']].map(([id,label]) => `<button type="button" class="student-ribbon module-ribbon" data-action="${id}" aria-pressed="${tab === id}"><span class="student-ribbon__label">${label}</span></button>`).join('')}</div>`;
 
   function previewTooltips() {
     const host = content.querySelector('.module-workspace');

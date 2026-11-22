@@ -41,27 +41,44 @@
 .lesson-inline-editor .lesson-studio__heading .eyebrow { color: var(--ink-2); }
 .lesson-inline-editor .lesson-studio__heading .eyebrow::before { background: var(--primary); }
 .lesson-inline-editor .lesson-studio__badge { background: var(--primary-soft); color: var(--primary); border-color: var(--border); }
+.lesson-inline-editor .lesson-studio form { padding-block-start: 1.25rem; scroll-padding-block-start: 1.25rem; }
 .lesson-inline-editor :is(.lesson-tab.active, .lecture-page-ribbon.active, .lesson-section-number) {
   background: var(--primary-soft);
   color: var(--primary);
   border-color: var(--border);
   box-shadow: none;
 }
+.module-tabs.student-ribbons {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: .35rem;
+  padding: .35rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--primary-soft);
+}
 body:has(#page-content .module-workspace) .module-tabs .module-ribbon {
+  display: inline-flex;
+  align-items: center;
   min-height: 44px;
-  border-width: 2px;
+  padding: .45rem .75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
   background: var(--surface);
   color: var(--ink-2);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 650;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 200ms, border-color 200ms;
 }
-.module-ribbon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
 body:has(#page-content .module-workspace) .module-tabs .module-ribbon[aria-pressed="true"] {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary);
-  box-shadow: inset 0 -3px 0 var(--primary);
-  font-weight: 750;
+  background: var(--ribbon-active, var(--module-action));
+  border-color: var(--ribbon-active, var(--module-action));
+  color: var(--ribbon-active-ink, var(--module-action-ink));
 }
-.module-ribbon[aria-pressed="true"] svg { opacity: 1; }
 .module-workspace .button.module-preview {
   display: inline-grid;
   place-items: center;
