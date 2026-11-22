@@ -77,6 +77,10 @@ const server = http.createServer(async(req,res)=>{
     const confirm=async label=>{await p.locator('.action-confirmation').last().getByRole('button',{name:label,exact:true}).click();};
     for(const role of ['teacher','admin']) {
       await p.goto(base+'/fixture.html?role='+role);await p.waitForFunction(()=>window.ready);
+      assert.equal(await p.locator('[data-action="modules"]').getAttribute('aria-pressed'),'true');
+      await click('library');await p.locator('[data-action="library"][aria-pressed="true"]').waitFor();
+      assert.equal(await p.locator('[data-action="modules"]').getAttribute('aria-pressed'),'false');
+      await click('modules');await p.locator('[data-action="modules"][aria-pressed="true"]').waitFor();
       await click('new-module');await p.locator('[name="title"]').fill('Mga Bahagi ng Pananalita');await p.locator('[name="description"]').fill('Isang module, maraming aralin.');
       await p.locator('[data-pick="pandiwa"]').check();await p.locator('[data-pick="pangngalan"]').check();
       await p.locator('[data-move="1"][data-direction="-1"]').click();
@@ -85,9 +89,26 @@ const server = http.createServer(async(req,res)=>{
         await p.setViewportSize({width,height:1050});await p.evaluate(t=>document.documentElement.dataset.theme=t,theme);
         assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,role+' '+width+' '+theme+' overflow');
         await p.screenshot({path:path.join(out,role+'-module-'+width+'-'+theme+'.png'),fullPage:true,animations:'disabled'});
+        const preview=p.locator('[data-preview="pandiwa"]');
+        assert.equal((await preview.innerText()).trim(),'');
+        await p.mouse.move(0,0);await preview.hover();
+        const tip=p.locator('.floating-tooltip:not([hidden])');await tip.waitFor();
+        assert.equal(await tip.innerText(),'Preview Pandiwa');
+        const bounds=await tip.boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=width);
+        assert.equal(await preview.getAttribute('aria-describedby'),await tip.getAttribute('id'));
+        if(width===390) await p.screenshot({path:path.join(out,role+'-preview-tooltip-'+theme+'.png'),fullPage:true,animations:'disabled'});
+        await p.keyboard.press('Escape');await p.locator('.floating-tooltip:not([hidden])').waitFor({state:'hidden'});
       }
       await p.setViewportSize({width:1440,height:1050});
+      await p.locator('[data-preview="pandiwa"]').focus();await p.locator('.floating-tooltip:not([hidden])').waitFor();
+      await p.locator('[data-preview="pandiwa"]').click();await p.locator('.lesson-viewer-modal').waitFor();
+      assert.equal(await p.locator('[data-pick="pandiwa"]').isChecked(),true);
+      await p.getByRole('button',{name:'Close lesson preview',exact:true}).click();
+      await p.emulateMedia({reducedMotion:'reduce'});await p.locator('[data-preview="pandiwa"]').hover();
+      assert.equal(await p.locator('[data-preview="pandiwa"]').evaluate(e=>getComputedStyle(e).transform),'none');
+      await p.emulateMedia({reducedMotion:'no-preference'});
       await p.locator('[data-edit="pandiwa"]').click();await p.locator('.lesson-inline-editor').waitFor();
+      assert.equal(await p.locator('.floating-tooltip').count(),1,'Removed picker disposes its tooltip; editor owns one tooltip.');
       assert.equal(await p.locator('.modal-backdrop').count(),0,'Content editor is inline');
       assert.equal(await p.locator('[name="title"]').inputValue(),'Pandiwa 1.1');
       await p.locator('[name="description"]').fill('Edited copy overview');

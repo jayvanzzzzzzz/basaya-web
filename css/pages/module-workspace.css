@@ -47,10 +47,46 @@
   border-color: var(--border);
   box-shadow: none;
 }
-body:has(#page-content .module-workspace) .module-tabs .button.primary {
+body:has(#page-content .module-workspace) .module-tabs .module-ribbon {
+  min-height: 44px;
+  border-width: 2px;
+  background: var(--surface);
+  color: var(--ink-2);
+}
+.module-ribbon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+body:has(#page-content .module-workspace) .module-tabs .module-ribbon[aria-pressed="true"] {
   background: var(--primary-soft);
-  border-color: var(--border-strong);
+  border-color: var(--primary);
   color: var(--primary);
+  box-shadow: inset 0 -3px 0 var(--primary);
+  font-weight: 750;
+}
+.module-ribbon[aria-pressed="true"] svg { opacity: 1; }
+.module-workspace .button.module-preview {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+.module-preview svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 180ms ease; }
+.module-workspace .module-preview:hover { transform: translateY(-2px); border-color: var(--primary); }
+.module-preview:hover svg { transform: scale(1.08); }
+body:has(#page-content .module-workspace) .floating-tooltip {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: transparent;
+  animation: module-tooltip-in 160ms ease-out;
+}
+@keyframes module-tooltip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .module-workspace .module-preview, .module-preview svg { transition: none; }
+  body:has(#page-content .module-workspace) .module-preview:hover, .module-preview:hover svg { transform: none; }
+  body:has(#page-content .module-workspace) .floating-tooltip { animation: none; }
 }
 @media (max-width: 1050px) { .module-columns { grid-template-columns: 1fr; } .module-picker { max-height: 22rem; } }
 @media (max-width: 600px) {

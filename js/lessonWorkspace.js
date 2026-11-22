@@ -7,8 +7,10 @@ import { loadModules, saveModule } from './modules.js';
 import { nextCopyNumber, moveLesson } from './moduleModel.js';
 import { openInlineLessonEditor, renderLessons } from '../admin/views/lessons.js';
 import { openLessonViewer } from '../admin/views/lessonViewer.js';
+import { attachFloatingTooltips } from './floatingTooltip.js';
 
 const button = (label, action, primary = false) => `<button type="button" class="button ${primary ? 'primary' : 'secondary'}" data-action="${action}">${label}</button>`;
+const previewButton = item => `<button type="button" class="button secondary small module-preview" data-preview="${esc(item.id)}" aria-label="Preview ${esc(item.title || 'lesson')}" data-floating-tooltip><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>`;
 
 export async function renderLessonWorkspace() {
   const isCurrent = captureRoute('/lessons');
@@ -26,6 +28,27 @@ export async function renderLessonWorkspace() {
   const guard = () => setLessonLeaveGuard(mayLeave, () => busy || dirty(), state.user.uid);
   guard();
   const report = error => { console.error(error); toast(error.message || 'Could not complete this action. Please try again.'); };
+  const ribbons = () => `<div class="module-tabs" role="group" aria-label="Lesson views">${[['modules','Modules'],['library','Lesson library']].map(([id,label]) => `<button type="button" class="button secondary module-ribbon" data-action="${id}" aria-pressed="${tab === id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span>${label}</span></button>`).join('')}</div>`;
+
+  function previewTooltips() {
+    const host = content.querySelector('.module-workspace');
+    if (!host?.querySelector('.module-preview')) return;
+    const dispose = attachFloatingTooltips(host, '.module-preview[data-floating-tooltip]');
+    const observer = new MutationObserver(() => {
+      if (!host.isConnected) { dispose(); observer.disconnect(); }
+    });
+    observer.observe(content, { childList: true, subtree: true });
+  }
+
+  async function renderAdminLibrary() {
+    busy = true;
+    try {
+      await renderLessons({ onEdit: item => editLesson(item), onRefresh: renderLessonWorkspace });
+      if (!isCurrent()) return;
+      content.insertAdjacentHTML('afterbegin', `<section class="module-workspace module-library-tabs">${ribbons()}</section>`);
+      content.onclick = event => action(event);
+    } finally { busy = false; }
+  }
 
   function header() {
     page(draft ? (draft.id ? 'Edit module' : 'Create module') : 'Lessons',
@@ -90,7 +113,7 @@ export async function renderLessonWorkspace() {
     const q = search.toLocaleLowerCase();
     const available = state.allLessons.filter(item => !q || `${item.title} ${item.description || ''}`.toLocaleLowerCase().includes(q));
     const host = content.querySelector('[data-picker]');
-    host.innerHTML = available.length ? available.map(item => `<label class="module-choice"><input type="checkbox" data-pick="${esc(item.id)}" ${draft.lessonIds.includes(item.id) ? 'checked' : ''}><span><strong>${esc(item.title)}</strong><small>${esc(item.description || 'Premade lesson')}</small></span><button type="button" class="button secondary small" data-preview="${esc(item.id)}">Preview</button></label>`).join('') : '<p class="module-note">No lessons match your search.</p>';
+    host.innerHTML = available.length ? available.map(item => `<label class="module-choice"><input type="checkbox" data-pick="${esc(item.id)}" ${draft.lessonIds.includes(item.id) ? 'checked' : ''}><span><strong>${esc(item.title)}</strong><small>${esc(item.description || 'Premade lesson')}</small></span>${previewButton(item)}</label>`).join('') : '<p class="module-note">No lessons match your search.</p>';
   }
 
   function renderOrder(focusIndex = null) {
@@ -108,18 +131,21 @@ export async function renderLessonWorkspace() {
     header();
     content.onclick = event => action(event);
     if (!draft) {
-      content.innerHTML = `<section class="module-workspace"><div class="module-tabs" aria-label="Lesson views">${button('Modules', 'modules', tab === 'modules')}${button('Lesson library', 'library', tab === 'library')}</div>${tab === 'modules' ? `<div class="module-directory">${modules.length ? modules.map(item => `<article class="module-card"><div><span class="eyebrow">${item.lessonIds.length} lessons · Ordered module</span><h2>${esc(item.title)}</h2><p>${esc(item.description || 'A sequence of lessons for your students.')}</p><ol>${item.lessonIds.map(id => `<li>${esc(lesson(id)?.title || 'Lesson unavailable')}</li>`).join('')}</ol></div><button type="button" class="button secondary" data-module="${esc(item.id)}">${admin || item.ownerId === state.user.uid ? 'Edit module' : 'Use module'}</button></article>`).join('') : `<div class="module-empty"><h2>Create your first module</h2><p>Choose premade lessons, add your own, and set the learning order.</p>${button('Create module', 'new-module', true)}</div>`}</div>` : `<label>Search lessons<input data-library-search type="search" placeholder="Find a lesson"></label><div data-library-list></div>`}</section>`;
+      if (admin && tab === 'library') { renderAdminLibrary().catch(report); return; }
+      content.innerHTML = `<section class="module-workspace">${ribbons()}${tab === 'modules' ? `<div class="module-directory">${modules.length ? modules.map(item => `<article class="module-card"><div><span class="eyebrow">${item.lessonIds.length} lessons · Ordered module</span><h2>${esc(item.title)}</h2><p>${esc(item.description || 'A sequence of lessons for your students.')}</p><ol>${item.lessonIds.map(id => `<li>${esc(lesson(id)?.title || 'Lesson unavailable')}</li>`).join('')}</ol></div><button type="button" class="button secondary" data-module="${esc(item.id)}">${admin || item.ownerId === state.user.uid ? 'Edit module' : 'Use module'}</button></article>`).join('') : `<div class="module-empty"><h2>Create your first module</h2><p>Choose premade lessons, add your own, and set the learning order.</p>${button('Create module', 'new-module', true)}</div>`}</div>` : `<label>Search lessons<input data-library-search type="search" placeholder="Find a lesson"></label><div data-library-list></div>`}</section>`;
       if (tab === 'library') {
         const draw = query => {
           const items = state.allLessons.filter(item => `${item.title} ${item.description || ''}`.toLowerCase().includes(query.toLowerCase()));
-          content.querySelector('[data-library-list]').innerHTML = items.length ? items.map(item => `<article class="module-library-row"><div><h3>${esc(item.title)}</h3><p>${esc(item.description || '')}</p></div><div class="module-row-actions"><button class="button secondary small" type="button" data-preview="${esc(item.id)}">Preview</button>${admin || item.teacherId === state.user.uid ? `<button class="button secondary small" type="button" data-library-edit="${esc(item.id)}">Edit lesson</button>` : ''}</div></article>`).join('') : '<p>No lessons found.</p>';
+          content.querySelector('[data-library-list]').innerHTML = items.length ? items.map(item => `<article class="module-library-row"><div><h3>${esc(item.title)}</h3><p>${esc(item.description || '')}</p></div><div class="module-row-actions">${previewButton(item)}${admin || item.teacherId === state.user.uid ? `<button class="button secondary small" type="button" data-library-edit="${esc(item.id)}">Edit lesson</button>` : ''}</div></article>`).join('') : '<p>No lessons found.</p>';
         };
         draw(''); content.querySelector('[data-library-search]').oninput = event => draw(event.target.value);
       }
+      previewTooltips();
       return;
     }
     content.innerHTML = `<section class="module-workspace"><form data-module-form><div class="module-details"><label>Module title<input name="title" maxlength="120" required value="${esc(draft.title)}" placeholder="e.g. Mga Bahagi ng Pananalita"></label><label>Description<textarea name="description" maxlength="1000" placeholder="What will students learn?">${esc(draft.description)}</textarea></label></div><div class="module-columns"><section class="module-panel"><div class="module-section-heading"><h2>Premade lessons</h2>${button('Create new lesson', 'module-lesson')}</div><p>Select as many lessons as you need. Editing one saves a separate copy to the library.</p><label>Find a lesson<input data-search type="search" value="${esc(search)}" placeholder="Search by title or description"></label><div class="module-picker" data-picker></div></section><section class="module-panel"><div class="module-section-heading"><h2>Learning order</h2><span data-count aria-live="polite"></span></div><p>Drag lessons or use the arrows to set their order.</p><ol class="module-order" data-order></ol><p class="module-note">Lesson order is saved with this module.</p></section></div><footer class="module-save-bar"><span data-save-status role="status">Review the lesson order before saving.</span>${button('Cancel', 'back')}<button type="submit" class="button primary">Save module</button></footer></form></section>`;
     renderPicker(); renderOrder();
+    previewTooltips();
     const form = content.querySelector('form');
     form.oninput = event => { if (event.target.name) draft[event.target.name] = event.target.value; };
     content.querySelector('[data-search]').oninput = event => { search = event.target.value; renderPicker(); };
@@ -172,14 +198,7 @@ export async function renderLessonWorkspace() {
       else if (target.dataset.preview) await openLessonViewer(lesson(target.dataset.preview));
       else if (target.dataset.move !== undefined) { const from = Number(target.dataset.move), to = from + Number(target.dataset.direction); draft.lessonIds = moveLesson(draft.lessonIds, from, to); renderOrder(to); }
       else if (target.dataset.remove) { draft.lessonIds = draft.lessonIds.filter(id => id !== target.dataset.remove); renderPicker(); renderOrder(); }
-      else if (target.dataset.action === 'library' && admin) {
-        busy = true;
-        await renderLessons({ onEdit: item => editLesson(item), onRefresh: renderLessonWorkspace });
-        if (!isCurrent()) return;
-        $('#page-header .header-actions').insertAdjacentHTML('afterbegin', button('Modules', 'return-modules'));
-        $('#page-header [data-action="return-modules"]').onclick = () => { tab = 'modules'; render(); };
-        busy = false;
-      } else if (['modules', 'library'].includes(target.dataset.action)) { tab = target.dataset.action; render(); }
+      else if (['modules', 'library'].includes(target.dataset.action)) { tab = target.dataset.action; render(); }
     } catch (error) { busy = false; report(error); }
   }
   render();
