@@ -5,6 +5,7 @@
 // drawn (no flash); this file handles the button, the animation and system changes.
 
 import { syncThemeButtons } from "./theme-buttons.js";
+import './backButtons.js';
 export { syncThemeButtons } from "./theme-buttons.js";
 
 const STORAGE_KEY = "basaya-theme";

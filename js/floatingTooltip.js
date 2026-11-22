@@ -2,9 +2,9 @@ let tooltipSequence = 0;
 const tooltipOwners = new WeakMap();
 
 /** Body-level tooltips escape a modal's overflow without changing its scrolling. */
-export function attachFloatingTooltips(root, selector = '[data-floating-tooltip]') {
+export function attachFloatingTooltips(root, selector = '[data-floating-tooltip]', { tooltipClass = '' } = {}) {
   const tooltip = document.createElement('span');
-  tooltip.className = 'floating-tooltip';
+  tooltip.className = ['floating-tooltip', tooltipClass].filter(Boolean).join(' ');
   tooltip.id = `floating-tooltip-${++tooltipSequence}`;
   tooltip.setAttribute('role', 'tooltip');
   tooltip.hidden = true;

@@ -56,7 +56,7 @@ const server = http.createServer(async(req,res)=>{
       const styles=[...source.matchAll(/<link[^>]+rel="stylesheet"[^>]*>/g)].map(m=>m[0].replaceAll('../','/')).filter(s=>!s.includes('https:')).join('');
       const classMode=new URL(req.url,'http://local').searchParams.has('class');
       const script=classMode?'import {renderAddLessonPage} from "/teacher/views/addLesson.js";location.hash="/classes/class/add-lesson";await renderAddLessonPage("class");window.ready=true;':'import {renderLessonWorkspace} from "/js/lessonWorkspace.js";import {canLeaveLessons} from "/js/lessonNavigation.js";window.canLeaveLessons=canLeaveLessons;location.hash="/lessons";window.renderWorkspace=renderLessonWorkspace;await renderLessonWorkspace();window.ready=true;';
-      type='text/html';body='<!doctype html><html data-theme="light"><head><meta name="viewport" content="width=device-width,initial-scale=1">'+themeBoot+styles+'</head><body data-portal="'+portal+'"><main style="max-width:1400px;margin:auto;padding:16px"><div id="page-header"></div><div id="page-content"></div></main><div id="toast"></div><template id="modal-template"><div class="modal-backdrop"><div class="modal"><button type="button" class="modal-close" aria-label="Close">×</button><div class="modal-content"></div></div></div></template><script type="module">'+script+'</script></body></html>';
+      type='text/html';body='<!doctype html><html data-theme="light"><head><meta name="viewport" content="width=device-width,initial-scale=1">'+themeBoot+styles+'</head><body data-portal="'+portal+'"><main style="max-width:1400px;margin:auto;padding:16px"><div id="page-header"></div><div id="page-content"></div></main><div id="toast"></div><template id="modal-template"><div class="modal-backdrop"><div class="modal"><button type="button" class="modal-close" aria-label="Close">×</button><div class="modal-content"></div></div></div></template><script type="module" src="/js/theme.js"></script><script type="module">'+script+'</script></body></html>';
     } else {
       const target=path.resolve(root,name);if(!target.startsWith(root+path.sep))throw Error('Invalid path');
       body=await fs.readFile(target);type={'.css':'text/css','.svg':'image/svg+xml','.png':'image/png'}[path.extname(name)]||type;
@@ -108,7 +108,7 @@ const server = http.createServer(async(req,res)=>{
       assert.equal(await p.locator('[data-preview="pandiwa"]').evaluate(e=>getComputedStyle(e).transform),'none');
       await p.emulateMedia({reducedMotion:'no-preference'});
       await p.locator('[data-edit="pandiwa"]').click();await p.locator('.lesson-inline-editor').waitFor();
-      assert.equal(await p.locator('.floating-tooltip').count(),1,'Removed picker disposes its tooltip; editor owns one tooltip.');
+      assert.equal(await p.locator('.floating-tooltip:not(.back-button-tooltip)').count(),1,'Removed picker disposes its tooltip; editor owns one tooltip.');
       assert.equal(await p.locator('.modal-backdrop').count(),0,'Content editor is inline');
       assert.equal(await p.locator('[name="title"]').inputValue(),'Pandiwa 1.1');
       await p.locator('[name="description"]').fill('Edited copy overview');
