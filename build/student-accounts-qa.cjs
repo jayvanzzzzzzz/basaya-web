@@ -35,7 +35,7 @@ const server=http.createServer(async(req,res)=>{try{
  rewrite(await fs.readFile(path.join(root,'admin/views/student-access.js'),'utf8'));
  for(const v of views)rewrite(await fs.readFile(path.join(root,'admin/views/'+v+'.js'),'utf8'));
  const special={
- postToApi: `async(path,body)=>{window.creationCalls=(window.creationCalls||0)+1;window.createdBody=body;if(window.failCreate)throw Error('That username is already taken.');return {uid:'new-student',...body};}`,
+ postToApi: `async(path,body)=>{window.creationCalls=(window.creationCalls||0)+1;window.createdBody=body;if(window.failCreate)throw Error('That username is already taken.');return {uid:'new-student',...body,username:'cruz.ana'};}`,
 
  state:`{user:{uid:'admin',email:'admin@school.edu'},profile:{displayName:'Ana Reyes',role:'admin'},teachers:[],allClasses:[],allLessons:[]}`,
  db:'{}',auth:'{currentUser:{uid:"admin",email:"admin@school.edu"}}',secondaryAuth:'{}',
@@ -76,18 +76,18 @@ const server=http.createServer(async(req,res)=>{try{
  }
  const form=p.locator('#create-student-form');
  await form.locator('[name=firstName]').fill('Ana');await form.locator('[name=lastName]').fill('Cruz');
- await form.locator('[name=lrn]').fill('123');await form.locator('[name=username]').fill('ana_cruz');await form.locator('[name=password]').fill('TestPassword1');
+ await form.locator('[name=lrn]').fill('123');await form.locator('[name=password]').fill('TestPassword1');
  await form.locator('[type=submit]').click();assert.equal(await p.evaluate(()=>window.creationCalls||0),0);
  await form.locator('[name=lrn]').fill('001234567890');
- await form.locator('[name=username]').fill('123456789012');await form.locator('[type=submit]').click();
- assert.match(await p.locator('#create-student-error').textContent(),/12-digit/);
- await form.locator('[name=username]').fill('ana_cruz');await p.evaluate(()=>window.failCreate=true);
+ assert.equal(await form.locator('[name=username]').inputValue(),'cruz.ana');
+ assert.equal(await form.locator('[name=username]').isEditable(),false);
+ await p.evaluate(()=>window.failCreate=true);
  await form.locator('[type=submit]').click();await p.getByText('That username is already taken.',{exact:true}).waitFor();
  assert.equal(await form.locator('[type=submit]').isEnabled(),true);
  await p.evaluate(()=>window.failCreate=false);await form.locator('[type=submit]').click();
  await p.getByRole('heading',{name:'Student account created',exact:true}).waitFor();
  assert.ok((await p.locator('.temp-password').textContent()).includes('001234567890'));
- assert.ok((await p.locator('.temp-password').textContent()).includes('ana_cruz'));
+ assert.ok((await p.locator('.temp-password').textContent()).includes('cruz.ana'));
  await p.locator('[data-done]').click();
  await p.goto(url+'?empty#/students');await p.waitForFunction(()=>window.ready);
  await p.locator('#create-student').click();await p.locator('#create-student-form').waitFor();

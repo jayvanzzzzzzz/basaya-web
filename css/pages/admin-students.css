@@ -125,3 +125,5 @@
   font-size: 1.05rem;
   letter-spacing: 0.06em;
 }
+
+.student-username { display: block; margin-top: .2rem; color: var(--ink-3); font-size: .75rem; overflow-wrap: anywhere; }

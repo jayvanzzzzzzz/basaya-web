@@ -14,8 +14,7 @@ export function createStudent(onCreated) {
        <label>Middle name (optional)<input name="middleName" maxlength="100" autocomplete="off" /></label>
        <label>LRN<input name="lrn" type="text" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" required autocomplete="off" aria-describedby="student-lrn-help" /></label>
        <p class="muted" id="student-lrn-help">Exactly 12 digits. Verify against the student's school record.</p>
-       <label>Username<input name="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="student-username-help" /></label>
-       <p class="muted" id="student-username-help">3–30 letters, numbers, or underscores. Choose a short username for daily sign-in.</p>
+       <label>Username<input name="username" type="text" readonly autocomplete="off" /></label>
        <label>Password<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" /></label>
        <p class="muted">At least 8 characters. Share the login details privately with the student. No email is needed.</p>
        <p class="form-error" id="create-student-error" role="alert"></p>
@@ -25,6 +24,15 @@ export function createStudent(onCreated) {
       const form = $("#create-student-form", modal);
       const submit = form.querySelector('[type="submit"]');
       const cancel = $("[data-cancel]", modal);
+      const usernamePart = value => value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const updateUsername = () => {
+        const first = usernamePart(form.elements.firstName.value);
+        const last = usernamePart(form.elements.lastName.value);
+        form.elements.username.value = first && last ? `${last}.${first}` : "";
+      };
+      form.elements.firstName.addEventListener("input", updateUsername);
+      form.elements.lastName.addEventListener("input", updateUsername);
+      updateUsername();
       modal.querySelector('[role="dialog"]').setAttribute("aria-label", "Create student account");
       modal.addEventListener("keydown", event => {
         if (event.key === "Escape") {
@@ -45,11 +53,6 @@ export function createStudent(onCreated) {
         const details = Object.fromEntries(new FormData(form));
         const error = $("#create-student-error", modal);
         error.textContent = "";
-        if (/^\d{12}$/.test(details.username.trim())) {
-          error.textContent = "The username cannot be a 12-digit number. Use a short name instead.";
-          form.elements.username.focus();
-          return;
-        }
         busy = true;
         submit.disabled = cancel.disabled = true;
         form.setAttribute("aria-busy", "true");

@@ -156,7 +156,7 @@ export async function renderStudents() {
                   <td>
                     <div class="teacher-table__person">
                       <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml(initials(studentName(s)))}</span>
-                      <span class="teacher-table__name">${escapeHtml(fullNameOf(s) || "Unnamed student")}</span>
+                      <span><span class="teacher-table__name">${escapeHtml(fullNameOf(s) || "Unnamed student")}</span>${s.username ? `<small class="student-username">${escapeHtml(s.username)}</small>` : ""}</span>
                     </div>
                     ${studentStatus(s, true)}
                   </td>

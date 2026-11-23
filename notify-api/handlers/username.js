@@ -1,7 +1,7 @@
 import { adminAuth, db } from "../lib/firebase.js";
 import { allowCors, requireToken } from "../lib/http.js";
 import { withinRateLimit } from "../lib/rateLimit.js";
-import { normalizeUsername, validUsername, invalidCredentials, verifyPassword, reserveUsername } from "../lib/usernames.js";
+import { normalizeUsername, validUsername, validStaffUsername, invalidCredentials, verifyPassword, reserveUsername } from "../lib/usernames.js";
 
 export default async function handler(req, res) {
   allowCors(req, res);
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     }
     const { password } = req.body || {};
     const username = normalizeUsername(req.body?.username);
-    if (!validUsername(username)) {
+    if (!(saving ? validStaffUsername(username) : validUsername(username))) {
       if (!saving) throw invalidCredentials();
       return res.status(400).json({ error: "Use 3–30 letters, numbers, or underscores." });
     }

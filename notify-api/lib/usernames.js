@@ -1,6 +1,8 @@
 // Usernames are aliases; Firebase remains the password authority.
 export const normalizeUsername = value => typeof value === "string" ? value.trim().toLowerCase() : "";
-export const validUsername = value => /^[a-z0-9_]{3,30}$/.test(value);
+export const validStaffUsername = value => /^[a-z0-9_]{3,30}$/.test(value);
+export const validUsername = value => validStaffUsername(value) ||
+  (typeof value === "string" && value.length <= 210 && /^[a-z0-9]+\.[a-z0-9]+$/.test(value));
 export const invalidCredentials = () => Object.assign(new Error("Incorrect LRN, username, or password."), { status: 401 });
 
 export async function verifyPassword(authentication, user, password, fetcher = fetch) {
