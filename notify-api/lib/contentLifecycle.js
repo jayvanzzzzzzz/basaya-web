@@ -25,12 +25,13 @@ function authorize(profile, item, uid, kind, action, reason) {
 async function assertUnused(tx, database, item, kind) {
   const id = item.id;
   if (kind === 'learningPath') {
+    if (item.get('everAssigned')) throw fail(409, 'This learning path has class assignments or student progress. Archive it instead of deleting it.');
     const [assigned, links, progress] = await Promise.all([
-      tx.get(database.collectionGroup('learningPaths').where('pathId', '==', id)),
-      tx.get(database.collectionGroup('classLessons').where('learningPathId', '==', id)),
-      tx.get(database.collectionGroup('assignedLessons').where('learningPathId', '==', id)),
+      tx.get(database.collectionGroup('learningPaths')),
+      tx.get(database.collectionGroup('classLessons')),
+      tx.get(database.collectionGroup('assignedLessons')),
     ]);
-    if (item.get('everAssigned') || !assigned.empty || !links.empty || !progress.empty) throw fail(409, 'This learning path has class assignments or student progress. Archive it instead of deleting it.');
+    if (assigned.docs.some(doc => doc.get('pathId') === id) || [...links.docs, ...progress.docs].some(doc => doc.get('learningPathId') === id)) throw fail(409, 'This learning path has class assignments or student progress. Archive it instead of deleting it.');
     return;
   }
   if (kind === 'module') {
