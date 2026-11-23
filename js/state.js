@@ -40,11 +40,14 @@ export async function getTeacherLessons() {
 }
 
 // Every lesson in the lessons collection, from any teacher — unfiltered.
-export async function getAllLessons() {
-  const snapshot = await getDocs(collection(db, "lessons"));
-  state.allLessons = snapshot.docs
+export async function getAllLessons({ includeArchived = true } = {}) {
+  const snapshots = await Promise.all([
+    getDocs(query(collection(db, "lessons"), where("teacherId", "==", state.user.uid))),
+    getDocs(query(collection(db, "lessons"), where("visibility", "==", "shared"))),
+  ]);
+  state.allLessons = [...new Map(snapshots.flatMap(s => s.docs).map(d => [d.id, d])).values()]
     .map((d) => ({ id: d.id, ...d.data() }))
-    .filter(lesson => lesson.publicationState !== 'draft')
+    .filter(lesson => lesson.publicationState !== 'draft' && (includeArchived || lesson.archived !== true))
     .sort(
       (a, b) =>
         (b.updatedAt?.seconds || b.createdAt?.seconds || 0) -

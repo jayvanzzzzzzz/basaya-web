@@ -1,5 +1,12 @@
 import { captureRoute } from "../../js/route-lifecycle.js";
-import { loadModules } from '../../js/modules.js';
+import { loadModules, saveModule } from '../../js/modules.js';
+import { moveLesson, contentBaseTitle } from '../../js/moduleModel.js';
+import { loadLearningPaths, assignLearningPath } from '../../js/learningPaths.js';
+import { openInlineLessonEditor } from '../../admin/views/lessons.js';
+import { openLessonViewer } from '../../admin/views/lessonViewer.js';
+import { confirmAction } from '../../js/action-confirmation.js';
+import { setLessonLeaveGuard } from '../../js/lessonNavigation.js';
+import { previewModuleOrder } from '../../js/moduleOrderPreview.js';
 import {
   collection,
   doc,
@@ -19,14 +26,8 @@ import {
   linkMode,
   practiceLinkId,
 } from "../../js/schedule.js";
-import { paginate } from "../../js/pagination.js";
-import { DIFFICULTY_LABELS } from "./lessons.js";
-import { openLessonViewer } from "../../admin/views/lessonViewer.js";
 
 const MODE_LABEL = { assessment: "Assessment", practice: "Practice" };
-const CHECK_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>';
-const EYE_ICON =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const lessonsLabel = (n) => `${n} ${n === 1 ? "lesson" : "lessons"}`;
 
 export async function renderAddLessonPage(classId) {
@@ -40,225 +41,149 @@ export async function renderAddLessonPage(classId) {
     return navigate("/dashboard");
   const classroom = { id: classDoc.id, ...classDoc.data() };
 
-  const [linksSnap, , modules] = await Promise.all([
+  const [linksSnap, , modules, paths] = await Promise.all([
     getDocs(collection(db, "classes", classId, "classLessons")),
-    getAllLessons(),
+    getAllLessons({ includeArchived: false }),
     loadModules(),
+    loadLearningPaths(),
   ]);
   const links = linksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let queuedModules = [];
+  let selectedPath = null, assignmentBusy = false, editorDirty = () => false, editorMayLeave = async () => true;
+  let assignmentRequestKey = crypto.randomUUID(), lastAssignment = '';
+  const guard = () => setLessonLeaveGuard(async () => !assignmentBusy && await editorMayLeave() && (!queuedModules.length || await confirmAction({ title: 'Leave this assignment?', message: 'Nothing will be assigned. Saved lesson and module copies remain in your library.', confirm: 'Leave assignment' })), () => assignmentBusy || editorDirty() || queuedModules.length > 0, state.user.uid);
+  guard();
   if (!isCurrent()) return;
   // A lesson can be in the class once as an Assessment and once as Practice.
   const inClass = { assessment: new Set(), practice: new Set() };
   links.forEach((link) => inClass[linkMode(link)].add(linkLessonId(link)));
-  /** "In this class" chips under the title: which type(s) the lesson is already in. */
-  const assignedChips = (lessonId) => {
-    const modes = ["assessment", "practice"].filter((mode) => inClass[mode].has(lessonId));
-    if (!modes.length) return "";
-    return `<span class="lesson-picker__in-class" aria-label="Already in this class as ${modes.map((m) => MODE_LABEL[m]).join(" and ")}">${modes
-      .map((mode) => `<span class="lesson-picker__assigned">${CHECK_ICON}${MODE_LABEL[mode]}</span>`)
-      .join("")}</span>`;
-  };
-
-  // Level ribbons: All, then each level (lessons with no level only show under All).
-  const levels = [
-    { id: "all", label: "All", count: state.allLessons.length },
-    ...Object.entries(DIFFICULTY_LABELS).map(([key, label]) => ({
-      id: key,
-      label,
-      count: state.allLessons.filter((l) => l.difficulty === key).length,
-    })),
-  ];
-  let selectedLevel = "all";
-
-  page(
-    "Add lessons",
-    `Pick lessons from your collection for ${classroom.className}`,
-    "",
-    {
-      crumbs: [
-        { label: "Classrooms", href: "#/classes" },
-        { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
-      ],
-    },
-  );
+  page("Add learning content", `Choose a learning path or modules for ${classroom.className}`, "", {
+    crumbs: [
+      { label: "Classrooms", href: "#/classes" },
+      { label: classroom.className, href: `#/classes/${encodeURIComponent(classId)}` },
+    ],
+  });
   $("#page-header").classList.add("teacher-add-lesson-header");
   $("#page-content").classList.add("teacher-add-lesson-page");
-
-  $("#page-content").innerHTML = state.allLessons.length
-    ? `<div class="lesson-workspace"><form id="link-form" class="lesson-picker">
+  $("#page-content").innerHTML = modules.length || paths.length
+    ? `<div class="lesson-workspace"><section class="lesson-picker" aria-labelledby="module-picker-title">
         <div class="lesson-picker__toolbar">
-          <div>
-            <span class="lesson-picker__eyebrow">01 / Lesson collection</span>
-            <h2>Choose what to teach</h2>
-            <p>Select one or more lessons to add to this class.</p>
-          </div>
-          <span class="lesson-picker__count"><strong>${state.allLessons.length}</strong> in collection</span>
+          <div><span class="lesson-picker__eyebrow">01 / Module collection</span>
+            <h2 id="module-picker-title">Choose what to teach</h2>
+            <p>Add modules and arrange their order for this class.</p></div>
+          <span class="lesson-picker__count"><strong>${modules.length}</strong> in collection</span>
         </div>
-        <label class="lesson-picker__search">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
-          <span class="sr-only">Search lessons</span>
-          <input type="search" id="lesson-search" placeholder="Search by lesson, activity, or level..." autocomplete="off" />
-        </label>
-        <div class="lesson-picker__ribbons" role="group" aria-label="Show lessons by level">
-          ${levels
-            .map(
-              (level) => `<button type="button" class="lesson-picker__ribbon" data-level="${escapeHtml(level.id)}" aria-pressed="${level.id === selectedLevel}">
-                <span>${escapeHtml(level.label)}</span>
-                <span class="lesson-picker__ribbon-count" aria-label="${lessonsLabel(level.count)}">${level.count}</span>
-              </button>`,
-            )
-            .join("")}
-        </div>
-        <div class="lesson-picker__list">${[...state.allLessons]
-          // A–Z by title ("aralin 2" before "aralin 10"); a copy, so the shared list keeps its order.
-          .sort((a, b) =>
-            (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base", numeric: true }),
-          )
-          .map((l) => {
-            // Both types already in: nothing left to add.
-            const already = inClass.assessment.has(l.id) && inClass.practice.has(l.id);
-            const activity = l.activityType || "Aralin";
-            const difficulty = DIFFICULTY_LABELS[l.difficulty] || l.difficulty || "Any level";
-            const searchable = `${l.title || ""} ${activity} ${difficulty} ${l.description || ""}`.toLowerCase();
-            return `<article class="lesson-picker__row${already ? " is-assigned" : ""}" data-lesson-row data-level="${escapeHtml(l.difficulty || "")}" data-search="${escapeHtml(searchable)}">
-              <label class="lesson-picker__choice">
-                <input type="checkbox" name="lesson" value="${escapeHtml(l.id)}" ${already ? "checked disabled" : ""} />
-                <span class="lesson-picker__check" aria-hidden="true">${CHECK_ICON}</span>
-                <span class="lesson-picker__details">
-                  <strong>${escapeHtml(l.title)}</strong>
-                  <span class="lesson-picker__meta">${escapeHtml(activity)} <i></i> ${escapeHtml(difficulty)}</span>
-                  ${l.description ? `<span class="lesson-picker__description">${escapeHtml(l.description)}</span>` : ""}
-                  ${assignedChips(l.id)}
-                </span>
-              </label>
-              <button type="button" class="lesson-picker__preview" data-view="${escapeHtml(l.id)}" aria-label="Preview ${escapeHtml(l.title)}">${EYE_ICON}<span class="lesson-picker__tooltip" aria-hidden="true">Preview lesson</span></button>
-            </article>`;
-          })
-          .join("")}
-          <p class="lesson-picker__no-results" id="lesson-no-results" hidden>No lessons match your search.</p>
-        </div>
-        <div class="lesson-picker__footer">
-          <div class="lesson-picker__selection"><span class="lesson-picker__selected" role="status" aria-live="polite"><strong id="lesson-selected-count">0</strong> selected</span><small>Next: lesson type &amp; schedule</small></div>
-          <button class="button primary" type="submit" id="add-selected-lessons" disabled>Add selected lessons</button>
-        </div>
-      </form><aside class="lesson-guide" aria-labelledby="lesson-guide-title">
+        <section class="module-panel module-class-sequence" aria-labelledby="module-order-title">
+          <h3>Learning Path</h3><p>Assign all modules in a path with one schedule and deadline.</p><label>Learning path<select id="class-learning-path"><option value="">Choose a learning path</option>${paths.map(path => `<option value="${escapeHtml(path.id)}">${escapeHtml(path.title)} (${path.moduleIds.length} modules)</option>`).join('')}</select></label><button type="button" class="button secondary" id="use-class-path">Use learning path</button><p id="selected-class-path" role="status"></p><button type="button" class="button secondary small" id="clear-class-path" hidden>Clear learning path</button>
+          <h3 id="module-order-title">Module order</h3>
+          <p>New modules go after the lessons already assigned to this class. Lesson order comes from each saved module.</p>
+          <label>Module<select id="class-module"><option value="">Choose a module</option>${modules.map(module => `<option value="${escapeHtml(module.id)}">${escapeHtml(module.title)} (${lessonsLabel(module.lessonIds.length)})</option>`).join('')}</select></label>
+          <button type="button" class="button secondary" id="add-class-module">Add another module</button>
+          <p id="class-module-empty">Choose a module above to start your assignment list.</p>
+          <ol class="module-batch-list" id="class-module-order" aria-live="polite"></ol>
+          <button type="button" class="button primary" id="assign-class-modules" disabled>Review and assign modules</button>
+        </section>
+      </section><aside class="lesson-guide" aria-labelledby="lesson-guide-title">
         <span class="lesson-picker__eyebrow">For your classroom</span>
         <h2 id="lesson-guide-title">${escapeHtml(classroom.className)}</h2>
-        <p>A thoughtful lesson starts with the right material.</p>
+        <p>Build a learning plan from your modules.</p>
         <ol class="lesson-guide__steps">
-          <li><span>01</span><div><strong>Choose your lessons</strong><p>Browse by level or preview the material before selecting.</p></div></li>
+          <li><span>01</span><div><strong>Choose your modules</strong><p>Add modules to the list and arrange their order.</p></div></li>
           <li><span>02</span><div><strong>Decide how students learn</strong><p>Add as an assessment for recorded scores, or practice for unlimited retries.</p></div></li>
-          <li><span>03</span><div><strong>Set the right time</strong><p>Open right away or choose an opening date and deadline.</p></div></li>
+          <li><span>03</span><div><strong>Set the right time</strong><p>Choose an optional schedule and review the learning order before assigning.</p></div></li>
         </ol>
-        <div class="lesson-guide__note">${CHECK_ICON}<p>Already added? The labels on each lesson show how it is used in this class.</p></div>
+        <div class="lesson-guide__note"><p>Lessons already assigned as the selected type are skipped.</p></div>
       </aside></div>`
     : `<section class="lesson-picker__empty">
-        <div class="lesson-picker__empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></div>
-        <span class="lesson-picker__eyebrow">Your collection is ready</span>
-        <h2>No lessons to add yet</h2>
-        <p>Create your first lesson, then return here to add it to ${escapeHtml(classroom.className)}.</p>
-        <button class="button primary" id="create-lesson-empty" type="button">Create a lesson</button>
+        <span class="lesson-picker__eyebrow">Your module collection</span>
+        <h2>No modules to add yet</h2>
+        <p>Create a module in Lessons, then return here to add it to ${escapeHtml(classroom.className)}.</p>
+        <button class="button primary" id="create-module-empty" type="button">Go to modules</button>
       </section>`;
+  $("#create-module-empty")?.addEventListener("click", () => navigate('/lessons'));
+  if (!modules.length && !paths.length) return;
 
-  $("#create-lesson-empty")?.addEventListener("click", () =>
-    navigate('/lessons'),
-  );
-  if (!state.allLessons.length) return;
+  const settings = { mode: "assessment", openAt: "", dueAt: "" };
+  // Assign modules through the existing lesson links in each module's saved order.
+  const drawQueue = () => {
+    $('#class-module-order').innerHTML = queuedModules.map((module, i) => `<li><div><strong>${i + 1}. ${escapeHtml(module.title)}</strong>${module.customized ? '<span class="content-visibility">Customized module copy</span>' : ''}<details class="assignment-module-lessons"><summary>Preview or customize ${lessonsLabel(module.lessonIds.length)}</summary><ol>${module.lessonIds.map(id => `<li><span>${escapeHtml(state.allLessons.find(lesson => lesson.id === id)?.title || 'Unavailable lesson')}${module.editedLessons?.includes(id) ? ' · Edited lesson copy' : ''}</span><div class="module-row-actions"><button type="button" class="button secondary small" data-assign-preview="${escapeHtml(id)}">Preview</button><button type="button" class="button secondary small" data-assign-edit="${escapeHtml(id)}" data-module-index="${i}">Edit a copy</button></div></li>`).join('')}</ol></details></div><button type="button" class="button secondary small" data-queue-move="${i}" data-direction="-1" aria-label="Move module ${i + 1} up" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="button secondary small" data-queue-move="${i}" data-direction="1" aria-label="Move module ${i + 1} down" ${i === queuedModules.length - 1 ? 'disabled' : ''}>↓</button>${!selectedPath ? `<button type="button" class="button secondary small" data-queue-remove="${i}">Remove</button>` : ''}</li>`).join('');
+    $('#assign-class-modules').disabled = !queuedModules.length;
+    $('#class-module-empty').hidden = Boolean(queuedModules.length);
+    $('#selected-class-path').textContent = selectedPath ? `${selectedPath.title} — one deadline for the whole path` : '';
+    $('#clear-class-path').hidden = !selectedPath;
+    $('#add-class-module').disabled = Boolean(selectedPath);
+    $('#assign-class-modules').textContent = selectedPath ? 'Review and assign learning path' : 'Review and assign modules';
+  };
+  $('#class-module-order').onclick = async event => {
+    if (assignmentBusy) return;
+    const target = event.target.closest('button'); if (!target) return;
+    if (target.dataset.assignPreview) return openLessonViewer(state.allLessons.find(item => item.id === target.dataset.assignPreview));
+    if (target.dataset.assignEdit) return editAssignmentLesson(Number(target.dataset.moduleIndex), target.dataset.assignEdit);
+    if (target.dataset.queueMove !== undefined) { const from = Number(target.dataset.queueMove); queuedModules = moveLesson(queuedModules, from, from + Number(target.dataset.direction)); }
+    else if (target.dataset.queueRemove !== undefined) queuedModules.splice(Number(target.dataset.queueRemove), 1);
+    drawQueue();
+  };
+  $('#use-class-path').onclick = async () => {
+    const path = paths.find(item => item.id === $('#class-learning-path').value);
+    if (!path) return toast('Choose a learning path first.');
+    const chosen = path.moduleIds.map(id => modules.find(item => item.id === id));
+    if (chosen.some(item => !item || item.lessonIds.some(id => !state.allLessons.some(lesson => lesson.id === id)))) return toast('This learning path contains unavailable modules or lessons. Ask its creator to update it.');
+    if (queuedModules.length && !await confirmAction({ title: 'Replace the assignment list?', message: 'Saved copies remain in your library. The selected path will replace this pending list.', confirm: 'Use learning path' })) return;
+    selectedPath = path; queuedModules = chosen.map(item => ({ ...item, lessonIds: [...item.lessonIds], source: item })); drawQueue();
+  };
+  $('#clear-class-path').onclick = async () => {
+    if (!await confirmAction({ title: 'Clear this learning path?', message: 'Saved copies remain in your library. Nothing will be assigned.', confirm: 'Clear path' })) return;
+    selectedPath = null; queuedModules = []; drawQueue();
+  };
+  $('#assign-class-modules').onclick = () => openAddModal([...new Set(queuedModules.flatMap(module => module.lessonIds))], [...queuedModules]);
+  $('#add-class-module').onclick = () => {
+    const module = modules.find(item => item.id === $('#class-module').value);
+    if (!module) return toast('Choose a module first.');
+    const ids = module.lessonIds.filter(id => state.allLessons.some(item => item.id === id));
+    if (ids.length !== module.lessonIds.length) return toast('This module contains an archived or unavailable lesson. Restore or replace that lesson before assigning the module.');
+    if (ids.every(id => inClass.assessment.has(id) && inClass.practice.has(id))) return toast('All module lessons are already added as assessment and practice.');
+    if (queuedModules.some(item => item.id === module.id)) return toast('This module is already in the list.');
+    if (queuedModules.some(item => item.lessonIds.some(id => ids.includes(id)))) return toast('These modules share a lesson. Choose a module with different lessons so each lesson has one position.');
+    if (queuedModules.reduce((count, item) => count + item.lessonIds.length, ids.length) > 200) return toast('Assign up to 200 lessons at a time. You can append more modules afterward.');
+    queuedModules.push({ ...module, lessonIds: [...module.lessonIds], source: module }); drawQueue();
+  };
 
-  // A module is assigned as the same existing lesson links, in its saved order.
-  // No student unlocking rule is activated by assigning a module.
-  if (modules.length) {
-    $('#link-form .lesson-picker__toolbar').insertAdjacentHTML('afterend', `<section class="module-panel"><h2>Add a module</h2><p>Add its lessons in their saved learning order.</p><label>Module<select id="class-module"><option value="">Choose a module</option>${modules.map(module => `<option value="${escapeHtml(module.id)}">${escapeHtml(module.title)} (${module.lessonIds.length} lessons)</option>`).join('')}</select></label><button type="button" class="button secondary" id="add-class-module">Add module lessons</button></section>`);
-    $('#add-class-module').onclick = () => {
-      const module = modules.find(item => item.id === $('#class-module').value);
-      if (!module) return toast('Choose a module first.');
-      const ids = module.lessonIds.filter(id => state.allLessons.some(item => item.id === id));
-      if (ids.length !== module.lessonIds.length) return toast('This module contains a removed lesson. Edit the module before assigning it.');
-      if (ids.every(id => inClass.assessment.has(id) && inClass.practice.has(id))) return toast('All module lessons are already added as assessment and practice.');
-      openAddModal(ids, module);
-    };
+  async function editAssignmentLesson(moduleIndex, lessonId) {
+    const module = queuedModules[moduleIndex], original = state.allLessons.find(item => item.id === lessonId);
+    if (!original) return toast('This lesson is unavailable.');
+    const view = $('#page-content').firstElementChild;
+    const host = document.createElement('section'); host.className = 'module-workspace';
+    let editorHost;
+    const restore = () => { host.remove(); view.hidden = false; view.style.display = ''; editorDirty = () => false; editorMayLeave = async () => true; guard(); drawQueue(); };
+    try {
+      await openInlineLessonEditor(original, {
+        copy: true, isCurrent,
+        mount(html, mountEditor) {
+          view.hidden = true; view.style.display = 'none';
+          host.innerHTML = '<p class="module-note">Save an edited lesson copy, then return to your assignment. The customized module version is saved when you confirm the assignment.</p><div class="lesson-inline-editor">' + html + '</div>';
+          $('#page-content').append(host); editorHost = host.querySelector('.lesson-inline-editor'); mountEditor(editorHost, () => host.remove());
+        },
+        onGuard(check, changed) { editorMayLeave = check; editorDirty = changed; guard(); },
+        onCancel: restore,
+        async onSaved(id) {
+          await getAllLessons({ includeArchived: false });
+          module.lessonIds = module.lessonIds.map(value => value === lessonId ? id : value);
+          module.editedLessons = [...(module.editedLessons || []).filter(value => value !== lessonId), id];
+          module.customized = true; module.savedCopy = null; delete module.saveRequestKey; delete module.copyValues;
+          restore(); toast('Lesson copy saved to your library. Review the customized module before assigning.');
+        },
+      });
+    } catch (error) { restore(); toast(error.message); }
   }
 
-  // Rows show when they're in the selected level and match the search.
-  const applyFilters = () => {
-    const term = $("#lesson-search").value.trim().toLowerCase();
-    let visible = 0;
-    document.querySelectorAll("[data-lesson-row]").forEach((row) => {
-      const matches =
-        row.dataset.search.includes(term) &&
-        (selectedLevel === "all" || row.dataset.level === selectedLevel);
-      row.hidden = !matches;
-      if (matches) visible += 1;
-    });
-    const noResults = $("#lesson-no-results");
-    noResults.hidden = visible !== 0;
-    noResults.textContent = term
-      ? "No lessons match your search."
-      : `No ${levels.find((level) => level.id === selectedLevel).label} lessons in your collection yet.`;
-  };
-  // Registered before paginate(), so rows are already hidden when it counts.
-  $("#lesson-search").addEventListener("input", applyFilters);
-
-  const pager = paginate({
-    rows: () => [...document.querySelectorAll("[data-lesson-row]")],
-    after: $(".lesson-picker__list"),
-    search: $("#lesson-search"),
-    label: ["lesson", "lessons"],
-  });
-
-  // Picking a level keeps the search text and goes back to page 1.
-  $(".lesson-picker__ribbons").addEventListener("click", (event) => {
-    const button = event.target.closest(".lesson-picker__ribbon");
-    if (!button || button.dataset.level === selectedLevel) return;
-    selectedLevel = button.dataset.level;
-    document.querySelectorAll(".lesson-picker__ribbon").forEach((ribbon) =>
-      ribbon.setAttribute("aria-pressed", String(ribbon.dataset.level === selectedLevel)),
-    );
-    applyFilters();
-    pager.reset();
-  });
-
-  /** Lessons the teacher ticked (not the ones already in the class as both types). */
-  const pickedIds = () =>
-    [...document.querySelectorAll('#link-form input[name="lesson"]:checked:not(:disabled)')].map((box) => box.value);
-  const updateSelection = () => {
-    const selected = pickedIds().length;
-    $("#lesson-selected-count").textContent = selected;
-    $("#add-selected-lessons").disabled = selected === 0;
-    $("#add-selected-lessons").textContent = selected
-      ? `Add ${selected} selected ${selected === 1 ? "lesson" : "lessons"}…`
-      : "Add selected lessons";
-  };
-  $("#link-form").addEventListener("change", (event) => {
-    if (event.target.matches('input[name="lesson"]')) updateSelection();
-  });
-  updateSelection();
-
-  // "Preview" per lesson row: the admin's read-only lesson viewer, without its Edit button.
-  document.querySelectorAll("[data-view]").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      const lesson = state.allLessons.find((l) => l.id === btn.dataset.view);
-      if (lesson) openLessonViewer(lesson);
-    }),
-  );
-
-  // Lesson type and schedule are picked in a pop-up after "Add selected lessons…". What was picked there is kept for the next time it opens.
-  const settings = { mode: "assessment", openAt: "", dueAt: "" };
-  $("#link-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const ids = pickedIds();
-    if (!ids.length) return toast("Select at least one new lesson.");
-    openAddModal(ids);
-  });
-
-  function openAddModal(ids, module = null) {
+  function openAddModal(ids, selectedModules) {
     const toAdd = (mode) => ids.filter((id) => !inClass[mode].has(id));
     // If every picked lesson is already in as the remembered type, start on the other one.
     if (!toAdd(settings.mode).length) settings.mode = settings.mode === "practice" ? "assessment" : "practice";
 
     openModal(
-      `<h2>Add ${lessonsLabel(ids.length)}</h2>
-       <p>Choose how ${ids.length === 1 ? "it counts" : "they count"} and when students can open ${ids.length === 1 ? "it" : "them"}.</p>
+      `<h2>Add ${selectedModules.length} ${selectedModules.length === 1 ? "module" : "modules"}</h2>
+       <p>Choose how the ${lessonsLabel(ids.length)} in these modules count and when students can open them.</p>
        <form id="add-lessons-form" class="lesson-add-form">
          <fieldset class="lesson-mode">
            <legend>Lesson type</legend>
@@ -343,12 +268,47 @@ export async function renderAddLessonPage(classId) {
           const schedule = readSchedule(form, { newLesson: true });
           if (schedule.error) return toast(schedule.error);
 
+          if (selectedModules.length) {
+            const ordered = [...links].sort((a, b) => (a.order || 0) - (b.order || 0));
+            const existing = [];
+            ordered.forEach(link => {
+              const title = state.allLessons.find(lesson => lesson.id === linkLessonId(link))?.title || 'Assigned lesson';
+              const previous = existing.at(-1);
+              const key = link.moduleId || link.id;
+              if (previous?.key === key) previous.lessons.push(title);
+              else existing.push({ key, title: link.moduleTitle || 'Individual lesson', lessons: [title], existing: true });
+            });
+            const planned = selectedModules.map(module => ({ title: module.title + (module.customized ? ' — Customized copy' : ''), lessons: module.lessonIds.filter(id => adding.includes(id)).map(id => state.allLessons.find(lesson => lesson.id === id).title) })).filter(module => module.lessons.length);
+            if (selectedPath && adding.length !== ids.length) return toast('A lesson in this path is already assigned as this type. Edit a copy so one deadline covers the whole path.');
+            if (!await previewModuleOrder([...existing, ...planned], { title: selectedPath ? selectedPath.title : 'Preview module and lesson order', confirm: selectedModules.some(module => module.customized) ? 'Save copies and assign' : selectedPath ? 'Assign learning path' : 'Assign modules', message: 'Review the ordered modules and lessons. The selected schedule applies to this entire assignment. Customized modules are saved as separate versions.' }) || !isCurrent()) return;
+          }
+
           setBusy(`Adding ${lessonsLabel(adding.length)}…`);
-          const linkIds = [];
+          let linkIds = [];
+          assignmentBusy = true;
           try {
+            const resolvedModules = [];
+            for (const module of selectedModules) {
+              if (module.customized && !module.savedCopy) {
+                module.copyValues ||= { title: contentBaseTitle(module.source), description: module.description || '', lessonIds: [...module.lessonIds], visibility: module.lessonIds.some(id => state.allLessons.find(item => item.id === id)?.visibility === 'private') ? 'private' : module.visibility || 'shared' };
+                const id = await saveModule(module.source, module.copyValues);
+                module.savedCopy = { ...module.copyValues, id };
+              }
+              resolvedModules.push(module.savedCopy || module);
+            }
+            if (selectedPath) {
+              const payload = { pathId: selectedPath.id, revision: selectedPath.revision, classId, moduleIds: resolvedModules.map(module => module.id), mode, openAt: schedule.openAt?.toMillis?.() ?? null, dueAt: schedule.dueAt?.toMillis?.() ?? null };
+              const fingerprint = JSON.stringify(payload);
+              if (lastAssignment && lastAssignment !== fingerprint) assignmentRequestKey = crypto.randomUUID();
+              lastAssignment = fingerprint;
+              const result = await assignLearningPath({ ...payload, requestKey: assignmentRequestKey });
+              linkIds = result.linkIds;
+            } else {
             // An Assessment link's id is the lesson id, so Firestore rules can look up its schedule; a Practice link is "{lessonId}__practice" so both can be in the class.
             const batch = writeBatch(db);
+            const lastOrder = Math.max(0, ...links.map(link => Number(link.order) || 0));
             adding.forEach((lessonId, index) => {
+              const module = resolvedModules.find(item => item.lessonIds.includes(lessonId));
               const linkId = mode === "practice" ? practiceLinkId(lessonId) : lessonId;
               // A Practice link saved under the lesson id (before both could be added) moves aside.
               const occupant = links.find((link) => link.id === lessonId && linkMode(link) === "practice");
@@ -360,7 +320,7 @@ export async function renderAddLessonPage(classId) {
               batch.set(doc(db, "classes", classId, "classLessons", linkId), {
                 lessonId,
                 teacherId: state.user.uid,
-                order: links.length + index + 1,
+                order: lastOrder + index + 1,
                 ...(module ? { moduleId: module.id, moduleTitle: module.title, moduleOrder: module.lessonIds.indexOf(lessonId) + 1, moduleRevision: module.revision } : {}),
                 createdAt: serverTimestamp(),
                 openAt: schedule.openAt,
@@ -370,7 +330,9 @@ export async function renderAddLessonPage(classId) {
               });
             });
             await batch.commit();
+            }
           } catch (err) {
+            assignmentBusy = false;
             setBusy(null);
             return toast(err.message);
           }
@@ -386,6 +348,7 @@ export async function renderAddLessonPage(classId) {
             toast(`${added}, but students were not notified (${err.message}).`);
           }
           close();
+          queuedModules = []; selectedPath = null; assignmentBusy = false; guard();
           navigate(`/classes/${encodeURIComponent(classId)}`);
         });
       },

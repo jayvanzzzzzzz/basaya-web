@@ -58,8 +58,8 @@ const CLASS_ICONS = {
 function refineClassControls() {
   const controls = [
     ['#class-report', 'Class report', 'report'], ['#class-chat', 'Class chat', 'chat'],
-    ['#view-students', 'Students', 'students'], ['#add-lesson', 'Add lesson', 'add'],
-    ['#add-lesson-inline', 'Add lesson', 'add'], ['#add-lesson-empty', 'Choose a lesson', 'add'],
+    ['#view-students', 'Students', 'students'], ['#add-lesson', 'Add modules', 'add'],
+    ['#add-lesson-inline', 'Add modules', 'add'], ['#add-lesson-empty', 'Add modules', 'add'],
     ['#edit-class', 'Edit class', 'edit'],
     ['#class-deletion', $('#class-deletion').textContent.trim(), 'delete'],
     ['.teacher-class-actions a', 'Review readings', 'readings'],
@@ -84,8 +84,8 @@ function refineClassControls() {
   if (proxy) {
     proxy.innerHTML = classIcon(CLASS_ICONS.add);
     proxy.classList.add('class-icon-control');
-    proxy.setAttribute('aria-label', 'Add lesson');
-    proxy.dataset.teacherTooltip = ''; proxy.dataset.floatingTooltip = 'Add lesson';
+    proxy.setAttribute('aria-label', 'Add modules');
+    proxy.dataset.teacherTooltip = ''; proxy.dataset.floatingTooltip = 'Add modules';
   }
 }
 
@@ -154,6 +154,7 @@ function compareBySchedule(a, b) {
 }
 
 function openScheduleModal(classId, link, lesson, onSaved) {
+  if (link.learningPathAssignmentId) lesson = { ...lesson, title: `${link.learningPathTitle || 'Learning path'} — schedule applies to every module and lesson` };
   openModal(
     `<h2>Lesson schedule</h2>
      <p>${escapeHtml(lesson.title)}</p>
@@ -177,7 +178,7 @@ function openScheduleModal(classId, link, lesson, onSaved) {
         // Historical dates may be kept, but newly chosen past dates are rejected.
         const schedule = readSchedule(e.currentTarget, { existingSchedule: link });
         if (schedule.error) return toast(schedule.error);
-        if (!await confirmAction({ title: 'Save lesson schedule?', message: 'Students will access this lesson according to the new opening and due dates.', confirm: 'Save schedule' })) return;
+        if (!await confirmAction({ title: link.learningPathAssignmentId ? 'Save learning path schedule?' : 'Save lesson schedule?', message: link.learningPathAssignmentId ? 'Apply this opening date and deadline to every lesson in this assigned learning path.' : 'Students will access this lesson according to the new opening and due dates.', confirm: 'Save schedule' })) return;
         try {
           await saveSchedule(classId, link, schedule);
           toast("Schedule saved.");
@@ -199,6 +200,7 @@ const EXTEND_PRESETS = [
 ];
 
 function openExtendModal(classId, link, lesson, onSaved) {
+  if (link.learningPathAssignmentId) return openScheduleModal(classId, link, lesson, onSaved);
   const currentDue = link.dueAt.toDate();
   // Presets count from the current deadline, or from now once it has passed, so the new deadline is always in the future.
   let individualBase = 0;
@@ -299,6 +301,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
 }
 
 async function saveSchedule(classId,link,{openAt,dueAt}) {
+  if (link.learningPathAssignmentId) return postToApi('content-lifecycle', { action: 'schedule-learning-path', classId, assignmentId: link.learningPathAssignmentId, openAt: openAt?.toMillis?.() ?? null, dueAt: dueAt?.toMillis?.() ?? null });
   return postToApi("lesson-deadlines",{action:"schedule",classId,entryId:link.id,openAt:openAt?.toMillis?.()??null,dueAt:dueAt?.toMillis?.()??null});
 }
 
@@ -478,8 +481,8 @@ export async function renderClass(classId) {
           : `<div class="class-lessons__empty">
               <div class="class-lessons__empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></div>
               <h3>No lessons assigned yet</h3>
-              <p>Add a lesson from your library to start building this class’s learning plan.</p>
-              <button class="button primary" id="add-lesson-empty" type="button">Choose a lesson</button>
+              <p>Add modules from your library to start building this class’s learning plan.</p>
+              <button class="button primary" id="add-lesson-empty" type="button">Add modules</button>
             </div>`
       }
     </section>

@@ -20,6 +20,7 @@ export default async function handler(req, res) {
       const [classroom,link]=await Promise.all([tx.get(classRef),tx.get(linkRef)]);
       if(classroom.get("teacherId") !== uid || classroom.get("membershipClosed") === true) throw fail(403,"You do not teach this class.");
       if(!link.exists) throw fail(404,"Lesson is no longer assigned.");
+      if (link.get('learningPathAssignmentId')) throw fail(409, 'Update the learning path schedule so all its modules keep one deadline.');
       const begins=deadlineMillis(action === "schedule" ? openAt : link.get("openAt"));
       if(dueAt !== null && begins !== null && dueAt <= begins) throw fail(400,"Deadline must follow the opening date.");
       if(action === "schedule") {
