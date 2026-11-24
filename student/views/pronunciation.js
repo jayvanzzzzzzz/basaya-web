@@ -32,6 +32,7 @@ export async function renderPronunciation(lessonId) {
   const lesson = await findLesson(lessonId);
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
+  if (lesson.pronunciationSkipped) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading">${skeleton('pronunciation', { label: 'Inihahanda ang Bigkas...', tag: 'div' })}</div>`;
   const [activity, progress] = await Promise.all([loadPronunciation(lessonId), loadLessonProgress(lessonId)]);

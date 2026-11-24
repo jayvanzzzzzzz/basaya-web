@@ -55,7 +55,7 @@ export async function renderQuiz(lessonId) {
   const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
   if (!lesson) return navigate("/home");
   if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang pagsusulit."); return navigate(pathUrl); }
-  if (availability(lesson) !== "open" || lesson.quizFinished) return navigate(pathUrl);
+  if (availability(lesson) !== "open" || lesson.quizFinished || lesson.quizSkipped) return navigate(pathUrl);
 
   content().innerHTML = `<div class="st-focus-loading st-focus-loading--space">${skeleton('quiz', { label: 'Inihahanda ang pagsusulit...', tag: 'div' })}</div>`;
   const [quiz, progress] = await Promise.all([loadQuiz(lessonId), loadLessonProgress(lessonId)]);

@@ -2,6 +2,7 @@ import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import { confirmAction } from "../../js/action-confirmation.js";
 import { state } from "../../js/state.js";
+import { canManageDictionaryWord, dictionaryAttribution } from "../../js/dictionaryAttribution.js";
 import { $, $$, escapeHtml, toast, page, openModal, displayName } from "../../js/helpers.js";
 import {
   MAX_SENSES,
@@ -12,7 +13,6 @@ import {
   lookupWord,
   normalizeWord,
   renameWord,
-  restoreWord,
   saveWord,
   syllablesOf,
 } from "../../js/dictionary.js";
@@ -23,8 +23,8 @@ import { paginate } from "../../js/pagination.js";
 
 // Dictionary: the Tagalog words students look up on the student side (#/diksiyonaryo).
 // Most come from Tagalog Wiktionary (data/dictionary/tl-seed.json); teachers and admins
-// add missing words, fix wrong ones (an edited copy replaces the original), fix the
-// syllable split, and delete words they added (admins delete any word). Every word is listed A to Z, and opening one shows
+// add missing words and manage all staff additions. Imported words are read-only.
+// Every word is listed A to Z, and opening one shows
 // its meanings and examples like the student page. Definitions are typed in Filipino;
 // the page itself is in English. Admins reach it at admin #/dictionary.
 
@@ -38,14 +38,13 @@ const SPEAKER_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>';
 const ACTION_ICONS = {
   edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></svg>',
-  restore: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v5h5" /><path d="M5.1 15a7.5 7.5 0 1 0 1.2-7.6L4 9" /></svg>',
   delete:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13" /><path d="M9 7V4h6v3" /></svg>',
 };
 
 let timer = null;
 
-const who = () => ({ user: state.user, name: displayName() });
+const who = () => ({ user: state.user, name: displayName(), profile: state.profile });
 const isAdmin = () => state.profile?.role === "admin";
 const lines = (text) =>
   text
@@ -54,26 +53,20 @@ const lines = (text) =>
     .filter(Boolean);
 
 function tagsHtml(entry) {
-  const mine = entry.createdBy === state.user.uid;
-  return [
-    entry.source === "teacher"
-      ? `<span class="tag">${entry.replaces ? "Edited" : "Added"} by ${escapeHtml(mine ? "you" : entry.updatedByName || entry.createdByName || "a teacher")}</span>`
-      : `<span class="tag tag--muted">Wiktionary</span>`,
-    entry.syllables ? `<span class="tag tag--muted">Syllables fixed</span>` : "",
-  ].join("");
+  const label = dictionaryAttribution(entry);
+  return label ? `<span class="tag">${escapeHtml(label)}</span>` : "";
 }
 
 // Icon-only; the label shows as a tooltip on hover/focus.
 const actionButton = (act, label, word) =>
   `<button type="button" class="dict-action${act === "delete" ? " dict-action--danger" : ""}" data-act="${act}" aria-label="${escapeHtml(`${label}: ${word}`)}">${ACTION_ICONS[act]}<span aria-hidden="true">${label}</span></button>`;
 
-// Admins delete any word. Teachers delete or restore only words they added or changed.
+// Both staff roles manage all teacher/admin additions, regardless of creator.
 function actionsHtml(entry, includeEdit = true, includeDelete = true) {
-  const mine = entry.createdBy === state.user.uid;
+  if (!canManageDictionaryWord(entry, state.profile?.role)) return "";
   const word = entry.accent || entry.word;
   let actions = includeEdit ? actionButton("edit", "Edit", word) : "";
-  if (entry.replaces && (isAdmin() || mine)) actions += actionButton("restore", "Restore original", word);
-  if (includeDelete && (isAdmin() || (mine && entry.source === "teacher" && !entry.replaces))) {
+  if (includeDelete) {
     actions += actionButton("delete", "Delete", word);
   }
   return actions;
@@ -81,7 +74,7 @@ function actionsHtml(entry, includeEdit = true, includeDelete = true) {
 
 function rowHtml(entry) {
   const first = entry.senses[0]?.definitions[0] || "";
-  const actions = actionsHtml(entry, false, !isAdmin());
+  const actions = actionsHtml(entry, false);
   return `
     <div class="lesson-row dict-row" data-key="${escapeHtml(entry.key)}">
       <button type="button" class="dict-row__text" data-act="open">
@@ -150,17 +143,18 @@ function senseHtml(sense = { pos: "", definitions: [], examples: [] }, index = 0
 
 /** Add or edit a word. `typed` locks the word supplied by the lesson editor. */
 export function openWordModal(entry = null, onSaved, typed = "") {
+  if (!["teacher", "admin"].includes(state.profile?.role)) return;
+  if (entry && !canManageDictionaryWord(entry, state.profile?.role)) {
+    toast("Imported dictionary words cannot be edited or deleted.");
+    return;
+  }
   const editing = !!entry;
   const lockedWord = Boolean(typed.trim());
   const senses = entry?.senses.length ? entry.senses : [undefined];
   let mayLeave = () => Promise.resolve(true);
   openModal(
     `<h2>${editing ? `Edit “${escapeHtml(entry.word)}”` : "Add a word"}</h2>
-     <p>${
-       editing && entry.source === "wiktionary"
-         ? "This word comes from Wiktionary. Saving keeps your corrected copy, and students see yours instead."
-         : "Write the meanings in Filipino so students can understand them."
-     }</p>
+     <p>Write the meanings in Filipino so students can understand them.</p>
      <form id="dict-word-form" class="dict-form" novalidate>
        <label>Word ${editing && isAdmin() && !lockedWord ? "<small>(changing the spelling moves the word to the new spelling)</small>" : ""}
          <input name="word" required maxlength="${MAX_WORD}" value="${escapeHtml(entry?.word || typed)}" ${lockedWord ? 'readonly disabled tabindex="-1" data-locked-dictionary-word' : editing && !isAdmin() ? "readonly" : ""} placeholder="bahay" />
@@ -286,6 +280,8 @@ export function openWordModal(entry = null, onSaved, typed = "") {
             if (existing && renaming)
               return fail(`“${existing.word}” is already in the dictionary. Edit that word instead, or delete it first.`, form.word);
             if (existing) {
+              if (!canManageDictionaryWord(existing, state.profile?.role))
+                return fail("This imported word is already in the dictionary and cannot be edited.", form.word);
               close();
               toast(`“${existing.word}” is already in the dictionary. You can edit it here.`);
               openWordModal(existing, onSaved, typed);
@@ -405,7 +401,6 @@ export async function renderDictionary() {
   let matches = [];
   let listPage = 1; // kept while a word is open, so Back returns to the same page
   let pageSize = PAGE_SIZE;
-  let open = null; // key of the word being viewed, or null for the list
 
   const filtered = () => {
     const prefix = normalizeWord(input.value);
@@ -418,7 +413,6 @@ export async function renderDictionary() {
 
   const showList = () => {
     if (!isCurrent()) return;
-    open = null;
     matches = filtered();
     const text = input.value.trim();
     if (!matches.length) {
@@ -443,7 +437,6 @@ export async function renderDictionary() {
 
   const showEntry = (entry) => {
     if (!isCurrent()) return;
-    open = entry.key;
     results.innerHTML = entryHtml(entry);
     results.querySelector("h2").focus?.();
   };
@@ -534,33 +527,23 @@ export async function renderDictionary() {
       openWordModal(entry, afterSave);
       return;
     }
+    if (act !== "delete" || !canManageDictionaryWord(entry, state.profile?.role)) return;
     const word = entry.accent || entry.word;
-    const sure = await askFirst(
-      act === "delete"
-        ? {
-            title: "Delete this word?",
-            text: `Are you sure you want to delete “${word}”? Students and teachers won't find it in the dictionary anymore.`,
-            yes: "Delete",
-            no: "Cancel",
-          }
-        : {
-            title: "Restore the original?",
-            text: `Remove the changes to “${word}”? Students will see the original Wiktionary meaning again.`,
-            yes: "Restore original",
-            no: "Cancel",
-          },
-    );
+    const sure = await askFirst({
+      title: "Delete this word?",
+      text: `Are you sure you want to delete “${word}”? Students and teachers won't find it in the dictionary anymore.`,
+      yes: "Delete",
+      no: "Cancel",
+    });
     if (!sure) return;
     button.disabled = true;
     try {
-      if (act === "delete") await deleteWord(entry, who());
-      else await restoreWord(entry.key);
-      toast(act === "delete" ? `“${word}” deleted.` : "Original meaning restored.");
-      // Stay on the word if it's still there; a deleted one goes back to the list.
-      await load(open && act !== "delete" ? entry.word : "");
+      await deleteWord(entry, who());
+      toast(`“${word}” deleted.`);
+      await load();
     } catch (error) {
       console.error(error);
-      toast("That didn't work. You can only delete words you added.");
+      toast("Couldn't delete the word. Check your connection and try again.");
       button.disabled = false;
     }
   });

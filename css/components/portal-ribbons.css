@@ -1,4 +1,9 @@
 /* Loaded after page styles. Match Admin > Teacher Accounts selection contrast. */
+.school-year-filter { margin: 0 0 1rem; min-width: 0; }
+.class-directory > .school-year-filter { padding: 0 1.5rem; }
+.school-year-filter__label { display: block; margin-bottom: .5rem; color: var(--ink-2); font-size: .8rem; font-weight: 600; }
+.school-year-ribbons { display: flex; flex-wrap: wrap; gap: .4rem; }
+.school-year-ribbons .student-ribbon { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .75rem; cursor: pointer; font: inherit; font-size: .8rem; }
 body[data-portal] {
   --ribbon-active: #1f2559;
   --ribbon-active-ink: #fff;

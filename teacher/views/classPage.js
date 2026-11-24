@@ -1,33 +1,31 @@
 import { captureRoute } from "../../js/route-lifecycle.js";
+import { orderedPathAssignments } from '../../js/learningPathSequence.js';
 import { confirmAction } from "../../js/action-confirmation.js";
 import {
   Timestamp,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state } from "../../js/state.js";
-import { $, escapeHtml, toast, notify, navigate, page, headerMenu, openModal as openBaseModal } from "../../js/helpers.js";
+import { $, escapeHtml, toast, navigate, page, headerMenu, openModal as openBaseModal } from "../../js/helpers.js";
 import { clearFieldError, fieldError } from "../../js/field-errors.js";
-import { postToApi, removeClassLesson } from "../../js/api.js";
+import { postToApi } from "../../js/api.js";
 import {
   formatWhen,
   fromInputValue,
-  linkLessonId,
-  linkMode,
   notifyDeadline,
   notifyStudents,
   readSchedule,
   scheduleStatus,
   toInputValue,
   wireLessonSchedule,
+  wirePathOpeningDates,
 } from "../../js/schedule.js";
 import { openClassModal } from "./dashboard.js";
 import { hasUnreadChat, onChatSummaries } from "./messages.js";
-import { paginate } from "../../js/pagination.js";
 import { watchStudentRequestsBadge } from "./studentRequestsBadge.js";
 import { addLessonAction, reviewReadingsAction, watchTeacherTooltips } from './classActions.js';
 import {
@@ -44,6 +42,10 @@ const SCHEDULE_LABELS = { scheduled: "Not open yet", open: "Open", closed: "Clos
 // One rounded, lightly duotone icon vocabulary for classroom controls.
 const classIcon = body => `<svg class="class-control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const CLASS_ICONS = {
+  extend: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2.5h6M19 3v5m-2.5-2.5h5"/>',
+  schedule: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4m8-4v4m-8 7h3m-3 3h6"/>',
+  archive: '<path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/>',
+  notify: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0"/>',
   report: '<path class="class-icon-tint" d="M5 3.5h10l4 4V21H5z"/><path d="M14 3.5V8h5M8.5 17v-3m3.5 3v-6m3.5 6v-4"/>',
   chat: '<path class="class-icon-tint" d="M4 4.5h16v12H9l-5 4z"/><path d="M4 13V7a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 7v7a2.5 2.5 0 0 1-2.5 2.5H9l-5 4v-4M8 9h8m-8 4h5"/>',
   students: '<circle class="class-icon-tint" cx="9" cy="8" r="3.5"/><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3.3 3.3 0 0 1 0 6.5M18 14a5 5 0 0 1 3 4.6V20"/>',
@@ -58,8 +60,8 @@ const CLASS_ICONS = {
 function refineClassControls() {
   const controls = [
     ['#class-report', 'Class report', 'report'], ['#class-chat', 'Class chat', 'chat'],
-    ['#view-students', 'Students', 'students'], ['#add-lesson', 'Add lesson', 'add'],
-    ['#add-lesson-inline', 'Add lesson', 'add'], ['#add-lesson-empty', 'Choose a lesson', 'add'],
+    ['#view-students', 'Students', 'students'], ['#add-lesson', 'Add Lesson Path', 'add'],
+    ['#add-lesson-inline', 'Add Lesson Path', 'add'], ['#add-lesson-empty', 'Add Lesson Path', 'add'],
     ['#edit-class', 'Edit class', 'edit'],
     ['#class-deletion', $('#class-deletion').textContent.trim(), 'delete'],
     ['.teacher-class-actions a', 'Review readings', 'readings'],
@@ -84,8 +86,8 @@ function refineClassControls() {
   if (proxy) {
     proxy.innerHTML = classIcon(CLASS_ICONS.add);
     proxy.classList.add('class-icon-control');
-    proxy.setAttribute('aria-label', 'Add lesson');
-    proxy.dataset.teacherTooltip = ''; proxy.dataset.floatingTooltip = 'Add lesson';
+    proxy.setAttribute('aria-label', 'Add Lesson Path');
+    proxy.dataset.teacherTooltip = ''; proxy.dataset.floatingTooltip = 'Add Lesson Path';
   }
 }
 
@@ -127,33 +129,17 @@ function scheduleMarkup(link) {
   return `<div class="class-lesson__schedule">${parts.join("")}</div>`;
 }
 
-// Lesson tabs. "Not open yet" lessons count as Open; only past-deadline ones are Closed.
-const LESSON_TABS = [
-  { key: "all", label: "All" },
-  { key: "open", label: "Open" },
-  { key: "closed", label: "Closed" },
-];
-/** Tab picked per class, so it survives re-renders (e.g. after editing a schedule). */
-const lessonTabByClass = new Map();
-
-const millisOf = (timestamp) => timestamp?.toMillis?.() ?? null;
-
-/** List order: open lessons by nearest deadline, then open ones with no deadline, then not-open-yet (soonest to open first), then closed (most recently closed first). */
-function compareBySchedule(a, b) {
-  const rank = { open: 0, scheduled: 1, closed: 2 };
-  const statusA = scheduleStatus(a.link);
-  const statusB = scheduleStatus(b.link);
-  if (statusA !== statusB) return rank[statusA] - rank[statusB];
-  const dueA = millisOf(a.link.dueAt);
-  const dueB = millisOf(b.link.dueAt);
-  if (statusA === "closed") return dueB - dueA || a.number - b.number;
-  if (statusA === "scheduled")
-    return millisOf(a.link.openAt) - millisOf(b.link.openAt) || a.number - b.number;
-  if (dueA == null || dueB == null) return (dueA == null) - (dueB == null) || a.number - b.number;
-  return dueA - dueB || a.number - b.number;
-}
-
-function openScheduleModal(classId, link, lesson, onSaved) {
+async function openScheduleModal(classId, link, lesson, onSaved) {
+  let previous = null, next = null, assignedPath = null;
+  if (link.learningPathAssignmentId) {
+    try {
+      const [paths, links] = await Promise.all([getDocs(collection(db, 'classes', classId, 'learningPaths')), getDocs(collection(db, 'classes', classId, 'classLessons'))]);
+      const ordered = orderedPathAssignments(paths.docs.map(item => ({ id: item.id, ...item.data() })), links.docs.map(item => ({ id: item.id, ...item.data() })));
+      const index = ordered.findIndex(item => item.id === link.learningPathAssignmentId);
+      assignedPath = ordered[index]; previous = ordered[index - 1]; next = ordered[index + 1];
+    } catch (error) { toast(error.message); return; }
+  }
+  if (link.learningPathAssignmentId) lesson = { ...lesson, title: `${link.learningPathTitle || 'Learning path'} — schedule applies to every module and lesson` };
   openModal(
     `<h2>Lesson schedule</h2>
      <p>${escapeHtml(lesson.title)}</p>
@@ -171,13 +157,16 @@ function openScheduleModal(classId, link, lesson, onSaved) {
     (backdrop, close) => {
       const form = backdrop.querySelector("#schedule-form");
       wireLessonSchedule(form, { existingSchedule: link });
+      const validateOpeningOrder = assignedPath ? wirePathOpeningDates([{ path: assignedPath, form }], { previous, next }) : () => null;
       backdrop.querySelector("#schedule-cancel").addEventListener("click", close);
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const openingError = validateOpeningOrder();
+        if (openingError) return toast(openingError);
         // Historical dates may be kept, but newly chosen past dates are rejected.
         const schedule = readSchedule(e.currentTarget, { existingSchedule: link });
         if (schedule.error) return toast(schedule.error);
-        if (!await confirmAction({ title: 'Save lesson schedule?', message: 'Students will access this lesson according to the new opening and due dates.', confirm: 'Save schedule' })) return;
+        if (!await confirmAction({ title: link.learningPathAssignmentId ? 'Save learning path schedule?' : 'Save lesson schedule?', message: link.learningPathAssignmentId ? 'Apply this opening date and deadline to every lesson in this assigned learning path.' : 'Students will access this lesson according to the new opening and due dates.', confirm: 'Save schedule' })) return;
         try {
           await saveSchedule(classId, link, schedule);
           toast("Schedule saved.");
@@ -208,7 +197,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
     `<h2>Extend deadline</h2>
      <p>${escapeHtml(lesson.title)}</p>
      <form id="extend-form" data-confirm-manually>
-       ${deadlineAudienceMarkup()}
+       ${link.learningPathAssignmentId ? '<p class="lesson-schedule__hint">Applies to every module and lesson in this path.</p>' : deadlineAudienceMarkup()}
        <p class="extend-deadline__current">Current deadline: <strong>${escapeHtml(formatWhen(link.dueAt))}</strong>${
          closed ? ' <span class="schedule-chip schedule-chip--closed">Closed</span>' : ""
        }</p>
@@ -224,7 +213,9 @@ function openExtendModal(classId, link, lesson, onSaved) {
          <span>Notify students</span>
        </label>
        <p class="lesson-schedule__hint">${
-         closed
+         link.learningPathAssignmentId
+           ? "Students get more time for this whole path. Its opening schedule and completion prerequisites still apply."
+           : closed
            ? "The lesson reopens for students who haven't finished it until the new deadline."
            : "Students who haven't finished get more time. Reminders move to the new deadline."
        }</p>
@@ -243,7 +234,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
           b.classList.toggle("is-active", Number(b.dataset.extendDays) === days),
         );
       };
-      const audience = wireDeadlineAudience(backdrop,classId,link,value=>{individualBase=value;const active=backdrop.querySelector("[data-extend-days].is-active");if(active)pick(Number(active.dataset.extendDays));});
+      const audience = link.learningPathAssignmentId ? { selection: () => null } : wireDeadlineAudience(backdrop,classId,link,value=>{individualBase=value;const active=backdrop.querySelector("[data-extend-days].is-active");if(active)pick(Number(active.dataset.extendDays));});
       pick(EXTEND_PRESETS[0].days);
       backdrop.querySelectorAll("[data-extend-days]").forEach((b) =>
         b.addEventListener("click", () => pick(Number(b.dataset.extendDays))),
@@ -267,7 +258,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
         submit.disabled = true;
         try {
           const studentIds = audience.selection();
-          if(!await confirmAction({title:"Extend deadline?",message:studentIds ? `Extend this lesson for ${studentIds.length} selected active ${studentIds.length===1?"student":"students"}. Everyone else keeps their existing deadline.` : "Extend this lesson's deadline for the entire class.",confirm:"Extend deadline"})) {submit.disabled=false;return;}
+          if(!await confirmAction({title:"Extend deadline?",message:studentIds ? `Extend this lesson for ${studentIds.length} selected active ${studentIds.length===1?"student":"students"}. Everyone else keeps their existing deadline.` : link.learningPathAssignmentId ? "Extend the deadline for every module and lesson in this path for the entire class." : "Extend this lesson's deadline for the entire class.",confirm:"Extend deadline"})) {submit.disabled=false;return;}
           if(!form.isConnected)return;
           submit.textContent="Extending…";
           form.setAttribute("aria-busy","true");
@@ -299,6 +290,7 @@ function openExtendModal(classId, link, lesson, onSaved) {
 }
 
 async function saveSchedule(classId,link,{openAt,dueAt}) {
+  if (link.learningPathAssignmentId) return postToApi('content-lifecycle', { action: 'schedule-learning-path', classId, assignmentId: link.learningPathAssignmentId, openAt: openAt?.toMillis?.() ?? null, dueAt: dueAt?.toMillis?.() ?? null });
   return postToApi("lesson-deadlines",{action:"schedule",classId,entryId:link.id,openAt:openAt?.toMillis?.()??null,dueAt:dueAt?.toMillis?.()??null});
 }
 
@@ -331,7 +323,7 @@ export async function renderClass(classId) {
       throw err;
     }
   };
-  const [studentsSnap, linksSnap] = await Promise.all([
+  const [studentsSnap, linksSnap, pathsSnap] = await Promise.all([
     runRead(
       "students",
       getDocs(collection(db, "classes", classId, "students")),
@@ -340,8 +332,11 @@ export async function renderClass(classId) {
       "classLessons",
       getDocs(collection(db, "classes", classId, "classLessons")),
     ),
+    runRead("learningPaths", getDocs(collection(db, "classes", classId, "learningPaths"))),
   ]);
   if (!isCurrent()) return;
+  const allAssignedPaths = pathsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const assignedPaths = [...orderedPathAssignments(allAssignedPaths, linksSnap.docs.map(d => ({ id: d.id, ...d.data() }))), ...allAssignedPaths.filter(path => path.archived)];
   const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const leaveCount = students.filter((student) => student.leaveRequest).length;
   const links = linksSnap.docs
@@ -352,21 +347,8 @@ export async function renderClass(classId) {
   if(!isCurrent())return;
   const completions = progress.filter(item=>!item.error&&!item.inactive).map(completionOf).filter(item=>item.percent!==null);
   const average = completions.length ? Math.round(completions.reduce((sum,item)=>sum+item.percent,0)/completions.length) : null;
-  const linkedLessons = links
-    .map((link) => ({
-      link,
-      lesson: state.allLessons.find((l) => l.id === link.lessonId),
-    }))
-    .filter((x) => x.lesson)
-    // Retain assignment order to break schedule-sort ties.
-    .map((item, index) => ({ ...item, number: index + 1 }))
-    .sort(compareBySchedule);
-  const tabCount = {
-    all: linkedLessons.length,
-    closed: linkedLessons.filter(({ link }) => scheduleStatus(link) === "closed").length,
-  };
-  tabCount.open = tabCount.all - tabCount.closed;
-  const activeTab = lessonTabByClass.get(classId) || "all";
+  const activePaths = assignedPaths.filter(path => !path.archived);
+  const pathLink = path => ({ ...links.find(link => link.learningPathAssignmentId === path.id), learningPathAssignmentId: path.id, learningPathTitle: path.title, ...(Object.hasOwn(path, 'openAt') ? { openAt: path.openAt } : {}), ...(Object.hasOwn(path, 'dueAt') ? { dueAt: path.dueAt } : {}), mode: path.mode || 'assessment' });
   const subtitle = classroom.description || "";
   page(
     classroom.className,
@@ -409,7 +391,7 @@ export async function renderClass(classId) {
         </div>
         <div class="card stat class-overview__stat">
           <span class="class-overview__stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></span>
-          <b>${linkedLessons.length}</b><span>Lessons assigned</span>
+          <b>${activePaths.length}</b><span>Lesson paths assigned</span>
         </div>
         <div class="card stat class-overview__stat class-overview__stat--progress">
           <span class="class-overview__stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 18V9m5 9V5m5 13v-6m5 6V3"/></svg></span>
@@ -422,260 +404,112 @@ export async function renderClass(classId) {
       <div class="class-lessons__header">
         <div>
           <span class="class-lessons__eyebrow">Learning plan</span>
-          <h2 id="class-lessons-title">Assigned lessons</h2>
-          <p>Keep the class moving, one lesson at a time.</p>
+          <h2 id="class-lessons-title">Assigned lesson paths</h2>
+          <p>Keep the class moving through each lesson path.</p>
         </div>
         <div class="teacher-class-actions">${reviewReadingsAction(classId)}${addLessonAction('add-lesson-inline')}</div>
       </div>
-      ${
-        linkedLessons.length
-          ? `<div class="class-lesson-tabs" role="tablist" aria-label="Filter lessons">${LESSON_TABS.map(
-              ({ key, label }) => `
-                <button class="class-lesson-tab${key === activeTab ? " is-active" : ""}" type="button" role="tab" id="lesson-tab-${key}" aria-controls="class-lesson-panel" tabindex="${key === activeTab ? 0 : -1}" data-lesson-tab="${key}" aria-selected="${key === activeTab}">
-                  ${label}<span class="class-lesson-tab__count">${tabCount[key]}</span>
-                </button>`,
-            ).join("")}</div>
-            <div id="class-lesson-panel" role="tabpanel" aria-labelledby="lesson-tab-${activeTab}" tabindex="0" class="class-lessons__list">${linkedLessons
-              .map(
-                ({ link, lesson }) => `
-                  <article class="class-lesson" data-tab="${scheduleStatus(link) === "closed" ? "closed" : "open"}">
-                    <span class="class-lesson__art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path fill="currentColor" fill-opacity=".1" stroke="none" d="M12 6C9.5 4.5 6.5 4 3 5v14c3.5-1 6.5-.5 9 1 2.5-1.5 5.5-2 9-1V5c-3.5-1-6.5-.5-9 1Z"/><path d="M12 6C9.5 4.5 6.5 4 3 5v14c3.5-1 6.5-.5 9 1 2.5-1.5 5.5-2 9-1V5c-3.5-1-6.5-.5-9 1Zm0 0v14M6.5 8.5c.8 0 1.6.2 2.5.5m-2.5 3c.8 0 1.6.2 2.5.5m6-3.5c.9-.3 1.7-.5 2.5-.5M15 12.5c.9-.3 1.7-.5 2.5-.5"/></svg></span>
-                    <div class="class-lesson__content">
-                      <h3>${escapeHtml(lesson.title)}</h3>
-                      <p>${escapeHtml(lesson.description || "No description provided.")}</p>
-                      ${scheduleMarkup(link)}
-                    </div>
-                    <div class="class-lesson__actions">
-                      ${
-                        link.notifyPending
-                          ? `<button class="class-lesson__action class-lesson__action--notify" type="button" data-notify="${escapeHtml(link.id)}" aria-label="Notify students about ${escapeHtml(lesson.title)}">
-                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0"/></svg>
-                              <span>Notify students</span>
-                            </button>`
-                          : ""
-                      }
-                      ${
-                        link.dueAt
-                          ? `<button class="class-lesson__action" type="button" data-extend="${escapeHtml(link.id)}" aria-label="Extend the deadline of ${escapeHtml(lesson.title)}">
-                              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2.5h6"/></svg>
-                              <span>Extend</span>
-                            </button>`
-                          : ""
-                      }
-                      <button class="class-lesson__action" type="button" data-schedule="${escapeHtml(link.id)}" aria-label="Edit schedule of ${escapeHtml(lesson.title)}">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4m8-4v4"/></svg>
-                        <span>Schedule</span>
-                      </button>
-                      <button class="class-lesson__remove" type="button" data-unlink="${escapeHtml(link.id)}" aria-label="Remove ${escapeHtml(lesson.title)} from class">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
-                        <span>Remove</span>
-                      </button>
-                    </div>
-                  </article>`,
-              )
-              .join("")}</div>
-            <p class="class-lessons__none" hidden></p>`
-          : `<div class="class-lessons__empty">
-              <div class="class-lessons__empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z"/><path d="M5 4.5v17M9 6h7m-7 4h7"/></svg></div>
-              <h3>No lessons assigned yet</h3>
-              <p>Add a lesson from your library to start building this class’s learning plan.</p>
-              <button class="button primary" id="add-lesson-empty" type="button">Choose a lesson</button>
-            </div>`
-      }
+      <section class="class-paths" aria-label="Class lesson paths">
+        <div class="class-path-list">${activePaths.map((path, index) => {
+          const link = pathLink(path), pathLinks = links.filter(item => item.learningPathAssignmentId === path.id);
+          const moduleCount = path.modules?.length || new Set(pathLinks.map(item => item.moduleId).filter(Boolean)).size;
+          const count = path.lessonIds?.length || pathLinks.length;
+          return `<article class="class-lesson class-path-card" data-class-path="${escapeHtml(path.id)}"><div class="class-lesson__content"><span class="lesson-picker__eyebrow">Lesson path ${index + 1}</span><h3>${escapeHtml(path.title || 'Lesson path')}</h3><p>${moduleCount} modules &middot; ${count} lessons</p>${scheduleMarkup(link)}</div><details class="class-path-menu"><summary aria-label="Actions for ${escapeHtml(path.title || 'lesson path')}" data-teacher-tooltip data-floating-tooltip="Lesson path actions">${classIcon('<path d="M4 6h16M4 12h16M4 18h16"/>')}</summary><div class="class-path-menu__popup"><button type="button" data-extend-path="${escapeHtml(path.id)}" ${!link.dueAt ? 'disabled title="Set a deadline using Edit schedule first"' : ''}>${classIcon(CLASS_ICONS.extend)}<span>Extend deadline</span></button><button type="button" data-schedule-path="${escapeHtml(path.id)}">${classIcon(CLASS_ICONS.schedule)}<span>Edit schedule</span></button>${pathLinks.some(item => item.notifyPending) ? `<button type="button" data-notify-path="${escapeHtml(path.id)}">${classIcon(CLASS_ICONS.notify)}<span>Notify students</span></button>` : ''}<button type="button" data-archive-path="${escapeHtml(path.id)}">${classIcon(CLASS_ICONS.archive)}<span>Archive lesson path</span></button></div></details></article>`;
+        }).join('') || '<div class="class-lessons__empty"><h3>No lesson paths assigned yet</h3><p>Add a lesson path from your library to start the classroom learning plan.</p><button class="button primary" id="add-lesson-empty" type="button">Add Lesson Path</button></div>'}</div>
+        <details class="class-path-archive"><summary>Archived lesson paths (${assignedPaths.filter(path => path.archived).length})</summary><p>Archived assignments keep their schedules and student progress.</p>
+          ${assignedPaths.filter(path => path.archived).map(path => `<article class="class-lesson"><div class="class-lesson__content"><h3>${escapeHtml(path.title || 'Lesson path')}</h3><p>${(path.lessonIds || []).length} lessons</p></div><button type="button" class="button secondary small" data-restore-path="${escapeHtml(path.id)}">Restore lesson path</button></article>`).join('') || '<p>No archived lesson paths in this class.</p>'}
+        </details>
+      </section>
     </section>
   `;
   refineClassControls();
   wireDeletionBanner(classroom, () => renderClass(classId));
-  $("#class-report").addEventListener("click", () =>
-    navigate(`/classes/${encodeURIComponent(classId)}/report`),
-  );
-  $("#class-chat").addEventListener("click", () => navigate(`/messages/${encodeURIComponent(classId)}`));
-  // Red bubble on "Class chat" while the class has messages the teacher hasn't read.
-  const showChatBadge = () => {
-    const badge = $("[data-class-chat-badge]");
-    if (badge) badge.hidden = !hasUnreadChat(classId);
-  };
-  showChatBadge();
-  onChatSummaries(showChatBadge);
+  $('#class-report').addEventListener('click', () => navigate(`/classes/${encodeURIComponent(classId)}/report`));
+  $('#class-chat').addEventListener('click', () => navigate(`/messages/${encodeURIComponent(classId)}`));
+  const showChatBadge = () => { const badge = $('[data-class-chat-badge]'); if (badge) badge.hidden = !hasUnreadChat(classId); };
+  showChatBadge(); onChatSummaries(showChatBadge);
   watchStudentRequestsBadge(classId, leaveCount, links);
-  // Reuse body-level tooltips, including actions near scrolling/viewport edges.
-  document.querySelectorAll('.teacher-class-header .header-menu__toggle, .teacher-class-page .class-lesson__actions button, .sidebar .theme-toggle, .sidebar .account-menu__toggle, .sidebar .main-nav a').forEach(button => {
+  document.querySelectorAll('.teacher-class-header .header-menu__toggle, .sidebar .theme-toggle, .sidebar .account-menu__toggle, .sidebar .main-nav a').forEach(button => {
     button.dataset.teacherTooltip = '';
     button.dataset.floatingTooltip = button.getAttribute('aria-label') || button.querySelector('strong')?.textContent || button.textContent.trim();
     button.removeAttribute('title');
   });
   const classMenu = $('.teacher-class-header .header-menu__toggle');
-  classMenu.addEventListener('click', () => {
-    requestAnimationFrame(() => {
-      if (classMenu.getAttribute('aria-expanded') === 'true') $('.header-menu__popup button')?.focus();
-    });
-  });
+  classMenu.addEventListener('click', () => requestAnimationFrame(() => {
+    if (classMenu.getAttribute('aria-expanded') === 'true') $('.header-menu__popup button')?.focus();
+  }));
   $('.teacher-class-header .header-menu').addEventListener('keydown', event => {
     if (event.key === 'Escape') {
-      event.preventDefault(); event.stopPropagation();
-      $('.teacher-class-header .header-menu__popup').hidden = true;
-      classMenu.setAttribute('aria-expanded', 'false');
-      classMenu.focus(); return;
+      event.preventDefault(); event.stopPropagation(); $('.header-menu__popup').hidden = true;
+      classMenu.setAttribute('aria-expanded', 'false'); classMenu.focus(); return;
     }
-    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
-    const items = [...document.querySelectorAll('.teacher-class-header .header-menu__popup button')];
-    if (classMenu.getAttribute('aria-expanded') !== 'true') return;
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || classMenu.getAttribute('aria-expanded') !== 'true') return;
     event.preventDefault();
-    const index = items.indexOf(document.activeElement);
+    const items = [...document.querySelectorAll('.teacher-class-header .header-menu__popup button')], index = items.indexOf(document.activeElement);
     items[event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
   });
   watchTeacherTooltips();
-  $("#edit-class").addEventListener("click", () => openClassModal(classroom));
-  $("#class-deletion").addEventListener("click", () => {
+  $('#edit-class').addEventListener('click', () => openClassModal(classroom));
+  $('#class-deletion').addEventListener('click', () => {
     const refresh = () => renderClass(classId);
     if (classroom.deletionRequest) confirmCancelRequest(classroom, refresh);
     else openRequestDeletionModal(classroom, refresh);
   });
-  $("#view-students").addEventListener("click", () =>
-    navigate(`/classes/${encodeURIComponent(classId)}/students`),
-  );
-  const add = () =>
-    navigate(`/classes/${encodeURIComponent(classId)}/add-lesson`);
-  $("#add-lesson").addEventListener("click", add);
-  $("#add-lesson-inline")?.addEventListener("click", add);
-  $("#add-lesson-empty")?.addEventListener("click", add);
-  if (linkedLessons.length) {
-    const rows = () => [...document.querySelectorAll(".class-lessons__list > .class-lesson")];
-    const none = $(".class-lessons__none");
-    const showTab = (tab) => {
-      rows().forEach((row) => (row.hidden = tab !== "all" && row.dataset.tab !== tab));
-      document.querySelectorAll("[data-lesson-tab]").forEach((button) => {
-        const active = button.dataset.lessonTab === tab;
-        button.classList.toggle("is-active", active);
-        button.setAttribute("aria-selected", String(active));
-        button.tabIndex = active ? 0 : -1;
-      });
-      $('#class-lesson-panel').setAttribute('aria-labelledby', `lesson-tab-${tab}`);
-      none.hidden = tabCount[tab] > 0;
-      none.textContent = tab === "closed" ? "No closed lessons." : "No open lessons.";
-    };
-    showTab(activeTab);
-    const pager = paginate({ rows, after: $(".class-lessons__list"), label: ["lesson", "lessons"] });
-    document.querySelectorAll("[data-lesson-tab]").forEach((button) =>
-      button.addEventListener("click", () => {
-        lessonTabByClass.set(classId, button.dataset.lessonTab);
-        showTab(button.dataset.lessonTab);
-        pager.reset();
-      }),
-    );
-    $('.class-lesson-tabs').addEventListener('keydown', event => {
-      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      const tabs = [...document.querySelectorAll('[data-lesson-tab]')];
-      const index = tabs.indexOf(document.activeElement);
-      const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
-      next.focus();
-      next.click();
-    });
-  }
-  const findLinked = (linkId) => linkedLessons.find(({ link }) => link.id === linkId);
-  document.querySelectorAll("[data-unlink]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const found = findLinked(b.dataset.unlink);
-      if (found) openRemoveLessonModal(classroom, found.link, found.lesson, students.length);
-    }),
-  );
-  document.querySelectorAll("[data-schedule]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const found = findLinked(b.dataset.schedule);
-      if (found)
-        openScheduleModal(classId, found.link, found.lesson, () => renderClass(classId));
-    }),
-  );
-  document.querySelectorAll("[data-extend]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const found = findLinked(b.dataset.extend);
-      if (found) openExtendModal(classId, found.link, found.lesson, () => renderClass(classId));
-    }),
-  );
-  document.querySelectorAll("[data-notify]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      const found = findLinked(b.dataset.notify);
-      if (!found) return;
-      if (!await confirmAction({ title: 'Notify students?', message: 'Send a notification about this lesson to the students in this class.', confirm: 'Notify students' })) return;
-      if (!b.isConnected) return;
-      b.disabled = true;
-      try {
-        await notifyStudents(classId, [found.link.id]);
-        toast("Students were notified.");
-        renderClass(classId);
-      } catch (err) {
-        b.disabled = false;
-        toast(`Students were not notified (${err.message}).`);
-      }
-    }),
-  );
+  $('#view-students').addEventListener('click', () => navigate(`/classes/${encodeURIComponent(classId)}/students`));
+  const add = () => navigate(`/classes/${encodeURIComponent(classId)}/add-lesson`);
+  $('#add-lesson').addEventListener('click', add);
+  $('#add-lesson-inline')?.addEventListener('click', add);
+  $('#add-lesson-empty')?.addEventListener('click', add);
+  document.querySelectorAll('[data-archive-path], [data-restore-path]').forEach(button => button.addEventListener('click', async () => {
+    const restoring = button.hasAttribute('data-restore-path'), assignmentId = button.dataset.archivePath || button.dataset.restorePath;
+    const path = assignedPaths.find(item => item.id === assignmentId); if (!path) return;
+    if (!await confirmAction({ title: `${restoring ? 'Restore' : 'Archive'} "${path.title}" in this class?`, message: restoring ? 'Return this whole lesson path to the class with its saved schedules and student progress.' : 'Hide this whole lesson path from the class. Student progress and library content are preserved.', confirm: restoring ? 'Restore lesson path' : 'Archive lesson path' })) return;
+    button.disabled = true;
+    try {
+      await postToApi('content-lifecycle', { action: restoring ? 'restore-class-path' : 'archive-class-content', classId, assignmentId });
+      toast(restoring ? 'Lesson path restored. Saved progress is preserved.' : 'Lesson path archived. Saved progress is preserved.');
+      await renderClass(classId);
+    } catch (error) { button.disabled = false; toast(error.message); }
+  }));
+  document.querySelectorAll('[data-schedule-path], [data-extend-path], [data-notify-path]').forEach(button => button.addEventListener('click', async () => {
+    const id = button.dataset.schedulePath || button.dataset.extendPath || button.dataset.notifyPath;
+    const path = activePaths.find(item => item.id === id); if (!path) return;
+    const link = pathLink(path), lesson = { title: path.title || 'Lesson path' }, refresh = () => renderClass(classId);
+    if (button.dataset.schedulePath) return openScheduleModal(classId, link, lesson, refresh);
+    if (button.dataset.extendPath && link.dueAt) return openExtendModal(classId, link, lesson, refresh);
+    if (!await confirmAction({ title: 'Notify students?', message: 'Notify the class about every lesson in this path.', confirm: 'Notify students' })) return;
+    button.disabled = true;
+    try { await notifyStudents(classId, links.filter(item => item.learningPathAssignmentId === path.id).map(item => item.id)); toast('Students were notified.'); await refresh(); }
+    catch (error) { button.disabled = false; toast(error.message); }
+  }));
+  wireClassPathMenus();
 }
 
-function openRemoveLessonModal(classroom, link, lesson, studentCount) {
-  // Practice saves no progress: removing it only takes that copy out (an Assessment of the same lesson stays, with its progress).
-  const practice = linkMode(link) === "practice";
-  if (practice) studentCount = 0;
-  const students = `${studentCount} student${studentCount === 1 ? "" : "s"}`;
-  openModal(
-    `<div class="remove-lesson">
-       <span class="remove-lesson__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span>
-       <h2>Remove “${escapeHtml(lesson.title)}”${practice ? " (Practice)" : ""}?</h2>
-       <p>It will be taken out of <strong>${escapeHtml(classroom.className)}</strong>${studentCount ? `, and the progress of all ${students} on it will be deleted:` : "."}</p>
-       ${
-         studentCount
-           ? `<ul class="remove-student__list">
-                <li>Lecture, game, activity and quiz completion</li>
-                <li>Scores and answers saved for this lesson</li>
-              </ul>`
-           : ""
-       }
-       <p class="muted">The lesson stays in your library. If you add it back, everyone starts fresh. This can't be undone.</p>
-       <p class="form-error" id="remove-lesson-error" role="alert"></p>
-       <div class="modal-actions">
-         <button type="button" class="button secondary" data-cancel>Keep lesson</button>
-         <button type="button" class="button danger" data-confirm-remove>Remove lesson</button>
-       </div>
-     </div>`,
-    (modal, close) => {
-      $("[data-cancel]", modal).addEventListener("click", close);
-      const confirmButton = $("[data-confirm-remove]", modal);
-      confirmButton.addEventListener("click", async () => {
-        confirmButton.disabled = true;
-        confirmButton.textContent = "Removing…";
-        try {
-          if (practice) await deleteDoc(doc(db, "classes", classroom.id, "classLessons", link.id));
-          else await removeClassLesson(classroom.id, lesson.id);
-          close();
-          notify({
-            tone: "danger",
-            title: "Lesson removed",
-            message: studentCount
-              ? `“${lesson.title}” was taken out of ${classroom.className}. Progress was reset for ${students}.`
-              : `“${lesson.title}” was taken out of ${classroom.className}.`,
-          });
-          await renderClass(classroom.id);
-        } catch (error) {
-          $("#remove-lesson-error", modal).textContent = `Couldn't remove the lesson: ${error.message}.`;
-          confirmButton.disabled = false;
-          confirmButton.textContent = "Remove lesson";
-        }
-      });
-    },
-  );
+let pathMenusWired = false;
+function wireClassPathMenus() {
+  if (pathMenusWired) return;
+  pathMenusWired = true;
+  document.addEventListener('click', event => {
+    document.querySelectorAll('.class-path-menu[open]').forEach(menu => {
+      if (!menu.contains(event.target) || event.target.closest('button')) { menu.open = false; if (menu.contains(event.target)) menu.querySelector('summary').focus(); }
+    });
+  }, true);
+  document.addEventListener('keydown', event => {
+    const menu = event.target.closest('.class-path-menu'); if (!menu) return;
+    const summary = menu.querySelector('summary');
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); menu.open = false; summary.focus(); }
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault(); menu.open = true;
+      const buttons = [...menu.querySelectorAll('button:not(:disabled)')], index = buttons.indexOf(document.activeElement);
+      buttons[event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+    }
+  });
 }
 
 export function openStudentsModal(classroom, students, progress) {
-  const body = students.length
-    ? `<div class="list stagger-in">${students
-        .map((s) => {
-          const p = progress.find((x) => x.studentId === s.id) || {};
-          const value = progressPercent(p.percent);
-          return `<div class="student-row"><div class="student-info"><div class="student-avatar">${escapeHtml((s.displayName || s.name || "S").charAt(0).toUpperCase())}</div><div><strong>${escapeHtml(s.displayName || s.name || "Student")}</strong><p>${escapeHtml(s.email || "")}</p></div></div><div class="progress"><small>${value}%</small><div class="progress-bar"><i style="width:${value}%"></i></div></div></div>`;
-        })
-        .join("")}</div>`
-    : `<p class="muted">Students will appear here once they join with <code>${escapeHtml(classroom.classCode || "—")}</code>.</p>`;
-  openModal(
-    `<h2>Students</h2><p>${students.length} enrolled in ${escapeHtml(classroom.className)}.</p>${body}`,
-  );
+  const body = students.length ? `<div class="list stagger-in">${students.map(s => {
+    const p = progress.find(x => x.studentId === s.id) || {}, value = Math.max(0, Math.min(100, Number(p.percent) || 0));
+    return `<div class="student-row"><div class="student-info"><div class="student-avatar">${escapeHtml((s.displayName || s.name || 'S').charAt(0).toUpperCase())}</div><div><strong>${escapeHtml(s.displayName || s.name || 'Student')}</strong><p>${escapeHtml(s.email || '')}</p></div></div><div class="progress"><small>${value}%</small><div class="progress-bar"><i style="width:${value}%"></i></div></div></div>`;
+  }).join('')}</div>` : `<p class="muted">Students will appear here once they join with <code>${escapeHtml(classroom.classCode || '')}</code>.</p>`;
+  openModal(`<h2>Students</h2><p>${students.length} enrolled in ${escapeHtml(classroom.className)}.</p>${body}`);
 }

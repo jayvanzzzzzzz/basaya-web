@@ -442,6 +442,29 @@ try {
     assert.equal(summary.skills.pagsusulit.lessons, previousLessons + 1);
     assert.ok(summary.skills.pagsusulit.lessonScores.includes(0));
   });
+  await test("optional quiz and pronunciation metadata, access and deadline scores", async () => {
+    const lessonId = "optional";
+    await seed(`classes/a/classLessons/${lessonId}`, { lessonId });
+    for (const part of ["quiz", "pronunciation"]) {
+      await seed(`lessons/${lessonId}/${part}/status`, { completion: "skipped" });
+    }
+    // Even leftover content or an old saved result must not become scored evidence.
+    await seed(`lessons/${lessonId}/quiz/content`, { questions: [{ question: "Q", choices: ["a"], answer: 0 }] });
+    await seed(`lessons/${lessonId}/pronunciation/content`, { words: ["bahay"] });
+    const metadata = await op("metadata", { lessonId });
+    assert.equal(metadata.skipped.quiz, true);
+    assert.equal(metadata.skipped.pronunciation, true);
+    for (const part of ["quiz", "pronunciation"]) await rejects(op("begin", { lessonId, part }), 403);
+    const before = (await op("summary")).summary.skills;
+    await seed(`users/student/assignedLessons/${lessonId}`, { classId: "a", progressSession: "session-a", lectureFinished: true,
+      skills: { pagsusulit: { correct: 0, attempts: 1, items: 1 }, pagbigkas: { correct: 0, attempts: 1, items: 1 } } });
+    for (const dueAt of [null, Timestamp.fromMillis(Date.now() - 1000)]) {
+      await db.doc(`classes/a/classLessons/${lessonId}`).update({ dueAt });
+      const after = (await op("summary")).summary.skills;
+      assert.deepEqual(after.pagsusulit, before.pagsusulit);
+      assert.deepEqual(after.pagbigkas, before.pagbigkas);
+    }
+  });
   await test("removed roster and closed class stop all assessment requests", async () => {
     await db.doc("classes/a").update({ membershipClosed: true }); await rejects(op("summary"), 403);
     await db.doc("classes/a").update({ membershipClosed: false }); await db.doc("classes/a/students/student").delete();

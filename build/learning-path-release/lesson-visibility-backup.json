@@ -1,0 +1,288 @@
+[
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/0cH5upEZE5SfAtkoS4Yp",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-11-20T01:44:34.939691Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/2hVGpeMcjkv5Hfjhvh6k",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587517Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/5XC6xxllpLJFK0YOtFvy",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T09:28:27.852413Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/8M7iCyjgqP8I8mAwdBsQ",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588673Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/8fnBktOJgYQGXvtE8oAg",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588929Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/8lw85XEqqvIKI6NvyjpG",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T09:57:13.896618Z",
+    "updateTime": "2026-11-23T11:09:07.842640Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/AxD20OW43JkmJw2E5oyx",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T09:09:57.303976Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/DHH13wdXrorr2PcgEtEH",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588168Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/EtatJtdMGn1Dl9is4eYG",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T08:26:45.974168Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/I67MU396pTjKgNJUSNnn",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588385Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/Jxg3yPeVbpNgZDr9fbWT",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587179Z",
+    "updateTime": "2026-11-23T11:09:47.102756Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/M62pldPoYNYJTy2mn5W0",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "teacherId": {
+        "stringValue": "bqoPI8hcglSVZpjSfXSzsnLmg2P2"
+      }
+    },
+    "createTime": "2026-11-23T11:08:39.204846Z",
+    "updateTime": "2026-11-23T11:10:32.857277Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/MY3SQD8nmPeGpZ660hW9",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-20T14:41:05.233703Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/MmkmvL930atL0JdrVyB6",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T03:29:12.989112Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/NtYQrJJvgcyqiWoRgjAa",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-09T03:43:08.132220Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/QFxmmSEZV9TVV4byK9U6",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587749Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/RoGM2x0jKEvk9T9Z2Q6q",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-18T09:32:41.430231Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/SIl7m8R5CxJ3cXHvRi0e",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-11-19T13:44:24.655971Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/TnrzcB0Iu4iTAkDPEZ6D",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587516Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/XAhKyvDLAXdWhEp1QiVE",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587515Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/eZoVP8dC1Bpbny9jxipL",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588674Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/epIPLIB9F6P8yumwU168",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "teacherId": {
+        "stringValue": "0pslBIitJqXRe5StNbXHeyzzqlC2"
+      }
+    },
+    "createTime": "2026-11-23T08:17:20.620165Z",
+    "updateTime": "2026-11-23T08:17:22.265360Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/lzDQRHAvCYkz53TXG6Hj",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588169Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/mJtuF7qejFKlcU6zWyyg",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T08:48:00.290452Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/pa3ibBXIhG2ZqIie6Cz6",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587963Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/qCViui24zD2hZ4zz9Pcs",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587962Z",
+    "updateTime": "2026-11-23T11:10:38.491597Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/xM2QwlVmGpIYL8WAIe7n",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-06-27T09:51:48.289660Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/zHk6X8yI4CzXqklyF8Et",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588384Z",
+    "updateTime": "2026-11-23T03:21:36.150768Z"
+  }
+]

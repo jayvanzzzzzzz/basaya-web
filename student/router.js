@@ -1,5 +1,6 @@
 import { $, $$, escapeHtml, navigate } from "../js/helpers.js";
-import { student, enrollmentBlocked } from "./data.js";
+import { student, enrollmentBlocked, findLesson, canOpen, loadClassLessons } from "./data.js";
+import { pathBlocker } from '../js/learningPathSequence.js';
 import { renderHome } from "./views/home.js";
 import { renderJoin } from "./views/join.js";
 import { renderLessonPath } from "./views/lessonPath.js";
@@ -137,10 +138,20 @@ async function drawRoute(flight) {
   window.scrollTo(0, 0);
 
   try {
+    if (section === 'lesson' && lessonId && !enrollmentBlocked()) {
+      await loadClassLessons();
+      const lesson = await findLesson(lessonId);
+      if (!lesson || !canOpen(lesson)) {
+        const previous = lesson && pathBlocker(lesson, student.lessons);
+        $('#app-view').classList.remove('is-focus');
+        $('#page-content').innerHTML = `<section class="st-empty" role="status"><h2>Naka-lock ang aralin</h2><p>${escapeHtml(previous ? `Tapusin muna ang lesson path na “${previous.title || 'Naunang lesson path'}” bago buksan ito.` : 'Hindi pa bukas o sarado na ang aralin. Tingnan ang iskedyul sa Mga Aralin.')}</p><a class="button primary" href="#/home">Bumalik sa Mga Aralin</a></section>`;
+        return;
+      }
+    }
     if(enrollmentBlocked() && ['home','lesson','join','progress','notifications'].includes(section)) {
       const dropped=student.profile.enrollmentStatus==='dropped';
       $('#app-view').classList.remove('is-focus');
-      $('#page-content').innerHTML=`<section class="st-empty" role="status"><h2>${dropped?'Dropped ang iyong enrollment':'Naka-archive ang klase'}</h2><p><strong>${escapeHtml(student.profile.className || 'Iyong klase')}</strong></p><p>${dropped?'Nakahinto ang iyong paglahok sa klase. Napanatili ang iyong na-save na progreso. Makipag-ugnayan sa iyong guro upang humiling na ma-enroll muli.':'Napanatili ang iyong progreso. Magpapatuloy ang mga aralin kapag ibinalik ng guro ang klase.'}</p><a class="button primary" href="#/chat">Makipag-ugnayan sa guro</a></section>`;
+      $('#page-content').innerHTML=`<section class="st-empty" role="status"><h2>${dropped?'Dropped ang iyong enrollment':'Naka-archive ang klase'}</h2><p><strong>${escapeHtml(student.profile.className || 'Iyong klase')}</strong></p><p>${dropped?'Nakahinto ang iyong paglahok sa klase. Napanatili ang iyong na-save na progreso. Makipag-ugnayan sa iyong guro upang humiling na ma-enroll muli.':'Napanatili ang iyong progreso. Magpapatuloy ang mga aralin kapag ibinalik ng guro ang klase.'}</p><a class="button primary" href="#/chat">Makipag-ugnayan sa guro</a>${student.classroom.archived ? '<a class="button secondary" href="#/account">Humiling na umalis sa klase</a>' : ""}</section>`;
     }
     else if (section === "lesson" && lessonId && !part) await renderLessonPath(lessonId);
     else if (section === "lesson" && lessonId && PARTS[part]) await PARTS[part](lessonId);

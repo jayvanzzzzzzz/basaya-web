@@ -96,14 +96,14 @@ try {
     await db.doc("users/second").update({ classId: "" });
   });
   await test("students cannot set membership while creating their profile", () => status("users/injected", "injected", 403, { role: "student", classId: "a" }));
-  await test("regular student registration still works", () => status("users/registered", "registered", 200, { role: "student", firstName: "Ana" }));
+  await test("student profiles require admin provisioning", () => status("users/registered", "registered", 403, { role: "student", firstName: "Ana" }));
   await test("teacher class-list query still works", async () => {
     const response = await fetch(`${emulator.documents}:runQuery`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${emulator.token("teacher-a")}` }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "classes" }], where: { fieldFilter: { field: { fieldPath: "teacherId" }, op: "EQUAL", value: { stringValue: "teacher-a" } } } } }) }); assert.equal(response.status, 200, await response.text());
   });
   await test("students cannot search all class codes", async () => { const response = await fetch(`${emulator.documents}:runQuery`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${emulator.token("second")}` }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "classes" }] } }) }); assert.equal(response.status, 403, await response.text()); });
   await test("code guesses are limited per student", async () => { await seed("joinRequestLimits/rate", { attempts: Array(20).fill(Date.now()) }); await denied(requestClassJoin(db, "rate", "ABC123"), 429); });
   await test("deleting class blocks new requests and approvals", async () => { const pendingRequest = await read("classes/a/joinRequests/decline"); await db.doc("classes/a").update({ membershipClosed: true }); await denied(requestClassJoin(db, "second", "ABC123"), 404); await denied(reviewClassJoins(db, "teacher-a", "a", [{ studentId: "decline", requestId: pendingRequest.requestId }], "approve"), 403); });
-  await test("class deletion cleans pending requests without stranding students", async () => {
+  await test("retired class deletion preserves the class, requests, membership and progress", async () => {
     await seed("classes/delete", { teacherId: "teacher-a", classCode: "DEL123", className: "Deleted class" });
     await seed("users/delete-pending", { role: "student", firstName: "Pending" });
     await seed("users/delete-enrolled", { role: "student", classId: "delete", className: "Deleted class" });
@@ -122,13 +122,14 @@ try {
     await handler.link((name) => name.includes("firebase-admin") ? sdk : name.endsWith("/firebase.js") ? firebase : http); await handler.evaluate();
     const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
     await handler.namespace.default({ method: "POST", body: { classId: "delete" } }, response);
-    assert.equal(response.code, 200);
-    assert.equal(await read("classes/delete"), undefined);
-    assert.equal(await read("classes/delete/joinRequests/delete-pending"), undefined);
-    assert.equal((await read("users/delete-pending")).joinRequest.status, "declined");
-    assert.equal((await read("users/delete-pending")).joinRequest.reason, "class-deleted");
-    assert.equal((await read("users/delete-enrolled")).classId, undefined);
-    assert.equal(await read("users/delete-enrolled/assignedLessons/lesson"), undefined);
+    assert.equal(response.code, 410);
+    assert.match(response.body.error, /Archive/);
+    assert.ok(await read("classes/delete"));
+    assert.ok(await read("classes/delete/joinRequests/delete-pending"));
+    assert.equal((await read("users/delete-pending")).joinRequest.status, "pending");
+    assert.equal((await read("users/delete-enrolled")).classId, "delete");
+    assert.ok(await read("classes/delete/students/delete-enrolled"));
+    assert.equal((await read("users/delete-enrolled/assignedLessons/lesson")).quizFinished, true);
   });
   await test("chat topic push contains no private message text", async () => {
     await seed("classes/notify", { teacherId: "teacher-a", className: "Private class" });

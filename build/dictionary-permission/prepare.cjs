@@ -1,0 +1,10 @@
+const fs = require('node:fs');
+const active = fs.readFileSync('build/module-deploy/active-firestore.rules', 'utf8');
+const workspace = fs.readFileSync('firestore.rules', 'utf8');
+const validation = /function validWord\(\) \{[\s\S]*?\n      \}/;
+if (!validation.test(active) || !validation.test(workspace)) throw Error('Dictionary validation missing');
+const patched = active.replace(validation, workspace.match(validation)[0]);
+if (patched === active) throw Error('No dictionary validation change required');
+fs.writeFileSync('build/dictionary-permission/firestore.rules', patched);
+fs.writeFileSync('build/dictionary-permission/firebase.json', JSON.stringify({firestore:{rules:'firestore.rules'}}, null, 2));
+console.log('Prepared dictionary field validation update; all other active rules preserved.');

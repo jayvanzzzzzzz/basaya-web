@@ -1,0 +1,58 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/class-membership.js": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/content-lifecycle",
+      "destination": "/api/class-membership?operation=content-lifecycle"
+    },
+    {
+      "source": "/api/class-lifecycle",
+      "destination": "/api/class-membership?operation=class-lifecycle"
+    },
+    {
+      "source": "/api/lesson-deadlines",
+      "destination": "/api/class-membership?operation=lesson-deadlines"
+    },
+    {
+      "source": "/api/student-accounts",
+      "destination": "/api/class-membership?operation=student-accounts"
+    },
+    {
+      "source": "/api/username-save",
+      "destination": "/api/class-membership?operation=username-save"
+    },
+    {
+      "source": "/api/username-login",
+      "destination": "/api/class-membership?operation=username-login"
+    },
+    {
+      "source": "/api/teacher-onboarding",
+      "destination": "/api/class-membership?operation=teacher-onboarding"
+    },
+    {
+      "source": "/api/assistant",
+      "destination": "/api/class-membership?operation=assistant"
+    },
+    {
+      "source": "/api/assessment",
+      "destination": "/api/class-membership?operation=assessment"
+    },
+    {
+      "source": "/api/join-class",
+      "destination": "/api/class-membership?operation=request"
+    },
+    {
+      "source": "/api/review-join-requests",
+      "destination": "/api/class-membership?operation=review"
+    },
+    {
+      "source": "/api/remove-student",
+      "destination": "/api/class-membership?operation=remove"
+    }
+  ]
+}

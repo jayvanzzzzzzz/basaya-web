@@ -1,4 +1,5 @@
 import { state } from "./state.js";
+import { attachFloatingTooltips } from './floatingTooltip.js';
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -264,7 +265,10 @@ export function page(title, subtitle, actions = "", { crumbs = [] } = {}) {
 
 // Slim bar that slides in once the page header scrolls away: the title and the primary action.
 let headerBar;
+let disposeHeaderBarTooltips;
 function syncHeaderBar(title) {
+  disposeHeaderBarTooltips?.();
+  disposeHeaderBarTooltips = null;
   const header = $("#page-header");
   if (!headerBar) {
     headerBar = document.createElement("div");
@@ -291,8 +295,12 @@ function syncHeaderBar(title) {
   }
   if (primary.classList.contains('create-class-button')) proxy.classList.add('create-class-button');
   if (primary.classList.contains('admin-add-button')) proxy.classList.add('admin-add-button');
+  if (primary.classList.contains('workspace-create-icon')) proxy.classList.add('workspace-create-icon');
   proxy.addEventListener("click", () => primary.click());
   headerBar.firstElementChild.append(proxy);
+  if (proxy.classList.contains('workspace-create-icon')) {
+    disposeHeaderBarTooltips = attachFloatingTooltips(headerBar, '.workspace-create-icon');
+  }
 }
 
 /** A "⋯" button for the page header that opens a small menu of less-used actions. */

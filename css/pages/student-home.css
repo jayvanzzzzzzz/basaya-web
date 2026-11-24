@@ -458,3 +458,12 @@
 @keyframes st-pending-refresh { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .st-join-pending__refresh[aria-busy="true"] svg { animation: none; } }
 @media (max-width: 420px) { .st-join--pending { padding-top: .5rem; } .st-join-pending__header { padding-inline: 1rem; } .st-join-pending__close { right: 1rem; } .st-join-pending__card { margin-inline: 1rem; padding: 1.1rem; } .st-join-pending__home.button { padding-inline: .65rem; font-size: .73rem; } }
+
+/* Sequential path/module/lesson cards share the current theme surface. */
+.st-lesson.is-locked { position: relative; overflow: hidden; }
+.st-lesson.is-locked .st-lesson__title { padding-inline-end: 3rem; }
+.st-sequence-lock { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, transparent 50%, color-mix(in srgb, currentColor 5%, transparent)); border: 1px solid color-mix(in srgb, currentColor 15%, transparent); border-radius: inherit; }
+.st-sequence-lock > svg { position: absolute; top: 1.2rem; right: 1.2rem; width: 1.5rem; height: 1.5rem; }
+.st-home-path-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.st-home-path-heading[hidden] { display: none; }
+.st-home-path-heading h2 { overflow-wrap: anywhere; margin: 0; }

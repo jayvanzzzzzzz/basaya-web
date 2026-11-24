@@ -1,0 +1,53 @@
+// Extend the isolated directory fixture to exercise latency, cache and response races.
+const fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
+const filename=path.resolve(__dirname,'teacher-status-browser.cjs');
+let source=fs.readFileSync(filename,'utf8');
+source=source.replace('await renderTeachers();window.ready=true;', 'window.renderTeachers=renderTeachers;await renderTeachers();window.ready=true;');
+const start=source.indexOf(' await page.goto(url);');
+const end=source.indexOf('})().catch',start);
+if(start<0||end<0)throw Error('Fixture markers missing');
+source=source.slice(0,start)+`
+ await page.addInitScript(()=>{window.holdStatuses=true});
+ await page.goto(url);await page.waitForFunction(()=>window.ready&&window.releaseStatuses);
+ assert.equal(await page.locator('tr[data-teacher-name]').count(),24,'Rows render while status API is unresolved');
+ assert.equal(await page.evaluate(()=>window.teacherReads),1);
+ console.log('PASS table appears before account-status response');
+ const row=page.locator('tr[data-teacher-id="teacher0"]');
+ await row.locator('.teacher-table__menu-toggle').click();await row.locator('[data-toggle-access]').click();
+ await page.getByRole('button',{name:'Deactivate teacher',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('tr[data-teacher-id="teacher0"]').dataset.teacherStatus==='deactivated');
+ assert.equal(await page.evaluate(()=>window.teacherReads),1,'Access change does not reload Firestore list');
+ await page.evaluate(()=>{window.holdStatuses=false;window.releaseStatuses()});
+ await page.waitForFunction(()=>document.querySelector('#teacher-status-notice').hidden);
+ assert.equal(await row.getAttribute('data-teacher-status'),'deactivated','Stale response cannot undo successful mutation');
+ const statusCalls=await page.evaluate(()=>window.calls.filter(c=>c.action==='statuses').length);
+ await page.evaluate(()=>window.renderTeachers());
+ assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.action==='statuses').length),statusCalls,'Fresh statuses reused on return');
+ console.log('PASS incremental access update, stale-response protection and short-lived status cache');
+ await page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+31000;window.statusFailure=true;return window.renderTeachers()});
+ await page.locator('#teacher-status-notice button').waitFor({state:'visible'});
+ assert.equal(await page.locator('tr[data-teacher-name]').count(),24,'Failure keeps directory available');
+ await page.evaluate(()=>window.statusFailure=false);
+ await page.locator('#teacher-status-notice button').click();
+ await page.waitForFunction(()=>document.querySelector('#teacher-status-notice').hidden);
+ console.log('PASS failed background status check retains list and Retry succeeds');
+ await page.evaluate(()=>{window.holdStatuses=true});
+ // Force a fresh request without changing the page or its search and pagination.
+ await page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+31000;return window.renderTeachers()});
+ await page.locator('#teacher-status-notice button').waitFor({state:'visible',timeout:12000});
+ assert.equal(await page.locator('tr[data-teacher-name]').count(),24);
+ assert.match(await page.locator('#teacher-status-notice').textContent(),/couldn.t refresh/i);
+ console.log('PASS eight-second request timeout exposes Retry without blocking table');
+ await page.evaluate(()=>window.holdStatuses=false);
+ await page.locator('#teacher-status-notice button').click();await page.waitForFunction(()=>document.querySelector('#teacher-status-notice').hidden);
+ // Late work from a previous route must never repaint another page.
+ await page.evaluate(()=>{window.holdStatuses=true;const now=Date.now;Date.now=()=>now()+31000;return window.renderTeachers()});
+ await page.waitForFunction(()=>!document.querySelector('#teacher-status-notice').hidden);
+ await page.evaluate(()=>{location.hash='/students';document.querySelector('#page-content').innerHTML='<p id="other-page">Student accounts</p>';window.releaseStatuses()});
+ await page.waitForTimeout(100);
+ assert.equal(await page.locator('#other-page').textContent(),'Student accounts');
+ assert.equal(await page.locator('.teacher-table').count(),0);
+ assert.deepEqual(errors,[]);
+ console.log('PASS late status response cannot repaint another route; no live accounts changed');
+`+source.slice(end);
+const audit=new Module(filename,module);audit.filename=filename;audit.paths=Module._nodeModulePaths(path.dirname(filename));audit._compile(source,filename);

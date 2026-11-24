@@ -1,0 +1,35 @@
+/* ADMIN LESSONS — difficulty badges, preview modal (tabs: components/filter-tabs.css) */
+
+/* Difficulty badges */
+.admin-lesson-difficulty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-lesson-difficulty > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.admin-lesson-difficulty.difficulty--beginner {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.admin-lesson-difficulty.difficulty--intermediate {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.admin-lesson-difficulty.difficulty--advanced {
+  background: var(--primary-soft);
+  color: var(--primary);
+}

@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import { summarize, resultsFrom, withMissed, lessonParts } from "./assessmentScoring.js";
 import { lessonDeadline, monitoringTime } from "./deadlinePolicy.js";
+import { orderedPathAssignments, pathModules } from './learningPathSequence.js';
 
 export class AssessmentError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -32,6 +33,8 @@ async function contents(tx, db, lessonId, selected = parts) {
     activity: { ...a, pages: (a.pages || []).map(page => ({ ...page, words: page.words || [], correctIndices: indices(page.correctIndices, (page.words || []).length) })) },
     quiz: { ...q, questions: (q.questions || []).map(question => ({ ...question, choices: question.choices || [], answers: indices(question.answers?.length ? question.answers : [Number(question.answer) || 0], (question.choices || []).length) })) },
     pronunciation: { ...p, words: (p.words || []).map(String).map(s => s.trim()).filter(Boolean) },
+    quizSkipped: quiz.docs.some(d => d.id === "status" && d.get("completion") === "skipped"),
+    pronunciationSkipped: pronunciation.docs.some(d => d.id === "status" && d.get("completion") === "skipped"),
     gameSkipped: !levels.length || game.docs.some(d => d.id === "status" && d.get("completion") === "skipped"),
     activitySkipped: activity.docs.some(d => d.id === "status" && d.get("completion") === "skipped"),
   };
@@ -63,6 +66,30 @@ export async function context(tx, db, uid, body, { open = true, lesson = true, h
     link.get = field => field === "dueAt" ? schedule.dueAt === null ? null : Timestamp.fromMillis(schedule.dueAt) : original.get(field);
   }
   const now = Date.now();
+  if (lesson && !historicalTeacher && !['metadata', 'abandon'].includes(body.operation) && link.get('learningPathAssignmentId')) {
+    const paths = orderedPathAssignments([], links.docs.map(item => ({ id: item.id, ...item.data() })));
+    const index = paths.findIndex(path => path.id === link.get('learningPathAssignmentId'));
+    const earlier = new Set(paths.slice(0, index).filter(path => path.mode !== 'practice').map(path => path.id));
+    const siblings = pathModules(links.docs.filter(item => item.get('learningPathAssignmentId') === link.get('learningPathAssignmentId'))
+      .map(item => ({ id: item.id, ...item.data() }))).flatMap(module => module.members);
+    const preceding = new Set(siblings.slice(0, siblings.findIndex(item => item.id === link.id)).map(item => item.id));
+    const required = assigned.filter(item => earlier.has(item.get('learningPathAssignmentId')) || preceding.has(item.id));
+    if (required.length) {
+      const progress = await tx.get(db.collection(`users/${uid}/assignedLessons`));
+      const saved = new Map(progress.docs.map(item => [item.id, item.data()]));
+      for (const previous of required) {
+        const lessonId = previous.get('lessonId') || previous.id;
+        if (lessonParts(saved.get(lessonId) || {}).finished) continue;
+        const deadline = lessonDeadline({ id: previous.id, ...previous.data() }, roster.data(), user.data(), classroom.data());
+        if (deadline.exempt || (deadline.dueAt !== null && ms(roster.get('joinedAt')) !== null && deadline.dueAt < ms(roster.get('joinedAt')))) continue;
+        const content = await contents(tx, db, lessonId);
+        if (!lessonParts(saved.get(lessonId) || {}, { game: content.gameSkipped, activity: content.activitySkipped, pronunciation: content.pronunciationSkipped, quiz: content.quizSkipped }).finished)
+          fail(403, earlier.has(previous.get('learningPathAssignmentId'))
+            ? `Finish ${previous.get('learningPathTitle') || 'the previous lesson path'} before opening this lesson path.`
+            : `Finish ${previous.get('moduleTitle') || 'the previous lesson'} before opening this lesson.`);
+      }
+    }
+  }
   if (lesson && open && ((ms(link.get("openAt")) != null && now < ms(link.get("openAt"))) || (ms(link.get("dueAt")) != null && now > ms(link.get("dueAt"))))) fail(403, "This lesson is not open.");
   return { userRef, user, roster, classroom, links: assigned, allLinks: links.docs, link, now };
 }
@@ -92,9 +119,9 @@ async function summaryFor(tx, db, uid, ctx, replacement, replacementStates) {
     const lessonId = link.get("lessonId") || link.id;
     const { dueAt, exempt } = lessonDeadline({ id: link.id, ...link.data() }, ctx.roster.data(), ctx.user.data(), ctx.classroom.data());
     const progress = docs.get(lessonId) || {};
-    const c = dueAt != null && dueAt < ctx.now ? await contents(tx, db, lessonId) : null;
-    if (dueAt != null && ms(ctx.roster.get("joinedAt")) != null && dueAt < ms(ctx.roster.get("joinedAt")) && !lessonParts(progress, { game: c?.gameSkipped, activity: c?.activitySkipped }).finished) return null;
-    return { id: lessonId, dueAt, exempt, gameSkipped: c?.gameSkipped, activitySkipped: c?.activitySkipped,
+    const c = await contents(tx, db, lessonId);
+    if (dueAt != null && ms(ctx.roster.get("joinedAt")) != null && dueAt < ms(ctx.roster.get("joinedAt")) && !lessonParts(progress, { game: c?.gameSkipped, activity: c?.activitySkipped, quiz: c?.quizSkipped, pronunciation: c?.pronunciationSkipped }).finished) return null;
+    return { id: lessonId, dueAt, exempt, gameSkipped: c?.gameSkipped, activitySkipped: c?.activitySkipped, quizSkipped: c?.quizSkipped, pronunciationSkipped: c?.pronunciationSkipped,
       items: c ? { talasalitaan: c.levels.reduce((n, l) => n + l.words.length, 0), pagkilala: c.activity.pages.length, pagbigkas: c.pronunciation.words.length, pagsusulit: c.quiz.questions.length } : {} };
   }))).filter(Boolean);
   const included = [...docs.values()].filter(d => lessons.some(l => l.id === d.id));
@@ -107,7 +134,7 @@ function publicContent(c) {
     quiz: { title: c.quiz.title || "", questions: c.quiz.questions.map(q => ({ question: q.question || "", choices: q.choices, multiple: q.answers.length > 1 })) },
     activity: { title: c.activity.title || "", instruction: c.activity.instruction || "", pages: c.activity.pages.map(p => ({ words: p.words, pickCount: p.correctIndices.length })) },
     counts: { lecture: c.lecture.pages?.length || 0, game: c.levels.length, activity: c.activity.pages.length, pronunciation: c.pronunciation.words.length, quiz: c.quiz.questions.length },
-    skipped: { game: c.gameSkipped, activity: c.activitySkipped },
+    skipped: { game: c.gameSkipped, activity: c.activitySkipped, quiz: c.quizSkipped, pronunciation: c.pronunciationSkipped },
     items: { talasalitaan: c.levels.reduce((n, l) => n + l.words.length, 0), pagkilala: c.activity.pages.length, pagbigkas: c.pronunciation.words.length, pagsusulit: c.quiz.questions.length },
   };
 }
@@ -168,7 +195,7 @@ export async function assessmentOperation(db, uid, body, speechEvidence = null) 
     if (!["quiz", "activity", "game", "lecture", "pronunciation"].includes(part)) fail(400, "Invalid assessment part.");
     if ((operation === "begin" && !["quiz", "game", "pronunciation"].includes(part)) ||
         (operation === "abandon" && part !== "quiz")) fail(400, "Invalid assessment start or exit.");
-    if ((part === "game" && c.gameSkipped) || (part === "activity" && c.activitySkipped)) fail(403, "This part is skipped.");
+    if ((part === "game" && c.gameSkipped) || (part === "activity" && c.activitySkipped) || (part === "quiz" && c.quizSkipped) || (part === "pronunciation" && c.pronunciationSkipped)) fail(403, "This part is skipped.");
     const preparedActivity = () => ({
       activity: { title: c.activity.title || "", instruction: c.activity.instruction || "", explanation: c.activity.explanation || "",
         pages: c.activity.pages.map(p => ({ words: p.words, correctIndices: p.correctIndices,

@@ -81,7 +81,7 @@ export function wireLeaveRequests(classroom, initialStudents, onChange) {
             } catch { failed.push(student.fullName || "Student"); }
           }
           closeModal?.();
-          if (removed) notify({ title: `${removed} ${removed === 1 ? "student" : "students"} left the class`, message: "Their class membership and progress have been removed." });
+          if (removed) notify({ title: `${removed} ${removed === 1 ? "student" : "students"} left the class`, message: "Their class membership has ended. Saved progress and scores are preserved." });
           if (skipped) notify({ title: `${skipped} changed ${skipped === 1 ? "request" : "requests"} skipped`, message: "These students were kept in the class.", tone: "info" });
           if (failed.length) notify({ title: `${failed.length} ${failed.length === 1 ? "request needs" : "requests need"} another try`, message: "Some requests could not be processed. Review the refreshed list before trying again.", tone: "danger" });
           if (active) await onChange();

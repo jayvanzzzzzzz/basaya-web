@@ -254,6 +254,7 @@ function wireCreateForm(modal, close, title) {
     setButtonSaving(submit, true);
     try {
       const lessonRef = await addDoc(collection(db, "lessons"), {
+        visibility: "private",
         title: values.title,
         description: values.description,
         difficulty: values.difficulty,

@@ -1,0 +1,10 @@
+[
+  "app/src/main/java/ph/basaya/app/data/entity/LessonEntity.kt",
+  "app/src/main/java/ph/basaya/app/data/database/AppDatabase.kt",
+  "app/src/main/java/ph/basaya/app/data/dao/LessonDao.kt",
+  "app/src/main/java/ph/basaya/app/data/repository/LessonRepository.kt",
+  "app/src/main/java/ph/basaya/app/data/schedule/StudentHierarchy.kt",
+  "app/src/main/java/ph/basaya/app/adapter/StudentGroupAdapter.kt",
+  "app/src/main/java/ph/basaya/app/ui/fragment/HomeFragment.kt",
+  "app/src/main/java/ph/basaya/app/adapter/LessonAdapter.kt"
+]

@@ -1,0 +1,375 @@
+/* TEACHER DASHBOARD — at a glance, class cards, "Due this week" */
+.teacher-dashboard {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* At a glance */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+}
+
+.dash-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.dash-stat__icon {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius);
+}
+
+.dash-stat__icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.dash-stat--classes .dash-stat__icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.dash-stat--students .dash-stat__icon {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.dash-stat--due .dash-stat__icon {
+  background: var(--gold-soft);
+  color: var(--warning);
+}
+
+.dash-stat--chats .dash-stat__icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.dash-stat__text {
+  display: grid;
+  min-width: 0;
+}
+
+.dash-stat__text strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-stat__text span {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+/* Classes beside "Due this week" */
+.dash-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .dash-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.classes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.class-card {
+  position: relative;
+  display: flex;
+  min-height: 15rem;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.1rem 1.15rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: inherit;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.class-card__glow {
+  display: none;
+}
+
+.class-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: var(--shadow);
+}
+
+.class-card:focus-visible {
+  outline: 3px solid var(--primary-ring);
+  outline-offset: 3px;
+}
+
+.class-card__heading {
+  display: flex;
+  min-height: 2.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 2.8rem;
+}
+
+.class-card .chat-dot {
+  background: var(--primary-soft);
+  box-shadow: none;
+}
+
+.class-card__body {
+  flex: 1;
+}
+
+.class-card__body h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.class-card__body h3 a { color: inherit; text-decoration: none; }
+.class-card__body h3 a:hover { color: var(--primary); }
+.class-card__open { text-decoration: none; }
+[data-class-attention]:empty { display: none; }
+.teacher-dashboard .class-card-menu { display: flex; align-items: center; gap: .5rem; }
+.teacher-dashboard .class-card__heading { padding-right: 6.25rem; }
+.teacher-dashboard .class-card:has(.class-attention[open]) { z-index: 5; }
+.class-attention summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.class-attention summary:hover,
+.class-attention[open] summary { background: color-mix(in srgb, var(--warning) 18%, var(--surface)); border-color: var(--warning); }
+.class-attention summary::-webkit-details-marker { display: none; }
+.class-attention__dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--warning) 30%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  animation: class-update-dot-pulse 1.4s ease-out infinite;
+}
+.class-attention[open] .class-attention__dot::after { animation: none; }
+@keyframes class-update-dot-pulse {
+  0% { transform: scale(.65); opacity: .95; }
+  75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+.class-attention summary:focus-visible,
+.class-attention a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+.class-attention__dot { position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 0 2px var(--surface); }
+.class-attention summary svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.class-attention ul { position: absolute; top: calc(100% + .45rem); right: 0; z-index: 20; width: 18rem; max-width: calc(100vw - 5rem); max-height: min(26rem, 65vh); overflow-y: auto; margin: 0; padding: .35rem .75rem; list-style: none; border: 1px solid var(--border); border-radius: .65rem; background: var(--dash-paper-strong, var(--surface)); box-shadow: var(--shadow); transform-origin: top right; animation: menuIn var(--dur) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .class-attention summary { transition: none; } .class-attention__dot::after, .class-attention ul { animation: none; } }
+.class-attention a { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .65rem 0; color: var(--ink); font-size: .875rem; font-weight: 600; line-height: 1.5; text-decoration: none; }
+.class-attention a:hover { color: var(--primary); text-decoration: underline; }
+.class-attention a.class-attention__urgent { color: var(--warning); font-weight: 700; }
+.class-attention__error { padding: .65rem 0; color: var(--ink); font-size: .875rem; font-weight: 600; line-height: 1.5; }
+
+.class-card__body p {
+  display: -webkit-box;
+  margin: 0.35rem 0 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* "28 students · Next due Mon, Oct 27" */
+.class-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.6rem;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.class-card__meta:empty {
+  display: none;
+}
+
+.class-card__meta span + span::before {
+  margin-right: 0.5rem;
+  color: var(--border-strong);
+  content: "·";
+}
+
+.class-card__code {
+  align-self: stretch;
+  justify-content: space-between;
+}
+
+.class-card__code .code-stub__hint {
+  margin-left: auto;
+}
+
+.class-card__open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.class-card__open svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.class-card:hover .class-card__open svg {
+  transform: translateX(3px);
+}
+
+#class-grid-container > .muted {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* Due this week */
+.dash-due {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.dash-due h2 {
+  margin: 0;
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dash-due__list {
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+}
+
+.dash-due__item {
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.dash-due__item:hover {
+  background: var(--surface-2);
+}
+
+/* Little calendar page, gold on top */
+.dash-due__date {
+  display: grid;
+  width: 2.8rem;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.dash-due__date span {
+  padding: 0.1rem 0;
+  background: var(--gold);
+  color: var(--gold-ink);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dash-due__date strong {
+  padding: 0.15rem 0 0.25rem;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.dash-due__text {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.dash-due__text strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-due__text span,
+.dash-due__text small {
+  color: var(--ink-3);
+  font-size: 0.76rem;
+}
+
+.dash-due__empty {
+  padding: 1.1rem 0.75rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+  text-align: center;
+}

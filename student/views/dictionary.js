@@ -1,5 +1,6 @@
 import { skeleton } from '../../js/page-loading.js';
 import { $, escapeHtml } from "../../js/helpers.js";
+import { dictionaryAttribution } from "../../js/dictionaryAttribution.js";
 import { allWords, lookupWord, searchWords, suggestRoots, syllablesOf } from "../../js/dictionary.js";
 import { paginate } from "../../js/pagination.js";
 import { speakWord } from "../../js/tts.js";
@@ -44,7 +45,7 @@ function entryHtml(entry) {
           <p class="st-dict-syllables" aria-label="Pantig: ${escapeHtml(syllablesOf(entry))}">${escapeHtml(syllablesOf(entry))}</p>
         </div>
         <button class="st-icon-button st-dict-speak st-hub-tooltip" data-tooltip="Pakinggan" type="button" data-speak aria-label="Pakinggan ang “${escapeHtml(shown(entry))}”">${icon("speaker")}</button>
-        ${entry.source === "teacher" ? `<span class="st-dict-tag">Dinagdag ng guro</span>` : ""}
+        ${dictionaryAttribution(entry) ? `<span class="st-dict-tag">${escapeHtml(dictionaryAttribution(entry))}</span>` : ""}
       </header>
       ${entry.senses
         .map(

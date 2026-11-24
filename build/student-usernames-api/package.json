@@ -1,0 +1,19 @@
+{
+  "name": "basaya-notify-api",
+  "private": true,
+  "type": "module",
+  "description": "Sends the 'new lesson' push notification to a class's students (Vercel serverless).",
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "firebase-admin": "~13.10.0",
+    "nodemailer": "^10.1.0"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.14"
+  },
+  "scripts": {
+    "build": "node student-usernames-maintenance.mjs --apply"
+  }
+}

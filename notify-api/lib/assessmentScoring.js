@@ -164,8 +164,8 @@ export function resultsFrom(progressDocs) {
 export const MISSABLE_PARTS = [
   { skill: "talasalitaan", finished: "gameFinished", skipped: "gameSkipped", resume: "game", correct: "done" },
   { skill: "pagkilala", finished: "activityFinished", skipped: "activitySkipped", resume: "activity", correct: "score" },
-  { skill: "pagbigkas", finished: "pronunciationFinished", resume: "pronunciation", correct: "firstTryCorrect" },
-  { skill: "pagsusulit", finished: "quizFinished", resume: "quiz", correct: "score" },
+  { skill: "pagbigkas", finished: "pronunciationFinished", skipped: "pronunciationSkipped", resume: "pronunciation", correct: "firstTryCorrect" },
+  { skill: "pagsusulit", finished: "quizFinished", skipped: "quizSkipped", resume: "quiz", correct: "score" },
 ];
 
 /**
@@ -184,6 +184,10 @@ export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now
   const results = Object.fromEntries(
     SKILLS.map(({ key }) => [key, (resultsBySkill[key] || []).filter(result => key !== "pagbigkas" || !pending.has(result.lessonId))]),
   );
+  for (const part of MISSABLE_PARTS) {
+    const omitted = new Set(lessons.filter(lesson => lesson[part.skipped] === true).map(lesson => lesson.id));
+    results[part.skill] = results[part.skill].filter(result => !omitted.has(result.lessonId));
+  }
   const docs = new Map(progressDocs.map((doc) => [doc.id, doc]));
   lessons.forEach((lesson) => {
     if (lesson.exempt === true) return;
@@ -225,18 +229,18 @@ export function withMissed(resultsBySkill, progressDocs, lessons, now = Date.now
 /**
  * A lesson is finished only when every part is done: lecture, game and Gawain (or skipped
  * by the admin, see js/skippedParts.js), Bigkas and Pagsusulit — same as the app's
- * LessonCompletion. `skipped` is { game, activity }.
+ * LessonCompletion. `skipped` is { game, activity, pronunciation, quiz }.
  */
 export function lessonParts(doc = {}, skipped = {}) {
   const parts = {
     lecture: doc.lectureFinished === true,
     game: skipped.game === true || doc.gameFinished === true,
     activity: skipped.activity === true || doc.activityFinished === true,
-    pronunciation: doc.pronunciationFinished === true,
-    quiz: doc.quizFinished === true,
+    pronunciation: skipped.pronunciation === true || doc.pronunciationFinished === true,
+    quiz: skipped.quiz === true || doc.quizFinished === true,
   };
   const done = Object.values(parts).filter(Boolean).length;
   // A skipped part counts as done, but doesn't make the lesson "started".
-  const skippedCount = [skipped.game, skipped.activity].filter((value) => value === true).length;
+  const skippedCount = [skipped.game, skipped.activity, skipped.pronunciation, skipped.quiz].filter((value) => value === true).length;
   return { parts, done, total: 5, finished: done === 5, started: done > skippedCount };
 }

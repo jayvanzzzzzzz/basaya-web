@@ -43,6 +43,14 @@
   animation: pageSkeletonSweep 1.8s linear infinite;
 }
 .page-skeleton__mark { border-radius: .65rem; }
+.page-skeleton__copy { display: inline-block; vertical-align: top; font: inherit !important; letter-spacing: inherit; color: transparent !important; user-select: none; }
+.page-skeleton__class-actions { display: flex; flex-wrap: wrap; gap: .6rem; width: auto; overflow: visible; }
+.page-skeleton__class-actions > :last-child { margin-left: .25rem; }
+.teacher-class-header:has(.page-skeleton) :is(.page-header__main, .page-header__text) { max-width: 100%; }
+#page-content.teacher-class-page .page-skeleton--classroom .teacher-class-page { padding-top: 0; }
+.page-skeleton--classroom .class-lesson-tab { display: inline-flex; align-items: center; }
+.page-skeleton--classroom .class-lesson__actions > span { display: inline-flex; align-items: center; justify-content: center; }
+.page-skeleton--classroom, .page-skeleton--add-lesson { pointer-events: none; }
 .page-skeleton__circle { border-radius: 50%; }
 .page-skeleton__line + .page-skeleton__line { margin-top: .55rem; }
 .page-skeleton__text > .page-skeleton__line,

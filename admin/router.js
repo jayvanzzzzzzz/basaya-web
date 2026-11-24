@@ -9,7 +9,6 @@ import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
 import { canLeaveLessons } from '../js/lessonNavigation.js';
 import { renderAccount } from "./views/account.js";
 import { renderDictionary } from "../teacher/views/dictionary.js";
-import { refreshDeletionBadge } from "./views/classDeletion.js";
 import { renderAdminDashboard } from "./views/dashboard.js";
 import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 
@@ -41,8 +40,6 @@ export async function renderRoute() {
     else if (route === "/handbook") renderHandbook("admin");
     else if (route === "/settings") renderAccount();
     else navigate("/dashboard");
-    // Keep the "All classes" badge (pending deletion requests) current on every page.
-    if (isCurrent() && route !== "/classes") refreshDeletionBadge();
   } catch (error) {
     success = false;
     if (!isCurrent()) return;

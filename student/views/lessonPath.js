@@ -109,7 +109,7 @@ export async function renderLessonPath(lessonId) {
   // A finished quiz stays open even if the lecture flag lags behind. A Practice lesson saves nothing, so nothing is ever finished and nothing waits for the lecture.
   const quizLocked = !lesson.practice && !finished.lecture && !finished.quiz;
   const parts = PARTS.filter(
-    (part) => !(part.key === "game" && lesson.gameSkipped) && !(part.key === "activity" && lesson.activitySkipped),
+    (part) => !lesson[`${part.key}Skipped`],
   );
   const completed = parts.filter(part => finished[part.key]).length;
   const next = parts.find(part => !finished[part.key] && !(part.key === "quiz" && quizLocked));

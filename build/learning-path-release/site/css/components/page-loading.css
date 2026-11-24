@@ -1,0 +1,131 @@
+/* Quiet, theme-aware placeholders shared by all three portals. */
+.page-skeleton {
+  --skeleton-fill: #e5e7eb;
+  --skeleton-sheen: rgba(255,255,255,.5);
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: clip;
+  padding: 0;
+  list-style: none;
+}
+[data-theme="dark"] .page-skeleton { --skeleton-fill: #343944; --skeleton-sheen: rgba(255,255,255,.07); }
+.page-skeleton__shapes {
+  min-width: 0;
+  /* Fast responses replace this region before a placeholder becomes visible. */
+  animation: pageSkeletonReveal 160ms step-end both;
+}
+.page-skeleton__row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.1rem 1.35rem;
+}
+.page-skeleton__row + .page-skeleton__row { border-top: 1px solid var(--border); }
+.page-skeleton__text { display: grid; gap: .65rem; flex: 1; min-width: 0; width: 100%; }
+.page-skeleton__block {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  background: var(--skeleton-fill);
+  flex-shrink: 0;
+  max-width: 100%;
+  border-radius: .3rem;
+  contain: paint;
+}
+.page-skeleton__block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 15%, var(--skeleton-sheen) 50%, transparent 85%);
+  transform: translateX(-100%);
+  animation: pageSkeletonSweep 1.8s linear infinite;
+}
+.page-skeleton__mark { border-radius: .65rem; }
+.page-skeleton__circle { border-radius: 50%; }
+.page-skeleton__line + .page-skeleton__line { margin-top: .55rem; }
+.page-skeleton__text > .page-skeleton__line,
+.page-skeleton__tabs > .page-skeleton__block,
+.page-skeleton :is(.st-lesson__top, .st-lesson__meta, .st-skill__row) > .page-skeleton__block { margin-top: 0; }
+.page-skeleton__directory-intro { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.page-skeleton__directory-intro > div { min-width: 0; }
+.page-skeleton__search { display: flex; align-items: center; gap: .8rem; min-height: 46px; }
+.page-skeleton__tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+.page-skeleton__pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: .5rem 0; }
+.page-skeleton table { width: 100%; table-layout: fixed; }
+.page-skeleton :is(.teacher-directory, .admin-class-directory, .admin-lesson-directory) { min-width: 0; }
+.page-skeleton :is(.teacher-table-wrap, .admin-class-table-wrap, .admin-lesson-table-wrap, .roster-table-wrap) { min-width: 0; max-width: 100%; overflow-x: auto; }
+.page-skeleton table th:empty { width: 3.5rem; }
+.page-skeleton table td { height: 76px; }
+.page-skeleton .overview-stat strong .page-skeleton__block { margin: 0; }
+.page-skeleton .overview-classroom small { display: grid; gap: .5rem; }
+.page-skeleton .overview-classroom small > * { margin: 0; }
+.page-skeleton .class-card__body h3 { flex: 1; min-width: 0; }
+.page-skeleton .class-card__body p { display: grid; gap: .5rem; }
+.page-skeleton .class-card__body p > * { margin: 0; }
+.page-skeleton .class-card__meta { display: grid; }
+.page-skeleton .class-card__open { display: flex; align-items: center; }
+.page-skeleton .class-card { pointer-events: none; }
+.page-skeleton .dash-stat__text { flex: 1; grid-template-columns: minmax(0, 1fr); }
+.page-skeleton .st-lesson { pointer-events: none; }
+.page-skeleton .st-lesson__title { min-height: 1.5rem; }
+.page-skeleton .st-lesson__desc { display: block; }
+.page-skeleton .st-lesson__desc > .page-skeleton__line + .page-skeleton__line { margin-top: .55rem; }
+.page-skeleton .st-lesson__action { min-height: 1.5rem; }
+.page-skeleton .st-progress-hero__text { min-width: 0; }
+.page-skeleton .st-skill__head > .page-skeleton__text { min-width: 0; }
+.page-skeleton .st-skill__foot { display: grid; gap: .6rem; }
+.page-skeleton--student-progress .st-progress-hero > .page-skeleton__mark:first-child { width: 7rem !important; height: 7rem !important; }
+.page-skeleton .dict-row__text { flex: 1; min-width: 0; }
+.page-skeleton .st-dict-row { width: 100%; }
+.page-skeleton__messages { display: grid; gap: 1.5rem; padding: 1rem; }
+.page-skeleton__message { display: flex; align-items: flex-start; gap: .6rem; min-width: 0; }
+.page-skeleton__message > div { min-width: 0; }
+.page-skeleton__message--own { flex-direction: row-reverse; }
+.page-skeleton__lesson { width: min(100%, 52rem); margin: 0 auto; display: grid; gap: 1.5rem; padding: 1.5rem; }
+.page-skeleton__lesson-bar { display: flex; align-items: center; gap: 1rem; }
+.page-skeleton__lesson-title { display: grid; gap: 1rem; padding: 1.5rem 0 .5rem; }
+.page-skeleton__lesson-title > * { margin: 0 !important; }
+.page-skeleton__worksheet { display: grid; justify-items: start; gap: 1.25rem; padding: 2rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); }
+.page-skeleton__worksheet > * { margin: 0 !important; }
+.page-skeleton__tiles { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.page-skeleton__step { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); }
+.st-focus-loading:has(.page-skeleton) { align-content: start; width: 100%; }
+.st-focus-loading > .page-skeleton { width: 100%; }
+.page-refresh-preview { position: relative; min-width: 0; }
+.page-refresh-preview__rail { position: absolute; top: 0; left: 0; right: 0; height: 2px; overflow: hidden; background: var(--border, #dedee8); z-index: 1; }
+.page-refresh-preview__rail::after { content: ''; display: block; width: 30%; height: 100%; background: var(--primary, #5b4cf4); animation: pageRefreshRail 1.4s ease-in-out infinite alternate; }
+@keyframes pageSkeletonReveal { from { visibility: hidden; } to { visibility: visible; } }
+@keyframes pageSkeletonSweep { to { transform: translateX(100%); } }
+@keyframes pageRefreshRail { from { transform: translateX(0); } to { transform: translateX(230%); } }
+@media (max-width: 600px) {
+  .page-skeleton--student-progress .st-progress-hero > .page-skeleton__mark:first-child { width: 4.5rem !important; height: 4.5rem !important; }
+  .page-skeleton--student-progress .st-progress-hero > .page-skeleton__mark:last-child { margin: .5rem auto 0; }
+  .page-skeleton__directory-intro { align-items: flex-start; }
+  .page-skeleton__lesson { padding: 1rem; }
+  .page-skeleton__worksheet { padding: 1.25rem; }
+  .page-skeleton__message .page-skeleton__line { max-width: 60vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-skeleton__mark, .page-skeleton__line, .page-refresh-preview__rail::after { animation: none; }
+  .page-skeleton__block::after { display: none; }
+}
+
+/* Data replacements must appear in the same paint, without replaying entrances. */
+#page-content > *,
+#page-content .stagger-in > *,
+#page-content [data-page-enter],
+#page-content .st-skill,
+#page-content .st-lessons > li,
+#page-content :is(.overview-welcome, .overview-stats, .overview-layout,
+  .progress-identity, .progress-stat, .skill-card, .report-hero__score, .remarks-list__item) {
+  animation: none;
+}
+.page-refresh-preview [inert],
+.page-refresh-preview [inert] *,
+.page-refresh-preview [inert] *::before,
+.page-refresh-preview [inert] *::after {
+  animation: none !important;
+  transition: none !important;
+}

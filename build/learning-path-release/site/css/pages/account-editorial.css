@@ -1,0 +1,105 @@
+/* Teacher account: identity rail and focused editing workspace. */
+body:has(.account-settings) {
+  --bg: #f8f5ec; --ink: #20243a; --ink-2: #50586b; --ink-3: #626b7b;
+  --primary: #1f2559; --primary-soft: #eae7f8; --primary-ring: #736b9c;
+  --border: #dddde3; --border-strong: #b7b7c6;
+  --account-paper: rgba(255,255,255,.76); --account-tint: #efedf6;
+  --account-action: #1f2559; --account-action-hover: #33396c; --account-action-ink: #fff;
+}
+:root[data-theme="dark"] body:has(.account-settings) {
+  --bg: #191a20; --ink: #eeeef4; --ink-2: #c1c3d0; --ink-3: #a9aebb;
+  --primary: #c0bcf1; --primary-soft: #303044; --primary-ring: #9d98c8;
+  --border: #3c3e4b; --border-strong: #686a7e;
+  --account-paper: rgba(39,40,49,.9); --account-tint: #303044;
+  --account-action: #c0bcf1; --account-action-hover: #d4d0ff; --account-action-ink: #191a20;
+}
+body:has(.account-settings) #page-header { min-height: 0; padding: .5rem 0 1.7rem; margin-bottom: 1.7rem; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; }
+body:has(.account-settings) #page-header .page-header__art,
+body:has(.account-settings) #page-header .page-header__icon { display: none; }
+body:has(.account-settings) #page-header h1 { font-size: clamp(1.7rem,3vw,2.35rem); font-weight: 600; letter-spacing: -.045em; }
+body:has(.account-settings) #page-header p { color: var(--ink-3); font-size: .88rem; }
+.account-settings { grid-template-columns: minmax(210px,.32fr) minmax(0,1fr); gap: 1.5rem 2rem; align-items: start; }
+.account-settings__hero { grid-column: 1; grid-row: 1; flex-direction: column; align-items: flex-start; gap: 1rem; min-width: 0; padding: 1.4rem 0 0; overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.account-settings__hero > div { min-width: 0; max-width: 100%; }
+.account-settings .account-settings__eyebrow { display: block; margin: 0 0 .5rem; color: var(--ink-3); font-size: .62rem; letter-spacing: .13em; line-height: 1.6; }
+.account-settings__hero h2 { margin: 0; font-size: 1.35rem; line-height: 1.35; overflow-wrap: anywhere; }
+.account-settings__hero p { margin: .4rem 0 0; color: var(--ink-3); font-size: .8rem; line-height: 1.7; overflow-wrap: anywhere; }
+.account-settings__status { margin: 0; padding: .35rem .65rem; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--ink-2); font-size: .7rem; }
+.account-settings__status { gap: .7rem; padding: .5rem .8rem; }
+.account-settings__status > .teacher-status-dot { --teacher-status-color: #259a58; width: 8px; height: 8px; background: var(--teacher-status-color); animation: teacher-status-pulse 1.6s ease-out infinite; }
+:root[data-theme="dark"] .account-settings__status > .teacher-status-dot { --teacher-status-color: #55dc91; }
+.account-settings__nav { display: grid; width: 100%; margin-top: .4rem; border-top: 1px solid var(--border); }
+.account-settings__nav a { display: flex; align-items: center; gap: .7rem; min-height: 48px; padding: .6rem .3rem; border-bottom: 1px solid var(--border); color: var(--ink-2); font-size: .78rem; font-weight: 600; transition: color 200ms, padding 200ms, background-color 200ms; }
+.account-settings__nav a svg { flex: 0 0 18px; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.account-settings__nav a span:last-child { margin-left: auto; }
+.account-settings__nav a:hover { padding-left: .6rem; color: var(--primary); background: var(--primary-soft); }
+.account-settings__grid { grid-column: 2; grid-row: 1 / span 3; grid-template-columns: minmax(0,1fr); gap: 1.5rem; min-width: 0; }
+.account-settings__card { min-width: 0; border-radius: 14px; background: var(--account-paper); box-shadow: 0 2px 6px -5px rgba(31,37,89,.2); overflow: visible; }
+.account-settings__card:focus-within { border-color: var(--border); box-shadow: none; transform: none; }
+.account-settings__card-heading { gap: .85rem; padding: 1.5rem 1.6rem 1.2rem; background: none; }
+.account-settings__step, .account-settings__card--password .account-settings__step { flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 10px; color: var(--primary); background: var(--account-tint); }
+.account-settings__card:focus-within .account-settings__step { transform: none; }
+.account-settings__card-heading h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }
+.account-settings__card-heading p { margin: .4rem 0 0; font-size: .78rem; line-height: 1.6; }
+.account-settings__form { gap: 1.25rem; padding: 1.4rem 1.6rem; scroll-margin-top: 6rem; }
+.account-settings__form label { min-width: 0; font-size: .8rem; }
+.account-settings__form input:not([type="radio"]) { min-width: 0; width: 100%; min-height: 48px; border-color: var(--border-strong); border-radius: 8px; background: var(--account-paper); color: var(--ink); box-shadow: none; font-size: .87rem; }
+.account-settings__form input::placeholder { color: var(--ink-3); opacity: 1; }
+.account-settings__form input[readonly] { background: var(--account-tint); color: var(--ink-2); cursor: default; }
+.account-settings__form label > small { font-size: .73rem; font-weight: 400; line-height: 1.6; }
+.account-settings .title-chips__chip span { display: inline-flex; align-items: center; min-height: 44px; border-width: 1px; border-radius: 7px; font-size: .8rem; }
+.account-settings .title-chips__preview { padding: .7rem .85rem; border-left: 2px solid var(--primary-ring); background: var(--account-tint); line-height: 1.6; }
+.account-settings__form-footer { padding-top: 1.2rem; }
+.account-settings__form-footer > span { max-width: 17rem; font-size: .73rem; line-height: 1.6; }
+.account-settings .button { min-height: 44px; border-radius: 8px; box-shadow: none; transition: background-color 200ms, transform 200ms; }
+.account-settings .button.primary { background: var(--account-action); color: var(--account-action-ink); }
+.account-settings .button.secondary { border: 1px solid var(--border-strong); background: var(--account-paper); color: var(--primary); }
+.account-settings .button:hover:not(:disabled) { transform: translateY(-2px); filter: none; box-shadow: none; }
+.account-settings .button.primary:hover:not(:disabled) { background: var(--account-action-hover); }
+.account-settings .button.secondary:hover:not(:disabled) { background: var(--account-tint); }
+.account-settings .button:active:not(:disabled) { transform: none; }
+.account-settings__password-field { display: block; position: relative; }
+.account-settings__password-field input { padding-right: 3.25rem; }
+.account-settings__reveal { display: grid; place-items: center; position: absolute; right: 3px; top: 2px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ink-3); cursor: pointer; transition: color 180ms, background-color 180ms; }
+.account-settings__reveal svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.account-settings__reveal:hover { background: var(--account-tint); color: var(--primary); }
+.account-settings__eye-slash { visibility: hidden; }
+.account-settings__reveal[aria-pressed="true"] .account-settings__eye-slash { visibility: visible; }
+.account-settings__appearance { grid-column: 1; grid-row: 2; display: grid; gap: 1.2rem; padding: 1.2rem; background: var(--account-tint); }
+.account-settings__appearance h3 { font-size: .95rem; }
+.account-settings__appearance p { margin: .45rem 0 0; font-size: .77rem; line-height: 1.6; }
+.account-settings .theme-options { width: 100%; border-color: var(--border-strong); background: var(--account-paper); }
+.account-settings .theme-options::before { border-color: var(--account-action); background: var(--account-action); box-shadow: none; }
+.account-settings .theme-options__button { color: var(--ink-2); font-size: .78rem; padding-inline: .4rem; }
+.account-settings .theme-options__button[aria-pressed="true"] { color: var(--account-action-ink); }
+.account-settings__footnote { grid-column: 2; align-items: flex-start; font-size: .73rem; line-height: 1.6; }
+body:has(.account-settings) .floating-tooltip { background: var(--ink); color: var(--bg); border: 0; animation: account-tooltip-in 160ms ease-out; }
+body:has(.account-settings) :is(button,a,input):focus-visible { outline: 2px solid var(--primary-ring); outline-offset: 3px; }
+@keyframes account-tooltip-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@supports (backdrop-filter: blur(12px)) { .account-settings__card { backdrop-filter: blur(12px); } }
+@media (max-width: 1100px) {
+  .account-settings { grid-template-columns: 220px minmax(0,1fr); gap: 1.5rem; }
+  .account-settings__form-footer { flex-wrap: wrap; }
+}
+@media (max-width: 860px) {
+  .account-settings { grid-template-columns: minmax(0,1fr); }
+  .account-settings__hero { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: minmax(0,1fr); gap: .8rem 1rem; padding: 0; }
+  .account-settings__hero .account-settings__status { width: fit-content; }
+  .account-settings__nav { grid-column: 1 / -1; }
+  .account-settings__nav { grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .account-settings__grid { grid-column: 1; grid-row: 2; }
+  .account-settings__appearance { grid-row: 3; }
+  .account-settings__footnote { grid-column: 1; grid-row: 4; }
+  .account-settings .theme-options { max-width: 280px; }
+}
+@media (max-width: 480px) {
+  .account-settings__card-heading, .account-settings__form { padding: 1.1rem; }
+  .account-settings__step { display: none; }
+  .account-settings__nav { grid-template-columns: minmax(0,1fr); gap: 0; }
+  .account-settings__form-footer { flex-direction: column; align-items: stretch; gap: .8rem; }
+  .account-settings__form-footer .button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-settings *, .account-settings *::before, body:has(.account-settings) .floating-tooltip { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  .account-settings .button:hover:not(:disabled) { transform: none; }
+}

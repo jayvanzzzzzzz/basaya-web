@@ -1,0 +1,92 @@
+[
+  {
+    "name": "admin/views/lessons.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "teacher/views/lessons.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "teacher/views/addLesson.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "teacher/views/classPage.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/lessonWorkspace.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/moduleModel.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/modules.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/state.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/contentArchive.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/contentAvatar.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/contentVisibility.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/contentOperation.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/moduleOrderPreview.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/learningPaths.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/learningPathWorkspace.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "js/action-confirmation.js",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "css/pages/module-workspace.css",
+    "status": 200,
+    "matches": true
+  },
+  {
+    "name": "offline-shell.js",
+    "status": 200,
+    "matches": true
+  }
+]

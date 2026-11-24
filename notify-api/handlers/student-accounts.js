@@ -1,7 +1,7 @@
 import { adminAuth, db } from "../lib/firebase.js";
 import { allowCors, requireUser, requireAdmin, ID_PATTERN } from "../lib/http.js";
 import { withinRateLimit } from "../lib/rateLimit.js";
-import { createStudentAccount } from "../lib/studentAccounts.js";
+import { createStudentAccount, assignStudentLrn } from "../lib/studentAccounts.js";
 import { changeStudentAccess } from "../lib/studentAccess.js";
 
 export default async function handler(req, res) {
@@ -14,6 +14,12 @@ export default async function handler(req, res) {
     const uid = await requireUser(req, res);
     if (!uid || !await requireAdmin(uid, res)) return;
     const action = req.body?.action || "create";
+    if (action === "assign-lrn") {
+      const studentId = req.body?.studentId;
+      if (typeof studentId !== "string" || !ID_PATTERN.test(studentId)) return res.status(400).json({ error: "Choose a valid student account." });
+      if (!await withinRateLimit(req, "studentLrnLimits", 100)) return res.status(429).json({ error: "Too many requests. Please try again later." });
+      return res.status(200).json(await assignStudentLrn(db(), uid, studentId, req.body?.lrn));
+    }
     if (["deactivate", "reactivate"].includes(action)) {
       const ids = req.body?.studentIds;
       if (!Array.isArray(ids) || !ids.length || ids.length > 50 || ids.some(id => typeof id !== "string" || !ID_PATTERN.test(id)) || new Set(ids).size !== ids.length) {
@@ -39,6 +45,6 @@ export default async function handler(req, res) {
     return res.status(201).json(await createStudentAccount(db(), adminAuth(), uid, req.body));
   } catch (error) {
     if (error.status) return res.status(error.status).json({ error: error.message });
-    return res.status(503).json({ error: "Could not create the student account. Please try again." });
+    return res.status(503).json({ error: "Could not update the student account. Please try again." });
   }
 }

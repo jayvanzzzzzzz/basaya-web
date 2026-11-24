@@ -1,0 +1,80 @@
+import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { auth } from "./firebase.js";
+import { notifyApiUrl } from "../firebase-config.js";
+
+// Calls the BaSaya API on Vercel (notify-api/), as the signed-in user when there is one.
+
+/** POSTs `body` to `/api/<path>`. Throws with the server's message on failure. */
+export async function postToApi(path, body, { signal } = {}) {
+  if (!notifyApiUrl) throw new Error("the BASAya API is not set up yet");
+  const token = await auth.currentUser?.getIdToken();
+  const response = await fetch(`${notifyApiUrl.replace(/\/+$/, "")}/api/${path}`, {
+    method: "POST",
+    ...(signal ? { signal } : {}),
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(result.error || `server error (${response.status})`);
+    error.status = response.status;
+    error.code = result.code;
+    error.retryAt = result.retryAt;
+    throw error;
+  }
+  return result;
+}
+
+/** Admin only: deletes a class with its roster, lessons and every student's progress. */
+export const deleteClass = (classId) => postToApi("delete-class", { classId });
+
+export const classLifecycle = (action, classId, studentId) => postToApi("class-lifecycle", { action, classId, ...(studentId ? { studentId } : {}) });
+
+/** Approves a current leave request, archiving work before removing membership. */
+export const removeStudent = (classId, studentId, requestKey) =>
+  postToApi("remove-student", { classId, studentId, action:"leave", requestKey });
+
+/** A valid code creates a pending request; only the teacher can enroll the student. */
+export const requestClassJoin = (code) => postToApi("join-class", { code });
+export const reviewJoinRequests = (classId, requests, action) =>
+  postToApi("review-join-requests", { classId, requests, action });
+
+/** Takes a lesson out of the class, with every student's progress on it. */
+export const removeClassLesson = (classId, lessonId) =>
+  postToApi("remove-class-lesson", { classId, lessonId });
+
+/** Admin only: emails the teacher a BaSaya-branded password reset link. */
+export const sendPasswordReset = (teacherId) =>
+  postToApi("send-password-reset", { teacherId });
+
+/** Signed-in contact form; the API enforces one message per account per hour. */
+export const contactStatus = () => postToApi("contact", { action:"status" });
+export const sendContact = (message) => postToApi("contact", message);
+
+/** Admin only: emails a student a BaSaya-branded password reset link. */
+export const sendStudentPasswordReset = (studentId) =>
+  postToApi("send-password-reset", { userId: studentId });
+
+/**
+ * Anyone: emails a BaSaya-branded reset link if `email` has an account (same answer
+ * if not). Falls back to Firebase's plain reset email when the API can't send it.
+ */
+export async function sendResetLink(email) {
+  try {
+    await postToApi("forgot-password", { email });
+  } catch (error) {
+    console.warn("Branded reset email failed, using Firebase's:", error);
+    await sendPasswordResetEmail(auth, email);
+  }
+}
+
+/** Admin only: emails the admin an Approve link; the new password works only after that. */
+export const requestAdminPasswordChange = (password) =>
+  postToApi("request-admin-password-change", { password });
+
+/** Admin only: sets a temporary password for a student who can't get the reset email. */
+export const setTemporaryPassword = (studentId, password) =>
+  postToApi("set-temporary-password", { studentId, password });

@@ -3,6 +3,8 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
 const {chromium}=require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'audit/enrollment-notice');
 const fixture=`export const student={uid:'student',profile:{classId:'class1',className:'Grade 7 - Rizal',enrollmentStatus:'dropped'},classroom:{},lessons:[]};window.student=student;
+export {pathBlocker} from '/js/learningPathSequence.js';
+export const findLesson=async id=>({id}),canOpen=()=>true,loadClassLessons=async()=>student.lessons;
 export const enrollmentBlocked=()=>student.profile.enrollmentStatus==='dropped'||student.classroom.membershipClosed===true;
 export const $=(s,r=document)=>r.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 export const escapeHtml=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

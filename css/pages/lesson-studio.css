@@ -726,9 +726,11 @@
 }
 
 /* "Skip game" option */
-.game-skip-option {
+.lesson-studio .game-skip-option {
   display: flex;
+  flex-direction: row;
   width: max-content;
+  max-width: 100%;
   align-items: center;
   gap: 0.6rem;
   padding: 0.65rem 0.95rem;
@@ -739,19 +741,32 @@
   cursor: pointer;
 }
 
+.lesson-studio .game-skip-option input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--primary);
+}
+
 .game-skip-option:has(input:checked) {
   border-color: var(--warning);
   background: var(--warning-soft);
 }
 
 /* "Skip Gawain" ticked: the activity fields are shown but inactive */
-[data-activity-editor] {
+[data-activity-editor],
+[data-quiz-editor],
+[data-pronunciation-editor] {
   display: grid;
   gap: 1rem;
   transition: opacity var(--dur) var(--ease-out);
 }
 
-[data-activity-editor].is-skipped {
+[data-activity-editor].is-skipped,
+[data-quiz-editor].is-skipped,
+[data-pronunciation-editor].is-skipped {
   opacity: 0.45;
   pointer-events: none;
   filter: grayscale(0.6);

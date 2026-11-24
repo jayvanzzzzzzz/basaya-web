@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Admin portal" />
+    <title>BASAya — Admin Portal</title>
+    <link rel="icon" type="image/png" href="../img/favicon.png?v=1" sizes="128x128" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tagalog&text=%E1%9C%8A%E1%9C%90%E1%9C%8C&display=swap" rel="stylesheet" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Theme before first paint: the saved choice, else the computer's setting (js/theme.js).
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem("basaya-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light")
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <!-- Base -->
+    <link rel="stylesheet" href="../css/base/tokens.css" />
+    <link rel="stylesheet" href="../css/base/reset.css" />
+    <link rel="stylesheet" href="../css/base/typography.css" />
+    <link rel="stylesheet" href="../css/base/animations.css" />
+    <!-- Layout -->
+    <link rel="stylesheet" href="../css/layout/shell.css" />
+    <link rel="stylesheet" href="../css/layout/page-header.css" />
+    <!-- Components -->
+    <link rel="stylesheet" href="../css/components/buttons.css" />
+    <link rel="stylesheet" href="../css/components/forms.css" />
+    <link rel="stylesheet" href="../css/components/cards.css" />
+    <link rel="stylesheet" href="../css/components/directory.css" />
+    <link rel="stylesheet" href="../css/components/tables.css" />
+    <link rel="stylesheet" href="../css/components/filter-tabs.css" />
+    <link rel="stylesheet" href="../css/components/menus.css" />
+    <link rel="stylesheet" href="../css/components/pagination.css" />
+    <link rel="stylesheet" href="../css/components/modal.css" />
+    <link rel="stylesheet" href="../css/components/class-deletion.css" />
+    <link rel="stylesheet" href="../css/components/toast.css" />
+    <link rel="stylesheet" href="../css/components/notice.css" />
+    <link rel="stylesheet" href="../css/components/remove-teacher.css" />
+    <link rel="stylesheet" href="../css/components/class-teacher.css" />
+    <link rel="stylesheet" href="../css/components/loading.css" />
+    <link rel="stylesheet" href="../css/components/page-loading.css" />
+    <link rel="stylesheet" href="../css/components/theme-toggle.css" />
+    <link rel="stylesheet" href="../css/components/site-footer.css" />
+    <link rel="stylesheet" href="../css/components/contact-form.css" />
+    <link rel="stylesheet" href="../css/components/teacher-logout.css" />
+    <!-- Pages -->
+    <link rel="stylesheet" href="../css/pages/admin-lessons.css" />
+    <link rel="stylesheet" href="../css/pages/admin-students.css" />
+    <link rel="stylesheet" href="../css/pages/lesson-studio.css" />
+    <link rel="stylesheet" href="../css/pages/module-workspace.css" />
+    <link rel="stylesheet" href="../css/pages/game-levels.css" />
+    <link rel="stylesheet" href="../css/pages/lesson-viewer.css" />
+    <link rel="stylesheet" href="../css/pages/lesson-delete.css" />
+    <link rel="stylesheet" href="../css/pages/duplicate-title.css" />
+    <link rel="stylesheet" href="../css/pages/missing-checklist.css" />
+    <link rel="stylesheet" href="../css/pages/account-settings.css" />
+    <link rel="stylesheet" href="../css/pages/account-editorial.css" />
+    <link rel="stylesheet" href="../css/pages/teacher-dictionary.css" />
+    <link rel="stylesheet" href="../css/components/password-rules.css" />
+    <link rel="stylesheet" href="../css/layout/workspace.css" />
+    <link rel="stylesheet" href="../css/pages/admin-editorial.css?v=20261109-1" />
+    <link rel="stylesheet" href="../css/components/site-info.css" />
+    <link rel="stylesheet" href="../css/pages/workspace-dashboard.css" />
+    <link rel="stylesheet" href="../css/pages/ai-handbook.css" />
+      <link rel="stylesheet" href="../css/components/action-confirmation.css" />
+    <script type="module" src="../js/action-confirmation.js"></script>
+      <link rel="stylesheet" href="../css/components/portal-ribbons.css?v=20261122" />
+  </head>
+  <body data-portal="admin">
+    <div id="loading-screen" class="loading-screen">
+      <div class="loader-punch"><span></span><span></span><span></span></div>
+      <p>Loading admin portal…</p>
+    </div>
+
+    <div id="app-view" class="app-shell" hidden>
+      <aside class="sidebar">
+        <a class="admin-profile" href="#/settings" aria-label="Open account settings">
+          <span class="admin-profile__avatar" aria-hidden="true"><img src="../img/logo.png" alt="" /></span>
+          <span class="admin-profile__identity"><small><span class="admin-status-dot" aria-hidden="true"></span>Admin</small></span>
+        </a>
+        <nav class="main-nav main-nav--admin" aria-label="Main navigation">
+          <a href="#/dashboard" data-nav="dashboard">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect class="duo" x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect class="duo" x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+            <span class="nav-item-text"><strong>Dashboard</strong><small>Your school at a glance</small></span>
+          </a>
+          <a href="#/teachers" data-nav="teachers">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle class="duo" cx="7" cy="6.5" r="2.5" /><path d="M3.5 20.5v-4.5A3.5 3.5 0 0 1 7 12.5h2.5L13 10M16.5 10v3.5M14.5 20.5l2-7 2 7" /><rect class="duo" x="12" y="3" width="9" height="7" rx="1.5" /></svg></span>
+            <span class="nav-item-text">
+              <strong>Teacher accounts</strong>
+              <small>Manage access</small>
+            </span>
+          </a>
+          <a href="#/students" data-nav="students">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="duo" d="M12 4 2.5 9l9.5 5 9.5-5Z" /><path d="M6 11.2V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.8M21.5 9v5" /></svg></span>
+            <span class="nav-item-text">
+              <strong>Student accounts</strong>
+              <small>Manage student access</small>
+            </span>
+          </a>
+          <a href="#/classes" data-nav="classes">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="duo" d="M3 9.5 12 4l9 5.5Z" /><path d="M6 12.5v5M10 12.5v5M14 12.5v5M18 12.5v5M3.5 20.5h17M12 7.4h.01" /></svg></span>
+            <span class="nav-item-text">
+              <strong>All classes</strong>
+              <small>Track learning</small>
+            </span>
+          </a>
+          <a href="#/lessons" data-nav="lessons">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h10.5A2.5 2.5 0 0 1 21 5.5V16" /><rect class="duo" x="3.5" y="6.5" width="14" height="14" rx="2.5" /><path d="M9 11v4.4a.6.6 0 0 0 .9.5l3.6-2.2a.6.6 0 0 0 0-1l-3.6-2.2A.6.6 0 0 0 9 11Z" /></svg></span>
+            <span class="nav-item-text">
+              <strong>Lessons</strong>
+              <small>Create and organize</small>
+            </span>
+          </a>
+          <a href="#/dictionary" data-nav="dictionary">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="duo" d="M12 6.5c-1.8-1.5-4.4-2-8-2a1 1 0 0 0-1 1V17a1 1 0 0 0 1 1c3.5 0 6.1.6 8 2 1.9-1.4 4.5-2 8-2a1 1 0 0 0 1-1V5.5a1 1 0 0 0-1-1c-3.6 0-6.2.5-8 2Z" /><path d="M12 6.5V20M15.5 5.2V10l1.5-1.2 1.5 1.2V4.7" /></svg></span>
+            <span class="nav-item-text">
+              <strong>Dictionary</strong>
+              <small>Tagalog words for students</small>
+            </span>
+          </a>
+          <a href="#/handbook" data-nav="handbook">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="duo" d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path d="M12 6v14M6 9h3m-3 4h3m6-4h3m-3 4h3"/></svg></span>
+            <span class="nav-item-text"><strong>AI Handbook</strong><small>A guide to your workspace</small></span>
+          </a>
+          <a href="#/settings" data-nav="settings">
+            <span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle class="duo" cx="10" cy="7.5" r="3.5" /><path d="M3.5 20a6.5 6.5 0 0 1 9.5-5.8" /><circle cx="17.5" cy="17.5" r="1.7" /><path d="M17.5 13.6v1.1M17.5 20.3v1.1M21.4 17.5h-1.1M14.7 17.5h-1.1M20.25 14.75l-.8.8M15.55 19.45l-.8.8M20.25 20.25l-.8-.8M15.55 15.55l-.8-.8" /></svg></span>
+            <span class="nav-item-text">
+              <strong>Account settings</strong>
+              <small>Your password</small>
+            </span>
+          </a>
+        </nav>
+        <div class="sidebar-bottom">
+          <span id="admin-summary" hidden></span>
+          <button id="logout-button" class="admin-logout" type="button" aria-label="Log out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+            <span>Log out</span>
+          </button>
+        </div>
+      </aside>
+      <section class="content">
+        <header id="page-header" class="page-header"></header>
+        <div id="page-content"></div>
+        <footer class="site-footer site-footer--app">
+          <p>© 2026 <strong>BASAya</strong> · A BSIT Capstone Project, Eastwoods Professional College of Science and Technology</p>
+          <nav class="site-footer__links" aria-label="Site information">
+            <button type="button" data-site-info="about" aria-haspopup="dialog">About</button>
+            <button type="button" data-site-info="privacy" aria-haspopup="dialog">Privacy Policy</button>
+            <button type="button" data-site-info="contact" aria-haspopup="dialog">Contact</button>
+          </nav>
+        </footer>
+      </section>
+    </div>
+
+    <template id="modal-template"
+      ><div class="modal-backdrop">
+        <section class="modal" role="dialog" aria-modal="true">
+          <button class="modal-close" aria-label="Close">×</button>
+          <div class="modal-content"></div>
+        </section></div
+    ></template>
+    <div id="toast" class="toast" role="status"></div>
+
+    <script type="module">
+      const loading = document.getElementById("loading-screen");
+      const showStartupError = (message) => {
+        if (loading.hidden) return;
+        const paragraph = document.createElement("p");
+        paragraph.style.maxWidth = "30rem";
+        const heading = document.createElement("strong");
+        heading.textContent = "We couldn’t start the admin portal.";
+        const consoleHint = document.createElement("strong");
+        consoleHint.textContent = "F12 → Console";
+        paragraph.append(
+          heading,
+          document.createElement("br"),
+          document.createElement("br"),
+          String(message),
+          document.createElement("br"),
+          document.createElement("br"),
+          "Open your browser’s ",
+          consoleHint,
+          " tab and send the red error message to your developer.",
+        );
+        loading.replaceChildren(paragraph);
+      };
+      const startupTimeout = setTimeout(
+        () =>
+          showStartupError(
+            "Firebase is taking too long to respond. Check your internet connection, then reload the page.",
+          ),
+        12000,
+      );
+      window.addEventListener("pagehide", () => clearTimeout(startupTimeout), {
+        once: true,
+      });
+      import("./app.js").catch((error) => {
+        console.error("Admin portal startup failed:", error);
+        showStartupError(error.message || "The Firebase SDK could not load.");
+      });
+    </script>
+    <script type="module" src="../js/password-toggle.js"></script>
+    <script type="module" src="../js/theme.js"></script>
+    <script type="module" src="../js/site-info.js"></script>
+    <script type="module" src="../js/admin-design.js"></script>
+  </body>
+</html>

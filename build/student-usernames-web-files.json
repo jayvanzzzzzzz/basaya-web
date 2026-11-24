@@ -1,0 +1,10 @@
+[
+  "admin/views/create-student.js",
+  "notify-api/lib/studentAccounts.js",
+  "notify-api/lib/studentUsernames.js",
+  "notify-api/lib/usernames.js",
+  "notify-api/handlers/username.js",
+  "notify-api/handlers/student-accounts.js",
+  "admin/views/students.js",
+  "css/pages/admin-students.css"
+]

@@ -4,8 +4,8 @@ const esc = (value = "") => String(value).replace(/[&<>"']/g, (char) => ({ "&": 
 export function enrollmentSummary(classroom, enrolled) {
   return `<div class="enrollment-summary" aria-label="Class membership overview">
     <div><span class="enrollment-summary__label">Enrolled students</span><strong>${enrolled}<small> in your classroom</small></strong></div>
-    <div><span class="enrollment-summary__label">Join requests awaiting review</span><strong id="join-summary-count">—</strong></div>
-    <div class="enrollment-summary__code"><span class="enrollment-summary__label">Class invitation code</span><code>${esc(classroom.classCode || "—")}</code><small>Share with your students</small></div>
+    <div><span class="enrollment-summary__label">${classroom.archived ? "Class status" : "Join requests awaiting review"}</span><strong id="join-summary-count">${classroom.archived ? "Archived" : "—"}</strong></div>
+    <div class="enrollment-summary__code"><span class="enrollment-summary__label">Class invitation code</span><code>${esc(classroom.classCode || "—")}</code><small>${classroom.archived ? "Paused while archived" : "Share with your students"}</small></div>
   </div>`;
 }
 export function joinRequestsPanel(classroom, enrolled, { summary = true } = {}) {

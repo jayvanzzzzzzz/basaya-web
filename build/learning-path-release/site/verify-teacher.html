@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>BASAya &mdash; Verify teacher account</title>
+  <link rel="icon" href="img/favicon.png">
+  <script>
+    (() => {
+      let theme;
+      try { theme = localStorage.getItem('basaya-theme'); } catch {}
+      document.documentElement.dataset.theme = ['light', 'dark'].includes(theme) ? theme : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base/tokens.css">
+  <link rel="stylesheet" href="css/base/reset.css">
+  <link rel="stylesheet" href="css/base/typography.css">
+  <link rel="stylesheet" href="css/components/buttons.css">
+  <link rel="stylesheet" href="css/components/forms.css">
+  <link rel="stylesheet" href="css/components/password-rules.css">
+  <link rel="stylesheet" href="css/components/theme-toggle.css">
+  <link rel="stylesheet" href="css/pages/verify-teacher.css">
+  <script type="module" src="js/theme.js"></script>
+</head>
+<body class="verify-page" data-stage="checking">
+  <a class="verify-skip" href="#setup-title">Skip to account setup</a>
+  <div class="verify-wrap">
+    <header class="verify-header">
+      <a class="verify-brand" href="index.html" aria-label="BASAya home"><img src="img/logo.png" alt="" width="42" height="42"><span>BASAya<small>Room to learn. Space to grow.</small></span></a>
+      <div class="verify-header__right"><span class="verify-portal">Teacher account setup</span><div class="verify-theme"><button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme" aria-describedby="theme-hint"><svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg></button><span id="theme-hint" role="tooltip">Change theme</span></div></div>
+    </header>
+    <main class="verify-layout">
+      <section class="verify-intro" aria-labelledby="welcome-title">
+        <span class="verify-eyebrow">WELCOME, TEACHER</span>
+        <h1 id="welcome-title">Set up your<br> teacher account.</h1>
+        <p class="verify-intro__description">Confirm your email and set a new password to start using BASAya with your class.</p>
+        <ol class="verify-steps" aria-label="Account setup progress">
+          <li data-setup-step="verify"><span class="verify-step__number" aria-hidden="true">01</span><div><strong>Verify your email</strong><p>Use the link sent to your email address.</p><span class="verify-step__state" data-step-state="verify">Checking account</span></div></li>
+          <li data-setup-step="password"><span class="verify-step__number" aria-hidden="true">02</span><div><strong>Set your password</strong><p>Replace your temporary password.</p><span class="verify-step__state" data-step-state="password">Up next</span></div></li>
+        </ol>
+        <p class="verify-note">Have your temporary password ready. You&rsquo;ll find it in the account details from your school administrator.</p>
+      </section>
+      <section class="verify-panel" aria-labelledby="setup-title" aria-busy="true">
+        <div class="verify-panel__top"><span id="setup-step-label">LET&rsquo;S GET YOU READY</span><span class="verify-panel__dots" aria-hidden="true"><i></i><i></i></span></div>
+        <div class="verify-panel__body">
+          <div class="verify-emblem" aria-hidden="true"><svg class="verify-emblem__mail" viewBox="0 0 48 48"><rect x="7" y="12" width="34" height="25" rx="4"/><path d="m8 15 16 12 16-12M9 35l11-11m19 11L28 24"/></svg><svg class="verify-emblem__key" viewBox="0 0 48 48"><circle cx="18" cy="28" r="10"/><path d="m25 21 15-15 3 3-4 4 3 3-5 5-3-3-5 5"/><circle cx="15" cy="31" r="1"/></svg><span><svg viewBox="0 0 24 24"><rect x="6" y="10" width="12" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span></div>
+          <h2 id="setup-title" tabindex="-1">Verify your email</h2>
+          <p id="setup-description">Checking your teacher account&hellip;</p>
+          <div class="verify-email" id="setup-email-wrap" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><div><span>Your teacher email</span><strong id="setup-email"></strong></div></div>
+          <p id="setup-message" class="verify-message" role="status" aria-live="polite"></p>
+          <div id="email-link-actions" class="verify-actions" hidden>
+            <button class="button primary" id="confirm-email-link" type="button">Verify my email</button>
+            <p class="verify-help">Confirming here helps keep your verification link secure.</p>
+          </div>
+          <div id="verification-actions" class="verify-actions" hidden>
+            <button class="button primary" id="check-verification" type="button">I&rsquo;ve verified my email <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+            <button class="button secondary" id="resend-verification" type="button">Resend verification email</button>
+            <p class="verify-help">No email yet? Check your spam folder.<br>Wrong address? Ask your administrator to correct it.</p>
+          </div>
+          <form id="setup-password-form" class="verify-form" hidden>
+            <label>Current or temporary password<input name="temporaryPassword" type="password" autocomplete="current-password" required placeholder="Provided by your administrator"></label>
+            <label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="setup-password-rules" placeholder="Choose a new password"></label>
+            <div id="setup-password-rules"></div>
+            <label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" required placeholder="Enter your new password again"></label>
+            <button class="button primary" type="submit">Save password and continue <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+          </form>
+          <a class="button primary" id="setup-signin" href="index.html" hidden>Go to sign in <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+        </div>
+        <div class="verify-panel__bottom"><span>Made for your next chapter.</span><button id="setup-signout" type="button" hidden>Sign out <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4v16h6m4-12 4 4-4 4m-6-4h10"/></svg></button></div>
+      </section>
+    </main>
+    <footer class="verify-footer"><span>BASAya <span aria-hidden="true">/</span> Teacher account setup</span><span>Need a hand? Your school administrator can help.</span></footer>
+  </div>
+  <script type="module" src="js/verify-teacher.js"></script>
+</body>
+</html>

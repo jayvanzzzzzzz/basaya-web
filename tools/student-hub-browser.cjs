@@ -7,11 +7,11 @@ const path = require('node:path');
 const { chromium } = require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const auditText = require('./text-readability-audit.cjs');
 const root = path.resolve(__dirname, '..');
-const artifacts = path.join(root, 'audit/student-hub');
+const artifacts = process.env.BASAYA_QA_ARTIFACTS || path.join(root, 'audit/student-hub');
 const fixture = `
 import {resultsFrom, lessonParts} from '/js/scoring.js';
 export const state={},db={},auth={currentUser:{email:'learner@example.test'}};
-export const student={uid:'qa-student',email:'learner@example.test',profile:{firstName:'Mika',lastName:'Santos',gender:'Ayokong sabihin',dob:'2013-05-12',classId:'qa-class',className:'Filipino 7 · Sampaguita',progressSession:'qa'},lessons:[]};
+export const student={uid:'qa-student',email:'learner@example.test',profile:{firstName:'Mika',lastName:'Santos',gender:'Ayokong sabihin',dob:'2013-05-12',classId:'qa-class',className:'Filipino 7 · Sampaguita',progressSession:'qa'},classroom:{},lessons:[]};
 const base={difficulty:'beginner',description:'Tuklasin ang mga salita, unawain ang kuwento, at subukan ang iyong natutuhan.',practice:false,contentVersion:1};
 const lessons=[
  {...base,id:'continue',order:1,title:'Ang Alamat ng Pinya',lectureFinished:true,gameFinished:true,started:true},
@@ -151,6 +151,25 @@ const server = http.createServer(async (req,res) => {
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Long names wrap on phones');
     await page.screenshot({path:path.join(artifacts,'account-long-name-dark.png'),fullPage:true});
     await page.evaluate(()=>{qa.student.profile.classId='qa-class';qaMembership='pending';return show('account')});assert.ok(await page.locator('[data-leave="cancel"]').isVisible());
+    await page.evaluate(()=>{qa.student.classroom={archived:true,membershipClosed:true};qaMembership='';return show('account')});
+    await page.getByText('Naka-archive ang klase',{exact:true}).waitFor();
+    await page.locator('[data-leave="ask"]').click();await page.locator('#leave-reason').fill('Lilipat ng klase');
+    await page.locator('#leave-form [type="submit"]').click();
+    await page.waitForFunction(()=>window.qaWrites.some(w=>w.fields.leaveRequest?.reason==='Lilipat ng klase'));
+    await page.evaluate(()=>{qaMembership='pending';return show('account')});
+    assert.match(await page.locator('#account-class').textContent(),/naka-archive na klase/);
+    assert.ok(!(await page.locator('#account-class').textContent()).includes('Puwede ka pa ring mag-aral'));
+    for(const theme of ['light','dark']) {
+      await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
+      for(const width of [1440,390,320]) {
+        await page.setViewportSize({width,height:1000});
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Archived account wraps on narrow screens');
+        await page.screenshot({path:path.join(artifacts,'account-archived-'+theme+'-'+width+'.png'),fullPage:true});
+      }
+    }
+    await page.locator('[data-leave="cancel"]').click();await page.locator('#leave-form [type="submit"]').click();
+    await page.waitForFunction(()=>window.qaWrites.some(w=>'leaveRequest' in w.fields && w.fields.leaveRequest===null));
+    await page.evaluate(()=>{qa.student.classroom={};qaMembership='';return show('account')});
     await page.locator('[data-theme-toggle]').click();await page.waitForTimeout(800);const chosen=await page.evaluate(()=>document.documentElement.dataset.theme);assert.equal(await page.evaluate(()=>localStorage.getItem('basaya-theme')),chosen);await page.reload();await page.waitForFunction(()=>window.ready);assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),chosen);
     await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>show('progress'));assert.equal(await page.locator('.st-skill').first().evaluate(e=>getComputedStyle(e).animationName),'none');
     assert.deepEqual(errors,[],'No runtime errors');

@@ -170,7 +170,12 @@ export async function renderStudentsPage(classId) {
         <code>${escapeHtml(classroom.classCode || "—")}</code>
       </section>`) + `<section class="roster-admissions" aria-labelledby="roster-admissions-title"><div class="roster-section-heading"><p class="eyebrow">Enrollment management</p><h2 id="roster-admissions-title">Class requests</h2><p>Review who joins and leaves your classroom.</p></div>${requestRibbons(pendingLeaves(students).length)}<div id="request-panel-join" role="tabpanel" aria-labelledby="request-tab-join">${joinRequestsPanel(classroom, students.length, { summary: false })}</div><div id="request-panel-leave" role="tabpanel" aria-labelledby="request-tab-leave" hidden>${leaveRequestsPanel()}</div></section></div>`;
 
-  if(classroom.archived) $(".roster-admissions").hidden=true;
+  if (classroom.archived) {
+    // Keep leave reviews available while archived; joining stays paused.
+    $("#request-tab-join").remove();
+    $("#request-panel-join").remove();
+    $(".roster-section-heading p:last-child").textContent = "This class is archived. You can still approve or decline requests to leave; joining stays paused.";
+  }
   wireRequestRibbons(classId);
   watchTeacherTooltips();
   watchStudentNotifications(classId, notice => {
@@ -197,7 +202,7 @@ export async function renderStudentsPage(classId) {
     if (location.hash === `#/classes/${encodeURIComponent(classId)}/students`) return renderStudentsPage(classId);
   };
   wireLeaveRequests(classroom, students, refreshStudents);
-  watchJoinRequests(classId, refreshStudents);
+  if (!classroom.archived) watchJoinRequests(classId, refreshStudents);
 
   $("#student-search")?.addEventListener("input", (event) => {
     closeRosterMenu();

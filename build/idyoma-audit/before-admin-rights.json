@@ -1,0 +1,658 @@
+[
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/0cH5upEZE5SfAtkoS4Yp",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-20T01:44:34.884Z"
+      },
+      "title": {
+        "stringValue": "Test Lesson"
+      },
+      "createdAt": {
+        "timestampValue": "2026-11-20T01:44:34.884Z"
+      },
+      "description": {
+        "stringValue": "testing"
+      }
+    },
+    "createTime": "2026-11-20T01:44:34.939691Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/2hVGpeMcjkv5Hfjhvh6k",
+    "fields": {
+      "updatedAt": {
+        "timestampValue": "2026-11-18T10:42:53.002Z"
+      },
+      "title": {
+        "stringValue": "Pagsusuri ng Tauhan"
+      },
+      "description": {
+        "stringValue": "Suriin ang katangian, damdamin, kilos, at pagbabago ng tauhan sa isang akda."
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "order": {
+        "integerValue": "19"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587517Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/5XC6xxllpLJFK0YOtFvy",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "description": {
+        "stringValue": "Gamit ng pang-angkop."
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T06:39:18.609Z"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "title": {
+        "stringValue": "Pang-angkop"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-21T09:28:27.805Z"
+      }
+    },
+    "createTime": "2026-10-21T09:28:27.852413Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/8M7iCyjgqP8I8mAwdBsQ",
+    "fields": {
+      "description": {
+        "stringValue": "Suriin ang ugnayan ng dahilan at resulta sa isang kuwento o tekstong binasa."
+      },
+      "order": {
+        "integerValue": "15"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "title": {
+        "stringValue": "Sanhi at Bunga"
+      },
+      "difficulty": {
+        "stringValue": "masusing aralin"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T07:14:18.172Z"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588673Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/8fnBktOJgYQGXvtE8oAg",
+    "fields": {
+      "updatedAt": {
+        "timestampValue": "2026-11-11T11:00:19.873Z"
+      },
+      "order": {
+        "integerValue": "18"
+      },
+      "description": {
+        "stringValue": "Bumuo ng makatwirang hinuha mula sa mga detalye at pahiwatig sa teksto."
+      },
+      "difficulty": {
+        "stringValue": "masusing aralin"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "title": {
+        "stringValue": "Pagbibigay ng Hinuha"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588929Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/8lw85XEqqvIKI6NvyjpG",
+    "fields": {
+      "createdAt": {
+        "timestampValue": "2026-10-21T09:57:13.834Z"
+      },
+      "description": {
+        "stringValue": "Sa araling ito, matututuhan mo ang kahulugan at gamit ng idyoma."
+      },
+      "publicationState": {
+        "stringValue": "published"
+      },
+      "title": {
+        "stringValue": "Idyomaa"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-23T02:41:24.676Z"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "visibility": {
+        "stringValue": "private"
+      }
+    },
+    "createTime": "2026-10-21T09:57:13.896618Z",
+    "updateTime": "2026-11-23T02:41:24.754807Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/AxD20OW43JkmJw2E5oyx",
+    "fields": {
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "description": {
+        "stringValue": "Sa araling ito, matututuhan mo kung paano ginagamit ang pantukoy upang maging tiyak at malinaw ang tinutukoy na tao, bagay, hayop, o pangyayari."
+      },
+      "title": {
+        "stringValue": "Pantukoy"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-21T09:09:57.263Z"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T11:58:09.585Z"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-10-21T09:09:57.303976Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/DHH13wdXrorr2PcgEtEH",
+    "fields": {
+      "title": {
+        "stringValue": "Pagbasa nang May Pag-unawa"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-11T10:20:15.492Z"
+      },
+      "order": {
+        "integerValue": "7"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "description": {
+        "stringValue": "Sa araling ito, matututuhan mo kung paano magbasa at umunawa ng mga binabasa."
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588168Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/EtatJtdMGn1Dl9is4eYG",
+    "fields": {
+      "updatedAt": {
+        "timestampValue": "2026-11-18T10:54:31.393Z"
+      },
+      "title": {
+        "stringValue": "Pandamdam"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-21T08:26:45.905Z"
+      },
+      "description": {
+        "stringValue": "Alamin natin kung ano ang pandamdam"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "difficulty": {
+        "stringValue": "masusing aralin"
+      }
+    },
+    "createTime": "2026-10-21T08:26:45.974168Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/I67MU396pTjKgNJUSNnn",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "order": {
+        "integerValue": "3"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T10:59:33.190Z"
+      },
+      "title": {
+        "stringValue": "Pandiwa"
+      },
+      "description": {
+        "stringValue": "Ang pandiwa ay salitang nagsasaad ng kilos o galaw ng tao, hayop, o bagay."
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588385Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/Jxg3yPeVbpNgZDr9fbWT",
+    "fields": {
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "order": {
+        "integerValue": "17"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-11T09:55:27.152Z"
+      },
+      "title": {
+        "stringValue": "Katotohanan at Opinyon"
+      },
+      "description": {
+        "stringValue": "Pag-iba-ibahin ang pahayag na napatutunayan at pahayag na batay sa pananaw."
+      },
+      "visibility": {
+        "stringValue": "shared"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587179Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/MY3SQD8nmPeGpZ660hW9",
+    "fields": {
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-20T14:41:05.177Z"
+      },
+      "description": {
+        "stringValue": "Salitang pamalit sa pangngalan upang maiwasan ang paulit-ulit na paggamit ng pangalan ng tao, bagay, hayop, o lugar."
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T06:59:41.074Z"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "title": {
+        "stringValue": "Panghalip"
+      }
+    },
+    "createTime": "2026-10-20T14:41:05.233703Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/MmkmvL930atL0JdrVyB6",
+    "fields": {
+      "createdAt": {
+        "timestampValue": "2026-10-21T03:29:12.931Z"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T06:41:35.717Z"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "description": {
+        "stringValue": "Alamin kung ano ang pang-ukol"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "title": {
+        "stringValue": "Pang-ukol"
+      }
+    },
+    "createTime": "2026-10-21T03:29:12.989112Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/NtYQrJJvgcyqiWoRgjAa",
+    "fields": {
+      "description": {
+        "stringValue": "Paglalarawan sa Tao, Bagay, Hayop, at Lugar"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "title": {
+        "stringValue": "Pang-uri"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T06:45:21.367Z"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-09T03:43:08.070Z"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "order": {
+        "integerValue": "22"
+      }
+    },
+    "createTime": "2026-10-09T03:43:08.132220Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/QFxmmSEZV9TVV4byK9U6",
+    "fields": {
+      "order": {
+        "integerValue": "5"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T10:07:54.571Z"
+      },
+      "title": {
+        "stringValue": "Wastong Pagbigkas"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "description": {
+        "stringValue": "Sanayin ang malinaw at wastong pagbigkas ng mga salitang Filipino."
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587749Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/RoGM2x0jKEvk9T9Z2Q6q",
+    "fields": {
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-18T09:32:41.405Z"
+      },
+      "title": {
+        "stringValue": "Panlapi"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T11:11:48.747Z"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "description": {
+        "stringValue": "Ang panlapi ay mga letra o pantig na idinadagdag sa salitang-ugat upang makabuo ng bagong salita."
+      }
+    },
+    "createTime": "2026-10-18T09:32:41.430231Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/SIl7m8R5CxJ3cXHvRi0e",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "description": {
+        "stringValue": "test"
+      },
+      "createdAt": {
+        "timestampValue": "2026-11-19T13:44:24.607Z"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-19T13:44:24.607Z"
+      },
+      "title": {
+        "stringValue": "Test - Pandamdam"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      }
+    },
+    "createTime": "2026-11-19T13:44:24.655971Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/TnrzcB0Iu4iTAkDPEZ6D",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "title": {
+        "stringValue": "Pangatnig"
+      },
+      "description": {
+        "stringValue": "Matutong pagdugtungin ang mga salita, parirala, at pangungusap gamit ang pangatnig."
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T06:56:56.143Z"
+      },
+      "order": {
+        "integerValue": "10"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587516Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/XAhKyvDLAXdWhEp1QiVE",
+    "fields": {
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "order": {
+        "integerValue": "11"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "title": {
+        "stringValue": "Uri ng Pangungusap"
+      },
+      "description": {
+        "stringValue": "Tukuyin ang pasalaysay, patanong, pautos, pakiusap, at padamdam na pangungusap."
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T07:55:08.226Z"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587515Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/eZoVP8dC1Bpbny9jxipL",
+    "fields": {
+      "description": {
+        "stringValue": "Hatiin ang mga salita sa pantig upang mas madaling mabasa at mabigkas."
+      },
+      "title": {
+        "stringValue": "Pantig at Pagpapantig"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "order": {
+        "integerValue": "6"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T11:48:22.645Z"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588674Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/lzDQRHAvCYkz53TXG6Hj",
+    "fields": {
+      "title": {
+        "stringValue": "Pang-abay"
+      },
+      "description": {
+        "stringValue": "Ang pang-abay ay salitang naglalarawan sa pandiwa, pang-uri, o kapwa pang-abay."
+      },
+      "order": {
+        "integerValue": "8"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T06:36:42.276Z"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588169Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/mJtuF7qejFKlcU6zWyyg",
+    "fields": {
+      "updatedAt": {
+        "timestampValue": "2026-11-18T10:47:57.828Z"
+      },
+      "title": {
+        "stringValue": "Pamilang"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-21T08:48:00.247Z"
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "description": {
+        "stringValue": "Sa araling ito, matututuhan mo kung paano gamitin ang pamilang sa pagbibilang at pagtukoy ng dami ng tao, bagay, hayop, at pangyayari."
+      }
+    },
+    "createTime": "2026-10-21T08:48:00.290452Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/pa3ibBXIhG2ZqIie6Cz6",
+    "fields": {
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "order": {
+        "integerValue": "12"
+      },
+      "description": {
+        "stringValue": "Gamitin nang tama ang tuldok, kuwit, tandang pananong, tandang padamdam, at panipi."
+      },
+      "title": {
+        "stringValue": "Wastong Gamit ng Bantas"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T08:04:23.425Z"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587963Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/qCViui24zD2hZ4zz9Pcs",
+    "fields": {
+      "difficulty": {
+        "stringValue": "masusing aralin"
+      },
+      "order": {
+        "integerValue": "16"
+      },
+      "title": {
+        "stringValue": "Paghahambing"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T10:33:48.918Z"
+      },
+      "description": {
+        "stringValue": "Ihambing ang dalawang tauhan, pangyayari, o ideya gamit ang wastong mga salita."
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.587962Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/xM2QwlVmGpIYL8WAIe7n",
+    "fields": {
+      "order": {
+        "integerValue": "1"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T07:02:05.216Z"
+      },
+      "description": {
+        "stringValue": "Ang pangngalan ay salitang tumutukoy sa ngalan ng tao, hayop, bagay, lugar, o pangyayari."
+      },
+      "difficulty": {
+        "stringValue": "madali"
+      },
+      "title": {
+        "stringValue": "Pangngalan"
+      }
+    },
+    "createTime": "2026-06-27T09:51:48.289660Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  },
+  {
+    "name": "projects/basaya/databases/(default)/documents/lessons/zHk6X8yI4CzXqklyF8Et",
+    "fields": {
+      "description": {
+        "stringValue": "Hanapin ang pangunahing mensahe at mahahalagang detalye sa binasang teksto."
+      },
+      "title": {
+        "stringValue": "Pangunahing Kaisipan at Detalye"
+      },
+      "visibility": {
+        "stringValue": "shared"
+      },
+      "order": {
+        "integerValue": "14"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-18T07:05:32.092Z"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      }
+    },
+    "createTime": "2026-08-22T07:40:11.588384Z",
+    "updateTime": "2026-11-23T01:36:26.699985Z"
+  }
+]

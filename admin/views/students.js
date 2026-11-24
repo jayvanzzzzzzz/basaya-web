@@ -8,10 +8,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state, getAllClasses } from "../../js/state.js";
-import { $, escapeHtml, notify, initials, page, openModal } from "../../js/helpers.js";
+import { $, escapeHtml, notify, page, openModal } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
 import { clearFieldError, fieldError } from "../../js/field-errors.js";
-import { setTemporaryPassword } from "../../js/api.js";
+import { setTemporaryPassword, postToApi } from "../../js/api.js";
 import { createStudent } from "./create-student.js";
 import { MIN_LENGTH } from "../../js/password-rules.js";
 import { studentStatus, wireStudentAccess } from "./student-access.js";
@@ -61,6 +61,8 @@ async function getAllStudents() {
 // The class ribbon picked last ("all", "none" or a class id), kept when the page re-renders.
 let selectedRibbon = "all";
 let statusFilter = "all";
+let lrnFilter = "all";
+const hasLrn = student => String(student.lrn || "").trim().length > 0;
 
 const countLabel = (count) => (count === 1 ? "student" : "students");
 
@@ -118,7 +120,10 @@ export async function renderStudents() {
         <div class="teacher-status-filters student-status-filters" role="group" aria-label="Filter students by account status">
           ${[["all", "All"], ["active", "Active"], ["deactivated", "Deactivated"]].map(([value, label]) => `<button type="button" data-student-status-filter="${value}" aria-pressed="${statusFilter === value}"><span class="teacher-status-filters__label">${label}</span><span class="teacher-status-filters__count" data-status-count>${students.filter(student => value === "all" || (student.disabled === true ? "deactivated" : "active") === value).length}</span></button>`).join("")}
         </div>
-        <div class="student-ribbons" role="group" aria-label="Show students by class">
+        <div class="student-ribbons student-lrn-ribbons" role="group" aria-label="Filter students by LRN">
+          ${[["all", "All"], ["with", "With LRN"], ["without", "Without LRN"]].map(([value, label]) => `<button type="button" class="student-ribbon" data-lrn-filter="${value}" aria-pressed="${lrnFilter === value}"><span class="student-ribbon__label">${label}</span><span class="student-ribbon__count">${students.filter(student => value === "all" || hasLrn(student) === (value === "with")).length}</span></button>`).join("")}
+        </div>
+        <div class="student-ribbons student-class-ribbons" role="group" aria-label="Show students by class">
           ${ribbons
             .map(
               (ribbon) => `<button type="button" class="student-ribbon" data-ribbon="${escapeHtml(ribbon.id)}" aria-pressed="false">
@@ -142,21 +147,23 @@ export async function renderStudents() {
           </div>
         </div>
         <div class="teacher-table-wrap">
-        <table class="table teacher-table student-table">
+        <table class="table teacher-table student-table" id="student-accounts-table">
           <thead>
-            <tr><th scope="col" class="student-select-cell"><input id="student-select-page" type="checkbox" aria-label="Select students on this page" /></th><th scope="col">Student</th><th scope="col">LRN</th><th scope="col">Class</th><th scope="col" class="teacher-table__status-column">Status</th><th scope="col" aria-label="Student actions"></th></tr>
+            <tr><th scope="col" class="student-select-cell" hidden><input id="student-select-page" type="checkbox" aria-label="Select students on this page" /></th><th scope="col"><span class="student-table-heading"><button type="button" class="student-multiselect-toggle" id="student-multiselect-toggle" aria-label="Multi-select students" aria-pressed="false" aria-controls="student-accounts-table">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 2 2 4-4M13 6h7M4 13l2 2 4-4M13 13h7M4 20h16" /></svg>
+        </button><span>Student</span></span></th><th scope="col">LRN</th><th scope="col">Class</th><th scope="col" class="teacher-table__status-column">Status</th><th scope="col" aria-label="Student actions"></th></tr>
           </thead>
           <tbody>
             ${students
               .map(
-                (s) => `<tr data-student="${escapeHtml(s.id)}" data-account-status="${s.disabled === true ? "deactivated" : "active"}" data-ribbon="${escapeHtml(ribbonOf(s))}" data-search="${escapeHtml(
+                (s) => `<tr data-student="${escapeHtml(s.id)}" data-lrn-status="${hasLrn(s) ? "with" : "without"}" data-account-status="${s.disabled === true ? "deactivated" : "active"}" data-ribbon="${escapeHtml(ribbonOf(s))}" data-search="${escapeHtml(
                   [fullNameOf(s), s.lrn, s.username, classOf(s)].filter(Boolean).join(" ").toLowerCase(),
                 )}">
-                  <td class="student-select-cell"><input type="checkbox" data-select-student aria-label="Select ${escapeHtml(studentName(s))}" /></td>
+                  <td class="student-select-cell" hidden><input type="checkbox" data-select-student aria-label="Select ${escapeHtml(studentName(s))}" /></td>
                   <td>
                     <div class="teacher-table__person">
-                      <span class="teacher-table__avatar" aria-hidden="true">${escapeHtml(initials(studentName(s)))}</span>
-                      <span class="teacher-table__name">${escapeHtml(fullNameOf(s) || "Unnamed student")}</span>
+                      <span class="teacher-table__avatar student-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20v-1a7 7 0 0 1 14 0v1" /></svg></span>
+                      <span><span class="teacher-table__name">${escapeHtml(fullNameOf(s) || "Unnamed student")}</span>${s.username ? `<small class="student-username">${escapeHtml(s.username)}</small>` : ""}</span>
                     </div>
                     ${studentStatus(s, true)}
                   </td>
@@ -175,6 +182,10 @@ export async function renderStudents() {
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                       </button>
                       <div class="teacher-table__menu-popup" hidden>
+                        ${!hasLrn(s) ? `<button type="button" class="teacher-table__menu-item" data-assign-lrn>
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M7 10h4M7 14h4M17 10v4M15 12h4" /></svg>
+                          <span>Assign LRN</span>
+                        </button>` : ""}
                         <button type="button" class="teacher-table__menu-item" data-student-access>
                           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9 8v8M15 8v8" /></svg>
                           <span>${s.disabled === true ? "Reactivate student" : "Deactivate student"}</span>
@@ -201,8 +212,10 @@ export async function renderStudents() {
   $("#create-student").addEventListener("click", openCreateStudentModal);
   if (!students.length) return;
 
-  const searchInput = $("#student-search");
-  const studentRows = [...document.querySelectorAll(".student-table tbody tr[data-student]")];
+  // Loading previews contain copied tables outside this live content container.
+  const view = $("#page-content");
+  const searchInput = $("#student-search", view);
+  const studentRows = [...view.querySelectorAll(".student-table tbody tr[data-student]")];
   let selection;
 
   // Rows show when they're in the selected ribbon and match the search.
@@ -214,17 +227,18 @@ export async function renderStudents() {
       row.hidden =
         (selectedRibbon !== "all" && row.dataset.ribbon !== selectedRibbon) ||
         (statusFilter !== "all" && row.dataset.accountStatus !== statusFilter) ||
+        (lrnFilter !== "all" && row.dataset.lrnStatus !== lrnFilter) ||
         !row.dataset.search.includes(text);
       if (!row.hidden) visible += 1;
     });
 
-    document.querySelectorAll(".student-ribbon").forEach((button) => {
+    view.querySelectorAll(".student-class-ribbons .student-ribbon").forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.ribbon === selectedRibbon));
     });
     $("#student-ribbon-title").textContent = ribbon.label;
     $("#student-ribbon-count").innerHTML = `<strong>${ribbon.count}</strong> ${countLabel(ribbon.count)}`;
 
-    const emptyRow = $(".student-table .admin-directory-search-empty");
+    const emptyRow = $(".student-table .admin-directory-search-empty", view);
     emptyRow.hidden = visible !== 0;
     emptyRow.querySelector("td").textContent =
       ribbon.count === 0
@@ -240,21 +254,26 @@ export async function renderStudents() {
 
   const pager = paginate({
     rows: () => studentRows,
-    after: $(".teacher-table-wrap"),
+    after: $(".teacher-table-wrap", view),
     search: searchInput,
     label: ["student", "students"],
     onChange: () => selection?.refresh(),
   });
   selection = wireStudentAccess({ students, rows: studentRows, isCurrent, applyFilters, pager, nameOf: studentName, reload: renderStudents });
   searchInput.addEventListener("input", () => selection.clear());
-  document.querySelectorAll("[data-student-status-filter]").forEach(button => button.addEventListener("click", () => {
+  view.querySelectorAll("[data-lrn-filter]").forEach(button => button.addEventListener("click", () => {
+    lrnFilter = button.dataset.lrnFilter;
+    view.querySelectorAll("[data-lrn-filter]").forEach(tab => tab.setAttribute("aria-pressed", String(tab === button)));
+    selection.clear(); closeStudentMenus(); applyFilters(); pager.reset();
+  }));
+  view.querySelectorAll("[data-student-status-filter]").forEach(button => button.addEventListener("click", () => {
     statusFilter = button.dataset.studentStatusFilter;
-    document.querySelectorAll("[data-student-status-filter]").forEach(tab => tab.setAttribute("aria-pressed", String(tab === button)));
+    view.querySelectorAll("[data-student-status-filter]").forEach(tab => tab.setAttribute("aria-pressed", String(tab === button)));
     selection.clear(); closeStudentMenus(); applyFilters(); pager.reset();
   }));
 
   // Picking a ribbon keeps the search text and goes back to page 1.
-  document.querySelector(".student-ribbons").addEventListener("click", (event) => {
+  view.querySelector(".student-class-ribbons").addEventListener("click", (event) => {
     const button = event.target.closest(".student-ribbon");
     if (!button || button.dataset.ribbon === selectedRibbon) return;
     selectedRibbon = button.dataset.ribbon;
@@ -265,10 +284,14 @@ export async function renderStudents() {
   });
 
   const byId = new Map(students.map((s) => [s.id, s]));
-  document.querySelectorAll(".student-table tbody tr[data-student]").forEach((row) => {
+  view.querySelectorAll(".student-table tbody tr[data-student]").forEach((row) => {
     const student = byId.get(row.dataset.student);
     const toggle = row.querySelector(".teacher-table__menu-toggle");
     const popup = row.querySelector(".teacher-table__menu-popup");
+    row.querySelector("[data-assign-lrn]")?.addEventListener("click", () => {
+      closeStudentMenus();
+      openAssignLrnModal(student);
+    });
     toggle.addEventListener("click", () => {
       const willOpen = popup.hidden;
       closeStudentMenus();
@@ -280,6 +303,69 @@ export async function renderStudents() {
       openTemporaryPasswordModal(student);
     });
   });
+}
+
+function openAssignLrnModal(student) {
+  const isCurrent = captureRoute("/students");
+  let busy = false;
+  openModal(
+    `<h2>Assign learner reference number</h2>
+     <p>Add the official LRN for <strong>${escapeHtml(studentName(student))}</strong>.</p>
+     <form id="assign-lrn-form" class="form-card">
+       <label>Learner Reference Number (LRN)
+         <input name="lrn" type="text" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" required autocomplete="off" aria-describedby="assign-lrn-help" />
+       </label>
+       <p class="muted" id="assign-lrn-help">Enter the 12-digit LRN exactly as it appears in the student's school record. The student can then sign in using their LRN or existing username with their current password.</p>
+       <p id="assign-lrn-error" class="form-error" role="alert"></p>
+       <div class="modal-actions"><button type="button" class="button secondary" data-cancel>Cancel</button><button type="submit" class="button primary">Save LRN</button></div>
+     </form>`,
+    (modal, close) => {
+      const form = $("#assign-lrn-form", modal);
+      const input = form.elements.lrn;
+      const submit = form.querySelector('[type="submit"]');
+      const cancel = $("[data-cancel]", modal);
+      const error = $("#assign-lrn-error", modal);
+      const dialog = modal.querySelector('[role="dialog"]');
+      dialog.setAttribute("aria-label", "Assign learner reference number");
+      cancel.addEventListener("click", () => { if (!busy) close(); });
+      modal.addEventListener("keydown", event => {
+        if (event.key === "Escape") { event.preventDefault(); if (!busy) close(); }
+        if (event.key !== "Tab") return;
+        const controls = [...modal.querySelectorAll("button:not(:disabled), input:not(:disabled)")];
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      });
+      input.focus();
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (busy) return;
+        error.textContent = "";
+        const lrn = input.value.trim();
+        if (!/^\d{12}$/.test(lrn)) { fieldError(input, "Enter exactly 12 digits."); input.focus(); return; }
+        busy = true;
+        submit.disabled = cancel.disabled = input.disabled = true;
+        form.setAttribute("aria-busy", "true");
+        submit.textContent = "Saving...";
+        try {
+          await postToApi("student-accounts", { action: "assign-lrn", studentId: student.id, lrn });
+        } catch (failure) {
+          error.textContent = failure.message;
+          busy = false;
+          submit.disabled = cancel.disabled = input.disabled = false;
+          form.setAttribute("aria-busy", "false");
+          submit.textContent = "Save LRN";
+          input.focus();
+          return;
+        }
+        busy = false;
+        close();
+        notify({ tone: "success", title: "LRN assigned", message: "The student can now sign in with their LRN or existing username and current password." });
+        if (isCurrent()) renderStudents().catch(() => notify({ tone: "info", title: "Refresh student accounts", message: "The LRN was saved. Refresh the list to see the update." }));
+      });
+    },
+    { beforeClose: () => !busy },
+  );
 }
 
 /** Easy to read out loud: no 0/O or 1/l/I. */

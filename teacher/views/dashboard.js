@@ -1,3 +1,4 @@
+import { currentSchoolYear, schoolYearOf, schoolYearOptions, schoolYearRibbons, matchesSchoolYear } from '../../js/schoolYear.js';
 import { skeleton } from '../../js/page-loading.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import {
@@ -118,6 +119,7 @@ function fillOverview(overview) {
 const countUnreadChats = () => state.classes.filter((classroom) => !classroom.archived && hasUnreadChat(classroom.id)).length;
 
 let classDirectoryTab = "active";
+let selectedSchoolYear = currentSchoolYear();
 let stopCardMenus;
 export function leaveDashboardMenus() { stopCardMenus?.(); stopCardMenus = null; }
 
@@ -128,7 +130,8 @@ export async function renderDashboard() {
   await getTeacherClasses();
   if (!isCurrent()) return;
   const activeClasses=state.classes.filter(c=>!c.archived);
-  const directoryClasses=()=>state.classes.filter(c=>(c.archived===true)===(classDirectoryTab==="archived"));
+  const statusClasses = state.classes.filter(c=>(c.archived===true)===(classDirectoryTab==="archived"));
+  const directoryClasses=()=>statusClasses.filter(c=>matchesSchoolYear(c, selectedSchoolYear));
   const notices = new Map();
   const expanded = new Set();
   const closeCardMenus = () => {
@@ -209,6 +212,7 @@ export async function renderDashboard() {
                     <h3><a href="#/classes/${encodeURIComponent(c.id)}">${escapeHtml(className)}</a></h3>
                     ${deletionChip(c)}
                   </div>
+                  <small>School Year ${escapeHtml(schoolYearOf(c))}</small>
                   <p>${escapeHtml(c.description || "A space for lessons, progress, and classroom learning.")}</p>
                   <div class="class-card__meta" data-class-meta="${escapeHtml(c.id)}"></div>
                 </div>
@@ -226,7 +230,7 @@ export async function renderDashboard() {
             },
           )
           .join("")}</div>`
-      : `<p class="muted" role="status">No classes match your search. Try a different name or section.</p>`;
+      : `<p class="muted" role="status">No classes match these filters. Try another school year, status, or search.</p>`;
 
   const wireCardMenus = () => {
     document.querySelectorAll('[data-class-open]').forEach(card => {
@@ -332,6 +336,7 @@ export async function renderDashboard() {
         </span>
       </div>
       <div class="class-directory__tabs" role="group" aria-label="Class status"><button type="button" class="button secondary small" data-class-tab="active" aria-pressed="${classDirectoryTab==='active'}">Active (${activeClasses.length})</button><button type="button" class="button secondary small" data-class-tab="archived" aria-pressed="${classDirectoryTab==='archived'}">Archived (${state.classes.length-activeClasses.length})</button></div>
+      ${schoolYearRibbons(statusClasses, selectedSchoolYear)}
       ${
         state.classes.length
           ? `<label class="class-directory__search">
@@ -386,6 +391,11 @@ export async function renderDashboard() {
   $("#new-class-empty")?.addEventListener("click", () => openClassModal());
 
   document.querySelectorAll('[data-class-tab]').forEach(button=>button.addEventListener('click',()=>{classDirectoryTab=button.dataset.classTab;void renderDashboard();}));
+  document.querySelectorAll('[data-school-year]').forEach(button => button.addEventListener('click', async () => {
+    selectedSchoolYear = button.dataset.schoolYear;
+    await renderDashboard();
+    document.querySelector(`[data-school-year="${selectedSchoolYear}"]`)?.focus();
+  }));
   $("#class-search")?.addEventListener("input", (e) => {
     const term = e.target.value.trim().toLowerCase();
     const filtered = directoryClasses().filter((c) =>
@@ -421,6 +431,10 @@ export function openClassModal(existing) {
     `<h2>${existing ? "Edit class" : "Create a class"}</h2>
      <p>${existing ? "Update the class details students see." : "A unique class code is generated automatically."}</p>
      <form id="class-form">
+       <label>School Year
+         ${existing ? `<input value="${escapeHtml(schoolYearOf(existing))}" readonly aria-describedby="school-year-hint" />` : `<select name="schoolYear" required data-missing="Choose a school year.">${schoolYearOptions().map(year => `<option value="${year}" ${year === currentSchoolYear() ? 'selected' : ''}>${year}</option>`).join('')}</select>`}
+         <small id="school-year-hint">School Year cannot be changed after creation.</small>
+       </label>
        <label>Grade level
          <select name="gradeLevel" required data-missing="Choose the grade level for this class.">
            <option value="" disabled ${!existing?.gradeLevel ? "selected" : ""}>Select grade</option>
@@ -447,6 +461,8 @@ export function openClassModal(existing) {
         e.preventDefault();
         const form = new FormData(e.currentTarget);
         const values = Object.fromEntries(form);
+        if (existing) delete values.schoolYear;
+        else if (!schoolYearOptions().includes(values.schoolYear)) { toast("Choose a valid school year."); return; }
         const className = `Grade ${values.gradeLevel} - ${values.section}`;
         try {
           if (existing)
@@ -463,6 +479,7 @@ export function openClassModal(existing) {
               teacherId: state.user.uid,
               createdAt: serverTimestamp(),
             });
+          if (!existing) { selectedSchoolYear = values.schoolYear; classDirectoryTab = "active"; }
           close();
           toast(existing ? "Class updated." : "Class created.");
           navigate("/classes");
@@ -475,7 +492,7 @@ export function openClassModal(existing) {
   );
 }
 
-// Deleting needs an admin's approval: the teacher sends a request (classDeletion.js).
+// Archive/restore preserves the roster, lessons and saved progress.
 function openDeleteClassModal(classroom) {
   openRequestDeletionModal(classroom, renderDashboard);
 }

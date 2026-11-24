@@ -1,5 +1,39 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { postToApi } from "./api.js";
+import { effectiveOpening, openingDay, pathScheduleError } from './learningPathSequence.js';
+
+// Enforce calendar-day ordering in the classroom's Philippine timezone, including typed dates.
+export function wirePathOpeningDates(entries, { previous = null, next = null } = {}) {
+  const boundary = (value, offset, end = false) => {
+    const day = openingDay(value);
+    if (!day) return '';
+    const date = new Date(`${day}T00:00:00+08:00`);
+    date.setTime(date.getTime() + offset * 86400000 + (end ? 86340000 : 0));
+    return toInputValue({ toDate: () => date });
+  };
+  const sync = () => {
+    const candidates = entries.map(({ path, form }) => ({ ...path, openAt: fromInputValue(form.elements.openAt.value)?.getTime() ?? null, sequenceOpenAt: path.sequenceOpenAt ?? path.createdAt ?? Date.now() }));
+    const paths = [...(previous ? [previous] : []), ...candidates, ...(next ? [next] : [])];
+    let firstError = null;
+    entries.forEach(({ form }, index) => {
+      const position = index + (previous ? 1 : 0), input = form.elements.openAt;
+      const before = paths[position - 1], after = paths[position + 1];
+      const today = toInputValue({ toDate: () => new Date() }).slice(0, 10) + 'T00:00';
+      const minimum = before ? boundary(effectiveOpening(before), 1) : today;
+      input.min = minimum > today ? minimum : today;
+      const constrainNext = after && (after.openAt != null || after === next);
+      input.max = constrainNext ? boundary(effectiveOpening(after), -1, true) : '';
+      input.required = Boolean(before);
+      const error = pathScheduleError(constrainNext ? paths : paths.slice(0, position + 1), position);
+      input.setCustomValidity(error || '');
+      firstError ||= error;
+    });
+    return firstError;
+  };
+  for (const { form } of entries) for (const event of ['input', 'change', 'focus']) form.elements.openAt.addEventListener(event, sync);
+  sync();
+  return sync;
+}
 
 // ----- Class lesson links (classes/{classId}/classLessons/{linkId}) -----
 // A library lesson can be in a class twice: as an Assessment (link id = lesson id, which the

@@ -40,7 +40,7 @@ const server=http.createServer(async(req,res)=>{
   const add=page.locator('#add-lesson-inline'),review=page.getByRole('link',{name:'Review readings'});
   await add.waitFor();assert.equal(await add.textContent(),'');assert.equal(await review.textContent(),'');
   await add.hover();await page.waitForTimeout(220);
-  assert.equal(await page.locator('.floating-tooltip').textContent(),'Add lesson');
+  assert.equal(await page.locator('.floating-tooltip').textContent(),'Add modules');
   assert.equal(await page.locator('.floating-tooltip').isVisible(),true);
   const style=await add.evaluate(button=>({background:getComputedStyle(button).backgroundColor,transform:getComputedStyle(button.querySelector('svg')).transform}));
   assert.match(style.background,/0\.1\)/);assert.notEqual(style.transform,'none');

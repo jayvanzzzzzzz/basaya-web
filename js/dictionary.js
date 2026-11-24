@@ -15,6 +15,7 @@ import {
 import { db } from "./firebase.js";
 import { guessRoots, normalizeWord } from "./dictionaryWords.js";
 import { cleanSyllables, syllabify } from "./syllables.js";
+import { canManageDictionaryWord, dictionaryLastName } from "./dictionaryAttribution.js";
 
 export { normalizeWord } from "./dictionaryWords.js";
 
@@ -51,6 +52,7 @@ export const MAX_SENSES = 5;
 const SEED_URL = new URL("../data/dictionary/tl-seed.json", import.meta.url);
 const words = collection(db, "dictionary");
 let seed = null;
+let seedKeys = new Set();
 
 function fromSeed(e) {
   return {
@@ -74,7 +76,7 @@ function fromDoc(snap) {
     syllables: d.syllables || "",
     senses: d.senses || [],
     synonyms: d.synonyms || [],
-    source: "teacher",
+    source: seedKeys.has(snap.id) ? "wiktionary" : "teacher",
     hidden: !!d.hidden,
   };
 }
@@ -86,7 +88,11 @@ export function loadSeed() {
       if (!response.ok) throw new Error(`Dictionary file: ${response.status}`);
       return response.json();
     })
-    .then((list) => list.map(fromSeed))
+    .then((list) => {
+      const entries = list.map(fromSeed);
+      seedKeys = new Set(entries.map(entry => entry.key));
+      return entries;
+    })
     .catch((error) => {
       seed = null; // try again next time
       throw error;
@@ -105,6 +111,7 @@ async function teacherWordsStartingWith(prefix, max) {
   const snap = await getDocs(
     query(words, where("key", ">=", prefix), where("key", "<=", `${prefix}`), orderBy("key"), limit(max)),
   );
+  await loadSeed();
   return snap.docs.map(fromDoc);
 }
 
@@ -189,13 +196,18 @@ export async function allWords() {
 }
 
 // Who first added a word (kept on every save) and who changed it last.
-const stamp = (owner, { user, name }) => ({
+const stamp = (owner, { user, name, profile }) => ({
   createdBy: owner?.createdBy || user.uid,
   createdByName: owner?.createdByName || name,
   createdAt: owner?.createdAt || serverTimestamp(),
+  ...(owner?.createdByRole ? { createdByRole: owner.createdByRole } : !owner ? { createdByRole: profile.role } : {}),
+  ...(owner?.createdByLastName ? { createdByLastName: owner.createdByLastName } : !owner ? { createdByLastName: profile.role === "teacher" ? profile.lastName || dictionaryLastName(name) : "" } : {}),
   updatedBy: user.uid,
   updatedByName: name,
   updatedAt: serverTimestamp(),
+  updatedByRole: profile.role,
+  updatedByLastName: profile.role === "teacher" ? profile.lastName || dictionaryLastName(name) : "",
+  edited: Boolean(owner),
 });
 
 const wordDoc = ({ word, accent = "", syllables = "", senses, synonyms = [] }) => ({
@@ -208,19 +220,11 @@ const wordDoc = ({ word, accent = "", syllables = "", senses, synonyms = [] }) =
   hidden: false,
 });
 
-const hiddenDoc = (entry) => ({
-  word: entry.word,
-  key: entry.key,
-  accent: entry.accent || "",
-  syllables: entry.syllables || "",
-  senses: [],
-  synonyms: [],
-  hidden: true,
-});
-
 /** Adds or replaces a teacher word under its own spelling, keeping who first added it. */
 export async function saveWord(fields, who) {
+  if (!["teacher", "admin"].includes(who.profile?.role)) throw new Error("Only teachers and admins can manage dictionary words.");
   const key = normalizeWord(fields.word);
+  if ((await loadSeed()).some(entry => entry.key === key)) throw new Error("Imported words cannot be edited.");
   const existing = await getDoc(doc(words, key));
   await setDoc(doc(words, key), { ...wordDoc(fields), ...stamp(existing.exists() ? existing.data() : null, who) });
   return key;
@@ -228,28 +232,27 @@ export async function saveWord(fields, who) {
 
 /**
  * Admins only: moves a word to a new spelling (the doc id is the spelling). The moved
- * word keeps who first added it. The old spelling is hidden when Wiktionary has it, so
- * the seed word doesn't come back, and deleted when only a teacher added it. A hidden
- * marker already at the new spelling is replaced. One batch, so it's never half moved.
+ * word keeps who first added it. Imported spellings cannot be moved or replaced.
+ * One batch, so it's never half moved.
  */
 export async function renameWord(entry, fields, who) {
+  if (who.profile?.role !== "admin" || !canManageDictionaryWord(entry, who.profile.role)) throw new Error("This word cannot be renamed.");
   const key = normalizeWord(fields.word);
+  const imported = await loadSeed();
+  if (imported.some(word => word.key === entry.key)) throw new Error("Imported words cannot be renamed.");
+  if (imported.some(word => word.key === key) || (await getDoc(doc(words, key))).exists()) throw new Error("The destination word already exists.");
   const old = await getDoc(doc(words, entry.key));
   const owner = old.exists() ? old.data() : null;
   const batch = writeBatch(db);
   batch.set(doc(words, key), { ...wordDoc(fields), ...stamp(owner, who) });
-  if (entry.source === "wiktionary" || entry.replaces) batch.set(doc(words, entry.key), { ...hiddenDoc(entry), ...stamp(owner, who) });
-  else batch.delete(doc(words, entry.key));
+  batch.delete(doc(words, entry.key));
   await batch.commit();
   return key;
 }
 
-/** Deletes a word for everyone. A word Wiktionary has gets a hidden marker, since the seed file can't change; a word only a teacher added is just removed. */
+/** Deletes a staff addition for everyone. Imported words cannot be deleted. */
 export async function deleteWord(entry, who) {
-  if (entry.source !== "wiktionary" && !entry.replaces) return deleteDoc(doc(words, entry.key));
-  const existing = await getDoc(doc(words, entry.key));
-  await setDoc(doc(words, entry.key), { ...hiddenDoc(entry), ...stamp(existing.exists() ? existing.data() : null, who) });
+  if (!canManageDictionaryWord(entry, who.profile?.role)) throw new Error("Imported words cannot be deleted.");
+  if ((await loadSeed()).some(word => word.key === entry.key)) throw new Error("Imported words cannot be deleted.");
+  return deleteDoc(doc(words, entry.key));
 }
-
-/** Removes a teacher's changes to a Wiktionary word; the original shows again. */
-export const restoreWord = (key) => deleteDoc(doc(words, key));

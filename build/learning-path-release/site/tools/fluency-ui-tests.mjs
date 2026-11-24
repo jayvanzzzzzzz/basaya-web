@@ -1,0 +1,177 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { setImmediate as flush, setTimeout as wait } from 'node:timers/promises';
+import { advanceReading } from '../student/fluencyStore.js';
+const require=createRequire(new URL('../notify-api/package.json',import.meta.url));
+const {parseHTML}=require('linkedom');
+const {document,window}=parseHTML('<html><body><main></main></body></html>');
+let state={revision:0,page:0,word:1,stage:'words',status:'draft',pages:[{sentence:'May magandang bahay.',audioUrl:'https://model/1',words:[{word:'May'},{word:'magandang'}]},{sentence:'Malaki ang bahay.',audioUrl:'https://model/2',words:[{word:'Malaki'}]}],clips:[null,null]};
+const clips={},leaves=[];
+let recorded=0, microphoneClosed=0, wordAccepted=false, wordServiceFails=false, noSpeech=false, silentRecording=false;
+let pauseCheck=false, releaseCheck, checks=0;
+let diagnosticWords={expectedWord:'magandang',recognizedText:'Maitim ang buddhi'};
+const session={get state(){return state},pending:0,clip:page=>clips[page],sync:async()=>{},
+  checkWord:async()=>{
+    checks++;
+    assert.equal(document.querySelectorAll('.st-reading__checking-bars i').length,5);
+    assert.equal(document.querySelector('[data-reading-mic]').disabled,true);
+    assert.equal(document.querySelector('.st-reading__record').getAttribute('aria-busy'),'true');
+    assert.match(document.querySelector('.st-reading__checking').textContent,/Sinusuri ang sagot/);
+    if(pauseCheck)await new Promise(resolve=>{releaseCheck=resolve});
+    if(wordServiceFails)throw Error('Speech service unavailable');if(wordAccepted)state=advanceReading(state,'word');return{wordAccepted,noSpeech,speechDiagnostic:{...diagnosticWords,recognizedText:noSpeech?'':diagnosticWords.recognizedText}};
+  },
+  act:async(op,clip)=>{assert.notEqual(op,'word','Unverified words must not use optimistic progress');if(clip)clips[state.page]=clip;state=advanceReading(state,op,clip)},submit:async()=>{state.status='submitted'},playback:async()=> 'https://private/recording'};
+const $=(selector,root=document)=>root.querySelector(selector);
+let frameId=0, highlightedExamples=0;
+const frames=new Map();
+const context=vm.createContext({document,window,console,Blob,AbortController,structuredClone,setTimeout,clearTimeout,requestAnimationFrame:fn=>{frames.set(++frameId,fn);return frameId},cancelAnimationFrame:id=>frames.delete(id),crypto:{randomUUID:()=>`record-${++recorded}`},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},SpeechSynthesisUtterance:class{},Audio:class{
+  duration=2;currentTime=.5;
+  pause(){} play(){for(const[id,fn]of [...frames]){frames.delete(id);fn()};assert.ok($('.st-word.is-speaking'),'Example audio softly highlights its current word');assert.equal($('.st-word-bubble.is-on'),null,'No moving pill crosses the sentence');highlightedExamples++;queueMicrotask(()=>this.onended?.());return Promise.resolve()}
+}});
+window.Element.prototype.pause=function(){this.paused=true;this.dispatchEvent(new window.Event('pause'))};
+context.location={hostname:'localhost'};
+window.Element.prototype.play=function(){this.paused=false;this.dispatchEvent(new window.Event('play'));return Promise.resolve()};
+const module=exports=>new vm.SyntheticModule(Object.keys(exports),function(){for(const[key,value]of Object.entries(exports))this.setExport(key,value)},{context});
+const helpers=module({$,escapeHtml:value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),navigate(){},openModal(html,mount){
+  const backdrop=document.createElement('div');backdrop.className='test-modal';
+  backdrop.innerHTML=`<div class="modal">${html}</div>`;document.body.append(backdrop);
+  mount(backdrop,()=>backdrop.remove());
+}});
+let dictionaryError=false, missingMeaning=false;
+const dictionary=module({lookupWord:async spelling=>{
+  assert.equal(spelling.toLowerCase(),'nagbigay');
+  if(dictionaryError)throw Error('offline');
+  return missingMeaning?null:{word:'nagbigay',senses:[{pos:'pandiwa',definitions:['<b>Nagkaloob</b>'],examples:['Nagbigay siya ng tulong.']}]};
+}});
+const confirmation=module({confirmAction:async()=>true});
+const ui=module({content:()=>document.querySelector('main'),icon:()=>'<svg></svg>',talkingBuddy:()=>'<div class="st-reading__buddy"></div>',setTalking(){}});
+const router=module({onLeave:fn=>leaves.push(fn)});
+const speech=module({Microphone:class{
+  async open(){return'ok'}
+  record(level,cancel,release){return new Promise(resolve=>{release.addEventListener('abort',()=>resolve({wav:silentRecording?null:new Blob(['voice'])}),{once:true});cancel.addEventListener('abort',()=>resolve({cancelled:true}),{once:true})})}
+  close(){microphoneClosed++}
+}});
+const data=module({invalidateStudentData(){}});
+const service=module({openReading:async()=>session});
+const readAlong=new vm.SourceTextModule(await readFile(new URL('../student/readAlong.js',import.meta.url),'utf8'),{context});
+await readAlong.link(()=>{throw Error('Unexpected read-along import')});
+await readAlong.evaluate();
+const controller=new vm.SourceTextModule(await readFile(new URL('../student/views/fluency.js',import.meta.url),'utf8'),{context});
+await controller.link(name=>name.endsWith('dictionary.js')?dictionary:name.endsWith('action-confirmation.js')?confirmation:name.endsWith('readAlong.js')?readAlong:name.endsWith('helpers.js')?helpers:name.endsWith('ui.js')?ui:name.endsWith('router.js')?router:name.endsWith('speech.js')?speech:name.endsWith('data.js')?data:service);
+await controller.evaluate();
+await controller.namespace.renderFluency({id:'lesson'});
+assert.match($('.st-reading__card-label').textContent,/SALITA 2/);
+assert.equal($('.st-reading__top > strong').textContent,'1/2');
+assert.equal(document.querySelector('.st-lives'),null,'Word warmup has no lives');
+const event=(type,fields={})=>Object.assign(new window.Event(type,{bubbles:true,cancelable:true}),fields);
+assert.equal($('[data-reading-listen]').textContent.trim(),'','Word speaker is icon only');
+assert.equal($('[data-reading-listen]').getAttribute('aria-label'),'Pakinggan ang salita');
+assert.equal($('[data-reading-meaning-button]').textContent,'Kahulugan');
+state.pages[0].words[1].word='Nagbigay';
+for(const mode of ['found','missing','error','retry']){
+  dictionaryError=mode==='error';missingMeaning=mode==='missing';
+  $('[data-reading-meaning-button]').dispatchEvent(event('click'));await flush();await flush();
+  if(mode==='missing')assert.match($('[data-reading-meaning]').textContent,/Wala pang kahulugan/);
+  else if(mode==='error')assert.match($('[data-reading-meaning]').textContent,/Hindi makuha ang kahulugan/);
+  else {
+    assert.match($('[data-reading-meaning]').textContent,/Nagkaloob/);
+    assert.equal($('[data-reading-meaning] b'),null,'Dictionary content is escaped');
+  }
+  $('[data-close-info]').dispatchEvent(event('click'));
+  assert.equal($('.test-modal'),null,'Meaning dialog closes');
+}
+state.pages[0].words[1].word='magandang';
+async function hold(){
+  $('[data-reading-mic]').dispatchEvent(event('pointerdown',{pointerType:'mouse',button:0,pointerId:1}));
+  await flush();
+  assert.equal($('[data-reading-mic]').getAttribute('aria-pressed'),'true');
+  $('[data-reading-mic]').dispatchEvent(event('pointerup'));
+  await flush();await flush();
+  const feedback=document.querySelector('.st-reading__remark');
+  if(feedback?.textContent && ['correct','retry'].includes(feedback.dataset.kind)) {
+    assert.equal($('.st-reading__checking'),null,'Checking animation stops before correct or retry feedback');
+    assert.match(feedback.textContent,wordAccepted?/Tama! Ang galing mo!/:/Subukan ulit. Kaya mo/);
+    assert.ok($('.st-reading__card').classList.contains(wordAccepted?'is-word-correct':'is-word-retry'));
+    if(wordAccepted) assert.match($('.st-reading__card-label').textContent,/SALITA/,'Celebrate the spoken word before displaying the next stage');
+    await wait(wordAccepted?1150:600);
+  }
+}
+state.pages[0].words[1].audioUrl='https://model/word';
+$('[data-reading-listen]').dispatchEvent(event('click'));await flush();await flush();
+assert.equal($('.st-word-bubble.is-on'),null,'Highlight clears when word example ends');
+pauseCheck=true;
+await hold();assert.equal(state.stage,'words');assert.equal(state.word,1);
+assert.ok($('.st-reading__checking'),'Indicator remains visible while waiting for the service');
+const checksBefore=checks;
+$('[data-reading-mic]').dispatchEvent(event('pointerdown',{pointerType:'mouse',button:0,pointerId:2}));await flush();
+assert.equal(checks,checksBefore,'Checking cannot start a second recording');
+pauseCheck=false;releaseCheck();await flush();await flush();
+assert.equal($('.st-reading__checking'),null);
+assert.equal($('.st-reading__diagnostic').textContent,'Inaasahan: magandangNarinig: Maitim ang buddhi','Diagnostic shows both server texts');
+assert.match($('.st-reading__notice').textContent,/Subukan ulit. Kaya mo/);
+assert.equal($('.st-reading__notice').dataset.kind,'retry');
+assert.ok($('.st-reading__notice svg'),'Persistent retry card has an icon after redraw');
+diagnosticWords={expectedWord:'<b>expected</b>',recognizedText:'<img src=x onerror=alert(1)>'};
+await hold();assert.equal(state.word,1,'Second wrong recording does not advance');
+assert.equal($('.st-reading__diagnostic b, .st-reading__diagnostic img'),null,'Both diagnostic texts are escaped');
+context.location.hostname='basaya.onrender.com';await hold();assert.equal($('.st-reading__diagnostic'),null,'Hosted student screens hide the diagnostic');context.location.hostname='localhost';
+assert.equal($('.st-reading__notice').dataset.kind,'retry');
+wordServiceFails=true;await hold();assert.equal(state.stage,'words');assert.equal(state.word,1);
+assert.match($('.st-reading__notice').textContent,/Hindi makakonekta. Tingnan ang iyong internet at subukan muli/);
+assert.equal($('.st-reading__checking'),null,'Service errors remove the checking indicator');
+assert.equal(document.querySelector('.is-word-retry'),null);
+wordServiceFails=false;noSpeech=true;await hold();assert.equal(state.word,1);
+assert.match($('.st-reading__notice').textContent,/Wala akong narinig, subukan muli\./);
+assert.equal($('.st-reading__notice').dataset.kind,'silence');assert.ok($('.st-reading__notice svg'));
+assert.equal(document.querySelector('.is-word-retry'),null);
+noSpeech=false;silentRecording=true;await hold();assert.equal(state.word,1);
+assert.equal($('.st-reading__notice').textContent,'Wala akong narinig, subukan muli.');
+silentRecording=false;wordAccepted=true;
+await hold(); assert.equal(state.stage,'sentence');
+assert.ok($('[data-reading-mic]').disabled,'Listen to sentence model before recording');
+$('[data-reading-listen]').dispatchEvent(event('click'));await flush();await flush();
+assert.equal(state.stage,'record');
+assert.equal($('.st-word-bubble.is-on'),null,'Highlight clears when sentence example ends');
+await hold();assert.equal(state.stage,'preview');
+assert.equal($('.st-word-bubble.is-on'),null,'Student recording preview never highlights words');
+assert.ok($('#reading-preview').src.startsWith('blob:'));
+assert.equal($('#reading-preview').hasAttribute('controls'),false,'Preview uses custom playback controls');
+assert.equal($('[data-reading-mic]'),null,'Preview does not put a second microphone below the recording');
+const recording=$('#reading-preview');recording.duration=6;recording.currentTime=1.5;recording.paused=true;
+recording.dispatchEvent(event('loadedmetadata'));
+assert.equal($('#reading-duration').textContent,'0:06');
+$('[data-reading-play]').dispatchEvent(event('click'));await flush();
+assert.equal($('[data-reading-play]').getAttribute('aria-label'),'I-pause ang recording');
+$('[data-reading-play]').dispatchEvent(event('click'));await flush();
+assert.equal($('[data-reading-play]').getAttribute('aria-label'),'Pakinggan ang recording');
+$('[data-reading-seek]').value='500';$('[data-reading-seek]').dispatchEvent(event('input'));
+assert.equal(recording.currentTime,3,'Custom progress slider seeks to the chosen time');
+const first=state.clips[0].eventId;
+$('[data-reading-retake]').dispatchEvent(event('click'));await flush();
+assert.equal($('#reading-preview'),null,'Retake hides the recording preview');
+assert.equal(state.clips[0].eventId,first,'Choosing retake preserves the old take');
+assert.ok($('[data-reading-mic]'));assert.match($('.st-reading__text').textContent,/May magandang bahay/);
+assert.equal($('[data-reading-next]'),null,'Retake mode focuses on reading, without submitting the old take');
+silentRecording=true;await hold();assert.equal(state.clips[0].eventId,first,'An empty retake preserves the saved recording');silentRecording=false;
+assert.equal($('#reading-preview'),null,'A failed retake stays in the sentence view');
+$('[data-reading-keep]').dispatchEvent(event('click'));await flush();
+assert.ok($('#reading-preview'));assert.equal(state.clips[0].eventId,first,'Returning to the old take preserves it');
+$('[data-reading-retake]').dispatchEvent(event('click'));await flush();
+await hold();assert.notEqual(state.clips[0].eventId,first,'Retake replaces the selected clip');
+assert.ok($('#reading-preview'),'Successful retake returns to preview');
+assert.doesNotMatch(document.querySelector('main').textContent,/Naka-save ang iyong progreso/);
+$('[data-reading-next]').dispatchEvent(event('click'));await flush();await flush();
+assert.equal(state.page,1);assert.equal(state.word,0);assert.equal(state.stage,'words');
+assert.equal($('.st-reading__top > strong').textContent,'2/2');
+await hold();
+$('[data-reading-listen]').dispatchEvent(event('click'));await flush();await flush();
+await hold();
+assert.match($('[data-reading-next]').textContent,/Tapusin at ipasa/);
+$('[data-reading-next]').dispatchEvent(event('click'));await flush();await flush();
+assert.equal(state.status,'submitted');
+assert.match(document.querySelector('main').textContent,/Pakikinggan ng iyong guro/);
+leaves.forEach(fn=>fn());assert.ok(microphoneClosed);
+assert.ok(highlightedExamples>=3);assert.equal(frames.size,0,'Read-along animation frames are cleaned up');
+console.log('PASS: Get Ready remarks/animations, example-only word highlighting and cleanup, hold/release, model gate, audio preview, retake, next page, submit');

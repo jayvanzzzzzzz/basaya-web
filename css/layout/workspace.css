@@ -71,6 +71,28 @@
   -webkit-backdrop-filter: none;
 }
 
+/* Keep navigation anchored while the document scrolls in the content column. */
+@media screen and (min-width: 861px) {
+  .app-shell > .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    height: 100dvh;
+    overscroll-behavior-y: auto;
+  }
+
+  .app-shell > .content {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+@media screen and (max-width: 860px) {
+  .app-shell > .sidebar {
+    align-self: start;
+  }
+}
+
 .sidebar .brand {
   color: #fff;
   font-size: 1.25rem;

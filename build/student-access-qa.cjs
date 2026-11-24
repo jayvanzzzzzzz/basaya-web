@@ -19,8 +19,10 @@ const server=http.createServer(async(req,res)=>{try{
    import {shell} from '/js/helpers.js';
    ${views.map(v=>`import {${v==='account'?'renderAccount':'render'+v[0].toUpperCase()+v.slice(1)}} from '/admin/views/${v}.js';`).join('\n')}
    import '/js/admin-design.js';
+   import {beginPageLoading} from '/js/page-loading.js';
    const routes={students:renderStudents};
-   async function render(){window.ready=false;document.querySelector('#loading-screen').hidden=true;shell('admin-summary','Admin');const route=location.hash.slice(2)||'students';if(!location.hash)history.replaceState(null,'',location.pathname+location.search+'#/'+route);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===route));await routes[route]();window.ready=true;}
+   async function render(){window.ready=false;document.querySelector('#loading-screen').hidden=true;shell('admin-summary','Admin');const route=location.hash.slice(2)||'students';if(!location.hash)history.replaceState(null,'',location.pathname+location.search+'#/'+route);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===route));const finish=beginPageLoading('/'+route,'admin:fixture','admin-students');await routes[route]();finish();window.ready=true;}
+   window.renderStudentsAgain=render;
    window.addEventListener('hashchange',render);await render();
    </script></body>`);type='text/html';
  }else{
@@ -61,6 +63,35 @@ const server=http.createServer(async(req,res)=>{try{
  const filter=value=>p.locator('[data-student-status-filter="'+value+'"]');
  const visible=()=>p.locator('tr[data-student]:visible');
  assert.equal(await visible().count(),10);
+ for(let visit=0;visit<3;visit++){
+  await p.locator('[data-page=next]').click();
+  await p.evaluate(()=>window.renderStudentsAgain());
+  assert.equal(await visible().count(),10,'Returning to student accounts must show the real rows after the loading preview is removed');
+  assert.equal(await p.locator('#page-content .pagination:visible').count(),1);
+  assert.equal(await visible().first().getAttribute('data-student'),'s0');
+ }
+ const multi=p.locator('#student-multiselect-toggle');
+ assert.equal(await p.locator('#student-select-page').isVisible(),false);
+ assert.equal(await p.locator('[data-select-student]:visible').count(),0);
+ for(const theme of ['light','dark'])for(const width of [1440,768,390,320]){
+  await p.setViewportSize({width,height:1000});await p.evaluate(t=>document.documentElement.dataset.theme=t,theme);
+  await multi.hover();
+  const tip=p.getByRole('tooltip',{name:'Multi-select students',exact:true});await tip.waitFor();
+  const box=await tip.boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width);
+  await p.screenshot({path:path.join(out,'multiselect-'+theme+'-'+width+'.png'),fullPage:true});
+  await multi.click();assert.equal(await multi.getAttribute('aria-pressed'),'true');
+  assert.equal(await p.locator('[data-select-student]:visible').count(),10);
+  await visible().first().locator('[data-select-student]').check();
+  await multi.click();assert.equal(await p.locator('[data-select-student]:checked').count(),0);
+  assert.equal(await p.locator('#student-bulk-actions').isVisible(),false);
+  assert.equal(await p.locator('#student-select-page').isVisible(),false);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ }
+ await p.setViewportSize({width:1440,height:1000});
+ await p.mouse.move(0,0);await p.locator('#student-search').focus();
+ await multi.focus();await p.getByRole('tooltip',{name:'Multi-select students',exact:true}).waitFor();
+ await p.keyboard.press('Escape');assert.equal(await p.getByRole('tooltip',{name:'Multi-select students',exact:true}).isVisible(),false);
+ await p.keyboard.press('Space');assert.equal(await multi.getAttribute('aria-pressed'),'true');
  assert.equal((await filter('active').textContent()).trim(),'Active16');
  assert.equal((await filter('deactivated').textContent()).trim(),'Deactivated8');
  await filter('deactivated').click();assert.equal(await visible().count(),8);

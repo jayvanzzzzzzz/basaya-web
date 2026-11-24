@@ -20,6 +20,7 @@ import { withDownloadAbort } from "./downloadCancellation.js";
 import { fluencyPages } from '../js/fluencyContent.js';
 import { summarize, resultsFrom, lessonParts, withMissed } from "../js/scoring.js";
 import { lessonDeadline } from "../js/deadline-policy.js";
+import { withPathPrerequisites, pathBlocker, sequenceLessonComplete, canOpenPathLesson } from '../js/learningPathSequence.js';
 
 // Everything the student side reads and writes in Firestore. Field names and shapes match
 // the Android app (C:\Projects\BaSaya) exactly, so a student can switch between the app and
@@ -193,10 +194,10 @@ function forgetFoundWords(lessonIds) {
 }
 
 /** Something was done even if no part is finished yet: a part left halfway (a saved place), a game level, or Bigkas (the app's LessonResume.started). */
-const hasStarted = (data) =>
-  Object.values(data.resume || {}).some((state) => Number(state?.done) > 0) ||
-  Number(data.gameScore) > 0 ||
-  data.pronunciationFinished === true;
+const hasStarted = (data, skipped = {}) =>
+  Object.entries(data.resume || {}).some(([part, state]) => !skipped[part] && Number(state?.done) > 0) ||
+  (!skipped.game && Number(data.gameScore) > 0) ||
+  (!skipped.pronunciation && data.pronunciationFinished === true);
 
 /** Lessons of the class, in the teacher's order, with schedule and progress flags. */
 export async function loadClassLessons({ force = false } = {}) {
@@ -225,7 +226,8 @@ async function fetchClassLessons(scope, revision) {
     const downloads = await listDownloads(student.uid, id);
     const lessons = await Promise.all(downloads.map(async ({ meta }) => {
       const progress = await loadLessonProgress(meta.id);
-      return { ...meta, ...Object.fromEntries(Object.entries(progress).filter(([, value]) => typeof value === "boolean")), started: hasStarted(progress) };
+      const pathPrerequisites = await Promise.all((meta.pathPrerequisites || []).map(async required => ({ ...required, finished: sequenceLessonComplete({ ...required, ...await loadLessonProgress(required.id) }) })));
+      return { ...meta, pathPrerequisites, ...Object.fromEntries(Object.entries(progress).filter(([, value]) => typeof value === "boolean")), started: hasStarted(progress) };
     }));
     if (current()) student.lessons = lessons;
     return student.lessons;
@@ -264,7 +266,7 @@ async function fetchClassLessons(scope, revision) {
   forgetFoundWords(links.map(entryId).filter((entry) => !progress.has(entry)));
   const skipped = new Map([...lessonDocs.keys()].map(lessonId => {
     const previous = student.lessons.find(item => item.lessonId === lessonId);
-    return [lessonId, { game: previous?.gameSkipped === true, activity: previous?.activitySkipped === true }];
+    return [lessonId, { game: previous?.gameSkipped === true, activity: previous?.activitySkipped === true, quiz: previous?.quizSkipped === true, pronunciation: previous?.pronunciationSkipped === true }];
   }));
   // One authenticated request for all assigned metadata. The same short-lived
   // cache supplies lesson paths and progress pages without another round trip.
@@ -291,6 +293,14 @@ async function fetchClassLessons(scope, revision) {
       return {
         id,
         lessonId,
+        learningPathAssignmentId: link.get('learningPathAssignmentId') || null,
+        learningPathTitle: link.get('learningPathTitle') || null,
+        learningPathOrder: link.get('learningPathOrder') ?? null,
+        moduleId: link.get('moduleId') || null,
+        moduleTitle: link.get('moduleTitle') || null,
+        moduleOrder: link.get('moduleOrder') ?? null,
+        learningPathModuleOrder: link.get('learningPathModuleOrder') ?? null,
+        sequenceOpenAt: toMillis(link.get('sequenceOpenAt')),
         title: lesson.get("title") || "",
         description: lesson.get("description") || "",
         difficulty: lesson.get("difficulty") || "",
@@ -306,16 +316,19 @@ async function fetchClassLessons(scope, revision) {
         practice: isPracticeLink(link),
         gameSkipped: skipped.get(lessonId).game,
         activitySkipped: skipped.get(lessonId).activity,
+        quizSkipped: skipped.get(lessonId).quiz,
+        pronunciationSkipped: skipped.get(lessonId).pronunciation,
         lectureFinished: data.lectureFinished === true,
         gameFinished: data.gameFinished === true,
         activityFinished: data.activityFinished === true,
         pronunciationFinished: data.pronunciationFinished === true,
         quizFinished: data.quizFinished === true,
-        started: hasStarted(data),
+        started: hasStarted(data, skipped.get(lessonId)),
       };
     })
     .filter((lesson) => !lesson.closedBeforeJoining)
     .sort((a, b) => a.order - b.order);
+  student.lessons = withPathPrerequisites(student.lessons);
   return student.lessons;
 }
 
@@ -340,14 +353,15 @@ export const isComplete = (lesson) =>
   lesson.lectureFinished &&
   (lesson.gameFinished || lesson.gameSkipped) &&
   (lesson.activityFinished || lesson.activitySkipped) &&
-  lesson.pronunciationFinished &&
-  lesson.quizFinished;
+  (lesson.pronunciationFinished || lesson.pronunciationSkipped) &&
+  (lesson.quizFinished || lesson.quizSkipped);
 
 /** Open lessons, and closed ones the student finished (review only). */
 export function canOpen(lesson) {
-  const state = availability(lesson);
-  return state === "open" || (state === "closed" && isComplete(lesson));
+  return canOpenPathLesson(lesson, student.lessons, now());
 }
+
+export const lockedByPath = lesson => pathBlocker(lesson, student.lessons);
 
 export function formatWhen(millis) {
   if (millis == null) return "";
@@ -698,7 +712,7 @@ export async function scoredResults(docs) {
   const items = await Promise.all(
     closed.map((lesson) => assessmentRequest(lesson.id, "metadata").then((found) => found.items).catch(() => ({}))),
   );
-  const lessons = closed.map((lesson, index) => ({ ...lesson, items: items[index] }));
+  const lessons = scoredLessons().map(lesson => ({ ...lesson, items: items[closed.indexOf(lesson)] || lesson.items }));
   return withMissed(resultsFrom(docs), docs, lessons, now);
 }
 

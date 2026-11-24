@@ -27,7 +27,7 @@ let sequence = 0;
 const approved = new WeakSet();
 const snapshot = form => JSON.stringify([...new FormData(form)].map(([key, value]) => [key, typeof value === 'string' ? value : [value.name, value.size, value.lastModified]]));
 
-export function confirmAction({ title, message, confirm = 'Save changes', danger = false, student = false }) {
+export function confirmAction({ title, message, confirm = 'Save changes', danger = false, student = false, details = null }) {
   if (active) return Promise.resolve(false);
   active = true;
   return new Promise(resolve => {
@@ -59,7 +59,9 @@ export function confirmAction({ title, message, confirm = 'Save changes', danger
     cancel.onclick = () => finish(false); accept.onclick = () => finish(true);
     dialog.addEventListener('cancel', event => { event.preventDefault(); finish(false); });
     dialog.addEventListener('close', () => finish(false));
-    actions.append(cancel, accept); content.append(icon, heading, description, actions); dialog.append(content);
+    actions.append(cancel, accept); content.append(icon, heading, description);
+    if (details) content.append(details);
+    content.append(actions); dialog.append(content);
     document.body.append(dialog); dialog.showModal(); cancel.focus();
   });
 }

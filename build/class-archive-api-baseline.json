@@ -1,0 +1,10 @@
+{
+  "id": "dpl_GxNrNGFxmBhtPYTkB8YjvabUc2no",
+  "url": "basaya-notify-5ku3wpxnu-jay-vanz.vercel.app",
+  "files": 60,
+  "downloaded": 0,
+  "changed": [
+    "handlers/content-lifecycle.js",
+    "lib/classContentArchive.js"
+  ]
+}

@@ -151,11 +151,13 @@ export async function renderProgress() {
   // Practice lessons save nothing, so they are left out of every count here.
   const lessons = scoredLessons();
   const lessonsById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
-  const skippedOf = (id) => ({ game: lessonsById.get(id)?.gameSkipped, activity: lessonsById.get(id)?.activitySkipped });
+  const skippedOf = (id) => ({ game: lessonsById.get(id)?.gameSkipped, activity: lessonsById.get(id)?.activitySkipped, quiz: lessonsById.get(id)?.quizSkipped, pronunciation: lessonsById.get(id)?.pronunciationSkipped });
   const finished = docs.filter((item) => lessonParts(item, skippedOf(item.id)).finished).length;
   const total = lessons.length;
   const allGamesSkipped = total > 0 && lessons.every((lesson) => lesson.gameSkipped);
   const allActivitiesSkipped = total > 0 && lessons.every((lesson) => lesson.activitySkipped);
+  const allPronunciationSkipped = total > 0 && lessons.every(lesson => lesson.pronunciationSkipped);
+  const allQuizzesSkipped = total > 0 && lessons.every(lesson => lesson.quizSkipped);
 
   const levels = Object.values(summary.skills).map((skill) => skill.level);
   const hasData = Object.values(summary.skills).some((skill) => skill.lessons > 0) || docs.some((item) => item.lectureFinished);
@@ -168,7 +170,7 @@ export async function renderProgress() {
         : ["Simulan ang unang aralin para makita ang iyong progreso.", "idle"];
 
   const percentDone = total ? Math.floor((finished * 100) / total) : 0;
-  const words = hardWords(docs);
+  const words = hardWords(docs.filter(item => !lessonsById.get(item.id)?.pronunciationSkipped));
   const name = firstName().split(" ")[0];
 
   $("#progress-body").innerHTML = `
@@ -195,7 +197,11 @@ export async function renderProgress() {
               ? NO_GAME
               : key === "pagkilala" && skill.lessons === 0 && allActivitiesSkipped
                 ? NO_ACTIVITY
-                : scoredState(skill);
+                : key === "pagbigkas" && skill.lessons === 0 && allPronunciationSkipped
+                  ? { percent: null, text: "--", label: "Walang pagbigkas", tone: "soft", message: "Walang pagbigkas sa mga aralin mo ngayon." }
+                  : key === "pagsusulit" && skill.lessons === 0 && allQuizzesSkipped
+                    ? { percent: null, text: "--", label: "Walang pagsusulit", tone: "soft", message: "Walang pagsusulit sa mga aralin mo ngayon." }
+                    : scoredState(skill);
         return skillCard(key, state, index);
       }).join("")}
     </div>

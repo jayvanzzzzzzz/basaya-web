@@ -13,6 +13,11 @@ export function nextCopyNumber(baseTitle, lessons) {
     return /^\d+$/.test(suffix) ? Math.max(highest, Number(suffix)) : highest;
   }, 0) + 1;
 }
+export function contentBaseTitle(item = {}) {
+  if (item.versionBaseTitle) return item.versionBaseTitle;
+  const title = String(item.title || '').trim();
+  return item.sourceLessonId || item.sourceModuleId ? title.replace(/\s+(?:-\s*)?1\.\d+$/, '') : title;
+}
 export function moveLesson(ids, from, to) {
   const result = [...ids];
   if (from < 0 || to < 0 || from >= ids.length || to >= ids.length) return result;

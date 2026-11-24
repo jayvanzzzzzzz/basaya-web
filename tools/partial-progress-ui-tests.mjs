@@ -30,7 +30,7 @@ async function render(progress) {
   });
   const router = module({ onLeave: fn => { state.cleanup = fn; } });
   const speech = module({ Microphone: class { static supported() { return true; } async open() { return "ok"; } close() {} }, browserRecognitionAvailable: () => false, listenWithBrowser() {}, score() {}, transcribe() {} });
-  const ui = module({ content: () => $("main"), icon: () => "", talkingBuddy: () => '<span class="st-pron__buddy"></span>', confetti() {}, confettiFrom() {}, setBuddyMood() {}, setTalking() {}, shake() {} });
+  const ui = module({ skeleton: () => "", content: () => $("main"), icon: () => "", talkingBuddy: () => '<span class="st-pron__buddy"></span>', confetti() {}, confettiFrom() {}, setBuddyMood() {}, setTalking() {}, shake() {} });
   const results = module({ renderResults: result => state.results.push(result) });
   const controller = new vm.SourceTextModule(pronunciationSource, { context });
   await controller.link(name => name.includes("gstatic.com") ? sdk : name.endsWith("helpers.js") ? helpers : name.endsWith("dictionary.js") ? dictionary : name.endsWith("syllables.js") ? syllables : name.endsWith("data.js") ? data : name.endsWith("router.js") ? router : name.endsWith("speech.js") ? speech : name.endsWith("results.js") ? results : ui);

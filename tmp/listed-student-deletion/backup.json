@@ -1,0 +1,318 @@
+{
+  "createdAt": "2026-11-23T15:52:42.794Z",
+  "targets": [
+    "1 2",
+    "cgj b fkcjf",
+    "dj fn gj",
+    "djc cn cnc",
+    "ehd dnc djcjxj",
+    "fj dn clnfn",
+    "fj fv fc"
+  ],
+  "documents": [
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/gBIytgItkPdHsYqDUxMBAGAH8a13",
+      "fields": {
+        "username": {
+          "stringValue": ""
+        },
+        "middleName": {
+          "stringValue": ""
+        },
+        "disabled": {
+          "booleanValue": false
+        },
+        "uid": {
+          "stringValue": "gBIytgItkPdHsYqDUxMBAGAH8a13"
+        },
+        "dob": {
+          "stringValue": ""
+        },
+        "lastName": {
+          "stringValue": "2"
+        },
+        "inactivePeriods": {
+          "arrayValue": {
+            "values": [
+              {
+                "mapValue": {
+                  "fields": {
+                    "start": {
+                      "integerValue": "1795397042582"
+                    },
+                    "end": {
+                      "integerValue": "1795397054723"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "deactivatedAt": {
+          "nullValue": null
+        },
+        "gender": {
+          "stringValue": ""
+        },
+        "firstName": {
+          "stringValue": "1"
+        },
+        "email": {
+          "stringValue": "a@gmail.com"
+        },
+        "createdAt": {
+          "integerValue": "1795139816340"
+        },
+        "role": {
+          "stringValue": "student"
+        },
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T01:57:03.967Z"
+        }
+      },
+      "createTime": "2026-11-20T01:56:58.330859Z",
+      "updateTime": "2026-11-23T01:24:14.871756Z"
+    },
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/M6P9rjQrQEcgUGee1hiXR0oG2ss1",
+      "fields": {
+        "username": {
+          "stringValue": ""
+        },
+        "uid": {
+          "stringValue": "M6P9rjQrQEcgUGee1hiXR0oG2ss1"
+        },
+        "role": {
+          "stringValue": "student"
+        },
+        "lastName": {
+          "stringValue": "fkcjf"
+        },
+        "gender": {
+          "stringValue": ""
+        },
+        "firstName": {
+          "stringValue": "cgj"
+        },
+        "dob": {
+          "stringValue": ""
+        },
+        "createdAt": {
+          "integerValue": "1795139955175"
+        },
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T01:59:18.281Z"
+        },
+        "middleName": {
+          "stringValue": "b"
+        },
+        "email": {
+          "stringValue": "ds@gmail.com"
+        }
+      },
+      "createTime": "2026-11-20T01:59:15.670421Z",
+      "updateTime": "2026-11-20T01:59:18.309805Z"
+    },
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/Wlfdy0gGDxTE0Bbbt78QDHIeMgV2",
+      "fields": {
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T01:59:47.414Z"
+        },
+        "email": {
+          "stringValue": "j@gmail.com"
+        },
+        "username": {
+          "stringValue": ""
+        },
+        "firstName": {
+          "stringValue": "dj"
+        },
+        "dob": {
+          "stringValue": ""
+        },
+        "createdAt": {
+          "integerValue": "1795139984196"
+        },
+        "gender": {
+          "stringValue": ""
+        },
+        "middleName": {
+          "stringValue": "fn"
+        },
+        "lastName": {
+          "stringValue": "gj"
+        },
+        "role": {
+          "stringValue": "student"
+        },
+        "uid": {
+          "stringValue": "Wlfdy0gGDxTE0Bbbt78QDHIeMgV2"
+        }
+      },
+      "createTime": "2026-11-20T01:59:44.535093Z",
+      "updateTime": "2026-11-20T01:59:47.435920Z"
+    },
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/u9YiGilbs6atpbZ5KH23bcYcMpa2",
+      "fields": {
+        "role": {
+          "stringValue": "student"
+        },
+        "firstName": {
+          "stringValue": "djc"
+        },
+        "email": {
+          "stringValue": "d@gmail.com"
+        },
+        "lastName": {
+          "stringValue": "cnc"
+        },
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T01:58:22.178Z"
+        },
+        "createdAt": {
+          "integerValue": "1795139897704"
+        },
+        "dob": {
+          "stringValue": ""
+        },
+        "middleName": {
+          "stringValue": "cn"
+        },
+        "uid": {
+          "stringValue": "u9YiGilbs6atpbZ5KH23bcYcMpa2"
+        },
+        "username": {
+          "stringValue": ""
+        },
+        "gender": {
+          "stringValue": ""
+        }
+      },
+      "createTime": "2026-11-20T01:58:18.767917Z",
+      "updateTime": "2026-11-20T01:58:22.209164Z"
+    },
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/BeqUCvwWWqhgsDRjX3C3PmbB6d03",
+      "fields": {
+        "role": {
+          "stringValue": "student"
+        },
+        "dob": {
+          "stringValue": ""
+        },
+        "username": {
+          "stringValue": ""
+        },
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T01:57:47.225Z"
+        },
+        "uid": {
+          "stringValue": "BeqUCvwWWqhgsDRjX3C3PmbB6d03"
+        },
+        "gender": {
+          "stringValue": ""
+        },
+        "middleName": {
+          "stringValue": "dnc"
+        },
+        "createdAt": {
+          "integerValue": "1795139863008"
+        },
+        "email": {
+          "stringValue": "w@gmail.com"
+        },
+        "firstName": {
+          "stringValue": "ehd"
+        },
+        "lastName": {
+          "stringValue": "djcjxj"
+        }
+      },
+      "createTime": "2026-11-20T01:57:44.001588Z",
+      "updateTime": "2026-11-20T01:57:47.262780Z"
+    },
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/Wbz27nAFT8VGjEaknD9BFjjVHvV2",
+      "fields": {
+        "gender": {
+          "stringValue": ""
+        },
+        "middleName": {
+          "stringValue": "dn"
+        },
+        "firstName": {
+          "stringValue": "fj"
+        },
+        "lastName": {
+          "stringValue": "clnfn"
+        },
+        "createdAt": {
+          "integerValue": "1795140020607"
+        },
+        "uid": {
+          "stringValue": "Wbz27nAFT8VGjEaknD9BFjjVHvV2"
+        },
+        "role": {
+          "stringValue": "student"
+        },
+        "dob": {
+          "stringValue": ""
+        },
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T02:00:25.973Z"
+        },
+        "username": {
+          "stringValue": ""
+        },
+        "email": {
+          "stringValue": "k@gmail.com"
+        }
+      },
+      "createTime": "2026-11-20T02:00:21.910366Z",
+      "updateTime": "2026-11-20T02:00:25.997903Z"
+    },
+    {
+      "name": "projects/basaya/databases/(default)/documents/users/5WX8iA5QQ3PZqipegI8UtIp6lzl1",
+      "fields": {
+        "username": {
+          "stringValue": ""
+        },
+        "uid": {
+          "stringValue": "5WX8iA5QQ3PZqipegI8UtIp6lzl1"
+        },
+        "middleName": {
+          "stringValue": "fv"
+        },
+        "email": {
+          "stringValue": "o@gmail.com"
+        },
+        "clockCheckAt": {
+          "timestampValue": "2026-11-20T02:01:01.368Z"
+        },
+        "gender": {
+          "stringValue": ""
+        },
+        "lastName": {
+          "stringValue": "fc"
+        },
+        "createdAt": {
+          "integerValue": "1795140056781"
+        },
+        "role": {
+          "stringValue": "student"
+        },
+        "firstName": {
+          "stringValue": "fj"
+        },
+        "dob": {
+          "stringValue": ""
+        }
+      },
+      "createTime": "2026-11-20T02:00:57.577884Z",
+      "updateTime": "2026-11-20T02:01:01.386596Z"
+    }
+  ]
+}

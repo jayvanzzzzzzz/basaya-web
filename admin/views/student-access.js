@@ -14,14 +14,23 @@ export function studentStatus(student, mobile = false) {
 export function wireStudentAccess({ students, rows, isCurrent, applyFilters, pager, nameOf, reload }) {
   const view = { isCurrent, reload };
   currentView = view;
+  const root = document.querySelector("#page-content");
+  const createButton = document.querySelector("#create-student");
   const selected = new Set();
   const byId = new Map(students.map(student => [student.id, student]));
-  const header = document.querySelector("#student-select-page");
-  const toolbar = document.querySelector("#student-bulk-actions");
+  const header = root.querySelector("#student-select-page");
+  const toolbar = root.querySelector("#student-bulk-actions");
+  const toggle = root.querySelector("#student-multiselect-toggle");
+  let selecting = false;
   let busy = updating;
   const onPage = () => rows.filter(row => !row.hidden && !row.hasAttribute("data-paged-out"));
   function refresh() {
     if (!isCurrent()) return;
+    toggle.disabled = busy;
+    toggle.setAttribute("aria-pressed", String(selecting));
+    toggle.setAttribute("aria-label", selecting ? "Exit multi-select" : "Multi-select students");
+    root.querySelectorAll(".student-table .student-select-cell").forEach(cell => { cell.hidden = !selecting; });
+    root.querySelector(".student-table .admin-directory-search-empty td").colSpan = selecting ? 6 : 5;
     const visible = onPage();
     const checked = visible.filter(row => selected.has(row.dataset.student)).length;
     header.checked = visible.length > 0 && checked === visible.length;
@@ -40,7 +49,8 @@ export function wireStudentAccess({ students, rows, isCurrent, applyFilters, pag
     toolbar.querySelector("[data-bulk-reactivate]").disabled = busy || ![...selected].some(id => byId.get(id).disabled === true);
     toolbar.querySelector("[data-clear-selection]").disabled = busy;
     toolbar.setAttribute("aria-busy", String(busy));
-    document.querySelectorAll("[data-student-status-filter], .student-ribbon, #student-search, #create-student").forEach(control => { control.disabled = busy; });
+    root.querySelectorAll("[data-student-status-filter], .student-ribbon, #student-search").forEach(control => { control.disabled = busy; });
+    if (createButton) createButton.disabled = busy;
   }
   function updateRow(student) {
     const row = rows.find(row => row.dataset.student === student.id);
@@ -76,13 +86,13 @@ export function wireStudentAccess({ students, rows, isCurrent, applyFilters, pag
           for (const student of batch) {
             const result = response.results?.find(result => result.studentId === student.id);
             if (result?.ok === true && result.disabled === disabled) { student.disabled = disabled; selected.delete(student.id); updated++; }
-            else { failed++; selected.add(student.id); }
+            else { failed++; selected.add(student.id); selecting = true; }
           }
-        } catch { failed += batch.length; batch.forEach(student => selected.add(student.id)); }
+        } catch { failed += batch.length; selecting = true; batch.forEach(student => selected.add(student.id)); }
         finally { batch.forEach(student => { pending.delete(student.id); updateRow(student); }); }
       }
       if (isCurrent()) {
-        document.querySelectorAll("[data-student-status-filter]").forEach(button => {
+        root.querySelectorAll("[data-student-status-filter]").forEach(button => {
           const value = button.dataset.studentStatusFilter;
           button.querySelector("[data-status-count]").textContent = students.filter(student => value === "all" || (student.disabled === true ? "deactivated" : "active") === value).length;
         });
@@ -99,6 +109,12 @@ export function wireStudentAccess({ students, rows, isCurrent, applyFilters, pag
       }
     }
   }
+  toggle.addEventListener("click", () => {
+    if (busy) return;
+    selecting = !selecting;
+    if (!selecting) selected.clear();
+    refresh();
+  });
   rows.forEach(row => {
     row.querySelector("[data-select-student]").addEventListener("change", event => {
       if (event.target.checked) selected.add(row.dataset.student); else selected.delete(row.dataset.student);

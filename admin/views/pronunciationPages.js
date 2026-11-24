@@ -109,7 +109,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
       const number = $('[data-card-number]', row);
       if (number) number.textContent = `Word ${i + 1} of ${visibleWords.length}`;
     });
-    const count = $('[data-card-count]', panel);
+    const count = $('[data-card-count]', panel) || $('[data-editor-count="pronunciation"]', modal);
     if (count) count.textContent = `(${visibleWords.length})`;
   }
   const sync = ({ renderPicker = true } = {}) => {
@@ -172,7 +172,7 @@ export function mountPronunciationPages(modal, saved, { wordHtml, refreshWord, p
       $('[data-pronunciation-audio-status]', row).textContent = problem ? `Please ${problem}.` : '';
     });
     $('[data-add-pronunciation-page]', modal).disabled = list.children.length >= MAX_PRONUNCIATION_PAGES;
-    $('[data-add-pronunciation-word]', panel).hidden = true;
+    $('[data-add-pronunciation-word]', modal).hidden = true;
     showPage();
   };
   async function removeReadyWord(key, page, moveFocus = false) {

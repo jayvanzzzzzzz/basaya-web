@@ -29,7 +29,8 @@ export async function fluencyOperation(db, uid, body, storage = { put: putFluenc
   }
   const authorize = async (tx, allowClosed = false) => {
     const ctx = await context(tx, db, uid, body, { open: !allowClosed });
-    const [saved, content] = await Promise.all([tx.get(ref), tx.get(db.doc(`lessons/${body.lessonId}/pronunciation/content`))]);
+    const [saved, content, status] = await Promise.all([tx.get(ref), tx.get(db.doc(`lessons/${body.lessonId}/pronunciation/content`)), tx.get(db.doc(`lessons/${body.lessonId}/pronunciation/status`))]);
+    if (status.get('completion') === 'skipped') fail(403, 'This part is skipped.');
     let state = saved.data();
     if (!state) {
       const pages = fluencyPages(content.data());

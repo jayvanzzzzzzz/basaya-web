@@ -24,8 +24,10 @@ export async function archiveClassMember(firestore, teacherId, classId, studentI
     const [teacher, classroom, user, roster] = await tx.getAll(
       firestore.doc(`users/${teacherId}`), firestore.doc(`classes/${classId}`), userRef, rosterRef,
     );
-    if (teacher.get("role") !== "teacher" || !classroom.exists || classroom.get("teacherId") !== teacherId || classroom.get("membershipClosed") === true) {
-      throw new ProgressError(403, "You don't teach this active class.");
+    // An archived class only permits removal for a current, verified leave request.
+    if (teacher.get("role") !== "teacher" || teacher.get("disabled") === true || !classroom.exists || classroom.get("teacherId") !== teacherId ||
+        (classroom.get("membershipClosed") === true && !(classroom.get("archived") === true && requestKey !== null))) {
+      throw new ProgressError(403, "You cannot review membership for this class.");
     }
     if (!roster.exists) throw new ProgressError(404, "This student is not in the class.");
     if (!user.exists || user.get("classId") !== classId) throw new ProgressError(409, "The student's class changed. Refresh before removing them.");

@@ -84,16 +84,27 @@ try {
   await changeClassArchive(db,'teacher',classId,'archive');
   assert.equal((await read('lessons/lesson')).status,403,'Archived class cannot fetch lesson content directly');
   assert.equal((await read(`users/${uid}/assignedLessons/lesson`)).status,200,'Saved progress stays readable');
-  await changeClassArchive(db,'teacher',classId,'restore');
+  assert.equal((await patch(`classes/${classId}/students/${uid}`,{leaveRequest:{mapValue:{fields:{reason:{stringValue:'Moving class'},requestedAt:{timestampValue:new Date(now).toISOString()}}}}},uid)).status,200,'Archived student can request leave');
+  assert.equal((await patch(`classes/${classId}/students/${uid}`,{leaveRequest:{nullValue:null},leaveDeclined:{mapValue:{fields:{note:{stringValue:'Please discuss first'}}}}},'teacher')).status,200,'Assigned teacher can decline while archived');
+  assert.equal((await patch(`classes/${classId}/students/${uid}`,{leaveRequest:{nullValue:null}},'other')).status,403,'Other teachers cannot review requests');
+  await assert.rejects(archiveClassMember(db,'teacher',classId,uid),error=>error.status===403,'Archived class does not permit removal without a leave request key');
+  await changeClassArchive(db,'admin',classId,'restore');
+  await changeClassArchive(db,'admin',classId,'archive');
+  assert.equal((await classRef.get()).get('archivedBy'),'admin','Admin uses the same archive lifecycle');
   await rosterRef.update({leaveRequest:{requestedAt:Timestamp.fromMillis(now)}});
   await assert.rejects(archiveClassMember(db,'teacher',classId,uid,'stale-request'),error=>error.status===409);
   assert.ok((await rosterRef.get()).exists);
+  await db.doc('users/teacher').update({disabled:true});
+  await assert.rejects(archiveClassMember(db,'teacher',classId,uid,uid+':'+now+':'+((now%1000)*1000000)),error=>error.status===403,'Deactivated teacher cannot approve archived leave');
+  await db.doc('users/teacher').update({disabled:false});
   await archiveClassMember(db,'teacher',classId,uid,uid+':'+now+':'+((now%1000)*1000000));
   assert.equal((await rosterRef.get()).exists,false,'Approved leave remains distinct from drop');
+  assert.equal((await classRef.get()).get('archived'),true,'Approving leave never restores the class');
   assert.equal((await userRef.get()).get('classId'),undefined);
   assert.equal((await userRef.get()).get('enrollmentStatus'),undefined);
   const history=(await userRef.collection('classProgress').doc(classId).get()).data();
   const archive=(await userRef.collection('classProgress').doc(classId).collection('archives').doc(history.latestArchiveId).get()).data();
   assert.ok(archive.droppedPeriods.length>0,'Dropped intervals survive an actual leave archive');
+  assert.deepEqual((await userRef.collection('classProgress').doc(classId).collection('archives').doc(history.latestArchiveId).collection('lessons').doc('lesson').get()).data(),saved,'Archived-class leave preserves all saved progress');
   console.log('PASS: real Firestore drop/re-enroll and archive/restore preserve all work, enforce teacher ownership, reject stale offline requests, preserve elapsed deadline exemptions, keep dropped students dropped after restoration and protect lifecycle fields/content with rules.');
 } finally {await db.terminate();await deleteApp(app);await emulator.stop();}

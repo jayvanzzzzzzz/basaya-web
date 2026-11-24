@@ -19,6 +19,9 @@ import { leaveDashboardNotifications } from './views/dashboardNotifications.js';
 import { renderTeacherLanding } from './views/landing.js';
 import { renderHandbook, leaveHandbook } from '../js/handbook.js';
 import { beginRoute } from '../js/route-lifecycle.js';
+import { renderLessonWorkspace } from '../js/lessonWorkspace.js';
+import { canLeaveLessons } from '../js/lessonNavigation.js';
+import { beginPageLoading, routeLoadingInfo, prepareLoadingHeader } from '../js/page-loading.js';
 
 let statsLoaded = false;
 
@@ -34,6 +37,7 @@ async function loadSidebarStats() {
 }
 
 export async function renderRoute() {
+  if (!await canLeaveLessons(state.user?.uid || null)) return;
   const isCurrent = beginRoute();
   leaveHandbook();
   if (!state.user || !state.profile) return;
@@ -75,14 +79,17 @@ export async function renderRoute() {
       if (isActive) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
-  page("Loading…", "");
-  $("#page-content").replaceChildren();
-  $("#page-content").setAttribute("aria-busy", "true");
+  const [title, kind] = routeLoadingInfo(route, 'teacher');
+  const finishLoading = beginPageLoading(route, `teacher:${state.user.uid}`, kind);
+  page(title, "");
+  prepareLoadingHeader(kind);
+  let success = true;
   try {
     if (route === "/dashboard") await renderTeacherLanding();
     else if (route === "/classes") await renderDashboard();
     else if (route === "/settings") await renderAccountSettings();
     else if (route === "/dictionary") await renderDictionary();
+    else if (route === "/lessons") await renderLessonWorkspace();
     else if (route === "/handbook") renderHandbook("teacher");
     else if (route === "/messages" || /^\/messages\/[^/]+$/.test(route)) await renderMessages(classId);
     else if (/^\/classes\/[^/]+\/students$/.test(route)) {
@@ -103,6 +110,7 @@ export async function renderRoute() {
     } else navigate("/dashboard");
     if (isCurrent()) watchTeacherTooltips();
   } catch (error) {
+    success = false;
     if (!isCurrent()) return;
     console.error(error);
     $("#page-content").innerHTML = empty(
@@ -113,6 +121,6 @@ export async function renderRoute() {
     );
     $("#retry")?.addEventListener("click", renderRoute);
   } finally {
-    if (isCurrent()) $("#page-content").removeAttribute("aria-busy");
+    if (isCurrent()) finishLoading(success);
   }
 }

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "8lw85XEqqvIKI6NvyjpG",
+    "fields": {
+      "description": {
+        "stringValue": "Sa araling ito, matututuhan mo ang kahulugan at gamit ng idyoma."
+      },
+      "publicationState": {
+        "stringValue": "published"
+      },
+      "difficulty": {
+        "stringValue": "malalim na aralin"
+      },
+      "visibility": {
+        "stringValue": "private"
+      },
+      "createdAt": {
+        "timestampValue": "2026-10-21T09:57:13.834Z"
+      },
+      "title": {
+        "stringValue": "Idyomaa"
+      },
+      "updatedAt": {
+        "timestampValue": "2026-11-23T02:41:24.676Z"
+      }
+    },
+    "sections": {
+      "lectures": 1,
+      "lecture": 0,
+      "pronunciation": 1,
+      "quiz": 1,
+      "activity": 1,
+      "game": 2
+    },
+    "updateTime": "2026-11-23T02:41:24.754807Z"
+  }
+]

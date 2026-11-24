@@ -1,0 +1,54 @@
+/* The lesson overview only; individual learning modules keep their existing UI. */
+.st-path { gap: 2rem; }
+.st-path .st-hero--path { padding: 2rem; gap: 1.5rem; border-radius: 24px; background: var(--hub-banner); box-shadow: none; align-items: center; }
+.st-path .st-hero__eyebrow { color: var(--hub-gold); font-size: .75rem; }
+.st-path .st-hero h1 { margin-top: .75rem; font-size: clamp(1.7rem,3.5vw,2.6rem); line-height: 1.3; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.st-path .st-hero p { margin-top: .75rem; color: var(--hub-banner-text); line-height: 1.8; font-size: .9rem; }
+.st-path .st-path__buddy { width: 7rem; height: 7rem; animation: none; align-self: center; transform: rotate(-7deg); }
+.st-path__layout { display: grid; grid-template-columns: minmax(0,.7fr) minmax(0,1.3fr); align-items: start; gap: 2rem; }
+.st-path-summary { position: sticky; top: 6rem; padding: 1.75rem; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); box-shadow: var(--hub-shadow); }
+.st-path-summary h2 { font-size: 1.5rem; line-height: 1.4; letter-spacing: -.04em; margin: .75rem 0; }
+.st-path-summary p { margin: 1rem 0 1.5rem; color: var(--ink-2); font-size: .85rem; line-height: 1.8; }
+.st-path-summary__count { display: grid; gap: .3rem; margin: 1.5rem 0 1rem; }
+.st-path-summary__count strong { font-family: var(--font-display); font-size: 3rem; color: var(--primary); line-height: 1.2; }
+.st-path-summary__count strong span { font-size: 1.5rem; color: var(--ink-3); }
+.st-path-summary__count > span { font-size: .8rem; color: var(--ink-2); }
+.st-path-summary .st-bar { height: .5rem; background: var(--surface-3); }
+.st-path-summary .st-bar i { background: var(--success); }
+.st-path-summary__continue { width: 100%; white-space: normal; min-height: 48px; line-height: 1.5; }
+.st-path-summary__hint { display: block; margin-top: .65rem; text-align: center; font-size: .75rem; color: var(--ink-3); }
+.st-path__journey { min-width: 0; }
+.st-path .st-path__heading { margin-bottom: 1.5rem; }
+.st-path .st-path__heading h2 { font-size: 1.4rem; margin: .5rem 0; letter-spacing: -.035em; }
+.st-path .st-path__heading p { font-size: .85rem; line-height: 1.8; }
+.st-path .st-steps { gap: 1rem; }
+.st-path .st-steps::before { left: 1.1rem; border-color: var(--border-strong); }
+.st-path .st-step { gap: .75rem; animation: st-hub-enter 260ms var(--ease-out) both; }
+.st-path .st-step__number { width: 2.4rem; height: 2.4rem; background: var(--surface); color: var(--ink-2); border: 1px solid var(--border-strong); font-size: .8rem; }
+.st-path .st-step.is-done .st-step__number { background: var(--success-soft); border-color: var(--success); color: var(--success); }
+.st-path .st-step__card { padding: 1.25rem; gap: 1rem; border-radius: 18px; box-shadow: var(--hub-shadow); transition: transform 180ms ease, border-color 180ms ease; }
+.st-path .st-step__icon { width: 3rem; height: 3rem; border-radius: 14px; }
+.st-path .st-step__text { gap: .3rem; }
+.st-path .st-step__text strong { font-size: 1.05rem; line-height: 1.4; }
+.st-path .st-step__text small { font-size: .8rem; line-height: 1.6; }
+.st-path .st-step__text em { font-size: .75rem; line-height: 1.5; }
+.st-path .st-step__badge { font-size: .75rem; line-height: 1.5; border-radius: 8px; }
+.st-path .st-step.is-locked .st-step__card { opacity: 1; background: var(--surface-2); }
+.st-path .st-step.is-locked .st-step__icon { background: var(--surface-3); color: var(--ink-3); }
+.st-path .st-step__badge--locked { background: var(--surface-3); color: var(--ink-2); }
+@media(hover:hover) { .st-path .st-step__card:hover { transform: translateY(-2px); border-color: var(--primary); } }
+@media(max-width:800px) {
+  .st-path__layout { grid-template-columns: minmax(0,1fr); gap: 1.5rem; }
+  .st-path-summary { position: static; padding: 1.5rem; }
+  .st-path-summary__count { margin-top: 1rem; }
+  .st-path-summary__count strong { font-size: 2.5rem; }
+  .st-path .st-hero--path { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+  .st-path .st-hero__text { flex-basis: calc(100% - 4rem); }
+  .st-path .st-path__buddy { display: none; }
+  .st-path .st-step__card { flex-wrap: wrap; gap: .75rem; padding: 1rem; }
+  .st-path .st-step__text { flex-basis: calc(100% - 4rem); }
+  .st-path .st-step__badge { margin-left: 3.75rem; }
+  .st-path .st-step__chevron { margin-left: auto; }
+  .st-path .st-step__number { width: 2rem; height: 2rem; }
+  .st-path .st-steps::before { left: .95rem; }
+}

@@ -3,8 +3,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() {
+    function authenticated() {
       return request.auth != null;
+    }
+
+    function signedIn() {
+      return authenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('disabled', false) != true;
     }
 
     function isTeacher() {
@@ -30,6 +35,16 @@ service cloud.firestore {
           .data.teacherId == request.auth.uid;
     }
 
+    function teachesActiveClass(classId) {
+      return teachesClass(classId) && get(/databases/$(database)/documents/classes/$(classId)).data.get('membershipClosed', false) != true;
+    }
+
+    function activeClassTeacher(teacherId) {
+      return teacherId == '' || (teacherId is string &&
+        get(/databases/$(database)/documents/users/$(teacherId)).data.get('role', '') == 'teacher' &&
+        get(/databases/$(database)/documents/users/$(teacherId)).data.get('disabled', false) != true);
+    }
+
     // Approval is represented by BOTH the server-owned profile link and roster entry.
     function isClassMember(classId) {
       return signedIn() && classId is string && classId != '' &&
@@ -37,9 +52,15 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid));
     }
 
+    function canParticipate(classId) {
+      return isClassMember(classId) &&
+        get(/databases/$(database)/documents/classes/$(classId)).data.get('membershipClosed', false) != true &&
+        get(/databases/$(database)/documents/classes/$(classId)/students/$(request.auth.uid)).data.get('membershipStatus', 'enrolled') != 'dropped';
+    }
+
     function canReadLearningContent() {
       return signedIn() && (isTeacher() || isAdmin() ||
-        isClassMember(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '')));
+        canParticipate(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '')));
     }
 
     // Assessment membership, explicit assignments and server-time schedules are
@@ -55,25 +76,19 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if signedIn() && (
-        request.auth.uid == userId ||
+      // Keep the own profile readable so a deactivated session can detect the
+      // access change and sign out; other protected reads require active access.
+      allow read: if authenticated() && request.auth.uid == userId || signedIn() && (
         isAdmin() ||
         (isTeacher() && teachesClass(resource.data.get('classId', null))) ||
         ((resource == null || resource.data.get('role', '') == "teacher") && teachesMyClass(userId))
       );
 
-      allow create: if signedIn() && (                                                                                                                                            
-          (request.auth.uid == userId &&                                                                                                                                            
-            request.resource.data.role == "student" &&
-            request.resource.data.get('classId', '') == '' &&
-            request.resource.data.get('className', '') == '' &&
-            request.resource.data.get('username', '') == '' &&
-            !request.resource.data.keys().hasAny(['joinRequest', 'progressSession', 'skillSummary'])) ||
-          isAdmin()                                                                                                                                                                 
-        );                                                                                                                                                                          
-                                                                                                                                                                                    
+      // Students are provisioned by the admin API only.
+      allow create: if isAdmin();
+
         allow update: if signedIn() &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['username']) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['username', 'lrn', 'loginMethod', 'createdBy', 'createdAt', 'inactivePeriods', 'deactivatedAt', 'enrollmentStatus', 'enrollmentVersion']) && (
           (isAdmin() && (resource.data.role != 'teacher' ||
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['firstName', 'middleName', 'lastName', 'displayName', 'gender', 'title', 'email', 'photoURL']))) ||
           (request.auth.uid == userId &&
@@ -82,7 +97,7 @@ service cloud.firestore {
               (!resource.data.keys().hasAny(['gender']) && !request.resource.data.keys().hasAny(['gender'])) ||
               (request.resource.data.gender == 'female' && request.resource.data.title == 'maam') ||
               (request.resource.data.gender == 'male' && request.resource.data.title == 'sir')) &&
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt', 'disabled']))
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId', 'className', 'joinRequest', 'progressSession', 'skillSummary', 'emailVerificationRequired', 'mustChangePassword', 'verificationSentAt', 'disabled', 'email']))
         );
                                                                                                                                                                                     
         allow delete: if isAdmin();    
@@ -115,18 +130,62 @@ service cloud.firestore {
       }
     }
 
-    // Staff and approved members can read lessons. Only admins can change lesson content.
+    // Teachers author their own lessons; premade lessons are copied before editing.
     match /lessons/{lessonId} {
       allow read: if canReadLearningContent();
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin() || (isTeacher() && request.resource.data.teacherId == request.auth.uid &&
+        request.resource.data.title is string && request.resource.data.title.size() > 0);
+      allow update: if isAdmin() || (isTeacher() && resource.data.get('teacherId', '') == request.auth.uid &&
+        request.resource.data.teacherId == resource.data.teacherId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sourceLessonId', 'copiedFromLessonId', 'createdAt']));
+      allow delete: if isAdmin();
 
       match /{subcollection}/{docId} {
         // Firestore cannot hide individual fields. Students receive sanitized
         // quiz/activity content from the API instead of answer-key documents.
         allow read: if canReadLearningContent() &&
           (!(subcollection in ['quiz', 'activity']) || isTeacher() || isAdmin());
-        allow write: if isAdmin();
+        allow write: if isAdmin() || (isTeacher() &&
+          getAfter(/databases/$(database)/documents/lessons/$(lessonId)).data.get('teacherId', '') == request.auth.uid);
       }
+    }
+
+    match /lessonCopyCounters/{lessonId} {
+      allow read: if isAdmin() || isTeacher();
+      allow create, update: if (isAdmin() || isTeacher()) &&
+        exists(/databases/$(database)/documents/lessons/$(lessonId)) &&
+        request.resource.data.keys().hasOnly(['sequence']) &&
+        request.resource.data.sequence is int && request.resource.data.sequence > 0 &&
+        request.resource.data.sequence <= 1000000 &&
+        (resource == null || request.resource.data.sequence == resource.data.sequence + 1);
+    }
+
+    match /modules/{moduleId} {
+      function validModule() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['title', 'description', 'lessonIds', 'ownerId', 'visibility', 'revision', 'createdAt', 'updatedAt', 'progression', 'lockingEnabled']) &&
+          d.title is string && d.title.size() > 0 && d.title.size() <= 120 &&
+          d.description is string && d.description.size() <= 1000 &&
+          d.lessonIds is list && d.lessonIds.size() > 0 && d.lessonIds.size() <= 100 &&
+          d.lessonIds.toSet().size() == d.lessonIds.size() &&
+          d.ownerId is string && d.revision is int && d.revision > 0 &&
+          d.visibility in ['private', 'shared'] &&
+          d.createdAt is timestamp && d.updatedAt == request.time &&
+          d.progression == 'sequential' && d.lockingEnabled == false;
+      }
+      allow read: if isAdmin() || (isTeacher() && (resource.data.ownerId == request.auth.uid || resource.data.visibility == 'shared'));
+      allow create: if (isAdmin() || isTeacher()) && validModule() &&
+        request.resource.data.ownerId == request.auth.uid && (isAdmin() || request.resource.data.visibility == 'private') &&
+        request.resource.data.createdAt == request.time && request.resource.data.revision == 1;
+      allow update: if (isAdmin() || (isTeacher() && resource.data.ownerId == request.auth.uid)) && validModule() &&
+        request.resource.data.ownerId == resource.data.ownerId && request.resource.data.createdAt == resource.data.createdAt &&
+        (isAdmin() || request.resource.data.visibility == resource.data.visibility) &&
+        request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if isAdmin();
+    }
+
+    match /learnerNumbers/{lrn} {
+      allow read, write: if false;
     }
 
     match /usernames/{username} {
@@ -141,12 +200,14 @@ service cloud.firestore {
 
       // Only teachers may create a class, and only with themselves as its teacher.
       allow create: if isTeacher() &&
-        request.resource.data.teacherId == request.auth.uid;
+        request.resource.data.teacherId == request.auth.uid &&
+        !request.resource.data.keys().hasAny(['membershipClosed', 'archived', 'archivePeriods', 'classVersion']);
 
       // The class's teacher or an admin can edit it (a teacher also uses this to request deletion: deletionRequest / deletionDeclined fields).
-      allow update: if isAdmin() || (teachesClass(classId) &&
+      allow update: if (isAdmin() &&
+        (request.resource.data.teacherId == resource.data.teacherId || activeClassTeacher(request.resource.data.teacherId))) || (teachesClass(classId) &&
         request.resource.data.teacherId == resource.data.teacherId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['membershipClosed']));
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['membershipClosed', 'archived', 'archivePeriods', 'archivedAt', 'archivedBy', 'classVersion']));
 
       // Never deleted directly: an admin approves, then notify-api/api/delete-class removes the class with its roster, lessons and every student's progress.
       allow delete: if false;
@@ -311,7 +372,11 @@ service cloud.firestore {
           (isAdmin() ||
            teachesClass(classId) || isClassMember(classId));
 
-        allow write: if teachesClass(classId);
+        allow create: if teachesActiveClass(classId) && (request.resource.data.get('mode','') == 'practice' || !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt']));
+        allow update: if teachesActiveClass(classId) && (
+          (resource.data.get('mode','') == 'practice' && request.resource.data.get('mode','') == 'assessment' && !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt'])) ||
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['openAt', 'dueAt', 'deadlineHistory','scheduleChangedAt']));
+        allow delete: if teachesActiveClass(classId);
       }
     }
 

@@ -77,7 +77,7 @@ function classSection({ state, note }) {
     state === "pending"
       ? `<div class="st-status st-status--pending">
           <strong>Hinihintay ang iyong guro</strong>
-          <p>Humiling kang umalis sa klase. Puwede ka pa ring mag-aral habang naghihintay.</p>
+          <p>${student.classroom.archived ? "Humiling kang umalis sa naka-archive na klase. Hinihintay ang pag-apruba ng iyong guro. Napanatili ang iyong progreso." : "Humiling kang umalis sa klase. Puwede ka pa ring mag-aral habang naghihintay."}</p>
           <button class="button secondary" type="button" data-leave="cancel">Kanselahin ang paghiling</button>
         </div>`
       : state === "declined"
@@ -92,6 +92,7 @@ function classSection({ state, note }) {
       <span class="st-row__icon">${icon("home")}</span>
       <span class="st-row__text"><small>Kasalukuyang klase</small><strong>${escapeHtml(name)}</strong></span>
     </div>
+    ${student.classroom.archived ? '<div class="st-status"><strong>Naka-archive ang klase</strong><p>Napanatili ang iyong progreso. Maaari kang humiling na umalis; kailangan pa rin ang pahintulot ng iyong guro.</p></div>' : ""}
     ${status}
     ${
       state !== "pending"

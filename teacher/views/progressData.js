@@ -62,6 +62,8 @@ export async function loadClassContext(classId) {
       scheduleChangedAt: link.scheduleChangedAt || 0,
       gameSkipped: skipped[index].game,
       activitySkipped: skipped[index].activity,
+      quizSkipped: skipped[index].quiz,
+      pronunciationSkipped: skipped[index].pronunciation,
       items: contents[index].items,
     };
   });
@@ -111,7 +113,7 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null, e
   const hardWordCounts = new Map();
   const perLesson = lessons.map((lesson) => {
     const data = docs.find((item) => item.id === lesson.id) || {};
-    const parts = lessonParts(data, { game: lesson.gameSkipped, activity: lesson.activitySkipped });
+    const parts = lessonParts(data, { game: lesson.gameSkipped, activity: lesson.activitySkipped, quiz: lesson.quizSkipped, pronunciation: lesson.pronunciationSkipped });
     const missed = [];
     const skills = Object.fromEntries(
       SKILLS.map(({ key }) => {
@@ -125,7 +127,7 @@ export async function loadStudentProgress(studentId, lessons, joinedAt = null, e
       }),
     );
     const speechRecord = data.skills?.pagbigkas;
-    (data.skills?.pagbigkas?.hardWords || []).forEach((word) =>
+    (lesson.pronunciationSkipped ? [] : data.skills?.pagbigkas?.hardWords || []).forEach((word) =>
       hardWordCounts.set(word, (hardWordCounts.get(word) || 0) + 1),
     );
 

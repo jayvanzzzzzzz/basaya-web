@@ -52,3 +52,9 @@
   .st-path .st-step__number { width: 2rem; height: 2rem; }
   .st-path .st-steps::before { left: .95rem; }
 }
+.st-home-path-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: 1rem 0; }
+.st-home-path-heading[hidden] { display: none; }
+.st-home-path-heading h2 { flex: 1 1 15rem; margin: 0; font-size: 1.2rem; color: var(--ink); overflow-wrap: anywhere; }
+.st-home-path-heading .button { min-height: 44px; white-space: normal; }
+.st-assigned-path .st-lesson__title { overflow-wrap: anywhere; }
+.st-assigned-path .st-lesson__meta { flex-wrap: wrap; }

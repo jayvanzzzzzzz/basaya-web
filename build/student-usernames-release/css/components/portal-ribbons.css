@@ -1,0 +1,75 @@
+/* Loaded after page styles. Match Admin > Teacher Accounts selection contrast. */
+body[data-portal] {
+  --ribbon-active: #1f2559;
+  --ribbon-active-ink: #fff;
+}
+:root[data-theme="dark"] body[data-portal] {
+  --ribbon-active: #c0bcf1;
+  --ribbon-active-ink: #191a20;
+}
+
+body[data-portal] :is(.student-ribbons, .lesson-picker__ribbons,
+  .lecture-page-ribbons, .admin-class-filters, .admin-lesson-filters,
+  .class-lesson-tabs, .reading-filter-ribbon) {
+  gap: .35rem;
+  padding: .35rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--primary-soft);
+}
+
+body[data-portal] :is(.student-ribbon, .lesson-picker__ribbon,
+  .lecture-page-ribbon, .admin-class-filter, .admin-lesson-filter,
+  .class-lesson-tab, .request-ribbon, .reading-filter-ribbon button) {
+  min-height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-2);
+  box-shadow: none;
+  opacity: 1;
+}
+body[data-portal] .reading-filter-ribbon button {
+  margin-bottom: 0;
+  padding: .45rem .75rem;
+}
+
+body[data-portal] :is(.student-ribbon, .lesson-picker__ribbon,
+  .lecture-page-ribbon, .admin-class-filter, .admin-lesson-filter,
+  .class-lesson-tab, .request-ribbon, .reading-filter-ribbon button):hover {
+  border-color: var(--ribbon-active);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+body[data-portal] :is(.student-ribbon, .lesson-picker__ribbon,
+  .lecture-page-ribbon, .admin-class-filter, .admin-lesson-filter,
+  .class-lesson-tab, .request-ribbon, .reading-filter-ribbon button):focus-visible {
+  outline: 2px solid var(--ribbon-active);
+  outline-offset: 3px;
+}
+
+body[data-portal] :is(.student-ribbon[aria-pressed="true"],
+  .lesson-picker__ribbon[aria-pressed="true"], .lecture-page-ribbon.active,
+  .admin-class-filter.is-active, .admin-lesson-filter.is-active,
+  .class-lesson-tab.is-active, .request-ribbon[aria-selected="true"],
+  .reading-filter-ribbon button[aria-pressed="true"]) {
+  background: var(--ribbon-active);
+  color: var(--ribbon-active-ink);
+  border-color: var(--ribbon-active);
+}
+
+body[data-portal] :is(.student-ribbon[aria-pressed="true"] .student-ribbon__count,
+  .lesson-picker__ribbon[aria-pressed="true"] .lesson-picker__ribbon-count,
+  .admin-class-filter.is-active .admin-class-filter__count,
+  .admin-lesson-filter.is-active .admin-lesson-filter__count,
+  .class-lesson-tab.is-active .class-lesson-tab__count,
+  .request-ribbon[aria-selected="true"] .request-ribbon__count,
+  .reading-filter-ribbon button[aria-pressed="true"] .reading-filter-count) {
+  background: color-mix(in srgb, var(--ribbon-active-ink) 10%, var(--ribbon-active));
+  color: var(--ribbon-active-ink);
+  border-color: currentColor;
+  opacity: 1;
+}
+body[data-portal] .request-ribbon[aria-selected="true"] :is(.request-ribbon__copy small, .request-ribbon__icon) {
+  color: var(--ribbon-active-ink);
+}

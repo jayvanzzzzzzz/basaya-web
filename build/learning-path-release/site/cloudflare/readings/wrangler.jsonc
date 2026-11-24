@@ -1,0 +1,7 @@
+{
+  "name": "basaya-readings",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "account_id": "9a93ce7f08a55a0cd46cb1dfd03cd2c8",
+  "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "basaya-student-readings" }]
+}

@@ -6,12 +6,12 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const auditText=require('./text-readability-audit.cjs');
 const {chromium}=require('C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'), artifacts=path.join(root,'audit/students-design');
+const root=path.resolve(__dirname,'..'), artifacts=process.env.BASAYA_QA_ARTIFACTS||path.join(root,'audit/students-design');
 const fixture=`
 export {leaveRequestsPanel,pendingLeaves} from '/teacher/views/leaveRequestsUi.js';
 export const state={user:{uid:'teacher'}},db={};
 export const doc=(...a)=>a.slice(1).join('/');export const collection=doc;
-export const getDoc=async()=>({id:'classroom',exists:()=>true,data:()=>({teacherId:location.search.includes('unauthorized')?'other':'teacher',className:'Grade 7 — Rizal',classCode:'RZ7ABC'})});
+export const getDoc=async()=>({id:'classroom',exists:()=>true,data:()=>({teacherId:location.search.includes('unauthorized')?'other':'teacher',className:'Grade 7 — Rizal',classCode:'RZ7ABC',archived:location.search.includes('archived')})});
 const students=Array.from({length:26},(_,i)=>({id:String(i),fullName:i===0?'A learner with a very long full name to check wrapping and readability':i===1?'Cruz, Ana':i===2?'Reyes, Ben': 'Student '+String(i).padStart(2,'0'),leaveRequest:i===2?{reason:'Changing class'}:null}));
 students[4].membershipStatus='dropped';
 export const getDocs=async()=>({docs:(location.search.includes('empty')?[]:students).map(s=>({id:s.id,data:()=>s}))});
@@ -93,6 +93,15 @@ const server=http.createServer(async(req,res)=>{try{
   await page.waitForFunction(()=>document.querySelector('.roster-row:has([data-remove-student="1"]) .roster-membership')?.textContent==='Enrolled');
   await page.reload();await page.waitForFunction(()=>window.ready);assert.equal(await open().count(),0);assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),await page.evaluate(()=>localStorage.getItem('basaya-theme')));
   await page.goto(url+'?empty'+rosterHash);await page.waitForFunction(()=>window.ready);assert.ok(await page.locator('.student-empty').isVisible());
+  await page.goto(url+'?archived'+rosterHash);await page.waitForFunction(()=>window.ready);
+  assert.ok(await page.locator('.roster-admissions').isVisible());
+  assert.ok(await page.locator('#request-panel-leave').isVisible());
+  assert.equal(await page.locator('#request-tab-join').count(),0);
+  assert.equal(await page.locator('#request-panel-join').count(),0);
+  assert.equal(await page.locator('[data-remove-student]').count(),0);
+  assert.equal(await page.locator('#request-tab-leave').getAttribute('aria-selected'),'true');
+  assert.match(await page.locator('.enrollment-summary').textContent(),/Paused while archived/);
+  for(const theme of ['light','dark']) {await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);await page.screenshot({path:path.join(artifacts,'archived-leave-'+theme+'.png'),fullPage:true});}
   await page.goto(url+'?unauthorized'+rosterHash);await page.waitForFunction(()=>window.ready);assert.equal(await page.evaluate(()=>location.hash),'#/dashboard');
   assert.deepEqual(errors,[]);
   console.log('PASS: single student action menu, visible progress/drop labels, conditional reading/messages, viewport positioning, single-menu/outside/Escape dismissal, keyboard navigation, search/pagination, drop focus/cancel/error/retry, saved theme, empty/unauthorized views; both themes at desktop/tablet/mobile. Data/API mocked.');

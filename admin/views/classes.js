@@ -1,3 +1,4 @@
+import { currentSchoolYear, schoolYearOf, schoolYearRibbons, matchesSchoolYear } from '../../js/schoolYear.js';
 import { captureRoute } from "../../js/route-lifecycle.js";
 import {
   doc,
@@ -6,7 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../../js/firebase.js";
 import { state, getAllTeachers, getAllClasses } from "../../js/state.js";
-import { postToApi } from "../../js/api.js";
+import { postToApi, classLifecycle } from "../../js/api.js";
 import {
   $,
   escapeHtml,
@@ -19,13 +20,6 @@ import {
   initials,
 } from "../../js/helpers.js";
 import { paginate } from "../../js/pagination.js";
-import {
-  openDeleteConfirm,
-  refreshDeletionBadge,
-  requestChip,
-  requestsPanel,
-  wireRequestsPanel,
-} from "./classDeletion.js";
 import {
   isUnassigned,
   openAssignTeacherModal,
@@ -61,6 +55,8 @@ const NO_GRADE = "none";
 // Kept across re-renders (e.g. after editing a class).
 let activeGrade = "all";
 let onlyUnassigned = false;
+let classStatus = "active";
+let selectedSchoolYear = currentSchoolYear();
 
 /** The class's grade level, or from older names like "Grade 8 - Rizal". */
 function gradeOf(classroom) {
@@ -144,9 +140,11 @@ export async function renderClasses() {
     state.teachers.filter(t => t.disabled !== true).map((t) => [t.id, t.displayName || t.email || "Unnamed teacher"]),
   );
 
-  const classCount = state.allClasses.length;
-  const needTeacher = state.allClasses.filter(isUnassigned).length;
-  const deletionRequests = state.allClasses.filter((c) => c.deletionRequest).length;
+  const statusClasses = state.allClasses.filter(c => (c.archived === true) === (classStatus === "archived"));
+  const classes = statusClasses.filter(c => matchesSchoolYear(c, selectedSchoolYear));
+  const classCount = classes.length;
+  const needTeacher = classes.filter(isUnassigned).length;
+  const activeCount = state.allClasses.filter(c => c.archived !== true).length;
   page(
     "All classes",
     [
@@ -155,25 +153,24 @@ export async function renderClasses() {
         label: `${needTeacher} need${needTeacher === 1 ? "s" : ""} a teacher`,
         tone: "warning",
       },
-      deletionRequests && {
-        label: `${deletionRequests} deletion request${deletionRequests === 1 ? "" : "s"}`,
-        tone: "warning",
-      },
     ],
   );
 
-  $("#page-content").innerHTML = state.allClasses.length
-    ? `${requestsPanel(state.allClasses, teacherNameById)}
+  const ribbons = `<nav class="admin-class-status" aria-label="Class status">
+    ${[["active", "Active classes", activeCount], ["archived", "Archived classes", state.allClasses.length - activeCount]].map(([status, label, count]) => `<button type="button" data-class-status="${status}" aria-pressed="${classStatus === status}"><span>${label}</span><span class="admin-class-status__count">${count}</span></button>`).join("")}
+  </nav>${schoolYearRibbons(statusClasses, selectedSchoolYear)}`;
+  $("#page-content").innerHTML = ribbons + (classes.length
+    ? `
       <section class="admin-class-directory" aria-label="All classes">
         <div class="admin-class-directory__intro">
           <div>
             <span class="admin-class-directory__eyebrow">Learning spaces</span>
-            <h2>Classes across BASAya</h2>
-            <p>A clear view of every classroom and the teacher leading it.</p>
+            <h2>${classStatus === "archived" ? "Archived classes" : "Active classes"} across BASAya</h2>
+            <p>${classStatus === "archived" ? "Saved classrooms and records. Restore a class to resume participation." : "A clear view of every active classroom and the teacher leading it."}</p>
           </div>
           <span class="admin-class-directory__count">
-            <strong>${state.allClasses.length}</strong>
-            ${state.allClasses.length === 1 ? "class" : "classes"}
+            <strong>${classes.length}</strong>
+            ${classes.length === 1 ? "class" : "classes"}
           </span>
         </div>
         <label class="admin-directory-search">
@@ -181,35 +178,29 @@ export async function renderClasses() {
           <span class="sr-only">Search classes by class name</span>
           <input type="search" id="class-name-search" placeholder="Search by class name..." autocomplete="off" />
         </label>
-        ${gradeTabs(state.allClasses)}
+        ${gradeTabs(classes)}
         <div class="admin-class-table-wrap">
           <table class="table admin-class-table">
             <thead>
               <tr>
                 <th scope="col">Class</th>
                 <th scope="col">Teacher</th>
-                <th scope="col">Created</th>
+                <th scope="col">${classStatus === "archived" ? "Archived" : "Created"}</th>
                 <th scope="col" aria-label="Class actions"></th>
               </tr>
             </thead>
             <tbody>
-              ${state.allClasses
+              ${classes
                 .map((classroom) => {
                   const className = classroom.className || "Untitled class";
                   const teacherName = teacherNameById.get(classroom.teacherId);
-                  const initials = className
-                    .split(/\s+/)
-                    .map((part) => part.charAt(0))
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase();
                   return `<tr data-class-name="${escapeHtml(className)}" data-grade="${escapeHtml(gradeOf(classroom))}" ${teacherName ? "" : "data-unassigned"}>
                     <td>
                       <div class="admin-class-table__identity">
-                        <span class="admin-class-table__mark" aria-hidden="true">${escapeHtml(initials || "C")}</span>
+                        <span class="admin-class-table__mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v11H4zM8 20h8M12 15v5M8 8h8M8 11h5" /></svg></span>
                         <span>
-                          <strong>${escapeHtml(className)}${requestChip(classroom)}</strong>
-                          <small>${escapeHtml(classroom.section || "Classroom")}</small>
+                          <strong>${escapeHtml(className)}</strong>
+                          <small>${escapeHtml(classroom.section || "Classroom")} &middot; ${escapeHtml(schoolYearOf(classroom))}</small>
                         </span>
                       </div>
                     </td>
@@ -226,7 +217,7 @@ export async function renderClasses() {
                             </span>`
                       }
                     </td>
-                    <td class="admin-class-table__date">${escapeHtml(time(classroom.createdAt))}</td>
+                    <td class="admin-class-table__date">${escapeHtml(time(classroom.archived ? classroom.archivedAt : classroom.createdAt))}</td>
                     <td>
                       <div class="admin-class-menu">
                         <button
@@ -241,11 +232,11 @@ export async function renderClasses() {
                         <div class="admin-class-menu-popup" hidden>
                           <button type="button" class="admin-class-menu-item" data-edit-class="${escapeHtml(classroom.id)}">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" /></svg>
-                            <span>Edit class</span>
+                            <span>${classroom.archived ? "Change teacher" : "Edit class"}</span>
                           </button>
-                          <button type="button" class="admin-class-menu-item admin-class-menu-item--danger" data-delete-class="${escapeHtml(classroom.id)}">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
-                            <span>Delete class</span>
+                          <button type="button" class="admin-class-menu-item" data-archive-class="${escapeHtml(classroom.id)}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4" /></svg>
+                            <span>${classroom.archived ? "Restore class" : "Archive class"}</span>
                           </button>
                         </div>
                       </div>
@@ -261,11 +252,28 @@ export async function renderClasses() {
         </div>
       </section>`
     : empty(
-        "No classes yet",
-        "Classes will appear here once teachers create them.",
+        classStatus === "archived" ? "No archived classes" : "No active classes",
+        classStatus === "archived" ? "Classes you archive will appear here with their saved records." : "New and restored classes will appear here.",
         "Refresh",
         "refresh-classes",
-      );
+      ));
+
+  document.querySelectorAll("[data-class-status]").forEach(button => button.addEventListener("click", async () => {
+    if (classStatus === button.dataset.classStatus) return;
+    classStatus = button.dataset.classStatus;
+    activeGrade = "all";
+    onlyUnassigned = false;
+    await renderClasses();
+    document.querySelector(`[data-class-status="${classStatus}"]`)?.focus();
+  }));
+
+  document.querySelectorAll('[data-school-year]').forEach(button => button.addEventListener('click', async () => {
+    selectedSchoolYear = button.dataset.schoolYear;
+    activeGrade = 'all';
+    onlyUnassigned = false;
+    await renderClasses();
+    document.querySelector(`[data-school-year="${selectedSchoolYear}"]`)?.focus();
+  }));
 
   // Search by name and the grade tab work together.
   const applyFilters = () => {
@@ -293,7 +301,7 @@ export async function renderClasses() {
   };
 
   $("#class-name-search")?.addEventListener("input", applyFilters);
-  if (state.allClasses.length) applyFilters();
+  if (classes.length) applyFilters();
 
   const pager = paginate({
     rows: () => [...document.querySelectorAll(".admin-class-table tbody tr[data-class-name]")],
@@ -334,16 +342,13 @@ export async function renderClasses() {
 
   $("#refresh-classes")?.addEventListener("click", renderClasses);
 
-  wireRequestsPanel(state.allClasses, renderClasses);
-  refreshDeletionBadge();
-
-  state.allClasses.forEach((classroom) => {
+  classes.forEach((classroom) => {
     const editButton = [
       ...document.querySelectorAll("[data-edit-class]"),
     ].find((button) => button.dataset.editClass === classroom.id);
     const deleteButton = [
-      ...document.querySelectorAll("[data-delete-class]"),
-    ].find((button) => button.dataset.deleteClass === classroom.id);
+      ...document.querySelectorAll("[data-archive-class]"),
+    ].find((button) => button.dataset.archiveClass === classroom.id);
     const row = editButton?.closest("tr");
     const toggle = row?.querySelector(".admin-class-menu-toggle");
     const popup = row?.querySelector(".admin-class-menu-popup");
@@ -356,11 +361,12 @@ export async function renderClasses() {
     });
     editButton?.addEventListener("click", () => {
       closeClassMenus();
-      openEditClassModal(classroom);
+      if (classroom.archived) openAssignTeacherModal(classroom, renderClasses);
+      else openEditClassModal(classroom);
     });
     deleteButton?.addEventListener("click", () => {
       closeClassMenus();
-      openDeleteClassModal(classroom);
+      openArchiveClassModal(classroom);
     });
   });
 }
@@ -371,6 +377,7 @@ function openEditClassModal(classroom) {
     `<h2>Edit class</h2>
      <p>Update the classroom details shown across the platform.</p>
      <form id="edit-class-form" class="form-card">
+       <label>School Year<input value="${escapeHtml(schoolYearOf(classroom))}" readonly /><small>School Year cannot be changed after creation.</small></label>
        <label>Class name<input name="className" required data-missing="Give the class a name so teachers and students can find it." maxlength="100" value="${escapeHtml(classroom.className || "")}" /></label>
        <label>Section<input name="section" maxlength="40" value="${escapeHtml(classroom.section || "")}" placeholder="e.g. Rizal" /></label>
        <label>Teacher
@@ -424,7 +431,29 @@ function openEditClassModal(classroom) {
   );
 }
 
-// Same full cleanup as approving a request; the admin types "delete" to confirm.
-function openDeleteClassModal(classroom) {
-  openDeleteConfirm(classroom, renderClasses);
+function openArchiveClassModal(classroom) {
+  const restoring = classroom.archived === true;
+  const label = restoring ? "Restore class" : "Archive class";
+  openModal(`<div class="deletion-modal"><h2>${label}?</h2><p><strong>${escapeHtml(classroom.className || "Untitled class")}</strong></p><div class="deletion-modal__impact"><strong>Students, lessons, schedules and saved progress are preserved.</strong><p>${restoring ? "The class returns to Active. Enrolled students can resume participation. Dropped students stay dropped, and deadlines passed while archived remain exempt." : "The class moves to Archived. Participation and class-code requests pause. Students can still request to leave, and the assigned teacher can review those requests."}</p></div><p class="form-error" role="alert"></p><div class="modal-actions"><button type="button" class="button secondary" data-cancel>Cancel</button><button type="button" class="button primary" data-confirm>${label}</button></div></div>`, (modal, close) => {
+    let busy = false;
+    const confirm = modal.querySelector("[data-confirm]");
+    const cancel = modal.querySelector("[data-cancel]");
+    cancel.addEventListener("click", close);
+    confirm.addEventListener("click", async () => {
+      if (busy) return;
+      busy = true;
+      confirm.disabled = cancel.disabled = true;
+      try {
+        await classLifecycle(restoring ? "restore" : "archive", classroom.id);
+        close();
+        toast(restoring ? "Class restored." : "Class archived. All records are preserved.");
+        await renderClasses();
+      } catch (error) {
+        modal.querySelector(".form-error").textContent = error.message;
+      } finally {
+        busy = false;
+        confirm.disabled = cancel.disabled = false;
+      }
+    });
+  });
 }

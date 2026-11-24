@@ -4,6 +4,26 @@
 }
 
 .student-status-filters { margin-bottom: 1rem; }
+body[data-portal="admin"] .student-table .student-avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; background: var(--admin-tint); color: var(--primary); }
+.student-avatar svg { display: block; width: 21px; height: 21px; }
+.student-username { display: block; margin-top: .2rem; color: var(--ink-3); font-size: .75rem; overflow-wrap: anywhere; }
+.student-table-heading { display: inline-flex; align-items: center; gap: .55rem; }
+.student-multiselect-toggle { display: inline-grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong, var(--border)); border-radius: 7px; background: var(--admin-paper, var(--surface)); color: var(--primary); cursor: pointer; transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease; }
+.student-multiselect-toggle svg { width: 18px; height: 18px; transition: transform 180ms ease; }
+.student-multiselect-toggle:hover:not(:disabled) { transform: translateY(-2px); background: var(--primary-soft); border-color: var(--primary); }
+.student-multiselect-toggle:hover:not(:disabled) svg { transform: scale(1.06); }
+.student-multiselect-toggle[aria-pressed="true"] { background: var(--admin-action, var(--primary)); border-color: var(--admin-action, var(--primary)); color: var(--admin-action-ink, var(--surface)); }
+.student-multiselect-toggle[aria-pressed="true"]:hover:not(:disabled) { background: var(--admin-action-hover, var(--primary)); }
+.student-multiselect-toggle:focus-visible { outline: 2px solid var(--primary-ring, var(--primary)); outline-offset: 3px; }
+.student-multiselect-toggle:active:not(:disabled) { transform: none; }
+.student-multiselect-toggle:disabled { opacity: .5; cursor: wait; }
+.student-table .student-select-cell[hidden] { display: none; }
+.student-table:has(.student-select-cell[hidden]) tr > :nth-child(2) { border-radius: var(--radius) 0 0 var(--radius); }
+.student-table:has(.student-select-cell[hidden]) tbody tr > :nth-child(2) { border-left: 1px solid var(--border); }
+@media (prefers-reduced-motion: reduce) {
+  .student-multiselect-toggle, .student-multiselect-toggle svg { transition: none; }
+  .student-multiselect-toggle:hover:not(:disabled), .student-multiselect-toggle:hover:not(:disabled) svg { transform: none; }
+}
 .student-select-cell { width: 3rem; text-align: center; }
 .student-select-cell input { width: 18px; height: 18px; min-height: 0; cursor: pointer; vertical-align: middle; }
 .student-select-cell input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

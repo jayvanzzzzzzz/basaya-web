@@ -1,4 +1,6 @@
+import { pathModules, sequenceBlocker, lessonSequence } from '../../js/studentSequence.js';
 import { skeleton } from '../../js/page-loading.js';
+import { pathBlocker, orderedPathAssignments } from '../../js/learningPathSequence.js';
 import { confirmAction } from "../../js/action-confirmation.js";
 import { $, escapeHtml, navigate, toast } from "../../js/helpers.js";
 import {
@@ -59,20 +61,26 @@ function statusOf(lesson) {
   const game = lesson.gameFinished && !lesson.gameSkipped;
   const activity = lesson.activityFinished && !lesson.activitySkipped;
   if (isComplete(lesson)) return { key: "done", label: "Tapos na", icon: "check" };
-  if (lesson.lectureFinished || game || activity || lesson.pronunciationFinished || lesson.quizFinished || lesson.started)
+  if (lesson.lectureFinished || game || activity || (lesson.pronunciationFinished && !lesson.pronunciationSkipped) || (lesson.quizFinished && !lesson.quizSkipped) || lesson.started)
     return { key: "progress", label: "Nasa progreso", icon: "refresh" };
   return { key: "new", label: "Hindi pa nasisimulan", icon: "book" };
 }
 
 /** All five parts, excluding a game or Gawain the admin skipped. */
 function percentOf(lesson) {
-  const parts = [lesson.lectureFinished, lesson.pronunciationFinished, lesson.quizFinished];
+  const parts = [lesson.lectureFinished];
+  if (!lesson.pronunciationSkipped) parts.push(lesson.pronunciationFinished);
+  if (!lesson.quizSkipped) parts.push(lesson.quizFinished);
   if (!lesson.gameSkipped) parts.push(lesson.gameFinished);
   if (!lesson.activitySkipped) parts.push(lesson.activityFinished);
   return Math.floor((parts.filter(Boolean).length * 100) / parts.length);
 }
 
 function scheduleChip(lesson) {
+  const previous = pathBlocker(lesson, student.lessons);
+  if (previous) return `<span class="st-chip st-chip--new">${icon('lock')}Tapusin muna: ${escapeHtml(previous.title || 'Naunang lesson path')}</span>`;
+  const prerequisite = sequenceBlocker(lesson, student.lessons);
+  if (prerequisite) return `<span class="st-chip st-chip--new">${icon('lock')}Tapusin muna: ${escapeHtml(prerequisite.title)}</span>`;
   if(lesson.exempt) return `<span class="st-chip st-chip--progress">Exempt — walang bawas sa marka${lesson.dueAt ? ` · Deadline: ${escapeHtml(formatWhen(lesson.dueAt))}` : ""}</span>`;
   const state = availability(lesson);
   if (state === "not-yet-open")
@@ -107,12 +115,13 @@ function lessonCard(lesson, search) {
     <li class="st-lesson-card${isInstalledPwa() ? " has-download-menu" : ""}" data-download-card="${escapeHtml(lesson.id)}">
       <button class="st-lesson${canOpen(lesson) ? "" : " is-locked"}" type="button" data-lesson="${escapeHtml(lesson.id)}">
         <span class="st-lesson__top">
-          <span class="st-lesson__eyebrow">${lesson.order > 0 ? `ARALIN ${lesson.order}` : "ARALIN"}</span>
+
           ${lesson.practice ? "" : `<span class="st-chip st-chip--${status.key}">${icon(status.icon)}${status.label}</span>`}
         </span>
         <strong class="st-lesson__title">${highlight(lesson.title, search)}</strong>
         ${lesson.description ? `<span class="st-lesson__desc">${escapeHtml(lesson.description)}</span>` : ""}
         <span class="st-lesson__meta">
+          ${lesson.learningPathTitle ? `<span class="st-chip st-chip--new">${escapeHtml(lesson.learningPathTitle)}</span>` : ''}
           ${modeChip(lesson)}
           ${
             lesson.difficulty
@@ -131,8 +140,8 @@ function lessonCard(lesson, search) {
           <b>${percent}%</b>
         </span>`
         }
-        <span class="st-lesson__action">${canOpen(lesson) ? lesson.practice ? "Magsanay" : status.key === "done" ? "Balikan ang aralin" : status.key === "progress" ? "Ipagpatuloy" : "Simulan ang aralin" : "Tingnan ang iskedyul"}${icon(canOpen(lesson) ? "chevron" : "lock")}</span>
-      </button>
+        <span class="st-lesson__action">${canOpen(lesson) ? lesson.practice ? "Magsanay" : status.key === "done" ? "Balikan ang aralin" : status.key === "progress" ? "Ipagpatuloy" : "Simulan ang aralin" : pathBlocker(lesson, student.lessons) ? "Naka-lock ang lesson path" : sequenceBlocker(lesson, student.lessons) ? "Naka-lock ang aralin" : "Tingnan ang iskedyul"}${icon(canOpen(lesson) ? "chevron" : "lock")}</span>
+      ${canOpen(lesson) ? "" : lockOverlay()}</button>
       ${isInstalledPwa() ? `<span class="st-download-state" data-download-state="${escapeHtml(lesson.id)}">${downloadIndicator(lesson.id)}</span>
       <details class="st-download-menu" data-download-menu="${escapeHtml(lesson.id)}">
         <summary aria-label="Mga opsyon sa download: ${escapeHtml(lesson.title)}" title="Mga opsyon sa download">
@@ -178,6 +187,31 @@ function updateDownloadCard(card) {
     : navigator.onLine ? canOpen(lesson) ? "I-save para magamit offline" : "Hindi bukas ang aralin para i-download" : "Kumonekta para i-download";
 }
 
+function assignedStudentPaths() {
+  return orderedPathAssignments([], student.lessons).map((path, index) => {
+    const members = student.lessons.filter(lesson => lesson.learningPathAssignmentId === path.id);
+    const done = members.filter(isComplete).length, finished = members.length > 0 && done === members.length;
+    const first = members[0] || {};
+    return { ...first, id: path.id, title: path.title || 'Lesson path', members, pathNumber: index + 1, done,
+      started: members.some(lesson => isComplete(lesson) || statusOf(lesson).key === 'progress'),
+      practice: members.every(lesson => lesson.practice),
+      lectureFinished: finished, gameFinished: finished, activityFinished: finished, pronunciationFinished: finished, quizFinished: finished,
+      gameSkipped: false, activitySkipped: false, pronunciationSkipped: false, quizSkipped: false };
+  });
+}
+function studentPathCard(path, search) {
+  const unlocked = path.members.some(canOpen), status = statusOf(path), percent = Math.round(path.done / path.members.length * 100);
+  const modules = new Set(path.members.map(lesson => lesson.moduleId).filter(Boolean)).size;
+  return `<li class="st-lesson-card st-assigned-path"><button class="st-lesson${unlocked ? '' : ' is-locked'}" type="button" data-student-path="${escapeHtml(path.id)}"><span class="st-lesson__top">${path.practice ? '' : `<span class="st-chip st-chip--${status.key}">${icon(status.icon)}${status.label}</span>`}</span><strong class="st-lesson__title">${highlight(path.title, search)}</strong><span class="st-lesson__desc">${modules ? modules + ' modules &middot; ' : ''}${path.members.length} aralin</span><span class="st-lesson__meta">${modeChip(path)}${scheduleChip(path)}</span>${path.practice ? '' : `<span class="st-lesson__progress"><span class="st-bar" role="progressbar" aria-label="Mga araling natapos" aria-valuemin="0" aria-valuemax="${path.members.length}" aria-valuenow="${path.done}"><i style="width:${percent}%"></i></span><b>${path.done}/${path.members.length}</b></span>`}<span class="st-lesson__action">${unlocked ? 'Buksan ang lesson path' : pathBlocker(path, student.lessons) ? 'Naka-lock ang lesson path' : 'Tingnan ang iskedyul'}${icon(unlocked ? 'chevron' : 'lock')}</span>${unlocked ? "" : lockOverlay()}</button></li>`;
+}
+
+function moduleCard(module, search) {
+  const unlocked = module.members.some(canOpen);
+  const percent = Math.round(module.done / module.members.length * 100);
+  const reason = sequenceBlocker(module.members[0], student.lessons);
+  return `<li class="st-lesson-card st-module-card"><button type="button" class="st-lesson${unlocked ? '' : ' is-locked'}" data-student-module="${escapeHtml(module.id)}"><strong class="st-lesson__title">${highlight(module.title, search)}</strong><span class="st-lesson__desc">${module.members.length} aralin</span><span class="st-lesson__progress"><span class="st-bar" role="progressbar" aria-label="Mga araling natapos" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><i style="width:${percent}%"></i></span><b>${module.done}/${module.members.length}</b></span><span class="st-lesson__action">${unlocked ? 'Buksan ang module' : reason ? 'Tapusin muna: ' + escapeHtml(reason.title) : 'Naka-lock'}${icon(unlocked ? 'chevron' : 'lock')}</span>${unlocked ? '' : lockOverlay()}</button></li>`;
+}
+function lockOverlay() { return `<span class="st-sequence-lock" aria-hidden="true">${icon('lock')}</span>`; }
 function matchesLessonTab(lesson, tab) {
   if (tab === "all") return true;
   if (tab === "downloaded") return downloads.has(lesson.id);
@@ -203,6 +237,7 @@ const STATUSES = [
   { key: "new", label: "Hindi pa nasisimulan" },
 ];
 let activeStatus = "all";
+let homeSelection = { scope: null, path: null, module: null };
 
 const inStatus = (lesson, status) => status === "all" || (!lesson.practice && statusOf(lesson).key === status);
 
@@ -221,6 +256,10 @@ function compareBySchedule(a, b) {
 
 /** Before the open date, or after the deadline of an unfinished lesson. */
 function showLocked(lesson) {
+  const previous = pathBlocker(lesson, student.lessons);
+  if (previous) return showDialog({ iconName: 'lock', tone: 'locked', title: 'Naka-lock ang lesson path', message: `Tapusin muna ang lahat ng kinakailangang aralin sa “${previous.title || 'Naunang lesson path'}” bago buksan ang lesson path na ito.` });
+  const prerequisite = sequenceBlocker(lesson, student.lessons);
+  if (prerequisite) return showDialog({ iconName: 'lock', tone: 'locked', title: 'Naka-lock', message: 'Tapusin muna: ' + prerequisite.title });
   const closed = availability(lesson) === "closed";
   showDialog({
     iconName: "lock",
@@ -241,6 +280,7 @@ function emptyState(kind, query = "") {
         : student.profile.joinRequest?.status === "declined" ? "Hindi inaprubahan ang iyong kahilingan. Kausapin ang guro o gamitin muli ang tamang class code." : "Ipadala ang kahilingan gamit ang class code ng iyong guro.",
       action: `<a class="button primary" href="#/join">${icon("plus")}${student.profile.joinRequest?.status === "pending" ? "Tingnan ang kahilingan" : "Sumali sa klase"}</a>`,
     },
+    "no-paths": { title: "Wala pang nakatalagang lesson path.", text: "Lalabas dito ang mga lesson path na itinalaga ng iyong guro." },
     "no-lessons": {
       title: navigator.onLine ? "Wala pang nakatalagang aralin." : "Walang na-download na aralin.",
       text: navigator.onLine ? "Bumalik muli para tingnan ang mga bagong gawain." : "Kumonekta at i-download muna ang mga araling gagamitin offline.",
@@ -267,8 +307,11 @@ export async function renderHome() {
   const scope = JSON.stringify([student.uid, classId(), student.profile.progressSession]);
   if (scope !== downloadsScope) { downloads = new Map(); downloadsScope = scope; }
   if (!isInstalledPwa() && activeTab === "downloaded") activeTab = "all";
+  if (homeSelection.scope !== scope) homeSelection = { scope, path: null, module: null };
+  let activePathId = homeSelection.path;
+  let activeModuleId = homeSelection.module;
   let active = true;
-  onLeave(() => { active = false; });
+  onLeave(() => { active = false; homeSelection = { scope, path: activePathId, module: activeModuleId }; });
   content().innerHTML = `
     <section class="st-home">
       <header class="st-hero st-hero--home">
@@ -282,15 +325,16 @@ export async function renderHome() {
         <button class="st-icon-button st-hub-tooltip" type="button" id="home-refresh" aria-label="I-refresh ang mga aralin" data-tooltip="I-refresh">${icon("refresh")}</button>
       </header>
       <section class="st-home-tools" aria-label="Hanapin at salain ang mga aralin">
-      <div class="st-library-heading"><h2>Aking mga aralin</h2><span>Piliin ang susunod mong babasahin</span></div>
+      <div class="st-library-heading"><h2>Aking mga lesson path</h2><span>Sundin ang pagkakasunod-sunod ng iyong mga lesson path</span></div>
       <label class="st-search">
         ${icon("search")}
-        <input id="home-search" type="search" placeholder="Hanapin ang aralin" autocomplete="off" aria-label="Hanapin ang aralin" />
+        <input id="home-search" type="search" placeholder="Hanapin ang lesson path" autocomplete="off" aria-label="Hanapin ang lesson path" />
       </label>
       <div class="st-tabs" id="home-tabs" role="tablist" aria-label="Salain ang mga aralin" hidden></div>
       <div class="st-status-filters" id="home-status" role="group" aria-label="Salain ayon sa progreso" hidden></div>
       </section>
       ${isInstalledPwa() ? `<div class="st-download-all"><button class="button secondary" type="button" id="home-download-all" disabled>${icon("download")}<span>I-download lahat</span></button><button class="st-icon-button" type="button" id="home-cancel-download-all" aria-label="Itigil ang pag-download" title="Itigil ang pag-download" hidden>${icon("close")}</button><span id="home-download-all-status" role="status"></span></div>` : ""}
+      <div id="home-path-heading" class="st-home-path-heading" hidden><button class="button secondary" type="button" id="home-back-path">Bumalik sa mga lesson path</button><h2 id="home-path-title"></h2></div>
       <div id="home-list" aria-live="polite">
         ${skeleton('student-lessons', { label: 'Inihahanda ang mga aralin...', tag: 'div' })}
       </div>
@@ -305,25 +349,34 @@ export async function renderHome() {
   const bulkStatus = $("#home-download-all-status");
   const updateBulkButton = () => {
     if (!downloadAll) return;
-    downloadAll.hidden = !classId() || !student.lessons.length;
+    downloadAll.hidden = !classId() || !student.lessons.some(lesson => lesson.learningPathAssignmentId);
     downloadAll.disabled = !navigator.onLine || bulkDownloading || downloading.size > 0 || removingDownloads.size > 0 ||
-      !student.lessons.some((lesson) => availability(lesson) === "open" && !downloads.has(lesson.id));
+      !student.lessons.some((lesson) => lesson.learningPathAssignmentId && (!activePathId || lesson.learningPathAssignmentId === activePathId) && canOpen(lesson) && !downloads.has(lesson.id));
     downloadAll.querySelector("span").textContent = bulkDownloading ? "Dina-download…" : "I-download lahat";
     bulkStatus.textContent = bulkLabel;
     cancelDownloadAll.hidden = !bulkDownloading;
     cancelDownloadAll.disabled = bulkController?.signal.aborted === true;
   };
 
-  const inTab = (lesson) => matchesLessonTab(lesson, activeTab);
+  const pathLessons = () => student.lessons.filter(lesson => lesson.learningPathAssignmentId === activePathId);
+  const modules = () => pathModules(pathLessons()).map(module => {
+    const done = module.members.filter(isComplete).length, finished = done === module.members.length;
+    return { ...module.members[0], ...module, done, started: module.members.some(item => statusOf(item).key === 'progress'),
+      practice: module.members.every(item => item.practice), lectureFinished: finished, gameFinished: finished,
+      activityFinished: finished, pronunciationFinished: finished, quizFinished: finished,
+      gameSkipped: false, activitySkipped: false, pronunciationSkipped: false, quizSkipped: false };
+  });
+  const viewItems = () => !activePathId ? assignedStudentPaths() : !activeModuleId ? modules() : lessonSequence(pathLessons().filter(lesson => (lesson.moduleId || '__lessons') === activeModuleId));
+  const inTab = lesson => activeTab === 'downloaded' && lesson.members ? lesson.members.some(item => downloads.has(item.id)) : matchesLessonTab(lesson, activeTab);
   const matchingLessons = () => {
     const query = search.value.trim().toLowerCase();
-    return student.lessons.filter((lesson) => inTab(lesson) && inStatus(lesson, activeStatus) &&
-      (!query || lesson.title.toLowerCase().includes(query))).sort(compareBySchedule);
+    return viewItems().filter((lesson) => inTab(lesson) && inStatus(lesson, activeStatus) &&
+      (!query || lesson.title.toLowerCase().includes(query)));
   };
 
   /** Counts follow the tab chosen above, so they match the list. */
   const drawStatuses = () => {
-    const tabLessons = student.lessons.filter(inTab);
+    const tabLessons = viewItems().filter(inTab);
     statuses.innerHTML = STATUSES.map(({ key, label }) => {
       const count = tabLessons.filter((lesson) => inStatus(lesson, key)).length;
       return `
@@ -334,9 +387,10 @@ export async function renderHome() {
   };
 
   const drawTabs = () => {
-    const closed = student.lessons.filter((lesson) => tabOf(lesson) === "closed").length;
-    const count = { all: student.lessons.length, open: student.lessons.length - closed, closed,
-      downloaded: student.lessons.filter((lesson) => downloads.has(lesson.id)).length };
+    const items = viewItems();
+    const closed = items.filter((lesson) => tabOf(lesson) === "closed").length;
+    const count = { all: items.length, open: items.length - closed, closed,
+      downloaded: items.filter(lesson => lesson.members ? lesson.members.some(item => downloads.has(item.id)) : downloads.has(lesson.id)).length };
     tabs.innerHTML = availableTabs().map(
       ({ key, label }) => `
         <button class="st-tab${key === activeTab ? " is-active" : ""}" type="button" role="tab" data-tab="${key}" aria-selected="${key === activeTab}">
@@ -348,31 +402,43 @@ export async function renderHome() {
   const draw = () => {
     if (!active) return;
     updateBulkButton();
+    if (activePathId && !pathLessons().length) { activePathId = null; activeModuleId = null; }
+    if (activeModuleId && !modules().some(module => module.id === activeModuleId)) activeModuleId = null;
+    $('#home-path-heading').hidden = !activePathId;
+    $('.st-library-heading h2').textContent = activePathId ? 'Mga aralin sa lesson path' : 'Aking mga lesson path';
+    $('.st-library-heading > span').textContent = activePathId ? 'Piliin ang araling ipagpapatuloy' : 'Sundin ang pagkakasunod-sunod ng iyong mga lesson path';
+    $('#home-path-title').textContent = activeModuleId ? modules().find(item => item.id === activeModuleId)?.title || 'Mga aralin' : activePathId ? pathLessons()[0]?.learningPathTitle || 'Lesson path' : '';
+    $('#home-back-path').textContent = activeModuleId ? 'Bumalik sa mga module' : 'Bumalik sa mga lesson path';
+    $('.st-library-heading h2').textContent = activeModuleId ? 'Mga aralin' : activePathId ? 'Mga module' : 'Aking mga lesson path';
+    $('.st-library-heading > span').textContent = activeModuleId ? 'Tapusin ang aralin upang buksan ang susunod.' : activePathId ? 'Tapusin ang module upang buksan ang susunod.' : 'Sundin ang pagkakasunod-sunod ng iyong mga lesson path';
+    search.placeholder = activeModuleId ? 'Hanapin ang aralin' : activePathId ? 'Hanapin ang module' : 'Hanapin ang lesson path';
+    search.setAttribute('aria-label', search.placeholder);
     const query = search.value.trim();
-    tabs.hidden = !classId() || !student.lessons.length;
+    tabs.hidden = !classId() || !viewItems().length;
     statuses.hidden = tabs.hidden;
     if (!classId()) {
       list.innerHTML = emptyState("no-class");
       return;
     }
-    if (!student.lessons.length) {
-      list.innerHTML = emptyState("no-lessons");
+    if (!viewItems().length) {
+      list.innerHTML = emptyState("no-paths");
       return;
     }
     drawTabs();
     drawStatuses();
     const shown = matchingLessons();
     list.innerHTML = shown.length
-      ? `<ul class="st-lessons">${shown.map((lesson) => lessonCard(lesson, query)).join("")}</ul>`
+      ? `<ul class="st-lessons">${shown.map(lesson => activeModuleId ? lessonCard(lesson, query) : activePathId ? moduleCard(lesson, query) : studentPathCard(lesson, query)).join("")}</ul>`
       : query
         ? emptyState("no-results", query)
         : emptyState(`no-${activeStatus === "all" ? activeTab : activeStatus}`);
   };
   const refreshDownloads = () => {
     if (!active) return;
+    if (!activeModuleId) { draw(); return; }
     updateBulkButton();
     const downloadedCount = tabs.querySelector('[data-tab="downloaded"] .st-tab__count');
-    if (downloadedCount) downloadedCount.textContent = student.lessons.filter((lesson) => downloads.has(lesson.id)).length;
+    if (downloadedCount) downloadedCount.textContent = viewItems().filter((lesson) => downloads.has(lesson.id)).length;
     if (activeTab === "downloaded") {
       const shown = matchingLessons();
       let ul = list.querySelector(".st-lessons");
@@ -462,6 +528,8 @@ export async function renderHome() {
       return;
     }
     if (!ids.length) return;
+    const target = student.lessons.find(lesson => ids.includes(lesson.id));
+    if (target?.learningPathAssignmentId && canOpen(target)) { activePathId = target.learningPathAssignmentId; activeModuleId = target.moduleId || '__lessons'; draw(); }
     if (search.value || activeTab !== "all" || activeStatus !== "all") {
       search.value = "";
       activeTab = "all";
@@ -473,6 +541,20 @@ export async function renderHome() {
     cards.forEach((card) => card.classList.add("is-glow"));
   };
 
+  $('#home-back-path').addEventListener('click', () => { if (activeModuleId) activeModuleId = null; else activePathId = null; search.value = ''; activeTab = 'all'; activeStatus = 'all'; draw(); $('#home-search').focus(); });
+  list.addEventListener('click', event => {
+    const button = event.target.closest('[data-student-path]'); if (!button) return;
+    const path = assignedStudentPaths().find(item => item.id === button.dataset.studentPath); if (!path) return;
+    if (!path.members.some(canOpen)) return showLocked(path);
+    activePathId = path.id; search.value = ''; activeTab = 'all'; activeStatus = 'all'; draw(); $('#home-back-path').focus();
+  });
+  list.addEventListener('click', event => {
+    const button = event.target.closest('[data-student-module]'); if (!button) return;
+    const module = modules().find(item => item.id === button.dataset.studentModule); if (!module) return;
+    const first = module.members[0];
+    if (!module.members.some(canOpen)) return showLocked(first);
+    activeModuleId = module.id; search.value = ''; activeTab = 'all'; activeStatus = 'all'; draw(); $('#home-back-path').focus();
+  });
   search.addEventListener("input", draw);
   const closeDownloadMenus = (event) => {
     list.querySelectorAll(".st-download-menu[open]").forEach((menu) => {
@@ -555,11 +637,11 @@ export async function renderHome() {
     refreshDownloads();
     try {
       await withDownloadAbort(load({ preserveCards: true }), controller.signal);
-      const queue = student.lessons.filter((lesson) => availability(lesson) === "open" && !downloads.has(lesson.id));
+      const queue = student.lessons.filter((lesson) => lesson.learningPathAssignmentId && (!activePathId || lesson.learningPathAssignmentId === activePathId) && canOpen(lesson) && !downloads.has(lesson.id));
       const result = await downloadLessons(queue, {
         signal: controller.signal,
         shouldContinue: () => active && navigator.onLine && student.uid === uid && classId() === cid,
-        isEligible: (lesson) => availability(lesson) === "open" && !downloads.has(lesson.id),
+        isEligible: (lesson) => canOpen(lesson) && !downloads.has(lesson.id),
         download: (lesson, progress) => downloadLesson(lesson.id, progress, { signal: controller.signal }),
         onProgress: (lesson, index, total, percent) => {
           downloading.add(lesson.id);

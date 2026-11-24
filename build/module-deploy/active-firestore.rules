@@ -130,18 +130,87 @@ service cloud.firestore {
       }
     }
 
-    // Staff and approved members can read lessons. Only admins can change lesson content.
+    function ownsOrShared(d) {
+      return signedIn() && (isTeacher() || isAdmin()) &&
+        (d.get('teacherId', '') == request.auth.uid || d.get('visibility', 'shared') == 'shared');
+    }
+    function canReadLesson(d, lessonId) {
+      let classId = signedIn() ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classId', '') : '';
+      return ownsOrShared(d) || (canReadLearningContent() && !isTeacher() && !isAdmin() &&
+        (d.get('visibility', 'shared') == 'shared' ||
+          exists(/databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId)) ||
+          exists(/databases/$(database)/documents/classes/$(classId)/classLessons/$(lessonId + '__practice'))));
+    }
+    function archiveUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['archived', 'archivedBy', 'archivedAt', 'archiveReason', 'archiveModerated', 'deletionPending', 'deletionRequestedBy']);
+    }
+    function noArchiveMetadata() {
+      return !request.resource.data.keys().hasAny(['archived', 'archivedBy', 'archivedAt', 'archiveReason', 'archiveModerated', 'deletionPending', 'deletionRequestedBy']);
+    }
+    // Teachers author their own lessons; premade lessons are copied before editing.
     match /lessons/{lessonId} {
-      allow read: if canReadLearningContent();
-      allow create, update, delete: if isAdmin();
+      allow read: if canReadLesson(resource.data, lessonId);
+      allow create: if (request.resource.data.get('visibility', 'shared') != 'private' || (request.resource.data.get('teacherId', '') is string && request.resource.data.get('teacherId', '').size() > 0)) && (isAdmin() || request.resource.data.get('adminManaged', false) != true) && noArchiveMetadata() && (!request.resource.data.keys().hasAny(['copiedFromLessonId']) || get(/databases/$(database)/documents/lessons/$(request.resource.data.copiedFromLessonId)).data.get('archived', false) != true) && request.resource.data.get('visibility', 'shared') in ['private', 'shared'] && (isAdmin() || (isTeacher() && request.resource.data.teacherId == request.auth.uid &&
+        request.resource.data.title is string && request.resource.data.title.size() > 0));
+      allow update: if (isAdmin() || request.resource.data.get('adminManaged', false) == resource.data.get('adminManaged', false)) && (request.resource.data.get('visibility', 'shared') != 'private' || (request.resource.data.get('teacherId', '') is string && request.resource.data.get('teacherId', '').size() > 0)) && archiveUnchanged() && resource.data.get('archived', false) != true && request.resource.data.get('visibility', 'shared') in ['private', 'shared'] && (isAdmin() || (isTeacher() && resource.data.get('teacherId', '') == request.auth.uid &&
+        request.resource.data.teacherId == resource.data.teacherId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sourceLessonId', 'copiedFromLessonId', 'createdAt'])));
+      allow delete: if false;
 
       match /{subcollection}/{docId} {
         // Firestore cannot hide individual fields. Students receive sanitized
         // quiz/activity content from the API instead of answer-key documents.
-        allow read: if canReadLearningContent() &&
+        allow read: if canReadLesson(get(/databases/$(database)/documents/lessons/$(lessonId)).data, lessonId) &&
           (!(subcollection in ['quiz', 'activity']) || isTeacher() || isAdmin());
-        allow write: if isAdmin();
+        allow write: if getAfter(/databases/$(database)/documents/lessons/$(lessonId)).data.get('archived', false) != true && (isAdmin() || (isTeacher() &&
+          getAfter(/databases/$(database)/documents/lessons/$(lessonId)).data.get('teacherId', '') == request.auth.uid));
       }
+    }
+
+    match /users/{uid}/contentNotices/{noticeId} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /contentLifecycleEvents/{eventId} {
+      allow read, write: if false;
+    }
+    match /lessonCopyCounters/{lessonId} {
+      allow read: if isAdmin() || isTeacher();
+      allow create, update: if (isAdmin() || isTeacher()) &&
+        exists(/databases/$(database)/documents/lessons/$(lessonId)) &&
+        request.resource.data.keys().hasOnly(['sequence']) &&
+        request.resource.data.sequence is int && request.resource.data.sequence > 0 &&
+        request.resource.data.sequence <= 1000000 &&
+        (resource == null || request.resource.data.sequence == resource.data.sequence + 1);
+    }
+
+    match /learningPaths/{pathId} {
+      allow read: if isAdmin() || (isTeacher() && (resource.data.ownerId == request.auth.uid || resource.data.visibility == 'shared'));
+      // Validated and audited by the authenticated content lifecycle API.
+      allow write: if false;
+    }
+
+    match /modules/{moduleId} {
+      function validModule() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['title', 'description', 'lessonIds', 'ownerId', 'visibility', 'revision', 'createdAt', 'updatedAt', 'progression', 'lockingEnabled', 'archived', 'archivedBy', 'archivedAt', 'archiveReason', 'archiveModerated', 'deletionPending', 'deletionRequestedBy']) &&
+          d.title is string && d.title.size() > 0 && d.title.size() <= 120 &&
+          d.description is string && d.description.size() <= 1000 &&
+          d.lessonIds is list && d.lessonIds.size() > 0 && d.lessonIds.size() <= 100 &&
+          d.lessonIds.toSet().size() == d.lessonIds.size() &&
+          d.ownerId is string && d.revision is int && d.revision > 0 &&
+          d.visibility in ['private', 'shared'] &&
+          d.createdAt is timestamp && d.updatedAt == request.time &&
+          d.progression == 'sequential' && d.lockingEnabled == false;
+      }
+      allow read: if (isAdmin() || isTeacher()) && (resource.data.ownerId == request.auth.uid || resource.data.visibility == 'shared');
+      allow create: if noArchiveMetadata() && (isAdmin() || isTeacher()) && validModule() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.createdAt == request.time && request.resource.data.revision == 1;
+      allow update: if archiveUnchanged() && resource.data.get('archived', false) != true && (isAdmin() || (isTeacher() && resource.data.ownerId == request.auth.uid)) && validModule() &&
+        request.resource.data.ownerId == resource.data.ownerId && request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if false;
     }
 
     match /learnerNumbers/{lrn} {
@@ -327,13 +396,21 @@ service cloud.firestore {
       }
 
       // Teachers can add an existing lesson only to a class they own. Admins can read them to see which classes use a lesson (lesson editor).
+      match /learningPaths/{assignmentId} {
+        allow read: if signedIn() && (isAdmin() || teachesClass(classId) || isClassMember(classId));
+        allow write: if false;
+      }
+
       match /classLessons/{lessonId} {
+        function pathMetadataUnchanged() {
+          return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['learningPathId', 'learningPathAssignmentId', 'learningPathTitle', 'learningPathModuleOrder']);
+        }
         allow read: if signedIn() &&
           (isAdmin() ||
            teachesClass(classId) || isClassMember(classId));
 
-        allow create: if teachesActiveClass(classId) && (request.resource.data.get('mode','') == 'practice' || !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt']));
-        allow update: if teachesActiveClass(classId) && (
+        allow create: if !request.resource.data.keys().hasAny(['learningPathId', 'learningPathAssignmentId', 'learningPathTitle', 'learningPathModuleOrder']) && teachesActiveClass(classId) && ownsOrShared(get(/databases/$(database)/documents/lessons/$(request.resource.data.get('lessonId', lessonId))).data) && get(/databases/$(database)/documents/lessons/$(request.resource.data.get('lessonId', lessonId))).data.get('archived', false) != true && (!request.resource.data.keys().hasAny(['moduleId']) || get(/databases/$(database)/documents/modules/$(request.resource.data.moduleId)).data.get('archived', false) != true) && (request.resource.data.get('mode','') == 'practice' || !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt']));
+        allow update: if teachesActiveClass(classId) && pathMetadataUnchanged() && (!resource.data.keys().hasAny(['learningPathAssignmentId']) || request.resource.data.get('mode', 'assessment') == resource.data.get('mode', 'assessment')) && request.resource.data.get('lessonId', lessonId) == resource.data.get('lessonId', lessonId) && (
           (resource.data.get('mode','') == 'practice' && request.resource.data.get('mode','') == 'assessment' && !request.resource.data.keys().hasAny(['deadlineHistory','scheduleChangedAt'])) ||
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['openAt', 'dueAt', 'deadlineHistory','scheduleChangedAt']));
         allow delete: if teachesActiveClass(classId);
@@ -345,7 +422,9 @@ service cloud.firestore {
         resource.data.teacherId == request.auth.uid;
 
       allow create: if isTeacher() &&
-        request.resource.data.teacherId == request.auth.uid;
+        request.resource.data.teacherId == request.auth.uid &&
+        ownsOrShared(get(/databases/$(database)/documents/lessons/$(request.resource.data.lessonId)).data) &&
+        get(/databases/$(database)/documents/lessons/$(request.resource.data.lessonId)).data.get('archived', false) != true;
 
       allow delete: if isTeacher() &&
         resource.data.teacherId == request.auth.uid;

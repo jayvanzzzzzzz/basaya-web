@@ -72,7 +72,7 @@ let tooltipStops=0;
 const actions=await load('teacher/views/classActions.js',()=>module({attachFloatingTooltips:()=>()=>tooltipStops++}));
 const actionDocument=parseHTML(`<div>${actions.addLessonAction('add')}${actions.reviewReadingsAction('class/id')}</div>`).document;
 assert.equal(actionDocument.querySelector('button').textContent,'');
-assert.equal(actionDocument.querySelector('button').getAttribute('aria-label'),'Add lesson');
+assert.equal(actionDocument.querySelector('button').getAttribute('aria-label'),'Add modules');
 assert.equal(actionDocument.querySelector('a').getAttribute('href'),'#/classes/class%2Fid/readings');
 assert.equal(actionDocument.querySelector('a').textContent,'');
 actions.watchTeacherTooltips();actions.leaveTeacherTooltips();assert.equal(tooltipStops,1);

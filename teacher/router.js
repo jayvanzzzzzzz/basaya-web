@@ -80,9 +80,10 @@ export async function renderRoute() {
       else link.removeAttribute('aria-current');
     });
   const [title, kind] = routeLoadingInfo(route, 'teacher');
-  const finishLoading = beginPageLoading(route, `teacher:${state.user.uid}`, kind);
+  const classroom = state.classes.find(item => item.id === classId);
+  const finishLoading = beginPageLoading(route, `teacher:${state.user.uid}`, kind, { classroom });
   page(title, "");
-  prepareLoadingHeader(kind);
+  prepareLoadingHeader(kind, { classroom });
   let success = true;
   try {
     if (route === "/dashboard") await renderTeacherLanding();

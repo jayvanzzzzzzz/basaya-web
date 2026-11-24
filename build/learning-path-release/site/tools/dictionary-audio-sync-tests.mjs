@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { startFirestoreTestServer } from './firestore-test-server.mjs';
+import { dictionaryAudioOperation } from '../notify-api/lib/dictionaryAudio.js';
+const require=createRequire(new URL('../notify-api/package.json',import.meta.url));
+const {initializeApp,deleteApp}=require('firebase-admin/app');
+const {getFirestore}=require('firebase-admin/firestore');
+const emulator=await startFirestoreTestServer(...process.argv.slice(2));
+process.env.FIRESTORE_EMULATOR_HOST=emulator.host;
+const app=initializeApp({projectId:emulator.project});
+const db=getFirestore(app);
+const seed=async(path,value)=>db.doc(path).set(value);
+const audio=(lesson,word,n=1)=>{
+  const storageKey=`lessons/${lesson}/pronunciation/page-0/sentence-${n}-${word}.mp3`;
+  return {storageKey,audioUrl:`https://basaya-tts.jayvanzsingca5.workers.dev/audio/${storageKey}`,text:word};
+};
+const call=(uid,operation,extra={})=>dictionaryAudioOperation(db,uid,{operation:`dictionary-audio-${operation}`,...extra},async()=>new Map([['puno','punò']]));
+try{
+  for(const role of ['admin','teacher','student'])await seed(`users/${role}`,{role});
+  await seed('dictionary/bahay',{word:'bahay',accent:'báhay',hidden:false,senses:[{definitions:['A home.']}]});
+  await seed('dictionary/lihim',{word:'lihim',hidden:true});
+  const initial=audio('lesson','bahay');
+  const tree=audio('lesson','puno',2);
+  const absent=audio('lesson','bago',3);
+  const hidden=audio('lesson','lihim',4);
+  const sentence={...audio('lesson','buong pangungusap'),storageKey:'lessons/lesson/pronunciation/page-1/sentence-1-model.mp3'};
+  await seed('lessons/lesson/pronunciation/content',{words:['bahay','puno','bago','lihim','buong pangungusap'],cloudAudio:[initial,tree,absent,hidden,sentence],pages:[{sentence:'May bahay.',cloudAudio:sentence}]});
+  const result=await call('admin','sync',{lessonId:'lesson'});
+  assert.equal(result.synced,2);
+  assert.deepEqual(result.missing,['bago','lihim']);
+  assert.equal((await db.doc('dictionary/bago').get()).exists,false,'Never invent a dictionary entry or its meaning');
+  assert.equal((await db.doc('dictionaryAudio/buong pangungusap').get()).exists,false,'Sentence recordings are excluded');
+  assert.equal((await call('student','resolve',{key:'BÁHAY'})).audioUrl,initial.audioUrl);
+  assert.equal((await db.doc('dictionary/bahay').get()).get('senses')[0].definitions[0],'A home.','Audio sync preserves meaning');
+  const replacement=audio('lesson','bahay-new');replacement.text='bahay';
+  await seed('lessons/lesson/pronunciation/content',{words:['bahay'],cloudAudio:[replacement]});
+  await call('admin','sync',{lessonId:'lesson'});
+  assert.equal((await call('student','resolve',{key:'bahay'})).audioUrl,replacement.audioUrl,'Editing a lesson replaces the previous dictionary audio');
+  await seed('dictionary/bahay',{word:'bahay',accent:'baháy',hidden:false});
+  assert.equal((await call('student','resolve',{key:'bahay'})).audioUrl,null,'An accent edit invalidates outdated audio');
+  await assert.rejects(call('student','sync',{lessonId:'lesson'}),error=>error.status===403);
+  await assert.rejects(call('teacher','sync',{lessonId:'lesson'}),error=>error.status===403);
+  await assert.rejects(call('student','resolve',{key:'../escape'}),error=>error.status===400);
+  assert.equal((await call('student','resolve',{key:'missing'})).audioUrl,null,'Words without shared audio retain first-tap generation');
+  await seed('lessons/forged/pronunciation/content',{words:['bahay'],cloudAudio:[{...replacement,storageKey:'lessons/forged/pronunciation/page-0/fake.mp3',audioUrl:'https://untrusted.test/audio.mp3'}]});
+  assert.equal((await call('admin','sync',{lessonId:'forged'})).synced,0,'Never publish arbitrary audio URLs');
+  console.log('PASS: saved Get Ready audio, Add/Edit replacement, seed and teacher words, preserved meanings, missing-word handling, sentence exclusion, admin authorization, accent invalidation, URL validation');
+}finally{await deleteApp(app);await emulator.stop()}

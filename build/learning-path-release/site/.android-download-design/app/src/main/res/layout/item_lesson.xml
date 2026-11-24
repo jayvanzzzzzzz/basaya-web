@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="@color/lesson_card_surface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:rippleColor="@color/lesson_card_ripple"
+    app:strokeColor="@color/lesson_card_stroke"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="14dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- A. Title -->
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/lexend"
+                android:maxLines="1"
+                android:textColor="@color/lesson_card_title"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Mga Pangngalan sa Ating Paligid" />
+
+            <!-- B. Meta: Aralin N · mode · ● difficulty (colors set in LessonAdapter) -->
+            <TextView
+                android:id="@+id/tvMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/public_sans"
+                android:maxLines="1"
+                android:textColor="@color/lesson_card_body"
+                android:textSize="13sp"
+                tools:text="Aralin 3 · Pagtataya · ● Beginner" />
+
+            <!-- C. Teacher's schedule: opens on / deadline / closed. Hidden when there is none. -->
+            <TextView
+                android:id="@+id/tvSchedule"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/public_sans"
+                android:maxLines="1"
+                android:textColor="@color/lesson_status_progress_fg"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="Deadline: Okt 20, 11:59 PM"
+                tools:visibility="visible" />
+
+            <!-- D. One segment per lesson part; skipped parts are hidden. Gone for Practice lessons. -->
+            <LinearLayout
+                android:id="@+id/progressRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="6dp"
+                    android:layout_weight="1"
+                    android:importantForAccessibility="noHideDescendants"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/segLecture"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_lesson_segment" />
+
+                    <View
+                        android:id="@+id/segGame"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_lesson_segment" />
+
+                    <View
+                        android:id="@+id/segActivity"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_lesson_segment" />
+
+                    <View
+                        android:id="@+id/segQuiz"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_lesson_segment" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvProgressLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:fontFamily="@font/public_sans"
+                    android:maxLines="1"
+                    android:textColor="@color/lesson_status_progress_fg"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="2/4" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Download status is separate from the 48dp options target. -->
+        <FrameLayout
+            android:id="@+id/downloadStatus"
+            android:layout_width="32dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:importantForAccessibility="yes"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ibDownload"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_lesson_downloaded" />
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/pbDownload"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:indeterminate="true"
+                android:max="100"
+                android:visibility="gone"
+                app:indicatorColor="@color/lesson_card_primary"
+                app:indicatorSize="22dp"
+                app:trackColor="@color/lesson_card_track"
+                app:trackCornerRadius="2dp"
+                app:trackThickness="2.5dp" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/downloadButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/lesson_card_download_options_cd"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_lesson_more" />
+        </FrameLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

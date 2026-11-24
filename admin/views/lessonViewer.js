@@ -37,7 +37,9 @@ export async function loadLessonSections(lessonId) {
     activityStatus: status(data.activity),
     lectures: content(data.lectures),
     pronunciation: content(data.pronunciation),
+    pronunciationStatus: status(data.pronunciation),
     quiz: content(data.quiz),
+    quizStatus: status(data.quiz),
     game: (data.game || []).filter((item) => item.id !== "status"),
     gameStatus: status(data.game || []),
   };
@@ -420,8 +422,8 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
     const render = {
       activity: () => activityHtml(sections.activity, sections.activityStatus),
       lectures: () => lecturesHtml(sections.lectures),
-      pronunciation: () => pronunciationHtml(sections.pronunciation),
-      quiz: () => quizHtml(sections.quiz),
+      pronunciation: () => sections.pronunciationStatus?.completion === "skipped" ? '<p class="muted">Pronunciation is skipped for this lesson.</p>' : pronunciationHtml(sections.pronunciation),
+      quiz: () => sections.quizStatus?.completion === "skipped" ? '<p class="muted">Quiz is skipped for this lesson.</p>' : quizHtml(sections.quiz),
       game: () => gameHtml(sections.game || [], sections.gameStatus),
     };
     const select = (id, focus = false) => {
@@ -484,9 +486,9 @@ export function openLessonViewer(lesson, { loadSections = loadLessonSections, on
         const c = counts(sections);
         $("[data-stats]", modal).innerHTML = [
           ["Lecture Pages", c.lectures],
-          ["Questions", c.quiz],
+          ["Questions", sections.quizStatus?.completion === "skipped" ? "Skipped" : c.quiz],
           ["Activity pages", sections.activityStatus?.completion === "skipped" ? "Skipped" : c.activity],
-          ["Words", c.pronunciation],
+          ["Words", sections.pronunciationStatus?.completion === "skipped" ? "Skipped" : c.pronunciation],
           ["Game levels", sections.gameStatus?.completion === "skipped" ? "Skipped" : c.game],
         ]
           .map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`)

@@ -216,6 +216,7 @@ export async function renderTeachers() {
                 (t) => `<tr data-teacher-id="${escapeHtml(t.id)}" data-teacher-name="${escapeHtml(t.displayName || "Unnamed teacher")}" data-teacher-status="${t.disabled === true ? "deactivated" : "active"}">
                   <td>
                     <div class="teacher-table__person">
+                      <span class="teacher-table__avatar teacher-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20v-1a7 7 0 0 1 14 0v1" /></svg></span>
                       <span class="teacher-table__name">${escapeHtml(t.displayName || "Unnamed teacher")}</span>
                       ${titleLabel(t.title) ? `<span class="teacher-table__title">${escapeHtml(titleLabel(t.title))}</span>` : ""}
                     </div>

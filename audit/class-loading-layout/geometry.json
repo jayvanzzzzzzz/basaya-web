@@ -1,0 +1,3314 @@
+[
+  {
+    "kind": "classroom",
+    "theme": "light",
+    "width": 1440,
+    "loading": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 169.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 98.875,
+        "width": 407.9375,
+        "height": 45,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "45px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 62.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 313.59375,
+        "y": 231.96875,
+        "width": 1084.8125,
+        "height": 146.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 640.671875,
+        "y": 231.96875,
+        "width": 757.734375,
+        "height": 117.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 640.671875,
+        "y": 242.9375,
+        "width": 252.578125,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 706.453125,
+        "y": 250.9375,
+        "width": 169.203125,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 313.59375,
+        "y": 406.921875,
+        "width": 1084.8125,
+        "height": 807.734375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 338.59375,
+        "y": 431.921875,
+        "width": 1034.8125,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 338.59375,
+        "y": 541.78125,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 338.59375,
+        "y": 614.96875,
+        "width": 1034.8125,
+        "height": 574.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 402.59375,
+        "y": 642.15625,
+        "width": 858.8125,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 169.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 98.875,
+        "width": 407.9375,
+        "height": 45,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "45px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 62.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 313.59375,
+        "y": 231.96875,
+        "width": 1084.8125,
+        "height": 146.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 640.671875,
+        "y": 231.96875,
+        "width": 757.734375,
+        "height": 117.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 640.671875,
+        "y": 242.9375,
+        "width": 252.578125,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 706.453125,
+        "y": 250.9375,
+        "width": 169.203125,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 313.59375,
+        "y": 406.921875,
+        "width": 1084.8125,
+        "height": 743.40625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 338.59375,
+        "y": 431.921875,
+        "width": 1034.8125,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 338.59375,
+        "y": 541.78125,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 338.59375,
+        "y": 614.96875,
+        "width": 1034.8125,
+        "height": 430.765625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 402.59375,
+        "y": 642.15625,
+        "width": 762.8125,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "light",
+    "width": 768,
+    "loading": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 223.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 384.875,
+        "width": 407.9375,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 348.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 23.03125,
+        "y": 571.96875,
+        "width": 721.9375,
+        "height": 208.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 721.9375,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 240.640625,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 70.21875,
+        "y": 663.53125,
+        "width": 175.859375,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 23.03125,
+        "y": 808.53125,
+        "width": 721.9375,
+        "height": 1047.734375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 48.03125,
+        "y": 833.53125,
+        "width": 671.9375,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 48.03125,
+        "y": 943.390625,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 48.03125,
+        "y": 1016.578125,
+        "width": 671.9375,
+        "height": 814.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 112.03125,
+        "y": 1043.765625,
+        "width": 603.9375,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 223.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 384.875,
+        "width": 407.9375,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 348.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 23.03125,
+        "y": 571.96875,
+        "width": 721.9375,
+        "height": 208.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 721.9375,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 240.640625,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 70.21875,
+        "y": 663.53125,
+        "width": 175.859375,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 23.03125,
+        "y": 808.53125,
+        "width": 721.9375,
+        "height": 923.40625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 48.03125,
+        "y": 833.53125,
+        "width": 671.9375,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 48.03125,
+        "y": 943.390625,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 48.03125,
+        "y": 1016.578125,
+        "width": 671.9375,
+        "height": 610.765625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 112.03125,
+        "y": 1043.765625,
+        "width": 603.9375,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "light",
+    "width": 390,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 387.0625,
+        "width": 358,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 350.578125,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 595.65625,
+        "width": 358,
+        "height": 252.46875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 358,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 119.328125,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 723.21875,
+        "width": 108.9375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 868.125,
+        "width": 358,
+        "height": 1074.984375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 885.125,
+        "width": 324,
+        "height": 169.109375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1054.234375,
+        "width": 259.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1127.421875,
+        "width": 324,
+        "height": 798.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1154.609375,
+        "width": 260,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 387.0625,
+        "width": 358,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 350.578125,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 595.65625,
+        "width": 358,
+        "height": 252.46875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 358,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 119.328125,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 723.21875,
+        "width": 108.9375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 868.125,
+        "width": 358,
+        "height": 1173.921875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 885.125,
+        "width": 324,
+        "height": 169.109375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1054.234375,
+        "width": 259.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1127.421875,
+        "width": 324,
+        "height": 784.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1154.609375,
+        "width": 260,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "light",
+    "width": 320,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 458.84375,
+        "width": 288,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 422.359375,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 667.4375,
+        "width": 288,
+        "height": 330.046875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 288,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 96,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 853.390625,
+        "width": 85.609375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 1017.484375,
+        "width": 288,
+        "height": 1357.5,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 1034.484375,
+        "width": 254,
+        "height": 192.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1227.390625,
+        "width": 254,
+        "height": 106.78125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1350.171875,
+        "width": 254,
+        "height": 1007.8125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1377.359375,
+        "width": 190,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 458.84375,
+        "width": 288,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 422.359375,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 667.4375,
+        "width": 288,
+        "height": 330.046875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 288,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 96,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 853.390625,
+        "width": 85.609375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 1017.484375,
+        "width": 288,
+        "height": 1346.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 1034.484375,
+        "width": 254,
+        "height": 192.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1227.390625,
+        "width": 254,
+        "height": 106.78125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1350.171875,
+        "width": 254,
+        "height": 831.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1377.359375,
+        "width": 190,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "dark",
+    "width": 1440,
+    "loading": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 169.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 98.875,
+        "width": 407.9375,
+        "height": 45,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "45px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 62.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 313.59375,
+        "y": 231.96875,
+        "width": 1084.8125,
+        "height": 146.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 640.671875,
+        "y": 231.96875,
+        "width": 757.734375,
+        "height": 117.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 640.671875,
+        "y": 242.9375,
+        "width": 252.578125,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 706.453125,
+        "y": 250.9375,
+        "width": 169.203125,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 313.59375,
+        "y": 406.921875,
+        "width": 1084.8125,
+        "height": 807.734375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 338.59375,
+        "y": 431.921875,
+        "width": 1034.8125,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 338.59375,
+        "y": 541.78125,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 338.59375,
+        "y": 614.96875,
+        "width": 1034.8125,
+        "height": 574.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 402.59375,
+        "y": 642.15625,
+        "width": 858.8125,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 169.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 98.875,
+        "width": 407.9375,
+        "height": 45,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "45px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 62.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 313.59375,
+        "y": 231.96875,
+        "width": 1084.8125,
+        "height": 146.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 640.671875,
+        "y": 231.96875,
+        "width": 757.734375,
+        "height": 117.953125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 640.671875,
+        "y": 242.9375,
+        "width": 252.578125,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 706.453125,
+        "y": 250.9375,
+        "width": 169.203125,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 313.59375,
+        "y": 406.921875,
+        "width": 1084.8125,
+        "height": 743.40625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 338.59375,
+        "y": 431.921875,
+        "width": 1034.8125,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 338.59375,
+        "y": 541.78125,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 338.59375,
+        "y": 614.96875,
+        "width": 1034.8125,
+        "height": 430.765625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 402.59375,
+        "y": 642.15625,
+        "width": 762.8125,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "dark",
+    "width": 768,
+    "loading": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 223.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 384.875,
+        "width": 407.9375,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 348.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 23.03125,
+        "y": 571.96875,
+        "width": 721.9375,
+        "height": 208.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 721.9375,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 240.640625,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 70.21875,
+        "y": 663.53125,
+        "width": 175.859375,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 23.03125,
+        "y": 808.53125,
+        "width": 721.9375,
+        "height": 1047.734375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 48.03125,
+        "y": 833.53125,
+        "width": 671.9375,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 48.03125,
+        "y": 943.390625,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 48.03125,
+        "y": 1016.578125,
+        "width": 671.9375,
+        "height": 814.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 112.03125,
+        "y": 1043.765625,
+        "width": 603.9375,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 223.578125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 384.875,
+        "width": 407.9375,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 348.390625,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 23.03125,
+        "y": 571.96875,
+        "width": 721.9375,
+        "height": 208.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 721.9375,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 23.03125,
+        "y": 655.53125,
+        "width": 240.640625,
+        "height": 96,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 70.21875,
+        "y": 663.53125,
+        "width": 175.859375,
+        "height": 31.671875,
+        "fontSize": "28.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "31.68px"
+      },
+      ".class-lessons": {
+        "x": 23.03125,
+        "y": 808.53125,
+        "width": 721.9375,
+        "height": 923.40625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 48.03125,
+        "y": 833.53125,
+        "width": 671.9375,
+        "height": 109.859375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 48.03125,
+        "y": 943.390625,
+        "width": 295.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 48.03125,
+        "y": 1016.578125,
+        "width": 671.9375,
+        "height": 610.765625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 112.03125,
+        "y": 1043.765625,
+        "width": 603.9375,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "dark",
+    "width": 390,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 387.0625,
+        "width": 358,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 350.578125,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 595.65625,
+        "width": 358,
+        "height": 252.46875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 358,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 119.328125,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 723.21875,
+        "width": 108.9375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 868.125,
+        "width": 358,
+        "height": 1074.984375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 885.125,
+        "width": 324,
+        "height": 169.109375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1054.234375,
+        "width": 259.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1127.421875,
+        "width": 324,
+        "height": 798.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1154.609375,
+        "width": 260,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 387.0625,
+        "width": 358,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 350.578125,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 595.65625,
+        "width": 358,
+        "height": 252.46875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 358,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 679.21875,
+        "width": 119.328125,
+        "height": 139.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 723.21875,
+        "width": 108.9375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 868.125,
+        "width": 358,
+        "height": 1173.921875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 885.125,
+        "width": 324,
+        "height": 169.109375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1054.234375,
+        "width": 259.21875,
+        "height": 57.1875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1127.421875,
+        "width": 324,
+        "height": 784.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1154.609375,
+        "width": 260,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "classroom",
+    "theme": "dark",
+    "width": 320,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 458.84375,
+        "width": 288,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 422.359375,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 667.4375,
+        "width": 288,
+        "height": 330.046875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 288,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 96,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 853.390625,
+        "width": 85.609375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 1017.484375,
+        "width": 288,
+        "height": 1357.5,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 1034.484375,
+        "width": 254,
+        "height": 192.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1227.390625,
+        "width": 254,
+        "height": 106.78125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1350.171875,
+        "width": 254,
+        "height": 1007.8125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1377.359375,
+        "width": 190,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 249.078125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 458.84375,
+        "width": 288,
+        "height": 33,
+        "fontSize": "26.4px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "33px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 422.359375,
+        "width": 66.8125,
+        "height": 22.09375,
+        "fontSize": "13px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.1px"
+      },
+      ".class-overview": {
+        "x": 16,
+        "y": 667.4375,
+        "width": 288,
+        "height": 330.046875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stats": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 288,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat": {
+        "x": 16,
+        "y": 809.390625,
+        "width": 96,
+        "height": 159.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-overview__stat b": {
+        "x": 16,
+        "y": 853.390625,
+        "width": 85.609375,
+        "height": 28.140625,
+        "fontSize": "25.6px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "28.16px"
+      },
+      ".class-lessons": {
+        "x": 16,
+        "y": 1017.484375,
+        "width": 288,
+        "height": 1346.09375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__header": {
+        "x": 33,
+        "y": 1034.484375,
+        "width": 254,
+        "height": 192.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson-tabs": {
+        "x": 33,
+        "y": 1227.390625,
+        "width": 254,
+        "height": 106.78125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lessons__list": {
+        "x": 33,
+        "y": 1350.171875,
+        "width": 254,
+        "height": 831.6875,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".class-lesson__content h3": {
+        "x": 93,
+        "y": 1377.359375,
+        "width": 190,
+        "height": 24,
+        "fontSize": "16px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "24px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "light",
+    "width": 1440,
+    "loading": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 147.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 86.734375,
+        "width": 241.421875,
+        "height": 43.1875,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "43.2px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 58.390625,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 313.59375,
+        "y": 209.953125,
+        "width": 1084.8125,
+        "height": 519.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 314.59375,
+        "y": 210.953125,
+        "width": 794.8125,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 338.59375,
+        "y": 269.09375,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 330.59375,
+        "y": 341.890625,
+        "width": 762.8125,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 355.59375,
+        "y": 366.890625,
+        "width": 712.8125,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 355.59375,
+        "y": 487.5625,
+        "width": 712.8125,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 1142.40625,
+        "y": 209.953125,
+        "width": 256,
+        "height": 519.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 147.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 86.734375,
+        "width": 241.40625,
+        "height": 43.1875,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "43.2px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 58.390625,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 313.59375,
+        "y": 209.953125,
+        "width": 1084.8125,
+        "height": 676.828125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 314.59375,
+        "y": 210.953125,
+        "width": 794.8125,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 338.59375,
+        "y": 269.09375,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 330.59375,
+        "y": 341.890625,
+        "width": 762.8125,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 355.59375,
+        "y": 366.890625,
+        "width": 712.8125,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 355.59375,
+        "y": 487.5625,
+        "width": 712.8125,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 1142.40625,
+        "y": 209.953125,
+        "width": 256,
+        "height": 519.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "light",
+    "width": 768,
+    "loading": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 372.734375,
+        "width": 241.421875,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 344.390625,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 23.03125,
+        "y": 485.40625,
+        "width": 721.9375,
+        "height": 515.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 24.03125,
+        "y": 486.40625,
+        "width": 719.9375,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 48.03125,
+        "y": 544.546875,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 40.03125,
+        "y": 617.34375,
+        "width": 687.9375,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 65.03125,
+        "y": 642.34375,
+        "width": 637.9375,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 65.03125,
+        "y": 763.015625,
+        "width": 637.9375,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 372.734375,
+        "width": 241.40625,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 344.390625,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 23.03125,
+        "y": 485.40625,
+        "width": 721.9375,
+        "height": 515.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 24.03125,
+        "y": 486.40625,
+        "width": 719.9375,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 48.03125,
+        "y": 544.546875,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 40.03125,
+        "y": 617.34375,
+        "width": 687.9375,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 65.03125,
+        "y": 642.34375,
+        "width": 637.9375,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 65.03125,
+        "y": 763.015625,
+        "width": 637.9375,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "light",
+    "width": 390,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 374.921875,
+        "width": 241.421875,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 346.578125,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 487.59375,
+        "width": 358,
+        "height": 570.28125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 488.59375,
+        "width": 356,
+        "height": 155.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 541.125,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 643.75,
+        "width": 324,
+        "height": 397.125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 660.75,
+        "width": 290,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 804.671875,
+        "width": 290,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 374.921875,
+        "width": 241.40625,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 346.578125,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 487.59375,
+        "width": 358,
+        "height": 570.28125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 488.59375,
+        "width": 356,
+        "height": 155.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 541.125,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 643.75,
+        "width": 324,
+        "height": 397.125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 660.75,
+        "width": 290,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 804.671875,
+        "width": 290,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "light",
+    "width": 320,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 446.703125,
+        "width": 241.421875,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 418.359375,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 559.375,
+        "width": 288,
+        "height": 614.53125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 560.375,
+        "width": 286,
+        "height": 176.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 612.90625,
+        "width": 249.21875,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 736.53125,
+        "width": 254,
+        "height": 420.375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 753.53125,
+        "width": 220,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 920.703125,
+        "width": 220,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 446.703125,
+        "width": 241.40625,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 418.359375,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 559.375,
+        "width": 288,
+        "height": 614.53125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 560.375,
+        "width": 286,
+        "height": 176.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 612.90625,
+        "width": 249.21875,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 736.53125,
+        "width": 254,
+        "height": 420.375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 753.53125,
+        "width": 220,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 920.703125,
+        "width": 220,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "dark",
+    "width": 1440,
+    "loading": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 147.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 86.734375,
+        "width": 241.421875,
+        "height": 43.1875,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "43.2px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 58.390625,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 313.59375,
+        "y": 209.953125,
+        "width": 1084.8125,
+        "height": 519.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 314.59375,
+        "y": 210.953125,
+        "width": 794.8125,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 338.59375,
+        "y": 269.09375,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 330.59375,
+        "y": 341.890625,
+        "width": 762.8125,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 355.59375,
+        "y": 366.890625,
+        "width": 712.8125,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 355.59375,
+        "y": 487.5625,
+        "width": 712.8125,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 1142.40625,
+        "y": 209.953125,
+        "width": 256,
+        "height": 519.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 313.59375,
+        "y": 38.390625,
+        "width": 1084.8125,
+        "height": 147.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 313.59375,
+        "y": 86.734375,
+        "width": 241.40625,
+        "height": 43.1875,
+        "fontSize": "36px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "43.2px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 313.59375,
+        "y": 58.390625,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 313.59375,
+        "y": 209.953125,
+        "width": 1084.8125,
+        "height": 676.828125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 314.59375,
+        "y": 210.953125,
+        "width": 794.8125,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 338.59375,
+        "y": 269.09375,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 330.59375,
+        "y": 341.890625,
+        "width": 762.8125,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 355.59375,
+        "y": 366.890625,
+        "width": 712.8125,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 355.59375,
+        "y": 487.5625,
+        "width": 712.8125,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 1142.40625,
+        "y": 209.953125,
+        "width": 256,
+        "height": 519.90625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "dark",
+    "width": 768,
+    "loading": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 372.734375,
+        "width": 241.421875,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 344.390625,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 23.03125,
+        "y": 485.40625,
+        "width": 721.9375,
+        "height": 515.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 24.03125,
+        "y": 486.40625,
+        "width": 719.9375,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 48.03125,
+        "y": 544.546875,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 40.03125,
+        "y": 617.34375,
+        "width": 687.9375,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 65.03125,
+        "y": 642.34375,
+        "width": 637.9375,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 65.03125,
+        "y": 763.015625,
+        "width": 637.9375,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 23.03125,
+        "y": 324.390625,
+        "width": 721.9375,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 23.03125,
+        "y": 372.734375,
+        "width": 241.40625,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 23.03125,
+        "y": 344.390625,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 23.03125,
+        "y": 485.40625,
+        "width": 721.9375,
+        "height": 515.5625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 24.03125,
+        "y": 486.40625,
+        "width": 719.9375,
+        "height": 130.9375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 48.03125,
+        "y": 544.546875,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 40.03125,
+        "y": 617.34375,
+        "width": 687.9375,
+        "height": 366.625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 65.03125,
+        "y": 642.34375,
+        "width": 637.9375,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 65.03125,
+        "y": 763.015625,
+        "width": 637.9375,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "dark",
+    "width": 390,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 374.921875,
+        "width": 241.421875,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 346.578125,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 487.59375,
+        "width": 358,
+        "height": 570.28125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 488.59375,
+        "width": 356,
+        "height": 155.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 541.125,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 643.75,
+        "width": 324,
+        "height": 397.125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 660.75,
+        "width": 290,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 804.671875,
+        "width": 290,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 326.578125,
+        "width": 358,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 374.921875,
+        "width": 241.40625,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 346.578125,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 487.59375,
+        "width": 358,
+        "height": 570.28125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 488.59375,
+        "width": 356,
+        "height": 155.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 541.125,
+        "width": 293.453125,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 643.75,
+        "width": 324,
+        "height": 397.125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 660.75,
+        "width": 290,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 804.671875,
+        "width": 290,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  },
+  {
+    "kind": "add-lesson",
+    "theme": "dark",
+    "width": 320,
+    "loading": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 446.703125,
+        "width": 241.421875,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 418.359375,
+        "width": 179.546875,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 559.375,
+        "width": 288,
+        "height": 614.53125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 560.375,
+        "width": 286,
+        "height": 176.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 612.90625,
+        "width": 249.21875,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 736.53125,
+        "width": 254,
+        "height": 420.375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 753.53125,
+        "width": 220,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 920.703125,
+        "width": 220,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    },
+    "loaded": {
+      "#page-header": {
+        "x": 16,
+        "y": 398.359375,
+        "width": 288,
+        "height": 137.015625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      "#page-header h1": {
+        "x": 16,
+        "y": 446.703125,
+        "width": 241.40625,
+        "height": 32.640625,
+        "fontSize": "27.2px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "32.64px"
+      },
+      "#page-header .page-header__crumbs": {
+        "x": 16,
+        "y": 418.359375,
+        "width": 181.609375,
+        "height": 20.34375,
+        "fontSize": "13.12px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "20.336px"
+      },
+      ".lesson-workspace": {
+        "x": 16,
+        "y": 559.375,
+        "width": 288,
+        "height": 614.53125,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar": {
+        "x": 17,
+        "y": 560.375,
+        "width": 286,
+        "height": 176.15625,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".lesson-picker__toolbar h2": {
+        "x": 35.390625,
+        "y": 612.90625,
+        "width": 249.21875,
+        "height": 23,
+        "fontSize": "20px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "23px"
+      },
+      ".module-class-sequence": {
+        "x": 33,
+        "y": 736.53125,
+        "width": 254,
+        "height": 420.375,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      },
+      ".module-class-sequence h3": {
+        "x": 50,
+        "y": 753.53125,
+        "width": 220,
+        "height": 19.3125,
+        "fontSize": "16.8px",
+        "fontFamily": "Lexend, \"Be Vietnam Pro\", system-ui, sans-serif",
+        "lineHeight": "19.32px"
+      },
+      ".module-class-sequence select": {
+        "x": 50,
+        "y": 920.703125,
+        "width": 220,
+        "height": 46.703125,
+        "fontSize": "14.4px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "22.32px"
+      },
+      ".lesson-guide": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "fontSize": "15px",
+        "fontFamily": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+        "lineHeight": "23.25px"
+      }
+    }
+  }
+]

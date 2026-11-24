@@ -26,7 +26,8 @@ export function wireRequestRibbons(classId, root = document) {
       if (active && focus) button.focus();
     });
   };
-  select(activeByClass.get(classId) || "join");
+  const remembered = activeByClass.get(classId) || "join";
+  select(buttons.some(button => button.dataset.requestTab === remembered) ? remembered : buttons[0]?.dataset.requestTab);
   buttons.forEach((button, index) => {
     button.addEventListener("click", () => select(button.dataset.requestTab));
     button.addEventListener("keydown", (event) => {

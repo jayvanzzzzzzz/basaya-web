@@ -85,7 +85,9 @@ function skillCompletion(progress, key) {
   const rows = progress.perLesson.filter(row =>
     !['scheduled','before-joining','exempt','deactivated'].includes(row.status) &&
     !(key === 'talasalitaan' && row.lesson.gameSkipped) &&
-    !(key === 'pagkilala' && row.lesson.activitySkipped));
+    !(key === 'pagkilala' && row.lesson.activitySkipped) &&
+    !(key === 'pagbigkas' && row.lesson.pronunciationSkipped) &&
+    !(key === 'pagsusulit' && row.lesson.quizSkipped));
   const done = rows.filter(row => row.parts.parts[SKILL_PARTS[key]] === true).length;
   return { done, total: rows.length, notStarted: rows.length > 0 && rows.every(row => row.status === 'not-started') };
 }
@@ -190,8 +192,8 @@ function exportStudentExcel({ classroom, student, profile, progress, joined }) {
               row.lectureDone ? "Done" : null,
               score(row.skills.talasalitaan, row.lesson.gameSkipped),
               score(row.skills.pagkilala, row.lesson.activitySkipped),
-              score(row.skills.pagbigkas),
-              score(row.skills.pagsusulit),
+              score(row.skills.pagbigkas, row.lesson.pronunciationSkipped),
+              score(row.skills.pagsusulit, row.lesson.quizSkipped),
             ]),
           },
         ],
@@ -321,8 +323,8 @@ export async function renderStudentProgress(classId, studentId) {
         <td class="score-cell ${row.lectureDone ? "score-cell--check" : "score-cell--empty"}"><span aria-hidden="true">${row.lectureDone ? "✓" : "—"}</span><span class="sr-only">${row.lectureDone ? 'Lecture finished' : 'Lecture not finished'}</span></td>
         ${missedCell(row, "talasalitaan", scoreCell(row.skills.talasalitaan, { skipped: row.lesson.gameSkipped }))}
         ${missedCell(row, "pagkilala", scoreCell(row.skills.pagkilala, { skipped: row.lesson.activitySkipped }))}
-        ${missedCell(row, "pagbigkas", scoreCell(row.skills.pagbigkas))}
-        ${missedCell(row, "pagsusulit", scoreCell(row.skills.pagsusulit))}
+        ${missedCell(row, "pagbigkas", scoreCell(row.skills.pagbigkas, { skipped: row.lesson.pronunciationSkipped }))}
+        ${missedCell(row, "pagsusulit", scoreCell(row.skills.pagsusulit, { skipped: row.lesson.quizSkipped }))}
       </tr>`,
     )
     .join("");

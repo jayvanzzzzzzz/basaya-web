@@ -80,18 +80,18 @@ export function openAssignTeacherModal(classroom, onDone) {
           <strong>${escapeHtml(className)}</strong>
           <span>${escapeHtml(classroom.section || "Classroom")}</span>
         </span>
-        <span class="class-teacher-badge">Needs a teacher</span>
+        <span class="class-teacher-badge">${classroom.archived ? "Archived class" : "Needs a teacher"}</span>
       </div>
       <form id="assign-teacher-form" class="form-card">
         <label>Teacher
           <select name="teacherId" required data-missing="Choose the teacher who will take over this class.">
             <option value="" disabled selected>Choose a teacher…</option>
-            ${teacherOptions()}
+            ${teacherOptions(classroom.teacherId)}
           </select>
         </label>
         <p class="assign-teacher__note">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>
-          The students, lesson plan and progress stay with the class. It appears in the teacher's portal right away.
+          The students, lesson plan and progress stay with the class. ${classroom.archived ? "It stays archived in the assigned teacher's portal until restored." : "It appears in the teacher's portal right away."}
         </p>
         <p class="form-error" id="assign-teacher-error" role="alert"></p>
         <div class="modal-actions">

@@ -28,9 +28,7 @@ export async function postToApi(path, body, { signal } = {}) {
   return result;
 }
 
-/** Admin only: deletes a class with its roster, lessons and every student's progress. */
-export const deleteClass = (classId) => postToApi("delete-class", { classId });
-
+/** Staff archive/restore preserves class records; teachers also manage enrollment. */
 export const classLifecycle = (action, classId, studentId) => postToApi("class-lifecycle", { action, classId, ...(studentId ? { studentId } : {}) });
 
 /** Approves a current leave request, archiving work before removing membership. */

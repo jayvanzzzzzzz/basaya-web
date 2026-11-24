@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import net from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 
-export async function startFirestoreTestServer(java, jar) {
+export async function startFirestoreTestServer(java, jar, rulesPath) {
   assert.ok(jar, "Supply a Java executable and the cached Firestore emulator jar.");
   const server = net.createServer().listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -14,7 +14,7 @@ export async function startFirestoreTestServer(java, jar) {
   await new Promise((resolve) => server.close(resolve));
   const project = `demo-basaya-join-${process.pid}`;
   const base = `http://127.0.0.1:${port}`;
-  const rulesFile = new URL("../firestore.rules", import.meta.url);
+  const rulesFile = rulesPath ? new URL(rulesPath, `file://${process.cwd().replaceAll('\\', '/')}/`) : new URL("../firestore.rules", import.meta.url);
   let logs = "";
   const child = spawn(java, ["-jar", jar, "--host", "127.0.0.1", "--port", String(port), "--project_id", project, "--rules", fileURLToPath(rulesFile)], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
   const exited = once(child, "exit");

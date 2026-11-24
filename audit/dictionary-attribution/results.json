@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "checks": "Both roles; light/dark 1440/768/390/320; search; filters; alphabet pressed state; pagination; details; audio callback; permissions; tooltips; edit modal; typed-word add; load retry; empty state",
+  "errors": []
+}

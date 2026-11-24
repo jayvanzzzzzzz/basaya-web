@@ -1,0 +1,315 @@
+import { skeleton } from '../../js/page-loading.js';
+import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { $, $$, escapeHtml, navigate, toast } from "../../js/helpers.js";
+import {
+  availability,
+  clearResume,
+  findLesson,
+  loadActivity,
+  loadLessonProgress,
+  resumeOf,
+  saveProgress,
+  saveResume,
+  submitAnswer,
+} from "../data.js";
+import { onLeave } from "../router.js";
+import { buddy, confettiFrom, content, icon, setBuddyMood, shake } from "../ui.js";
+import { renderResults } from "./results.js";
+
+// Gawain (the app's PracticeActivity): tap the correct words, then check. Each page has 3
+// lives; a page is right if answered within them, and wrong once they run out (the answer is
+// then shown). Wrong checks are counted as retries. Saves the Pagkilala skill.
+// Every check saves the place and the lives left (resume.activity), so a closed Gawain
+// continues on that page without refilling its lives.
+
+const LIVES = 3;
+
+const sameSet = (a, b) => a.size === b.size && [...a].every((value) => b.has(value));
+
+export async function renderActivity(lessonId) {
+  const lesson = await findLesson(lessonId);
+  const pathUrl = `/lesson/${encodeURIComponent(lessonId)}`;
+  if (!lesson) return navigate("/home");
+  if (!navigator.onLine) { toast("Kumonekta upang masagutan at masuri ang gawain."); return navigate(pathUrl); }
+  if (availability(lesson) !== "open" || lesson.activityFinished || lesson.activitySkipped) return navigate(pathUrl);
+
+  content().innerHTML = `<div class="st-focus-loading">${skeleton('activity', { label: 'Inihahanda ang gawain...', tag: 'div' })}</div>`;
+  const [activity, progress] = await Promise.all([loadActivity(lessonId), loadLessonProgress(lessonId)]);
+  if (progress.activityFinished) return navigate(pathUrl);
+  if (!activity?.pages.length) {
+    toast("Walang gawain para sa araling ito.");
+    return navigate(pathUrl);
+  }
+
+  content().innerHTML = `
+    <section class="st-activity">
+      <header class="st-focus-bar">
+        <a class="st-icon-button st-hub-tooltip" data-tooltip="Bumalik sa aralin" href="#${pathUrl}" aria-label="Bumalik sa aralin">${icon("close")}</a>
+        <div class="st-track st-track--activity" id="activity-track" role="progressbar" aria-label="Mga pahina ng gawain" aria-valuemin="0" aria-valuemax="${activity.pages.length}" aria-valuenow="0">
+          ${activity.pages.map(() => "<i></i>").join("")}
+        </div>
+      </header>
+      <div class="st-activity__workspace">
+      <div class="st-activity__head">
+        <span class="st-activity__eyebrow">${lesson.practice ? "Pagsasanay" : "Gawain"} · Pagkilala sa salita</span>
+        <div class="st-activity__meta">
+          <span class="st-activity__tag" id="activity-page"></span>
+          <span class="st-activity__lives-group"><span id="activity-lives-label">3 buhay</span><span class="st-lives" id="activity-lives" role="img">
+            ${Array.from({ length: LIVES }, () => icon("heart")).join("")}
+          </span></span>
+        </div>
+        <h1>${escapeHtml(activity.title || "Sanayin ang iyong natutuhan")}</h1>
+        ${activity.instruction ? `<p>${escapeHtml(activity.instruction)}</p>` : ""}
+      </div>
+      <div class="st-activity__exercise">
+      <div class="st-card st-worksheet">
+        <div class="st-worksheet__heading"><span class="st-worksheet__icon">${icon("pencil")}</span><div><h2>Piliin ang sagot</h2><p>Pindutin ang salita upang piliin o alisin ito.</p></div></div>
+        <div class="st-worksheet__meta">
+        <span class="st-activity__pick" id="activity-pick"></span>
+        <span id="activity-selection" role="status">0 napili</span></div>
+        <div class="st-tiles" id="activity-tiles" role="group" aria-label="Mga salita"></div>
+      </div>
+      <div class="st-feedback" id="activity-feedback" hidden aria-live="polite">
+        ${buddy("idle", "st-feedback__buddy")}
+        <p id="activity-feedback-text"></p>
+      </div>
+      <div class="st-focus-footer">
+        <button class="st-action st-action--check st-wide" type="button" id="activity-action" disabled>Suriin ang Sagot</button>
+      </div>
+      </div></div>
+    </section>`;
+
+  const tilesEl = $("#activity-tiles");
+  const action = $("#activity-action");
+  const feedback = $("#activity-feedback");
+  const feedbackText = $("#activity-feedback-text");
+  const feedbackBuddy = feedback.querySelector(".st-buddy");
+
+  const total = activity.pages.length;
+  const resume = resumeOf(progress, "activity", total);
+  let pageIndex = resume?.done ?? 0;
+  let checked = false;
+  let score = Number(resume?.score) || 0; // pages right within their lives
+  let retries = Number(resume?.retries) || 0;
+  // Lives left on the current page. Places saved before lives existed only know `tried`.
+  let lives = Math.min(LIVES, Math.max(1, Number(resume?.lives) || (resume?.tried ? LIVES - 1 : LIVES)));
+  const selected = new Set();
+  let saving = false;
+  let lastRight = false;
+  let pendingSubmission = null;
+  onLeave(() => {});
+
+  const savePlace = (done) =>
+    saveResume(lessonId, "activity", { done, total, score, retries, lives: done === pageIndex ? lives : LIVES });
+
+  const page = () => activity.pages[pageIndex];
+  const correctSet = () => new Set(page().correctIndices);
+  // A page saved without correct answers can't be answered, so it never blocks the student.
+  const isCorrect = () => lastRight;
+  // The page is over once it's right or its lives ran out.
+  const pageOver = () => checked && (isCorrect() || lives === 0);
+
+  const updateLives = () => {
+    const livesEl = $("#activity-lives");
+    $$("svg", livesEl).forEach((heart, i) => heart.classList.toggle("is-lost", i >= lives));
+    livesEl.setAttribute("aria-label", `${lives} sa ${LIVES} buhay`);
+    $("#activity-lives-label").textContent = `${lives} sa ${LIVES} buhay`;
+  };
+
+  const setAction = (label, kind) => {
+    action.textContent = label;
+    action.className = `st-action st-action--${kind} st-wide`;
+  };
+
+  const updateTrack = () => {
+    $$("#activity-track i").forEach((bar, i) => {
+      bar.classList.toggle("is-done", i < pageIndex || (i === pageIndex && pageOver()));
+    });
+    $("#activity-page").textContent = `Pahina ${pageIndex + 1} / ${activity.pages.length}`;
+    $("#activity-track").setAttribute("aria-valuenow", String(pageIndex + (pageOver() ? 1 : 0)));
+    updateLives();
+  };
+
+  const showPage = () => {
+    const pickCount = page().pickCount;
+    $("#activity-pick").textContent = pickCount ? `Pumili ng ${pickCount} salita` : "";
+    $("#activity-pick").hidden = !pickCount;
+    selected.clear();
+    $("#activity-selection").textContent = "0 napili";
+    checked = false;
+    feedback.hidden = true;
+    setBuddyMood(feedbackBuddy, "idle");
+    setAction("Suriin ang Sagot", "check");
+    action.disabled = true;
+    tilesEl.innerHTML = page()
+      .words.map(
+        (word, index) =>
+          `<button class="st-tile" type="button" data-index="${index}" aria-pressed="false" style="--i:${index}">${escapeHtml(word)}</button>`,
+      )
+      .join("");
+    updateTrack();
+  };
+
+  tilesEl.addEventListener("click", (event) => {
+    const tile = event.target.closest(".st-tile");
+    if (!tile || checked || saving || pendingSubmission) return;
+    const index = Number(tile.dataset.index);
+    if (selected.has(index)) selected.delete(index);
+    else selected.add(index);
+    tile.classList.toggle("is-picked", selected.has(index));
+    tile.setAttribute("aria-pressed", String(selected.has(index)));
+    $("#activity-selection").textContent = `${selected.size} napili`;
+    action.disabled = selected.size === 0;
+  });
+
+  const showFeedback = (good, text) => {
+    feedback.hidden = false;
+    feedback.className = `st-feedback st-feedback--${good ? "good" : "retry"}`;
+    feedbackText.textContent = text;
+    setBuddyMood(feedbackBuddy, good ? "happy" : "cheer");
+    feedback.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
+  const check = async () => {
+    if (saving) return;
+    saving = true;
+    action.disabled = true;
+    pendingSubmission ||= { index: pageIndex, selected: [...selected], eventId: crypto.randomUUID() };
+    let result;
+    try {
+      result = await submitAnswer(lessonId, "activity", pendingSubmission);
+      pendingSubmission = null;
+    } catch (error) {
+      toast(error.message || "Hindi na-save ang sagot. Pindutin muli upang subukan.");
+      return;
+    } finally { saving = false; action.disabled = false; }
+    page().correctIndices = result.correctIndices || [];
+    page().explanation = result.explanation || "";
+    lastRight = result.right;
+    const correct = correctSet();
+    const right = isCorrect();
+    const incomplete = !right && selected.size > 0 && [...selected].every((index) => correct.has(index));
+    const explanation = page().explanation ?? activity.explanation;
+    if (!right) {
+      lives -= 1;
+      retries += 1;
+    }
+    const outOfLives = lives === 0;
+
+    $$(".st-tile", tilesEl).forEach((tile) => {
+      const index = Number(tile.dataset.index);
+      const picked = selected.has(index);
+      tile.disabled = true;
+      tile.classList.remove("is-picked");
+      if (picked && correct.has(index)) {
+        tile.classList.add("is-right");
+        tile.insertAdjacentHTML("afterbegin", icon("check"));
+      } else if (picked) {
+        tile.classList.add("is-wrong");
+        tile.insertAdjacentHTML("afterbegin", icon("cross"));
+        shake(tile);
+      } else if (outOfLives && correct.has(index)) {
+        tile.classList.add("is-right"); // the answer the student missed, shown without a check
+      } else {
+        tile.classList.add("is-faded");
+      }
+    });
+
+    checked = true;
+    updateTrack();
+    if (right) score += 1;
+    // Accepted attempts and remaining lives have already been saved by the server.
+    const lastPage = pageIndex === activity.pages.length - 1;
+
+    if (outOfLives) {
+      shake($("#activity-lives"));
+      showFeedback(false, `Naubos ang iyong buhay. Ito ang tamang sagot. ${explanation}`.trim());
+      setAction(lastPage ? "Tapusin" : "Susunod", "next");
+    } else if (right) {
+      showFeedback(
+        true,
+        page().pickCount === 0
+          ? "Walang nakatakdang sagot ang pahinang ito. Tuloy tayo!"
+          : `Mahusay! ${explanation}`.trim(),
+      );
+      setAction(lastPage ? "Tapusin" : "Susunod", "next");
+      confettiFrom(tilesEl);
+    } else if (incomplete) {
+      showFeedback(false, `Tama ang napili mo, pero may kulang pa! Pumili ng ${correct.size} salita.`);
+      setAction("Subukan Muli", "retry");
+    } else {
+      showFeedback(false, `Subukan muli. ${explanation}`.trim());
+      setAction("Subukan Muli", "retry");
+    }
+  };
+
+  const finish = async () => {
+    if (saving) return;
+    saving = true;
+    action.disabled = true;
+    try {
+      const result = await saveProgress(
+        lessonId,
+        {
+          activityFinished: true,
+          activityScore: score,
+          activityTotal: total,
+          activityCompletedAt: serverTimestamp(),
+          ...clearResume("activity"),
+        },
+        { key: "pagkilala", correct: score, attempts: total, items: total, extras: { retries } },
+      );
+      if (result) score = result.score;
+    } catch (error) {
+      console.error("Failed to save activity result", error);
+      toast(
+        error?.code === "permission-denied"
+          ? "Sarado na ang aralin. Hindi na-save ang iyong sagot."
+          : "Hindi na-save ang iyong sagot. Subukan muli.",
+      );
+      action.disabled = false;
+      saving = false;
+      return;
+    }
+
+    const percent = Math.floor((score * 100) / total);
+    renderResults({
+      lessonId,
+      title: activity.title,
+      heading: "Natapos mo ang Gawain!",
+      scoreLabel: "Iyong puntos",
+      score,
+      total,
+      showPercent: false,
+      starCount: percent >= 80 ? 3 : percent >= 50 ? 2 : score > 0 ? 1 : 0,
+      remark:
+        percent >= 80
+          ? "Mahusay! Handa ka na sa susunod na hakbang."
+          : percent >= 50
+            ? "Magaling! Konting ulit pa lang."
+            : "Magpatuloy! Balikan ang aralin at subukan muli.",
+      celebrate: percent >= 50,
+    });
+  };
+
+  action.addEventListener("click", () => {
+    if (!checked) return check();
+    if (!pageOver()) return showPage(); // try the same page again
+    if (pageIndex < activity.pages.length - 1) {
+      pageIndex += 1;
+      lives = LIVES;
+      showPage();
+    } else {
+      finish();
+    }
+  });
+
+  // Every page was answered before closing: only the result is left to save.
+  if (pageIndex >= total) {
+    pageIndex = total - 1;
+    showPage();
+    finish();
+  } else {
+    showPage();
+  }
+}

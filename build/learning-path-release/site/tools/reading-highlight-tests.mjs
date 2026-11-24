@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { fluencyPages } from '../js/fluencyContent.js';
+import { fluencyPages as serverPages } from '../notify-api/lib/fluencyContent.js';
+import { fillSentence, followAlong } from '../student/readAlong.js';
+const require = createRequire(new URL('../notify-api/package.json', import.meta.url));
+const { parseHTML } = require('linkedom');
+globalThis.document = parseHTML('<p></p>').document;
+const frames = new Map(); let serial = 0;
+globalThis.requestAnimationFrame = fn => { frames.set(++serial, fn); return serial; };
+globalThis.cancelAnimationFrame = id => frames.delete(id);
+const tick = () => { for (const [id, fn] of [...frames]) { frames.delete(id); fn(); } };
+const line = document.querySelector('p');
+fillSentence(line, 'Basa, basa muli.');
+assert.deepEqual([...line.querySelectorAll('.st-word')].map(node => node.textContent), ['Basa,', 'basa', 'muli.']);
+const audio = { currentTime: .2, duration: 4 };
+let stop = followAlong(line, audio, [0, 1.5, 3]);
+tick(); assert.ok(line.querySelector('.is-on'));
+audio.currentTime = 1; tick(); assert.equal(line.querySelectorAll('.is-read').length, 0, 'Uses saved timing rather than a duration fraction');
+audio.currentTime = 1.6; tick(); assert.equal(line.querySelectorAll('.is-read').length, 1);
+audio.currentTime = 3.2; tick(); assert.equal(line.querySelectorAll('.is-read').length, 2);
+stop(); assert.equal(frames.size, 0); assert.equal(line.querySelector('.is-on, .is-read'), null);
+audio.currentTime = 3.8; stop = followAlong(line, audio, null); tick();
+assert.equal(line.querySelectorAll('.is-read').length, 2, 'Older audio estimates word positions from duration');
+stop();
+// The pronunciation screen fades word backgrounds without replacing text or moving a pill.
+const nodes = [...line.querySelectorAll('.st-word')];
+audio.currentTime = .2;
+stop = followAlong(line, audio, [0, 1.5, 3], { softHighlight: true });
+tick();
+assert.equal(line.querySelector('.st-word-bubble.is-on'), null);
+assert.equal(line.querySelector('.is-speaking'), nodes[0]);
+audio.currentTime = 1.6; tick();
+assert.equal(line.querySelector('.is-speaking'), nodes[1]);
+assert.equal(line.querySelectorAll('.is-speaking').length, 1);
+assert.equal(line.querySelectorAll('.st-word')[0], nodes[0], 'Letters keep the same DOM nodes');
+audio.currentTime = 3.2; tick();
+assert.equal(line.querySelector('.is-speaking'), nodes[2]);
+audio.currentTime = .2; tick();
+assert.equal(line.querySelector('.is-speaking'), nodes[0], 'Seeking backward updates the highlight');
+stop(); assert.equal(frames.size, 0); assert.equal(line.querySelector('.is-speaking, .is-read'), null);
+for (const starts of [[0, .5, 1], [0, 2, 1], [-1, 0, 1], [0], [0, NaN, 1], null]) {
+  const content = { pages: [{ sentence: 'Basa, basa muli.', cloudAudio: { audioUrl: 'https://model/audio', wordStarts: starts } }] };
+  assert.deepEqual(fluencyPages(content), serverPages(content));
+  assert.deepEqual(fluencyPages(content)[0].wordStarts, starts?.[1] === .5 ? starts : null);
+}
+console.log('PASS: precise word timing, repeated words and punctuation, older-audio fallback, cleanup, validated client/server timing data');

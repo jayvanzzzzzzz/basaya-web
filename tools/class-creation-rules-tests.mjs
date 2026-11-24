@@ -85,12 +85,22 @@ try {
     ["unknown role cannot create", "unknown", "unknown", 403],
   ];
   for (const [index, [label, uid, teacherId, status]] of cases.entries()) {
-    await expect(label, await write(`classes/case-${index}`, { teacherId, className: "Test class" }, uid ? token(uid) : null), status);
+    await expect(label, await write(`classes/case-${index}`, { teacherId, className: "Test class", schoolYear: "2026-2027" }, uid ? token(uid) : null), status);
   }
   await expect("teacher cannot create without teacherId", await write("classes/no-owner", { className: "Test" }, token("teacher-a")), 403);
-  await expect("teacher can still edit own class", await write("classes/case-3", { teacherId: "teacher-a", className: "Updated" }, token("teacher-a")), 200);
-  await expect("student cannot edit teacher class", await write("classes/case-3", { teacherId: "teacher-a", className: "Blocked" }, token("student")), 403);
-  await expect("admin can still reassign class", await write("classes/case-3", { teacherId: "teacher-b", className: "Reassigned" }, token("admin")), 200);
+  await expect("teacher can still edit own class", await write("classes/case-3", { teacherId: "teacher-a", className: "Updated", schoolYear: "2026-2027" }, token("teacher-a")), 200);
+  await expect("student cannot edit teacher class", await write("classes/case-3", { teacherId: "teacher-a", className: "Blocked", schoolYear: "2026-2027" }, token("student")), 403);
+  await expect("admin can still reassign class", await write("classes/case-3", { teacherId: "teacher-b", className: "Reassigned", schoolYear: "2026-2027" }, token("admin")), 200);
+  for (const year of ["", "2026", "2026-2028", "2027-2026", "<script>"]) {
+    await expect(`reject invalid year ${year}`, await write(`classes/invalid-${checks}`, { teacherId: "teacher-a", schoolYear: year }, token("teacher-a")), 403);
+  }
+  await expect("missing year rejected", await write("classes/missing-year", {teacherId:"teacher-a"}, token("teacher-a")), 403);
+  for (const uid of ["teacher-b", "admin"]) {
+    await expect(`${uid} cannot change year`, await write("classes/case-3", {teacherId:"teacher-b",schoolYear:"2027-2028"}, token(uid)), 403);
+    await expect(`${uid} cannot remove year`, await write("classes/case-3", {teacherId:"teacher-b"}, token(uid)), 403);
+  }
+  await expect("seed legacy class", await write("classes/legacy", {teacherId:"teacher-a", className:"Legacy"}, "owner"), 200);
+  await expect("legacy class remains editable", await write("classes/legacy", {teacherId:"teacher-a", className:"Edited legacy"}, token("teacher-a")), 200);
   console.log(`Class creation rules: ${checks - 5} authorization checks passed; 5 fixture writes passed.`);
 } finally {
   emulator.kill();
