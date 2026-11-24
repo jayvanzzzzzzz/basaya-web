@@ -90,6 +90,7 @@ const context = vm.createContext({
   navigator: { standalone: false, onLine: true },
   icon: () => '<svg aria-hidden="true"></svg>', escapeHtml: String,
   canOpen: () => true, availability: () => "open", isComplete: () => false,
+  pathBlocker: () => null, sequenceBlocker: () => null,
   student: { lessons: [] },
 });
 const source = (await readFile(new URL("../student/views/home.js", import.meta.url), "utf8"))

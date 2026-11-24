@@ -199,10 +199,20 @@ function assignedStudentPaths() {
       gameSkipped: false, activitySkipped: false, pronunciationSkipped: false, quizSkipped: false };
   });
 }
+function pathDownloadControls(path) {
+  if (!isInstalledPwa()) return '';
+  const saved = path.members.filter(lesson => downloads.has(lesson.id)).length;
+  const busy = bulkDownloading || downloading.size > 0 || removingDownloads.size > 0;
+  const disabled = busy || !navigator.onLine || !path.members.some(lesson => canOpen(lesson) && !downloads.has(lesson.id));
+  const action = '<button class="button secondary" type="button" data-download-path="' + escapeHtml(path.id) + '" ' + (disabled ? 'disabled' : '') + '>' + icon('download') + 'I-download</button>';
+  return '<div class="st-path-download-actions">' + action + '<span>' + saved + '/' + path.members.length + ' na-download</span></div>' +
+    '<details class="st-download-menu"><summary aria-label="Mga opsyon sa download: ' + escapeHtml(path.title) + '" title="Mga opsyon sa download"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></summary><div class="st-download-controls"><span>I-save ang mga bukas na aralin para magamit offline</span>' + action +
+    '<button class="button secondary" type="button" data-remove-path-download="' + escapeHtml(path.id) + '" ' + (saved ? '' : 'hidden') + (busy ? ' disabled' : '') + '>Alisin ang download</button></div></details>';
+}
 function studentPathCard(path, search) {
   const unlocked = path.members.some(canOpen), status = statusOf(path), percent = Math.round(path.done / path.members.length * 100);
   const modules = new Set(path.members.map(lesson => lesson.moduleId).filter(Boolean)).size;
-  return `<li class="st-lesson-card st-assigned-path"><button class="st-lesson${unlocked ? '' : ' is-locked'}" type="button" data-student-path="${escapeHtml(path.id)}"><span class="st-lesson__top">${path.practice ? '' : `<span class="st-chip st-chip--${status.key}">${icon(status.icon)}${status.label}</span>`}</span><strong class="st-lesson__title">${highlight(path.title, search)}</strong><span class="st-lesson__desc">${modules ? modules + ' modules &middot; ' : ''}${path.members.length} aralin</span><span class="st-lesson__meta">${modeChip(path)}${scheduleChip(path)}</span>${path.practice ? '' : `<span class="st-lesson__progress"><span class="st-bar" role="progressbar" aria-label="Mga araling natapos" aria-valuemin="0" aria-valuemax="${path.members.length}" aria-valuenow="${path.done}"><i style="width:${percent}%"></i></span><b>${path.done}/${path.members.length}</b></span>`}<span class="st-lesson__action">${unlocked ? 'Buksan ang lesson path' : pathBlocker(path, student.lessons) ? 'Naka-lock ang lesson path' : 'Tingnan ang iskedyul'}${icon(unlocked ? 'chevron' : 'lock')}</span>${unlocked ? "" : lockOverlay()}</button></li>`;
+  return `<li class="st-lesson-card st-assigned-path${isInstalledPwa() ? " has-download-menu" : ""}"><button class="st-lesson${unlocked ? '' : ' is-locked'}" type="button" data-student-path="${escapeHtml(path.id)}"><span class="st-lesson__top">${path.practice ? '' : `<span class="st-chip st-chip--${status.key}">${icon(status.icon)}${status.label}</span>`}</span><strong class="st-lesson__title">${highlight(path.title, search)}</strong><span class="st-lesson__desc">${modules ? modules + ' modules &middot; ' : ''}${path.members.length} aralin</span><span class="st-lesson__meta">${modeChip(path)}${scheduleChip(path)}</span>${path.practice ? '' : `<span class="st-lesson__progress"><span class="st-bar" role="progressbar" aria-label="Mga araling natapos" aria-valuemin="0" aria-valuemax="${path.members.length}" aria-valuenow="${path.done}"><i style="width:${percent}%"></i></span><b>${path.done}/${path.members.length}</b></span>`}<span class="st-lesson__action">${unlocked ? 'Buksan ang lesson path' : pathBlocker(path, student.lessons) ? 'Naka-lock ang lesson path' : 'Tingnan ang iskedyul'}${icon(unlocked ? 'chevron' : 'lock')}</span>${unlocked ? "" : lockOverlay()}</button>${pathDownloadControls(path)}</li>`;
 }
 
 function moduleCard(module, search) {
@@ -626,7 +636,7 @@ export async function renderHome() {
     refreshDownloads();
   });
 
-  downloadAll?.addEventListener("click", async () => {
+  const downloadPath = async (targetPathId = activePathId) => {
     if (bulkDownloading || downloading.size || removingDownloads.size || !navigator.onLine || !isInstalledPwa()) return;
     const uid = student.uid;
     const cid = classId();
@@ -637,7 +647,7 @@ export async function renderHome() {
     refreshDownloads();
     try {
       await withDownloadAbort(load({ preserveCards: true }), controller.signal);
-      const queue = student.lessons.filter((lesson) => lesson.learningPathAssignmentId && (!activePathId || lesson.learningPathAssignmentId === activePathId) && canOpen(lesson) && !downloads.has(lesson.id));
+      const queue = student.lessons.filter((lesson) => lesson.learningPathAssignmentId && (!targetPathId || lesson.learningPathAssignmentId === targetPathId) && canOpen(lesson) && !downloads.has(lesson.id));
       const result = await downloadLessons(queue, {
         signal: controller.signal,
         shouldContinue: () => active && navigator.onLine && student.uid === uid && classId() === cid,
@@ -665,6 +675,31 @@ export async function renderHome() {
       bulkDownloading = false;
       bulkController = null;
       window.dispatchEvent(new Event("basaya-download-state"));
+    }
+  };
+
+  downloadAll?.addEventListener("click", () => downloadPath());
+  list.addEventListener('click', async event => {
+    const button = event.target.closest('[data-download-path], [data-remove-path-download]');
+    if (!button || button.disabled || !isInstalledPwa() || bulkDownloading || downloading.size || removingDownloads.size) return;
+    const id = button.dataset.downloadPath || button.dataset.removePathDownload;
+    if (button.hasAttribute('data-download-path')) { await downloadPath(id); return; }
+    const uid = student.uid, cid = classId();
+    if (!await confirmAction({ title: 'Alisin ang download ng lesson path?', message: 'Kailangan mo ng internet para i-download muli ang mga aralin. Mananatili ang iyong mga resulta.', confirm: 'Alisin', danger: true, student: true })) return;
+    if (!active || student.uid !== uid || classId() !== cid || bulkDownloading || downloading.size || removingDownloads.size) return;
+    const queue = student.lessons.filter(lesson => lesson.learningPathAssignmentId === id && downloads.has(lesson.id));
+    queue.forEach(lesson => removingDownloads.add(lesson.id));
+    refreshDownloads();
+    try {
+      for (const lesson of queue) {
+        if (!active || student.uid !== uid || classId() !== cid) break;
+        await removeLessonDownload(lesson.id);
+      }
+    } catch (error) { if (active) toast(error.message || 'Hindi naalis ang download. Subukan muli.'); }
+    finally {
+      queue.forEach(lesson => removingDownloads.delete(lesson.id));
+      if (student.uid === uid && classId() === cid) downloads = new Map((await downloadedLessons()).map(item => [item.meta.id, item]));
+      window.dispatchEvent(new Event('basaya-download-state'));
     }
   });
 

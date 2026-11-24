@@ -215,21 +215,21 @@ try {
   });
   await test("staff questions receive the correct workflow in English, Filipino and Taglish without full-handbook overflow", async () => {
     const cases = [
-      ["teacher", "How do I remove a student?", "Remove a student from class:", "account stays"],
-      ["teacher", "Paano tanggalin ang estudyante sa klase?", "Remove a student from class:", "archived"],
-      ["teacher", "Paano i-remove yung student sa class?", "Remove a student from class:", "Remove student"],
-      ["teacher", "How do I remove a lesson?", "Remove a lesson from class:", "cannot be undone"],
+      ["teacher", "How do I remove a student?", "Drop or re-enroll a student:", "stays on the roster"],
+      ["teacher", "Paano tanggalin ang estudyante sa klase?", "Drop or re-enroll a student:", "preserved"],
+      ["teacher", "Paano i-remove yung student sa class?", "Drop or re-enroll a student:", "Drop student"],
+      ["teacher", "How do I remove a lesson?", "Archive or restore a class lesson path:", "preserved"],
       ["teacher", "Why divided by 12?", "Pronunciation grading rubric:", "9/12 = 75%"],
-      ["teacher", "Same day deadline", "Opening dates & deadlines:", "11:59 PM"],
+      ["teacher", "Same day deadline", "Path opening dates and shared deadlines:", "11:59 PM"],
       ["teacher", "Export Excel report", "Print / PDF & Excel reports:", ".xlsx"],
       ["admin", "Paano alisin ang estudyante sa klase?", "Admin access & classroom membership:", "assigned teacher"],
-      ["admin", "How do I remove a teacher?", "Deactivate or reactivate a teacher:", "preserving their account"],
+      ["admin", "How do I remove a teacher?", "Deactivate or reactivate a teacher:", "are preserved"],
       ["admin", "How do I reactivate a teacher?", "Deactivate or reactivate a teacher:", "Reactivate teacher"],
       ["admin", "Can admin edit a teacher’s details?", "Teacher profile permissions:", "Admins cannot edit"],
       ["admin", "What does a teacher’s pulsing orange dot mean?", "Teacher account status filters:", "sign-in is blocked"],
       ["admin", "Set temporary password", "Student reset email or temporary password:", "Suggest another"],
       ["admin", "Generate lesson audio", "Generate and preview lesson audio:", "prepared audio"],
-      ["admin", "Undo deleting a lesson", "Delete a library lesson & Undo:", "Undo"],
+      ["admin", "Undo deleting a lesson", "Archive or delete library content:", "cannot be undone"],
     ];
     for (const [index, [role, question, heading, fact]] of cases.entries()) {
       const uid = `workflow-${index}`;
@@ -252,7 +252,23 @@ try {
     const before = calls;
     const result = await ask(uid, { question });
     assert.equal(result.cached,false);assert.equal(calls,before+1);
-    assert.ok(lastBody.messages[0].content.includes("Remove a student from class:"));
+    assert.ok(lastBody.messages[0].content.includes("Drop or re-enroll a student:"));
+  });
+  await test("new structure reaches each role with a bounded reference", async () => {
+    const cases = [
+      ["student", "LRN username password", "12-digit LRN"],
+      ["student", "Bakit naka-lock ang susunod na module o lesson path?", "Tapusin muna"],
+      ["teacher", "How do I assign lesson paths?", "Set dates and assign paths"],
+      ["admin", "How do I create a learning path?", "Save learning path"],
+    ];
+    for (const [index, [role, question, fact]] of cases.entries()) {
+      const uid = `structure-${index}`;
+      await db.doc(`users/${uid}`).set({ role }); advance();
+      await ask(uid, { question });
+      const prompt = lastBody.messages[0].content;
+      assert.ok(prompt.includes(fact), question);
+      assert.ok(Buffer.byteLength(prompt + question) + 256 + lastBody.max_completion_tokens <= LIMITS.tokensPerMinute);
+    }
   });
   console.log(`Assistant backend: ${tests} scenarios passed.`);
 } finally { await db.terminate(); await deleteApp(app); await emulator.stop(); }

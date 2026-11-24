@@ -95,8 +95,8 @@ for (const [role, guides] of Object.entries(handbookHelp)) {
 const removal = selectHandbookEntries("teacher", "How do I remove a student?");
 assert.equal(removal[0].id, "remove-student");
 assert.ok(!removal.some(g => g.id === "delete-messages"), "Unrelated deletion steps should not dilute removal instructions");
-assert.match(removal[0].text, /account stays/);
-assert.match(removal[0].text, /archived/);
+assert.match(removal[0].text, /stays on the roster as Dropped/);
+assert.match(removal[0].text, /saved progress and scores preserved/);
 assert.ok(matchesHandbookSearch(removal[0], "alisin student"));
 assert.ok(matchesHandbookSearch(removal[0], "remo stu"), "Keep partial search usable as people type");
 assert.ok(matchesHandbookSearch(removal[0], "tanggalin mag-aaral"));

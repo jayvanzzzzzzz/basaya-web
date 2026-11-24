@@ -432,9 +432,13 @@ export function openClassModal(existing) {
      <p>${existing ? "Update the class details students see." : "A unique class code is generated automatically."}</p>
      <form id="class-form">
        <label>School Year
-         ${existing ? `<input value="${escapeHtml(schoolYearOf(existing))}" readonly aria-describedby="school-year-hint" />` : `<select name="schoolYear" required data-missing="Choose a school year.">${schoolYearOptions().map(year => `<option value="${year}" ${year === currentSchoolYear() ? 'selected' : ''}>${year}</option>`).join('')}</select>`}
+         ${existing ? `<input value="${escapeHtml(schoolYearOf(existing))}" readonly aria-describedby="school-year-hint" />` : `<select name="schoolYear" required aria-describedby="school-year-hint" data-missing="Choose a school year.">${schoolYearOptions(state.classes).map(year => `<option value="${year}" ${year === currentSchoolYear() ? 'selected' : ''}>${year}</option>`).join('')}<option value="custom">Add school year manually…</option></select>`}
          <small id="school-year-hint">School Year cannot be changed after creation.</small>
        </label>
+       ${existing ? '' : `<label id="custom-school-year-field" hidden>Enter school year
+         <input id="custom-school-year" placeholder="e.g. 2030-2031" maxlength="9" pattern="[0-9]{4}-[0-9]{4}" title="Enter consecutive years, e.g. 2030-2031." aria-describedby="custom-school-year-hint" disabled />
+         <small id="custom-school-year-hint">Use consecutive years in YYYY-YYYY format.</small>
+       </label>`}
        <label>Grade level
          <select name="gradeLevel" required data-missing="Choose the grade level for this class.">
            <option value="" disabled ${!existing?.gradeLevel ? "selected" : ""}>Select grade</option>
@@ -457,12 +461,29 @@ export function openClassModal(existing) {
      </form>`,
     (modal, close) => {
       $("[data-close]", modal).onclick = close;
+      const schoolYearSelect = $('select[name="schoolYear"]', modal);
+      const customSchoolYear = $("#custom-school-year", modal);
+      if (schoolYearSelect) schoolYearSelect.onchange = () => {
+        const custom = schoolYearSelect.value === "custom";
+        $("#custom-school-year-field", modal).hidden = !custom;
+        customSchoolYear.disabled = !custom;
+        customSchoolYear.required = custom;
+        if (custom) customSchoolYear.focus();
+      };
       $("#class-form", modal).onsubmit = async (e) => {
         e.preventDefault();
         const form = new FormData(e.currentTarget);
         const values = Object.fromEntries(form);
         if (existing) delete values.schoolYear;
-        else if (!schoolYearOptions().includes(values.schoolYear)) { toast("Choose a valid school year."); return; }
+        else {
+          if (values.schoolYear === "custom") values.schoolYear = customSchoolYear.value.trim();
+          const years = values.schoolYear.split("-").map(Number);
+          if (!/^[0-9]{4}-[0-9]{4}$/.test(values.schoolYear) || years[1] !== years[0] + 1) {
+            toast("Enter consecutive school years, e.g. 2030-2031.");
+            (schoolYearSelect.value === "custom" ? customSchoolYear : schoolYearSelect).focus();
+            return;
+          }
+        }
         const className = `Grade ${values.gradeLevel} - ${values.section}`;
         try {
           if (existing)

@@ -414,6 +414,13 @@
 .st-download-controls > span { display: flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--ink-3); }
 .st-download-controls > button { display: flex; align-items: center; justify-content: flex-start; gap: .5rem; width: 100%; text-align: left; }
 .st-download-controls > button[hidden] { display: none; }
+.st-assigned-path.has-download-menu { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--lip); }
+.st-assigned-path.has-download-menu > .st-lesson { height: auto; flex: 1; border: 0; background: transparent; box-shadow: none; }
+.st-assigned-path.has-download-menu .st-sequence-lock > svg { top: 4rem; }
+.st-assigned-path.has-download-menu > .st-download-menu { z-index: 1; }
+.st-path-download-actions { display: flex; align-items: center; gap: .75rem; padding: 0 1.25rem 1.25rem; flex-wrap: wrap; }
+.st-path-download-actions > span { color: var(--ink-3); font-size: .85rem; }
+.st-path-download-actions > button { display: inline-flex; gap: .5rem; align-items: center; }
 .st-download-icon,
 .st-download-ring { display: inline-flex; width: 1.25rem; height: 1.25rem; flex: 0 0 1.25rem; }
 .st-download-icon svg,

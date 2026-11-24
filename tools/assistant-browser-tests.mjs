@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { mkdir } from "node:fs/promises";
 import { previewServer } from "./serve-assistant-preview.mjs";
+import { assistantHelp } from "../js/assistantHelp.js";
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/Scean Andrei/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright");
 const server = previewServer();
@@ -16,7 +17,7 @@ try {
   await page.goto(url); await page.locator("#assistant-quota").filter({ hasText: "5 questions left" }).waitFor();
   await mkdir(new URL("../audit/assistant/", import.meta.url), { recursive: true });
   await test("desktop help screen renders with no horizontal overflow", async () => {
-    assert.equal(await page.locator("[data-article]").count(), 8);
+    assert.equal(await page.locator("[data-article]").count(), assistantHelp.length);
     assert.equal(await page.locator("#assistant-help").isHidden(), true);
     assert.equal(await page.locator("#assistant-status").isHidden(), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

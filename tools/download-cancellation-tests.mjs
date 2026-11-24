@@ -20,6 +20,7 @@ async function scenario(cancelAtProgress) {
     offlineReady: Promise.resolve(true), URL, console,
     student: { uid: "student-a" }, classId: () => "class-a", findLesson: async () => lesson, canOpen: () => true,
     collection: () => ({}), db: {}, contentId: (id) => id,
+    contentCollection: async () => context.getDocsFromServer(),
     getDocsFromServer: async () => ({ docs: [{ id: "content", data: () => ({ cloudAudio: [{ audioUrl: "https://audio.test/one.mp3" }, { audioUrl: "https://audio.test/two.mp3" }] }) }] }),
     loadLessonProgress: async () => ({}), getDownload: async () => null,
     putDownload: async () => { committed++; },
